@@ -5,12 +5,15 @@
  */
 package io.kroxylicious.proxy;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kroxylicious.proxy.bootstrap.FilterChainFactory;
 import io.kroxylicious.proxy.config.Configuration;
 import io.kroxylicious.proxy.internal.KafkaProxyInitializer;
+import io.kroxylicious.proxy.internal.filter.SimpleNetFilter;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -103,9 +106,13 @@ public final class KafkaProxy {
         LOGGER.info("Proxying local {} to remote {}",
                 proxyAddress(), brokerAddress());
 
-        KafkaProxyInitializer initializer = new KafkaProxyInitializer(brokerHost,
-                brokerPort,
-                filterChainFactory,
+        KafkaProxyInitializer initializer = new KafkaProxyInitializer(null,
+                Map.of(),
+                new SimpleNetFilter(brokerHost,
+                        brokerPort,
+                        filterChainFactory,
+                        logNetwork,
+                        logFrames),
                 logNetwork,
                 logFrames);
 

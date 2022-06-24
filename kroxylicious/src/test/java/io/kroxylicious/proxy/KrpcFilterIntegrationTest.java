@@ -27,6 +27,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -49,6 +50,7 @@ public class KrpcFilterIntegrationTest {
             (byte) 0x64, (byte) 0x67, (byte) 0x61, (byte) 0x59, (byte) 0x16 };
     private static final byte[] TOPIC_2_CIPHERTEXT = { (byte) 0xffffffa7, (byte) 0xffffffc4, (byte) 0xffffffcb, (byte) 0xffffffcb, (byte) 0xffffffce, (byte) 0xffffff8b,
             (byte) 0x7f, (byte) 0xffffffd6, (byte) 0xffffffce, (byte) 0xffffffd1, (byte) 0xffffffcb, (byte) 0xffffffc3, (byte) 0xffffff80 };
+    private KafkaProxy proxy;
 
     @BeforeAll
     public static void checkReversibleEncryption() {
@@ -104,6 +106,14 @@ public class KrpcFilterIntegrationTest {
         return out;
     }
 
+    @AfterEach
+    public void shutdown() throws InterruptedException {
+        if (proxy != null) {
+            proxy.shutdown();
+            proxy = null;
+        }
+    }
+
     @Test
     public void shouldPassThroughRecordUnchanged() throws Exception {
         String proxyAddress = "localhost:9192";
@@ -113,18 +123,16 @@ public class KrpcFilterIntegrationTest {
             admin.createTopics(List.of(new NewTopic(TOPIC_1, 1, (short) 1))).all().get();
         }
 
-        String config = """
-                proxy:
-                  address: %s
-                clusters:
-                  demo:
-                    bootstrap_servers: %s
-                filters:
-                - type: ApiVersions
-                - type: BrokerAddress
-                """.formatted(proxyAddress, brokerList);
+        String config = String.format("proxy:\n" +
+                "  address: %s\n" +
+                "clusters:\n" +
+                "  demo:\n" +
+                "    bootstrap_servers: %s\n" +
+                "filters:\n" +
+                "- type: ApiVersions\n" +
+                "- type: BrokerAddress\n", proxyAddress, brokerList);
 
-        var proxy = startProxy(config);
+        proxy = startProxy(config);
 
         var producer = new KafkaProducer<String, String>(Map.of(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
@@ -146,9 +154,6 @@ public class KrpcFilterIntegrationTest {
         consumer.close();
         assertEquals(1, records.count());
         assertEquals("Hello, world!", records.iterator().next().value());
-
-        // shutdown the proxy
-        proxy.shutdown();
     }
 
     @Test
@@ -162,57 +167,62 @@ public class KrpcFilterIntegrationTest {
                     new NewTopic(TOPIC_2, 1, (short) 1))).all().get();
         }
 
-        String config = """
-                proxy:
-                  address: %s
-                clusters:
-                  demo:
-                    bootstrap_servers: %s
-                filters:
-                - type: ApiVersions
-                - type: BrokerAddress
-                - type: ProduceRequestTransformation
-                  config:
-                    transformation: io.kroxylicious.proxy.KrpcFilterIntegrationTest$TestEncoder
-                """.formatted(proxyAddress, brokerList);
+        String config = String.format("proxy:\n" +
+                "  address: %s\n" +
+                "clusters:\n" +
+                "  demo:\n" +
+                "    bootstrap_servers: %s\n" +
+                "filters:\n" +
+                "- type: ApiVersions\n" +
+                "- type: BrokerAddress\n" +
+                "- type: ProduceRequestTransformation\n" +
+                "  config:\n" +
+                "    transformation: io.kroxylicious.proxy.KrpcFilterIntegrationTest$TestEncoder\n",
+                proxyAddress, brokerList);
 
-        var proxy = startProxy(config);
-        try {
-            try (var producer = new KafkaProducer<String, String>(Map.of(
-                    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
-                    ProducerConfig.CLIENT_ID_CONFIG, "shouldModifyProduceMessage",
-                    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                    ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000))) {
-                producer.send(new ProducerRecord<>(TOPIC_1, "my-key", PLAINTEXT)).get();
-                producer.send(new ProducerRecord<>(TOPIC_2, "my-key", PLAINTEXT)).get();
-                producer.flush();
-            }
+        proxy = startProxy(config);
 
-            ConsumerRecords<String, byte[]> records1;
-            ConsumerRecords<String, byte[]> records2;
-            try (var consumer = new KafkaConsumer<String, byte[]>(Map.of(
-                    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
-                    ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-                    ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class,
-                    ConsumerConfig.GROUP_ID_CONFIG, "my-group-id",
-                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
-                consumer.subscribe(Set.of(TOPIC_1));
-                records1 = consumer.poll(Duration.ofSeconds(10));
-                consumer.subscribe(Set.of(TOPIC_2));
-                records2 = consumer.poll(Duration.ofSeconds(10));
-            }
-
-            assertEquals(1, records1.count());
-            assertArrayEquals(TOPIC_1_CIPHERTEXT, records1.iterator().next().value());
-            assertEquals(1, records2.count());
-            assertArrayEquals(TOPIC_2_CIPHERTEXT, records2.iterator().next().value());
-
+        try (var producer = new KafkaProducer<String, String>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
+                ProducerConfig.CLIENT_ID_CONFIG, "shouldModifyProduceMessage",
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000))) {
+            producer.send(new ProducerRecord<>(TOPIC_1, "my-key", PLAINTEXT)).get();
+            producer.send(new ProducerRecord<>(TOPIC_2, "my-key", PLAINTEXT)).get();
+            producer.flush();
         }
-        finally {
-            // shutdown the proxy
-            proxy.shutdown();
+
+        ConsumerRecords<String, byte[]> records1;
+        ConsumerRecords<String, byte[]> records2;
+        try (var consumer = new KafkaConsumer<String, byte[]>(Map.of(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class,
+                ConsumerConfig.GROUP_ID_CONFIG, "my-group-id",
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+            consumer.subscribe(Set.of(TOPIC_1));
+            records1 = consumer.poll(Duration.ofSeconds(10));
+            consumer.subscribe(Set.of(TOPIC_2));
+            records2 = consumer.poll(Duration.ofSeconds(10));
         }
+
+        assertEquals(1, records1.count());
+        assertArrayEquals(TOPIC_1_CIPHERTEXT, records1.iterator().next().value());
+        assertEquals(1, records2.count());
+        assertArrayEquals(TOPIC_2_CIPHERTEXT, records2.iterator().next().value());
+
+        try (var producer = new KafkaProducer<String, String>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
+                ProducerConfig.CLIENT_ID_CONFIG, "shouldModifyProduceMessage",
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000))) {
+            producer.send(new ProducerRecord<>(TOPIC_1, "my-key", PLAINTEXT)).get();
+            producer.send(new ProducerRecord<>(TOPIC_2, "my-key", PLAINTEXT)).get();
+            producer.flush();
+        }
+
     }
 
     private void printBuf(ByteBuffer buffer) {
@@ -238,62 +248,54 @@ public class KrpcFilterIntegrationTest {
                     new NewTopic(TOPIC_2, 1, (short) 1))).all().get();
         }
 
-        String config = """
-                proxy:
-                  address: %s
-                clusters:
-                  demo:
-                    bootstrap_servers: %s
-                filters:
-                - type: ApiVersions
-                - type: BrokerAddress
-                - type: FetchResponseTransformation
-                  config:
-                    transformation: io.kroxylicious.proxy.KrpcFilterIntegrationTest$TestDecoder
-                """.formatted(proxyAddress, brokerList);
+        String config = String.format("proxy:\n" +
+                "  address: %s\n" +
+                "clusters:\n" +
+                "  demo:\n" +
+                "    bootstrap_servers: %s\n" +
+                "filters:\n" +
+                "- type: ApiVersions\n" +
+                "- type: BrokerAddress\n" +
+                "- type: FetchResponseTransformation\n" +
+                "  config:\n" +
+                "    transformation: io.kroxylicious.proxy.KrpcFilterIntegrationTest$TestDecoder\n",
+                proxyAddress, brokerList);
 
-        var proxy = startProxy(config);
+        proxy = startProxy(config);
 
-        try {
+        try (var producer = new KafkaProducer<String, byte[]>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
+                ProducerConfig.CLIENT_ID_CONFIG, "shouldModifyFetchMessage",
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class,
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000))) {
 
-            try (var producer = new KafkaProducer<String, byte[]>(Map.of(
-                    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
-                    ProducerConfig.CLIENT_ID_CONFIG, "shouldModifyFetchMessage",
-                    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class,
-                    ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000))) {
-
-                producer.send(new ProducerRecord<>(TOPIC_1, "my-key", TOPIC_1_CIPHERTEXT)).get();
-                producer.send(new ProducerRecord<>(TOPIC_2, "my-key", TOPIC_2_CIPHERTEXT)).get();
-            }
-
-            ConsumerRecords<String, String> records1;
-            ConsumerRecords<String, String> records2;
-            try (var consumer = new KafkaConsumer<String, String>(Map.of(
-                    ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
-                    ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-                    ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-                    ConsumerConfig.GROUP_ID_CONFIG, "my-group-id",
-                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
-                consumer.subscribe(Set.of(TOPIC_1));
-
-                records1 = consumer.poll(Duration.ofSeconds(100));
-
-                consumer.subscribe(Set.of(TOPIC_2));
-
-                records2 = consumer.poll(Duration.ofSeconds(100));
-            }
-            assertEquals(1, records1.count());
-            assertEquals(1, records2.count());
-            assertEquals(List.of(PLAINTEXT, PLAINTEXT),
-                    List.of(records1.iterator().next().value(),
-                            records2.iterator().next().value()));
-
+            producer.send(new ProducerRecord<>(TOPIC_1, "my-key", TOPIC_1_CIPHERTEXT)).get();
+            producer.send(new ProducerRecord<>(TOPIC_2, "my-key", TOPIC_2_CIPHERTEXT)).get();
         }
-        finally {
-            // shutdown the proxy
-            proxy.shutdown();
+
+        ConsumerRecords<String, String> records1;
+        ConsumerRecords<String, String> records2;
+        try (var consumer = new KafkaConsumer<String, String>(Map.of(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, proxyAddress,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
+                ConsumerConfig.GROUP_ID_CONFIG, "my-group-id",
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+            consumer.subscribe(Set.of(TOPIC_1));
+
+            records1 = consumer.poll(Duration.ofSeconds(100));
+
+            consumer.subscribe(Set.of(TOPIC_2));
+
+            records2 = consumer.poll(Duration.ofSeconds(100));
         }
+        assertEquals(1, records1.count());
+        assertEquals(1, records2.count());
+        assertEquals(List.of(PLAINTEXT, PLAINTEXT),
+                List.of(records1.iterator().next().value(),
+                        records2.iterator().next().value()));
+
     }
 
     private KafkaProxy startProxy(String config) throws InterruptedException {

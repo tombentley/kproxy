@@ -18,7 +18,7 @@
 
     <properties>
         <java.version>11</java.version>
-        <java.test.version>17</java.test.version>
+        <java.test.version>11</java.test.version>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <maven.compiler.testRelease>${java.test.version}</maven.compiler.testRelease>
@@ -111,6 +111,11 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.36</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>0.102.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

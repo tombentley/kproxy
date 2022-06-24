@@ -41,13 +41,12 @@ public class KafkaProxyFrontendHandler extends ChannelInboundHandlerAdapter {
 
     public KafkaProxyFrontendHandler(String remoteHost,
                                      int remotePort,
-                                     CorrelationManager correlationManager,
                                      KrpcFilter[] filters,
                                      boolean logNetwork,
                                      boolean logFrames) {
         this.remoteHost = remoteHost;
         this.remotePort = remotePort;
-        this.correlationManager = correlationManager;
+        this.correlationManager = new CorrelationManager();
         this.logNetwork = logNetwork;
         this.logFrames = logFrames;
         this.filters = filters;
@@ -106,6 +105,7 @@ public class KafkaProxyFrontendHandler extends ChannelInboundHandlerAdapter {
                 LOGGER.trace("Outbound connect error, closing inbound channel", future.cause());
                 inboundChannel.close();
             }
+
         });
     }
 
