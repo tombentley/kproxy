@@ -13,6 +13,10 @@ import java.util.Objects;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+/**
+ * A ChannelInboundHandlerAdapter which allows asserting which users events were fired
+ * both other prior handlers in a netty pipeline.
+ */
 public class UserEventCollector extends ChannelInboundHandlerAdapter {
     List<Object> events = new ArrayList<>();
 

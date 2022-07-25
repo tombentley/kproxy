@@ -112,11 +112,6 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.36</version>
             </dependency>
-            <dependency>
-                <groupId>io.strimzi</groupId>
-                <artifactId>strimzi-test-container</artifactId>
-                <version>0.102.0</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

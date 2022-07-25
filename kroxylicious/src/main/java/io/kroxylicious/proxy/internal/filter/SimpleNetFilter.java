@@ -8,20 +8,20 @@ package io.kroxylicious.proxy.internal.filter;
 import io.kroxylicious.proxy.bootstrap.FilterChainFactory;
 import io.kroxylicious.proxy.filter.NetFilter;
 
+/**
+ * Implementation of {@link NetFilter} that is able to connect to a
+ * single cluster, using a single, constant {@link FilterChainFactory}.
+ */
 public class SimpleNetFilter implements NetFilter {
 
     private final String remoteHost;
     private final int remotePort;
     private final FilterChainFactory filterChainFactory;
-    private final boolean logNetwork;
-    private final boolean logFrames;
 
-    public SimpleNetFilter(String remoteHost, int remotePort, FilterChainFactory filterChainFactory, boolean logNetwork, boolean logFrames) {
+    public SimpleNetFilter(String remoteHost, int remotePort, FilterChainFactory filterChainFactory) {
         this.remoteHost = remoteHost;
         this.remotePort = remotePort;
         this.filterChainFactory = filterChainFactory;
-        this.logNetwork = logNetwork;
-        this.logFrames = logFrames;
     }
 
     @Override

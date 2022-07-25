@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Sent as a Netty "User Event" by the {@link KafkaAuthnHandler}
+ * to handlers interested in the authenticated user.
+ */
 public class AuthenticationEvent {
     private final String authorizationId;
     private final Map<String, Object> negotiatedProperties;
@@ -18,10 +22,17 @@ public class AuthenticationEvent {
         this.negotiatedProperties = Collections.unmodifiableMap(negotiatedProperties);
     }
 
+    /**
+     * The id that the user authorized with
+     */
     public String authorizationId() {
         return authorizationId;
     }
 
+    /**
+     * Extra authorization state produced by
+     * the authentication process.
+     */
     public Map<String, Object> negotiatedProperties() {
         return negotiatedProperties;
     }

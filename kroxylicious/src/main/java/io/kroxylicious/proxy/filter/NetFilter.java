@@ -7,8 +7,18 @@ package io.kroxylicious.proxy.filter;
 
 import java.net.SocketAddress;
 
+/**
+ * Abstracts some policy/logic for now an upstream connection for a given client connection
+ * is made.
+ */
 public interface NetFilter {
 
+    /**
+     * Determine the upstream cluster to connect to based on the information
+     * provided by the given {@code context},
+     * by invoking {@link NetFilterContext#connect(String, int, KrpcFilter[])}.
+     * @param context The context.
+     */
     void upstreamBroker(NetFilterContext context);
 
     interface NetFilterContext {

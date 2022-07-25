@@ -9,6 +9,14 @@ import org.apache.kafka.common.protocol.ApiKeys;
 
 import io.kroxylicious.proxy.filter.KrpcFilter;
 
+/**
+ * Encapsulates decisions about whether requests and responses should be
+ * fully deserialized into POJOs, or passed through as byte buffers with
+ * minimal deserialization.
+ *
+ * The actual decision can depend on which filters are in use, which can depend on
+ * who the authorized user or, or which back-end cluster they're connected to.
+ */
 public interface DecodePredicate {
     public static DecodePredicate forFilters(KrpcFilter... filters) {
         return new DecodePredicate() {

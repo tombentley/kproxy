@@ -110,9 +110,7 @@ public final class KafkaProxy {
                 Map.of(),
                 new SimpleNetFilter(brokerHost,
                         brokerPort,
-                        filterChainFactory,
-                        logNetwork,
-                        logFrames),
+                        filterChainFactory),
                 logNetwork,
                 logFrames);
 
