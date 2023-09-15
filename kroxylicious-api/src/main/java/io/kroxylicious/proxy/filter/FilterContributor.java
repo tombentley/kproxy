@@ -8,15 +8,13 @@ package io.kroxylicious.proxy.filter;
 import io.kroxylicious.proxy.config.BaseConfig;
 
 /**
- * FilterContributor is a pluggable source of Kroxylicious filter implementations.
+ * A FilterContributor is a factory for a filter implementation.
  */
-public interface FilterContributor {
+public interface FilterContributor<C extends BaseConfig> {
 
     String getTypeName();
 
-    default Class<? extends BaseConfig> getConfigClass() {
-        return BaseConfig.class;
-    }
+    Class<C> getConfigClass();
 
     /**
      * Creates an instance of the service.
@@ -24,6 +22,6 @@ public interface FilterContributor {
      * @param context   context containing service configuration which may be null if the service instance does not accept configuration.
      * @return the service instance, or null if this contributor does not offer this short name.
      */
-    Filter getInstance(BaseConfig config, FilterConstructContext context);
+    Filter getInstance(C config, FilterConstructContext context);
 
 }
