@@ -14,6 +14,10 @@ public interface FilterContributor<C extends BaseConfig> {
 
     String getTypeName();
 
+    default Class getFilterType() {
+        return Object.class;
+    }
+
     Class<C> getConfigClass();
 
     /**
