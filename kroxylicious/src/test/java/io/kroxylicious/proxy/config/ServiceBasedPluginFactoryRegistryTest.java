@@ -35,6 +35,13 @@ class ServiceBasedPluginFactoryRegistryTest {
     }
 
     @Test
+    void shouldReturnPluginInstanceUsingAnnotation() {
+        var factory = new ServiceBasedPluginFactoryRegistry().pluginFactory(ServiceWithAmbiguousImpls.class);
+        assertInstanceOf(io.kroxylicious.proxy.config.ambiguous2.Ambiguous.class,
+                factory.pluginInstance("customName1"));
+    }
+
+    @Test
     void shouldNotReturnPluginInstanceForAmbiguousName() {
         var factory = new ServiceBasedPluginFactoryRegistry().pluginFactory(ServiceWithAmbiguousImpls.class);
         String ambiguous1 = io.kroxylicious.proxy.config.ambiguous2.Ambiguous.class.getSimpleName();
