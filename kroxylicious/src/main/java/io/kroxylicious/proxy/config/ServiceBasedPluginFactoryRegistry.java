@@ -6,6 +6,7 @@
 
 package io.kroxylicious.proxy.config;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kroxylicious.proxy.plugin.PluginConfigType;
+import io.kroxylicious.proxy.plugin.PluginNamed;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 import io.kroxylicious.proxy.plugin.UnknownPluginTypeException;
 
@@ -57,7 +59,17 @@ public class ServiceBasedPluginFactoryRegistry implements PluginFactoryRegistry 
             }
             else {
                 ProviderAndConfigType<?> providerAndConfigType = new ProviderAndConfigType<>(provider, annotation.value());
-                Stream.of(providerType.getName(), providerType.getSimpleName()).forEach(name2 -> nameToProviders.compute(name2, (k2, v) -> {
+                PluginNamed named = providerType.getAnnotation(PluginNamed.class);
+                Stream<String> names;
+                if (named != null) {
+                    names = Arrays.stream(named.value());
+                }
+                else {
+                    names = Stream.empty();
+                }
+                Stream<String> providerTypeNames = Stream.of(providerType.getName(), providerType.getSimpleName());
+                Stream<String> allNames = Stream.concat(providerTypeNames, names);
+                allNames.forEach(name2 -> nameToProviders.compute(name2, (k2, v) -> {
                     if (v == null) {
                         v = new HashSet<>();
                     }
