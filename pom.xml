@@ -281,6 +281,11 @@
         <module>integrationtests</module>
         <module>kroxylicious-additional-filters</module>
         <module>kroxylicious-sample</module>
+        <module>kms</module>
+        <module>kms-provider-aws-kms</module>
+        <module>kms-provider-azure-keyvault</module>
+        <module>kms-provider-hashicorp-vault</module>
+        <module>kms-provider-ibm-keyprotect</module>
     </modules>
 
 
