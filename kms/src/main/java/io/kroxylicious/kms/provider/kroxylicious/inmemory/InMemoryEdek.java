@@ -10,16 +10,18 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public record InMemoryEdek(
-        int numAuthBits,
-        byte[] iv,
-        byte[] edek
-) {
+                           int numAuthBits,
+                           byte[] iv,
+                           byte[] edek) {
+    @SuppressWarnings("checkstyle:NeedBraces")
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
+        }
         InMemoryEdek that = (InMemoryEdek) o;
         return numAuthBits == that.numAuthBits && Arrays.equals(iv, that.iv) && Arrays.equals(edek, that.edek);
     }

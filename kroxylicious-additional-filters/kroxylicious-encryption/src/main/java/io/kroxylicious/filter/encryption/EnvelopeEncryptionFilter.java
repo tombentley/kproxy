@@ -13,8 +13,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import io.kroxylicious.kms.service.KmsService;
-
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.message.ProduceRequestData.TopicProduceData;
@@ -24,6 +22,7 @@ import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.MemoryRecordsBuilder;
 import org.apache.kafka.common.record.RecordBatch;
 
+import io.kroxylicious.kms.service.KmsService;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
@@ -50,21 +49,19 @@ public class EnvelopeEncryptionFilter<K, E>
     public CompletionStage<RequestFilterResult> onProduceRequest(short apiVersion, RequestHeaderData header, ProduceRequestData request, FilterContext context) {
         var topicNames = request.topicData().stream().map(TopicProduceData::name).collect(Collectors.toSet());
         return kekSelector.selectKek(topicNames)
-                .thenCompose(kekMap ->
-                        dekCache.encryptors(kekMap).thenApply(topicNameToEncryptor -> {
-                            request.topicData().forEach(td -> {
-                                var encryptor = topicNameToEncryptor.get(td.name());
-                                if (encryptor != null) {
-                                    td.setPartitionData(encryptPartition(encryptor, td.partitionData()));
-                                }
-                            });
-                            return request;
-                        }).thenCompose(yy ->
-                                context.forwardRequest(header, request)));
+                .thenCompose(kekMap -> dekCache.encryptors(kekMap).thenApply(topicNameToEncryptor -> {
+                    request.topicData().forEach(td -> {
+                        var encryptor = topicNameToEncryptor.get(td.name());
+                        if (encryptor != null) {
+                            td.setPartitionData(encryptPartition(encryptor, td.partitionData()));
+                        }
+                    });
+                    return request;
+                }).thenCompose(yy -> context.forwardRequest(header, request)));
     }
 
-
-    private List<ProduceRequestData.PartitionProduceData> encryptPartition(UUID dekRef, Encryptor encryptor, List<ProduceRequestData.PartitionProduceData> oldPartitionData) {
+    private List<ProduceRequestData.PartitionProduceData> encryptPartition(UUID dekRef, Encryptor encryptor,
+                                                                           List<ProduceRequestData.PartitionProduceData> oldPartitionData) {
         List<ProduceRequestData.PartitionProduceData> newPartitionData = new ArrayList<>(oldPartitionData.size());
         for (var pd : oldPartitionData) {
             int partitionId = pd.index();

@@ -9,6 +9,7 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -79,7 +80,8 @@ public class Encryptor {
             catch (GeneralSecurityException e) {
                 throw new EncryptionException(e);
             }
-        } else {
+        }
+        else {
             throw new EncryptionException("Unknown version " + version);
         }
     }

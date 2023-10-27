@@ -7,6 +7,7 @@
 package io.kroxylicious.kms.service;
 
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.SecretKey;
 
 public interface Kms<K, E> {
@@ -21,6 +22,5 @@ public interface Kms<K, E> {
      * @throws KmsException For other exceptions
      */
     CompletionStage<SecretKey> decryptEdek(K kek, E edek);
-
 
 }

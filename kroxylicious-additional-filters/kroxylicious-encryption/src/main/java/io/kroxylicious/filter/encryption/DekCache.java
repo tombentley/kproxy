@@ -16,21 +16,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import io.kroxylicious.filter.encryption.coordinator.DekRecordSerializer;
-import io.kroxylicious.kms.service.KmsService;
-
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-
-import io.kroxylicious.filter.encryption.coordinator.DekRecord;
-import io.kroxylicious.kms.service.Kms;
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.UUIDDeserializer;
 import org.apache.kafka.common.serialization.VoidSerializer;
+
+import io.kroxylicious.filter.encryption.coordinator.DekRecord;
+import io.kroxylicious.filter.encryption.coordinator.DekRecordSerializer;
+import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.KmsService;
 
 public class DekCache<K, E> {
 
@@ -82,13 +80,16 @@ public class DekCache<K, E> {
             if (cf == null) {
                 // a newly observed kek
                 return newDek(kek);
-            } else if (!cf.isDone()) {
+            }
+            else if (!cf.isDone()) {
                 // inflight
                 return cf;
-            } else if (cf.isCompletedExceptionally()) {
+            }
+            else if (cf.isCompletedExceptionally()) {
                 // TODO
-                throw  new IllegalStateException();
-            } else {
+                throw new IllegalStateException();
+            }
+            else {
                 DekRecord<K, E> dek;
                 try {
                     dek = cf.get();
@@ -105,19 +106,18 @@ public class DekCache<K, E> {
                 return cf;
             }
         }).thenCompose(dek ->
-                // make async the request to the KMS to decode the edek
-                kms.decryptEdek(dek.kek(), dek.edek())
-        ).thenApply(sk -> {
-                // TODO CF needs to include the dekId
-                // TODO serialization needs to add the UUID (even if encryptor is unaware)
-                // TODO decide whether encryptor is separate from serialization
-                // TODO think about deser -- needs to get get the dekId
-                //      separately from the ciphertext (or use a view??)
-                UUID dekId = null;
-                return new Encryptor(4, 16, rng, sk);
+        // make async the request to the KMS to decode the edek
+        kms.decryptEdek(dek.kek(), dek.edek())).thenApply(sk -> {
+            // TODO CF needs to include the dekId
+            // TODO serialization needs to add the UUID (even if encryptor is unaware)
+            // TODO decide whether encryptor is separate from serialization
+            // TODO think about deser -- needs to get get the dekId
+            // separately from the ciphertext (or use a view??)
+            UUID dekId = null;
+            return new Encryptor(4, 16, rng, sk);
         });
     }
-    
+
     private CompletableFuture<DekRecord<K, E>> newDek(K kek) {
         CompletableFuture<DekRecord<K, E>> dekCompletableFuture = new CompletableFuture<>();
         inFlight.put(kek, dekCompletableFuture);

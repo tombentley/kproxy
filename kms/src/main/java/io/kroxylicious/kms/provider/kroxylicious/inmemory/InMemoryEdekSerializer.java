@@ -31,11 +31,11 @@ class InMemoryEdekSerializer implements Serializer<InMemoryEdek> {
             os.writeInt(data.edek().length);
             os.write(data.edek());
             os.flush();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
         return out.toByteArray();
     }
-
 
 }
