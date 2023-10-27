@@ -53,7 +53,8 @@ public class EnvelopeEncryptionFilter<K, E>
                     request.topicData().forEach(td -> {
                         var encryptor = topicNameToEncryptor.get(td.name());
                         if (encryptor != null) {
-                            td.setPartitionData(encryptPartition(encryptor, td.partitionData()));
+                            UUID dekRef = null; // KWTODO don't yet see where Tom intended to get this. encryptor.getDekRef?
+                            td.setPartitionData(encryptPartition(dekRef, encryptor, td.partitionData()));
                         }
                     });
                     return request;
@@ -70,8 +71,10 @@ public class EnvelopeEncryptionFilter<K, E>
             MemoryRecordsBuilder builder = recordsBuilder(buffer, records);
             for (var kafkaRecord : records.records()) {
                 ByteBuffer ciphertext = null; // TODO figure out size of ciphertext
+                byte version = 0; // KWTODO
                 ciphertext.put(version);
-                ciphertext.put(dekRef);
+                ciphertext.putLong(dekRef.getMostSignificantBits());
+                ciphertext.putLong(dekRef.getLeastSignificantBits());
                 encryptor.encrypt(kafkaRecord.value(), ciphertext);
                 builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), ciphertext, kafkaRecord.headers());
             }

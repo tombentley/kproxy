@@ -6,5 +6,4 @@
 
 package io.kroxylicious.kms.provider.azure.keyvault;
 
-public record KeyVaultOptions() {
-}
+public record KeyVaultOptions() {}
