@@ -7,6 +7,7 @@
 package io.kroxylicious.kms.provider.azure.keyvault;
 
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.SecretKey;
 
 import com.azure.security.keyvault.keys.KeyClient;
@@ -19,7 +20,7 @@ import io.kroxylicious.kms.service.Kms;
 
 public class AzureKeyVault
         implements
-            Kms<KeyVaultKeyRef, KeyVaultEdek>,
+        Kms<KeyVaultKeyRef, KeyVaultEdek>,
         DekGenerator<KeyVaultKeyRef, KeyVaultEdek> {
     private final KeyClient client;
     private final CryptographyClient cryptoClient;
@@ -27,13 +28,13 @@ public class AzureKeyVault
     AzureKeyVault(KeyVaultOptions options) {
 
         this.client = new KeyClientBuilder()
-                //.endpoint("")
-        //.credential(new DefaultAzureCredentialBuilder().build())
+                // .endpoint("")
+                // .credential(new DefaultAzureCredentialBuilder().build())
                 .buildClient();
 
         this.cryptoClient = new CryptographyClientBuilder()
                 .keyIdentifier("<your-key-id-from-key-vault>")
-                //.credential(new DefaultAzureCredentialBuilder().build())
+                // .credential(new DefaultAzureCredentialBuilder().build())
                 .buildClient();
 
     }

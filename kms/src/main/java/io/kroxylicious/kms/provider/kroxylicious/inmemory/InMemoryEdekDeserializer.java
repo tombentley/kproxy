@@ -6,12 +6,12 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import org.apache.kafka.common.serialization.Deserializer;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+
+import org.apache.kafka.common.serialization.Deserializer;
 
 class InMemoryEdekDeserializer implements Deserializer<InMemoryEdek> {
 
@@ -28,7 +28,8 @@ class InMemoryEdekDeserializer implements Deserializer<InMemoryEdek> {
             var edek = new byte[edekLength];
             y.read(edek);
             return new InMemoryEdek(bits, iv, edek);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

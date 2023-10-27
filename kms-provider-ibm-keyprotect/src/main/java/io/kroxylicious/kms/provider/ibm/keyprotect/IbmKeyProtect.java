@@ -6,12 +6,12 @@
 
 package io.kroxylicious.kms.provider.ibm.keyprotect;
 
-import io.kroxylicious.kms.service.DekGenerator;
-import io.kroxylicious.kms.service.Kms;
+import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
-import java.util.concurrent.CompletionStage;
+
+import io.kroxylicious.kms.service.DekGenerator;
+import io.kroxylicious.kms.service.Kms;
 
 public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek>, DekGenerator<IbmKeyRef, IbmEdek> {
     IbmKeyProtect(IbmOptions options) {

@@ -6,13 +6,14 @@
 
 package io.kroxylicious.filter.encryption;
 
-import org.apache.kafka.common.serialization.Serializer;
-
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
+import org.apache.kafka.common.serialization.Serializer;
+
 public interface Ser<T> {
     int sizeOf(T t);
+
     void serialize(T t, ByteBuffer buffer);
 
     static <T> Serializer<T> toKafka(Ser<T> ser) {
@@ -28,7 +29,7 @@ public interface Ser<T> {
     }
 
     default <Y> Ser<T> then(Function<T, Y> then,
-                                 Ser<Y> y) {
+                            Ser<Y> y) {
         return new Ser<T>() {
             @Override
             public int sizeOf(T t) {

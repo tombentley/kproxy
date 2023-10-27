@@ -7,12 +7,13 @@
 package io.kroxylicious.kms.provider.aws.kms;
 
 import java.util.concurrent.CompletionStage;
-import javax.crypto.SecretKey;
 
-import software.amazon.awssdk.services.kms.KmsClient;
+import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.DekGenerator;
 import io.kroxylicious.kms.service.Kms;
+
+import software.amazon.awssdk.services.kms.KmsClient;
 
 public class AwsKms implements Kms<AwsKeyRef, AwsEdek>,
         DekGenerator<AwsKeyRef, AwsEdek> {

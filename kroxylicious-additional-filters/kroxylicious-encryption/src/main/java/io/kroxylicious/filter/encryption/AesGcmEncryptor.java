@@ -9,25 +9,27 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-public class Encryptor {
+public class AesGcmEncryptor {
 
     private final SecretKey key;
     private final Cipher cipher;
-    private final SecureRandom rng;
     private final int numTagBits;
     private final byte[] iv;
+    private final AesGcmIvGenerator ivGenerator;
 
-    Encryptor(int numIvBytes, int numTagBits, SecureRandom rng, SecretKey key) {
-        this.iv = new byte[numIvBytes];
-        this.numTagBits = numTagBits;
-        this.rng = rng;
+    AesGcmEncryptor(AesGcmIvGenerator ivGenerator, SecretKey key) {
+        // NIST SP.800-38D recommends 96 bit for recommendation about the iv length and generation
+        this.iv = new byte[ivGenerator.sizeBytes()];
+        this.ivGenerator = ivGenerator;
+        this.numTagBits = 128;
         this.key = key;
         try {
-            this.cipher = Cipher.getInstance("AES");
+            this.cipher = Cipher.getInstance("AES_256/GCM/NoPadding");
         }
         catch (GeneralSecurityException e) {
             throw new EncryptionException(e);
@@ -35,23 +37,26 @@ public class Encryptor {
     }
 
     public int outputSize(int plaintextSize) {
-        return 1 + // version
+        return Byte.BYTES + // version
+                Byte.BYTES + // iv length
                 iv.length + // size of iv
                 this.cipher.getOutputSize(plaintextSize);
     }
 
+
     /**
-     * Encrypt the given ciphertext, outputting the ciphertext and any necessary extra data to the given {@code ciphertext}.
-     * @param plaintext
-     * @param ciphertext
+     * Encrypt the given plaintext, writing the ciphertext and any necessary extra data to the given {@code output}.
+     * @param plaintext The plaintext to encrypt
+     * @param output the output buffer
      */
-    public void encrypt(ByteBuffer plaintext, ByteBuffer ciphertext) {
-        rng.nextBytes(iv);
+    public void encrypt(ByteBuffer plaintext, ByteBuffer output) {
+        ivGenerator.generateIv(iv);
         init(Cipher.ENCRYPT_MODE);
         try {
-            ciphertext.put((byte) 0);
-            ciphertext.put(iv);
-            this.cipher.doFinal(plaintext, ciphertext);
+            output.put((byte) 0); // version
+            output.put((byte) iv.length); // iv length
+            output.put(iv); // the iv
+            this.cipher.doFinal(plaintext, output);
         }
         catch (GeneralSecurityException e) {
             throw new EncryptionException(e);
@@ -68,18 +73,23 @@ public class Encryptor {
         }
     }
 
-    public void decrypt(ByteBuffer ciphertext, ByteBuffer plaintext) {
-        var version = ciphertext.get();
+    public void decrypt(ByteBuffer input, ByteBuffer plaintext) {
+        var version = input.get();
         if (version == 0) {
-            ciphertext.get(iv);
+            int ivLength = input.get();
+            if (ivLength != iv.length) {
+                throw new EncryptionException("Unexpected IV length");
+            }
+            input.get(iv, 0, iv.length);
             init(Cipher.DECRYPT_MODE);
             try {
-                this.cipher.doFinal(ciphertext, plaintext);
+                this.cipher.doFinal(input, plaintext);
             }
             catch (GeneralSecurityException e) {
                 throw new EncryptionException(e);
             }
-        } else {
+        }
+        else {
             throw new EncryptionException("Unknown version " + version);
         }
     }
