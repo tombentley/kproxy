@@ -6,9 +6,9 @@
 
 package io.kroxylicious.filter.encryption;
 
-import org.apache.kafka.common.serialization.Deserializer;
-
 import java.nio.ByteBuffer;
+
+import org.apache.kafka.common.serialization.Deserializer;
 
 public interface De<T> {
     T deserialize(ByteBuffer buffer);

@@ -6,8 +6,10 @@
 
 package io.kroxylicious.filter.encryption.coordinator;
 
+import io.kroxylicious.filter.encryption.CoordinatedDekCache;
+
 /**
- * Represents that data passed from the {@link DekCoordinator} to the {@link io.kroxylicious.filter.encryption.DekCache}.
+ * Represents that data passed from the {@link DekCoordinator} to the {@link CoordinatedDekCache}.
  * This differs from a DEK obtained from a KMS because it encapsulates some policy about how the DEK can be used
  * @param notBefore The UNIX epoch before which this DEK should not be used.
  * @param notAfter The UNIX epoch after which this DEK should not be used.

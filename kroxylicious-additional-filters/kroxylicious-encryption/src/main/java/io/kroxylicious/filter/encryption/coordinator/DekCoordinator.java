@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.kms.service.DekGeneratorService;
-
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -22,12 +20,12 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-
-import io.kroxylicious.kms.service.DekGenerator;
-
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
 import org.apache.kafka.common.serialization.VoidDeserializer;
+
+import io.kroxylicious.kms.service.DekGenerator;
+import io.kroxylicious.kms.service.DekGeneratorService;
 
 /**
  * Coordinates the generation of DEKs from a {@link DekGenerator} and encapsulates policies on the usage of DEKs.
@@ -71,7 +69,6 @@ public class DekCoordinator<K, E> {
         var producer = new KafkaProducer<>(producerConfigs, uuidSerializer, kk);
         return new DekCoordinator<>(consumer, requestTopic, dekGeneratorService.dekGenerator(), producer, responseTopic);
     }
-
 
     public void run() {
         requestConsumer.subscribe(List.of(requestTopic), new ConsumerRebalanceListener() {

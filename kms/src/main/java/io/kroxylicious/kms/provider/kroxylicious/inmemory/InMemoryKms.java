@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
@@ -62,7 +63,6 @@ public class InMemoryKms implements
         return ref;
     }
 
-
     @Override
     public CompletionStage<InMemoryEdek> generateDek(UUID kekRef) {
         try {
@@ -81,7 +81,8 @@ public class InMemoryKms implements
                 throw new KmsException(e);
             }
             return CompletableFuture.completedFuture(new InMemoryEdek(spec.getTLen(), spec.getIV(), edek));
-        } catch (KmsException e) {
+        }
+        catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -130,7 +131,8 @@ public class InMemoryKms implements
                 throw new KmsException(e);
             }
             return CompletableFuture.completedFuture(key);
-        } catch (KmsException e) {
+        }
+        catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
         }
     }

@@ -6,5 +6,4 @@
 
 package io.kroxylicious.kms.provider.hashicorp.vault;
 
-public record VaultOptions() {
-}
+public record VaultOptions() {}

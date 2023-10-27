@@ -16,11 +16,11 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 public class EnvelopeEncryption implements FilterFactory<EnvelopeEncryptionFilter, EnvelopeEncryption.Config> {
 
     static record Config(
-            String kms,
-            Object kmsConfig
-    ) {
+                         String kms,
+                         Object kmsConfig) {
 
     }
+
     @Override
     public Class<EnvelopeEncryptionFilter> filterType() {
         return EnvelopeEncryptionFilter.class;
