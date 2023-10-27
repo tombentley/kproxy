@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.encryption;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -114,6 +115,7 @@ public class DekCache<K, E> {
             // TODO think about deser -- needs to get get the dekId
             // separately from the ciphertext (or use a view??)
             UUID dekId = null;
+            SecureRandom rng = null; // KWFIXME
             return new Encryptor(4, 16, rng, sk);
         });
     }
