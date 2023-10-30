@@ -7,18 +7,17 @@
 package io.kroxylicious.kms.provider.azure.keyvault;
 
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.SecretKey;
-
-import io.kroxylicious.kms.service.De;
-
-import io.kroxylicious.kms.service.Ser;
 
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
 
+import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.Ser;
 
 public class AzureKeyVault
         implements
@@ -42,6 +41,11 @@ public class AzureKeyVault
 
     @Override
     public CompletionStage<KeyVaultEdek> generateDek(KeyVaultKeyRef kekRef) {
+        return null;
+    }
+
+    @Override
+    public CompletionStage<DekPair<KeyVaultEdek>> generateDekPair(KeyVaultKeyRef kekRef) {
         return null;
     }
 

@@ -7,15 +7,14 @@
 package io.kroxylicious.kms.provider.aws.kms;
 
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.De;
-
+import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
 
 import software.amazon.awssdk.services.kms.KmsClient;
-
-import io.kroxylicious.kms.service.Kms;
 
 public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
 
@@ -27,6 +26,11 @@ public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
 
     @Override
     public CompletionStage<AwsEdek> generateDek(AwsKeyRef kekRef) {
+        return null;
+    }
+
+    @Override
+    public CompletionStage<DekPair<AwsEdek>> generateDekPair(AwsKeyRef kekRef) {
         return null;
     }
 

@@ -49,7 +49,6 @@ public final class DekContext<K> {
         encryptor.encrypt(plaintext, output);
     }
 
-
     public void decode(ByteBuffer encoded, ByteBuffer output) {
         encryptor.decrypt(encoded, output);
     }

@@ -12,7 +12,6 @@ import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
-
 import io.kroxylicious.kms.service.Ser;
 
 public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
@@ -22,6 +21,11 @@ public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
 
     @Override
     public CompletionStage<IbmEdek> generateDek(IbmKeyRef kekRef) {
+        return null;
+    }
+
+    @Override
+    public CompletionStage<DekPair<IbmEdek>> generateDekPair(IbmKeyRef kekRef) {
         return null;
     }
 

@@ -6,14 +6,13 @@
 
 package io.kroxylicious.filter.encryption;
 
-import io.kroxylicious.kms.service.De;
-import io.kroxylicious.kms.service.Ser;
-
-import io.kroxylicious.kms.service.Kms;
-
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.concurrent.CompletionStage;
+
+import io.kroxylicious.kms.service.De;
+import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.Ser;
 
 public class InBandDekCache<K, E> implements DekCache<K, E> {
 

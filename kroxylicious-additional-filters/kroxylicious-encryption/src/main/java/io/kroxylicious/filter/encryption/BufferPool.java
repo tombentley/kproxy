@@ -7,8 +7,6 @@
 package io.kroxylicious.filter.encryption;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
