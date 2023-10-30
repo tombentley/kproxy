@@ -15,12 +15,23 @@ import javax.crypto.SecretKey;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsService;
 
-public class InMemoryKmsService implements KmsService<Object, UUID, InMemoryEdek> {
+public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config, UUID, InMemoryEdek> {
+    static record Config(int numIvBytes, int numAuthBits) {
+        Config {
+            if (numIvBytes < 1) {
+                throw new IllegalArgumentException();
+            }
+            if (numAuthBits < 1) {
+                throw new IllegalArgumentException();
+            }
+        }
+    }
+
     private final Map<UUID, SecretKey> keys = new HashMap<>();
 
     @Override
-    public Kms<UUID, InMemoryEdek> buildKms(Object options) {
-        return new InMemoryKms(keys);
+    public InMemoryKms buildKms(Config options) {
+        return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), keys);
     }
 
 }

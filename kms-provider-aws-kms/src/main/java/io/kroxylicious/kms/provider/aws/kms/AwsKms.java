@@ -11,6 +11,7 @@ import java.util.concurrent.CompletionStage;
 import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.De;
+import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
 
@@ -24,36 +25,43 @@ public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
         this.client = client;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
-    public CompletionStage<AwsEdek> generateDek(AwsKeyRef kekRef) {
+    public CompletionStage<AwsEdek> generateDek(@edu.umd.cs.findbugs.annotations.NonNull AwsKeyRef kekRef) {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
-    public CompletionStage<DekPair<AwsEdek>> generateDekPair(AwsKeyRef kekRef) {
+    public CompletionStage<DekPair<AwsEdek>> generateDekPair(@edu.umd.cs.findbugs.annotations.NonNull AwsKeyRef kekRef) {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
-    public CompletionStage<SecretKey> decryptEdek(AwsKeyRef kek, AwsEdek edek) {
+    public CompletionStage<SecretKey> decryptEdek(@edu.umd.cs.findbugs.annotations.NonNull AwsKeyRef kek, @edu.umd.cs.findbugs.annotations.NonNull AwsEdek edek) {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
     public De<AwsKeyRef> keyRefDeserializer() {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
     public Ser<AwsEdek> edekSerializer() {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
     public Ser<AwsKeyRef> keyRefSerializer() {
         return null;
     }
 
+    @edu.umd.cs.findbugs.annotations.NonNull
     @Override
     public De<AwsEdek> edekDeserializer() {
         return null;

@@ -9,10 +9,15 @@ package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 import java.util.Arrays;
 import java.util.Objects;
 
-public record InMemoryEdek(
+record InMemoryEdek(
                            int numAuthBits,
                            byte[] iv,
                            byte[] edek) {
+    /**
+     * Overridden to provide deep equality on the {@code byte[]}.
+     * @param o   the reference object with which to compare.
+     * @return true iff this object is equal to the given object.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -25,6 +30,10 @@ public record InMemoryEdek(
         return numAuthBits == that.numAuthBits && Arrays.equals(iv, that.iv) && Arrays.equals(edek, that.edek);
     }
 
+    /**
+     * Overridden to provide a deep hashcode on the {@code byte[]}.
+     * @return the has code.
+     */
     @Override
     public int hashCode() {
         int result = Objects.hash(numAuthBits);
@@ -33,6 +42,10 @@ public record InMemoryEdek(
         return result;
     }
 
+    /**
+     * Overridden to provide a deep {@code toString()} on the {@code byte[]}.
+     * @return The string
+     */
     @Override
     public String toString() {
         return "InMemoryEdek{" +

@@ -8,22 +8,28 @@ package io.kroxylicious.kms.service;
 
 import java.nio.ByteBuffer;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import org.apache.kafka.common.serialization.Serializer;
 
+/**
+ * A ByteBuffer-sympathetic serializer for some type, {@code T}.
+ * @param <T> The type of the serialized object.
+ * @see De
+ */
 public interface Ser<T> {
+    /**
+     * Returns the number of bytes required to serialize the given object.
+     * @param t The object to be serialized.
+     * @return the number of bytes required to serialize the given object.
+     */
     int sizeOf(T t);
 
-    void serialize(T t, ByteBuffer buffer);
+    /**
+     * Serializes the given object to the given buffer.
+     * @param t The object to be serialized.
+     * @param buffer the buffer to serialize the object to.
+     */
+    void serialize(T t, @NonNull ByteBuffer buffer);
 
-    static <T> Serializer<T> toKafka(Ser<T> ser) {
-        return new Serializer<T>() {
-            @Override
-            public byte[] serialize(String topic, T data) {
-                byte[] bytes = new byte[ser.sizeOf(data)];
-                var buffer = ByteBuffer.wrap(bytes);
-                ser.serialize(data, buffer);
-                return bytes;
-            }
-        };
-    }
 }
