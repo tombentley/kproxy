@@ -6,6 +6,8 @@
 
 package io.kroxylicious.kms.service;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
@@ -18,14 +20,6 @@ import javax.crypto.SecretKey;
 public interface Kms<K, E> {
 
     /**
-     * A Data Encryption Key as both plaintext and encrypted.
-     * @param edek The encrypted DEK.
-     * @param dek The plaintext DEK.
-     * @param <E> The type of encrypted DEK.
-     */
-    record DekPair<E>(E edek, SecretKey dek) {}
-
-    /**
      * Asynchronously generates a new Data Encryption Key, returning it encrypted with the Key Encryption Key given by {@code kekRef}.
      * The returned DEK can later be decrypted with {@link Kms#decryptEdek(Object, Object)}.
      * @param kekRef The key encryption key used to encrypt the generated data encryption key.
@@ -34,7 +28,7 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions.
      */
-    CompletionStage<E> generateDek(K kekRef);
+    @NonNull CompletionStage<E> generateDek(@NonNull K kekRef);
 
     /**
      * Asynchronously generates a Data Encryption Key (DEK) and returns it together with the same DEK wrapped by the Key Encryption Key (KEK) given
@@ -46,7 +40,7 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions.
      */
-    CompletionStage<DekPair<E>> generateDekPair(K kekRef);
+    @NonNull CompletionStage<DekPair<E>> generateDekPair(@NonNull K kekRef);
 
     /**
      * Asynchronously decrypts a data encryption key that was {@linkplain #generateDek(Object) previously encrypted}.
@@ -57,13 +51,13 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions
      */
-    CompletionStage<SecretKey> decryptEdek(K kek, E edek);
+    @NonNull CompletionStage<SecretKey> decryptEdek(@NonNull K kek, @NonNull E edek);
 
-    De<K> keyRefDeserializer();
+    @NonNull De<K> keyRefDeserializer();
 
-    Ser<E> edekSerializer();
+    @NonNull Ser<E> edekSerializer();
 
-    Ser<K> keyRefSerializer();
+    @NonNull Ser<K> keyRefSerializer();
 
-    De<E> edekDeserializer();
+    @NonNull De<E> edekDeserializer();
 }

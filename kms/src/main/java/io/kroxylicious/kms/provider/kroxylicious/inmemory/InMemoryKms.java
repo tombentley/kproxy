@@ -6,7 +6,6 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -14,7 +13,6 @@ import java.security.SecureRandom;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import javax.crypto.Cipher;
@@ -23,7 +21,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import io.kroxylicious.kms.service.De;
+import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsException;
 import io.kroxylicious.kms.service.Ser;
@@ -40,11 +41,11 @@ public class InMemoryKms implements
     private final int numAuthBits;
     private SecureRandom secureRandom;
 
-    public InMemoryKms(Map<UUID, SecretKey> keys) {
+    public InMemoryKms(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys) {
         this.keys = keys;
         this.secureRandom = new SecureRandom();
-        this.numIvBytes = 4;
-        this.numAuthBits = 16;
+        this.numIvBytes = numIvBytes;
+        this.numAuthBits = numAuthBits;
         try {
             this.aes = KeyGenerator.getInstance(KEY_ALGO);
         }
@@ -65,10 +66,11 @@ public class InMemoryKms implements
         return ref;
     }
 
+    @NonNull
     @Override
-    public CompletionStage<InMemoryEdek> generateDek(UUID kekRef) {
+    public CompletableFuture<InMemoryEdek> generateDek(@NonNull UUID kekRef) {
         try {
-            return CompletableFuture.completedFuture(wrap(kekRef, () -> this.aes.generateKey()));
+            return CompletableFuture.completedFuture(wrap(kekRef, this.aes::generateKey));
         }
         catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
@@ -77,12 +79,12 @@ public class InMemoryKms implements
 
     private InMemoryEdek wrap(UUID kekRef, Supplier<SecretKey> generator) {
         SecretKey kek = lookupKey(kekRef);
-        Cipher aes = aesGcm();
-        GCMParameterSpec spec = aesGcmSpec(kek, aes);
+        Cipher aesCipher = aesGcm();
+        GCMParameterSpec spec = aesGcmSpec(kek, aesCipher);
         var dek = generator.get();
         byte[] edek;
         try {
-            edek = aes.wrap(dek);
+            edek = aesCipher.wrap(dek);
         }
         catch (IllegalBlockSizeException | InvalidKeyException e) {
             throw new KmsException(e);
@@ -90,8 +92,9 @@ public class InMemoryKms implements
         return new InMemoryEdek(spec.getTLen(), spec.getIV(), edek);
     }
 
+    @NonNull
     @Override
-    public CompletionStage<DekPair<InMemoryEdek>> generateDekPair(UUID kekRef) {
+    public CompletableFuture<DekPair<InMemoryEdek>> generateDekPair(@NonNull UUID kekRef) {
         try {
             var dek = this.aes.generateKey();
             var edek = wrap(kekRef, () -> dek);
@@ -123,27 +126,25 @@ public class InMemoryKms implements
         return kek;
     }
 
+    @NonNull
     @Override
-    public CompletionStage<SecretKey> decryptEdek(UUID kekRef, InMemoryEdek edek) {
+    public CompletableFuture<SecretKey> decryptEdek(@NonNull UUID kekRef, @NonNull InMemoryEdek edek) {
         try {
             var kek = lookupKey(kekRef);
-            Cipher aes = aesGcm();
+            Cipher aesCipher = aesGcm();
             var spec = new GCMParameterSpec(edek.numAuthBits(), edek.iv());
             try {
-                aes.init(Cipher.UNWRAP_MODE, kek, spec);
-            }
-            catch (InvalidKeyException e) {
-                throw new KmsException(e);
+                aesCipher.init(Cipher.UNWRAP_MODE, kek, spec);
             }
             catch (GeneralSecurityException e) {
-                throw new KmsException(e);
+                throw new KmsException("Error initializing cipher", e);
             }
             SecretKey key;
             try {
-                key = (SecretKey) aes.unwrap(edek.edek(), KEY_ALGO, Cipher.SECRET_KEY);
+                key = (SecretKey) aesCipher.unwrap(edek.edek(), KEY_ALGO, Cipher.SECRET_KEY);
             }
             catch (GeneralSecurityException e) {
-                throw new KmsException(e);
+                throw new KmsException("Error unwrapping DEK", e);
             }
             return CompletableFuture.completedFuture(key);
         }
@@ -163,70 +164,25 @@ public class InMemoryKms implements
         return aes;
     }
 
-    static class UUIDSerde implements Ser<UUID>, De<UUID> {
-
-        @Override
-        public UUID deserialize(ByteBuffer buffer) {
-            var msb = buffer.getLong();
-            var lsb = buffer.getLong();
-            return new UUID(msb, lsb);
-        }
-
-        @Override
-        public int sizeOf(UUID uuid) {
-            return 16;
-        }
-
-        @Override
-        public void serialize(UUID uuid, ByteBuffer buffer) {
-            buffer.putLong(uuid.getMostSignificantBits());
-            buffer.putLong(uuid.getLeastSignificantBits());
-        }
-    }
-
+    @NonNull
     @Override
     public Ser<UUID> keyRefSerializer() {
         return new UUIDSerde();
     }
 
-    class InMemoryEdekSerde implements Ser<InMemoryEdek>, De<InMemoryEdek> {
-
-        @Override
-        public InMemoryEdek deserialize(ByteBuffer buffer) {
-            var numAuthBits = buffer.getShort();
-            var ivLength = buffer.getShort();
-            var iv = new byte[ivLength];
-            buffer.get(iv);
-            int edekLength = buffer.limit() - buffer.position();
-            var edek = new byte[edekLength];
-            buffer.get(edek);
-            return new InMemoryEdek(numAuthBits, iv, edek);
-        }
-
-        @Override
-        public int sizeOf(InMemoryEdek inMemoryEdek) {
-            return Short.BYTES + Short.BYTES + inMemoryEdek.iv().length + inMemoryEdek.edek().length;
-        }
-
-        @Override
-        public void serialize(InMemoryEdek inMemoryEdek, ByteBuffer buffer) {
-            buffer.putShort((short) inMemoryEdek.numAuthBits());
-            buffer.putShort((short) inMemoryEdek.iv().length);
-            buffer.put(inMemoryEdek.iv());
-            buffer.put(inMemoryEdek.edek());
-        }
-    }
-
+    @NonNull
     @Override
     public De<InMemoryEdek> edekDeserializer() {
         return new InMemoryEdekSerde();
     }
 
+    @NonNull
     @Override
     public De<UUID> keyRefDeserializer() {
         return new UUIDSerde();
     }
 
+    @NonNull
     @Override
     public Ser<InMemoryEdek> edekSerializer() {
         return new InMemoryEdekSerde();

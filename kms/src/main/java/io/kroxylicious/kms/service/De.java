@@ -8,18 +8,20 @@ package io.kroxylicious.kms.service;
 
 import java.nio.ByteBuffer;
 
-import org.apache.kafka.common.serialization.Deserializer;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
+/**
+ * A ByteBuffer-sympathetic deserializer for some type, {@code T}.
+ * @param <T> The type of the deserialized object.
+ * @see Ser
+ */
 public interface De<T> {
-    T deserialize(ByteBuffer buffer);
 
-    static <T> Deserializer<T> toKafka(De<T> de) {
-        return new Deserializer<T>() {
-            @Override
-            public T deserialize(String topic, byte[] data) {
-                var buffer = ByteBuffer.wrap(data);
-                return de.deserialize(buffer);
-            }
-        };
-    }
+    /**
+     * Deserialize an instance of {@code T} from the given buffer.
+     * @param buffer The buffer.
+     * @return The instance, which in general could be null.
+     */
+    T deserialize(@NonNull ByteBuffer buffer);
+
 }
