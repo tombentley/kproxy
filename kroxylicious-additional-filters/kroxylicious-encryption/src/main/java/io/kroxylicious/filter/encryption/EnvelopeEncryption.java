@@ -14,7 +14,7 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 /**
  * A {@link FilterFactory} for {@link EnvelopeEncryptionFilter}.
  */
-public class EnvelopeEncryption implements FilterFactory<EnvelopeEncryptionFilter, EnvelopeEncryption.Config> {
+public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K, E>, EnvelopeEncryption.Config> {
 
     static record Config(
                          String kms,
@@ -23,8 +23,8 @@ public class EnvelopeEncryption implements FilterFactory<EnvelopeEncryptionFilte
     }
 
     @Override
-    public Class<EnvelopeEncryptionFilter> filterType() {
-        return EnvelopeEncryptionFilter.class;
+    public Class<EnvelopeEncryptionFilter<K, E>> filterType() {
+        return (Class) EnvelopeEncryptionFilter.class;
     }
 
     @Override
@@ -33,12 +33,12 @@ public class EnvelopeEncryption implements FilterFactory<EnvelopeEncryptionFilte
     }
 
     @Override
-    public EnvelopeEncryptionFilter<?, ?> createFilter(FilterCreationContext context, Config configuration) {
-        KmsService<Object, ?, ?> kms = null;
-        Kms<?, ?> kms1 = kms.buildKms(null);
-        DekCache<?, ?> dk = new InBandDekCache<>(kms1);
-        TopicNameBasedKekSelector<?> kekSelector = null;
+    public EnvelopeEncryptionFilter<K, E> createFilter(FilterCreationContext context, Config configuration) {
+        KmsService<Object, K, E> kmsService = null;
+        Kms<K, E> kms = kmsService.buildKms(null);
+        DekCache<K, E> dk = new InBandDekCache<>(kms);
+        TopicNameBasedKekSelector<K> kekSelector = null;
         // TODO validation of generics
-        return new EnvelopeEncryptionFilter(dk, kekSelector);
+        return new EnvelopeEncryptionFilter<>(dk, kekSelector);
     }
 }
