@@ -13,6 +13,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import io.kroxylicious.kms.service.De;
+import io.kroxylicious.kms.service.Kms;
+
+import io.kroxylicious.kms.service.Ser;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -24,24 +29,21 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
 import org.apache.kafka.common.serialization.VoidDeserializer;
 
-import io.kroxylicious.kms.service.DekGenerator;
-import io.kroxylicious.kms.service.DekGeneratorService;
-
 /**
- * Coordinates the generation of DEKs from a {@link DekGenerator} and encapsulates policies on the usage of DEKs.
+ * Coordinates the generation of DEKs from a {@link Kms} and encapsulates policies on the usage of DEKs.
  * @param <K> The type of KEK reference
  * @param <E> The type of wrapped DEK
  */
 public class DekCoordinator<K, E> {
     private final Consumer<Void, K> requestConsumer;
 
-    private final DekGenerator<K, E> dekGenerator;
+    private final Kms<K, E> dekGenerator;
     private final Producer<UUID, DekRecord<K, E>> dekProducer;
     private final String requestTopic;
     private final String responseTopic;
 
     public DekCoordinator(Consumer<Void, K> requestConsumer, String requestTopic,
-                          DekGenerator<K, E> dekGenerator,
+                          Kms<K, E> dekGenerator,
                           Producer<UUID, DekRecord<K, E>> dekProducer, String responseTopic) {
         this.requestConsumer = requestConsumer;
         this.requestTopic = requestTopic;
@@ -50,13 +52,13 @@ public class DekCoordinator<K, E> {
         this.responseTopic = responseTopic;
     }
 
-    <K, E> DekCoordinator build(DekGeneratorService<Object, K, E> dekGeneratorService,
+    <K, E> DekCoordinator build(Kms<K, E> dekGeneratorService,
                                 String requestTopic,
                                 String responseTopic) {
         Map<String, Object> consumerConfigs = null;
-        var consumer = new KafkaConsumer<>(consumerConfigs, new VoidDeserializer(), dekGeneratorService.keyRefDeserializer());
+        var consumer = new KafkaConsumer<>(consumerConfigs, new VoidDeserializer(), De.toKafka(dekGeneratorService.keyRefDeserializer()));
         Serializer<UUID> uuidSerializer = new UUIDSerializer();
-        Serializer<E> edekSerializer = dekGeneratorService.edekSerializer();
+        Ser<E> edekSerializer = dekGeneratorService.edekSerializer();
         var kk = new Serializer<DekRecord<K, E>>() {
 
             @Override
@@ -67,7 +69,7 @@ public class DekCoordinator<K, E> {
         };
         Map<String, Object> producerConfigs = null;
         var producer = new KafkaProducer<>(producerConfigs, uuidSerializer, kk);
-        return new DekCoordinator<>(consumer, requestTopic, dekGeneratorService.dekGenerator(), producer, responseTopic);
+        return new DekCoordinator<>(consumer, requestTopic, dekGeneratorService, producer, responseTopic);
     }
 
     public void run() {

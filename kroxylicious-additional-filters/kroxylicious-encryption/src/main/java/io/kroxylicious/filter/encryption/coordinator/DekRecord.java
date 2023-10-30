@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.encryption.coordinator;
 
-import io.kroxylicious.filter.encryption.CoordinatedDekCache;
-
 /**
  * Represents that data passed from the {@link DekCoordinator} to the {@link CoordinatedDekCache}.
  * This differs from a DEK obtained from a KMS because it encapsulates some policy about how the DEK can be used

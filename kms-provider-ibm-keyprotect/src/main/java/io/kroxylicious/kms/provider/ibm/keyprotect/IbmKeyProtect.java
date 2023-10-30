@@ -10,10 +10,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
 
-import io.kroxylicious.kms.service.DekGenerator;
+import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
 
-public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek>, DekGenerator<IbmKeyRef, IbmEdek> {
+import io.kroxylicious.kms.service.Ser;
+
+public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
     IbmKeyProtect(IbmOptions options) {
 
     }
@@ -25,6 +27,26 @@ public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek>, DekGenerator<IbmK
 
     @Override
     public CompletionStage<SecretKey> decryptEdek(IbmKeyRef kek, IbmEdek edek) {
+        return null;
+    }
+
+    @Override
+    public De<IbmKeyRef> keyRefDeserializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<IbmEdek> edekSerializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<IbmKeyRef> keyRefSerializer() {
+        return null;
+    }
+
+    @Override
+    public De<IbmEdek> edekDeserializer() {
         return null;
     }
 }

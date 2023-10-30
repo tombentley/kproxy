@@ -7,16 +7,17 @@
 package io.kroxylicious.kms.provider.aws.kms;
 
 import java.util.concurrent.CompletionStage;
-
 import javax.crypto.SecretKey;
 
-import io.kroxylicious.kms.service.DekGenerator;
-import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.De;
+
+import io.kroxylicious.kms.service.Ser;
 
 import software.amazon.awssdk.services.kms.KmsClient;
 
-public class AwsKms implements Kms<AwsKeyRef, AwsEdek>,
-        DekGenerator<AwsKeyRef, AwsEdek> {
+import io.kroxylicious.kms.service.Kms;
+
+public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
 
     private final KmsClient client;
 
@@ -31,6 +32,26 @@ public class AwsKms implements Kms<AwsKeyRef, AwsEdek>,
 
     @Override
     public CompletionStage<SecretKey> decryptEdek(AwsKeyRef kek, AwsEdek edek) {
+        return null;
+    }
+
+    @Override
+    public De<AwsKeyRef> keyRefDeserializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<AwsEdek> edekSerializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<AwsKeyRef> keyRefSerializer() {
+        return null;
+    }
+
+    @Override
+    public De<AwsEdek> edekDeserializer() {
         return null;
     }
 }

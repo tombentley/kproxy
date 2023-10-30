@@ -12,17 +12,10 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.UUIDDeserializer;
-import org.apache.kafka.common.serialization.UUIDSerializer;
-
-import io.kroxylicious.kms.service.DekGenerator;
-import io.kroxylicious.kms.service.DekGeneratorService;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsService;
 
-public class InMemoryKmsService implements KmsService<Object, UUID, InMemoryEdek>, DekGeneratorService<Void, UUID, InMemoryEdek> {
+public class InMemoryKmsService implements KmsService<Object, UUID, InMemoryEdek> {
     private final Map<UUID, SecretKey> keys = new HashMap<>();
 
     @Override
@@ -30,28 +23,4 @@ public class InMemoryKmsService implements KmsService<Object, UUID, InMemoryEdek
         return new InMemoryKms(keys);
     }
 
-    @Override
-    public Serializer<UUID> keyRefSerializer() {
-        return new UUIDSerializer();
-    }
-
-    @Override
-    public Deserializer<InMemoryEdek> edekDeserializer() {
-        return new InMemoryEdekDeserializer();
-    }
-
-    @Override
-    public DekGenerator<UUID, InMemoryEdek> dekGenerator() {
-        return new InMemoryKms(keys);
-    }
-
-    @Override
-    public Deserializer<UUID> keyRefDeserializer() {
-        return new UUIDDeserializer();
-    }
-
-    @Override
-    public Serializer<InMemoryEdek> edekSerializer() {
-        return new InMemoryEdekSerializer();
-    }
 }

@@ -6,19 +6,23 @@
 
 package io.kroxylicious.filter.encryption;
 
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.nio.ByteBuffer;
+import java.util.concurrent.CompletionStage;
 
-public interface DekCache<K, I> {
-
-    Ser<I> serializer();
-
-
+public interface DekCache<K, E> {
 
     /**
-     * Gets the current encryptors for the given KEKs
-     * @param keks A mapping from topic name to KEK ids
-     * @return The encryptors for each topic
+     * Asynchronously gets the current DEK context for the Key Encryption Key with the given {@code kekId}.
+     * @param kekId The KEK ids
+     * @return The DEK context for this key
      */
-    CompletableFuture<Map<String, Map.Entry<I, AesGcmEncryptor>>> encryptors(Map<String, K> keks);
+    CompletionStage<DekContext<K>> forKekId(K kekId);
+
+    /**
+     * Asynchronously resolves the DEK context from (a prefix of) the given {@code buffer}.
+     * Following a successful call the given {@code buffer}'s position should at the first byte following the DEK
+     * @param buffer The buffer.
+     * @return The DEK context for the given buffer.
+     */
+    CompletionStage<DekContext<K>> resolve(ByteBuffer buffer);
 }

@@ -6,9 +6,6 @@
 
 package io.kroxylicious.kms.provider.aws.kms;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsService;
 
@@ -19,13 +16,4 @@ public class AwsKmsService implements KmsService<AwsOptions, AwsKeyRef, AwsEdek>
         return null;
     }
 
-    @Override
-    public Serializer<AwsKeyRef> keyRefSerializer() {
-        return null;
-    }
-
-    @Override
-    public Deserializer<AwsEdek> edekDeserializer() {
-        return null;
-    }
 }
