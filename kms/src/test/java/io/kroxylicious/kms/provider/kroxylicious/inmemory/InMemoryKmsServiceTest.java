@@ -6,22 +6,24 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import io.kroxylicious.kms.service.KmsService;
-
-import io.kroxylicious.kms.service.Ser;
-
-import io.kroxylicious.kms.service.UnknownKeyException;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.nio.ByteBuffer;
 import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.kroxylicious.kms.service.KmsService;
+import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.UnknownKeyException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InMemoryKmsServiceTest {
 
@@ -67,7 +69,7 @@ class InMemoryKmsServiceTest {
         var kekDe = kms.keyRefDeserializer();
         var loadedKek = kekDe.deserialize(buffer);
 
-        //then
+        // then
         assertEquals(kek, loadedKek, "Expect the deserialized kek to be equal to the original kek");
     }
 
@@ -97,7 +99,6 @@ class InMemoryKmsServiceTest {
                 "Expect kms to not generate dek for another kms's key");
         assertInstanceOf(UnknownKeyException.class, e2.getCause());
     }
-
 
     @Test
     void shouldDecryptDeks() throws ExecutionException, InterruptedException {
@@ -133,8 +134,7 @@ class InMemoryKmsServiceTest {
         var de = kms.edekDeserializer();
         var deserialized = de.deserialize(buffer);
 
-        assertEquals(edek, deserialized)
-;
+        assertEquals(edek, deserialized);
 
     }
 

@@ -8,20 +8,21 @@ package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class InMemoryEdekTest {
 
     @Test
     void testEqualsAndHashCode() {
-        var edek1 = new InMemoryEdek(1, new byte[]{(byte) 1, (byte) 2, (byte) 3},
-                new byte[]{(byte) 4, (byte) 5, (byte) 6});
+        var edek1 = new InMemoryEdek(1, new byte[]{ (byte) 1, (byte) 2, (byte) 3 },
+                new byte[]{ (byte) 4, (byte) 5, (byte) 6 });
 
-        var edek2 = new InMemoryEdek(1, new byte[]{(byte) 1, (byte) 2, (byte) 3},
-                new byte[]{(byte) 4, (byte) 5, (byte) 6});
+        var edek2 = new InMemoryEdek(1, new byte[]{ (byte) 1, (byte) 2, (byte) 3 },
+                new byte[]{ (byte) 4, (byte) 5, (byte) 6 });
 
-        var edek3 = new InMemoryEdek(1, new byte[]{(byte) 4, (byte) 5, (byte) 6},
-                new byte[]{(byte) 1, (byte) 2, (byte) 3});
+        var edek3 = new InMemoryEdek(1, new byte[]{ (byte) 4, (byte) 5, (byte) 6 },
+                new byte[]{ (byte) 1, (byte) 2, (byte) 3 });
 
         assertEquals(edek1, edek1);
         assertEquals(edek1, edek2);

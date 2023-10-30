@@ -10,9 +10,9 @@ import java.util.Arrays;
 import java.util.Objects;
 
 record InMemoryEdek(
-                           int numAuthBits,
-                           byte[] iv,
-                           byte[] edek) {
+                    int numAuthBits,
+                    byte[] iv,
+                    byte[] edek) {
     /**
      * Overridden to provide deep equality on the {@code byte[]}.
      * @param o   the reference object with which to compare.

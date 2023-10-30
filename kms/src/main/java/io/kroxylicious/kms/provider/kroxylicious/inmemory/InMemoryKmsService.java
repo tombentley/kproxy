@@ -12,7 +12,8 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import io.kroxylicious.kms.service.Kms;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import io.kroxylicious.kms.service.KmsService;
 
 public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config, UUID, InMemoryEdek> {
@@ -29,6 +30,7 @@ public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config,
 
     private final Map<UUID, SecretKey> keys = new HashMap<>();
 
+    @NonNull
     @Override
     public InMemoryKms buildKms(Config options) {
         return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), keys);
