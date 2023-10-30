@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.encryption;
 
+import io.kroxylicious.filter.encryption.coordinator.CoordinatedDekCache;
+import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsService;
 import io.kroxylicious.proxy.filter.FilterCreationContext;
 import io.kroxylicious.proxy.filter.FilterFactory;
@@ -32,8 +34,11 @@ public class EnvelopeEncryption implements FilterFactory<EnvelopeEncryptionFilte
     }
 
     @Override
-    public EnvelopeEncryptionFilter createFilter(FilterCreationContext context, Config configuration) {
+    public EnvelopeEncryptionFilter<?, ?> createFilter(FilterCreationContext context, Config configuration) {
         KmsService<Object, ?, ?> kms = null;
-        return new EnvelopeEncryptionFilter(kms, null);
+        Kms<?, ?> kms1 = kms.buildKms(null);
+        DekCache dk = (DekCache) CoordinatedDekCache.build(kms1, "", "");
+        TopicNameBasedKekSelector kekSelector = null;
+        return new EnvelopeEncryptionFilter(dk, kekSelector);
     }
 }

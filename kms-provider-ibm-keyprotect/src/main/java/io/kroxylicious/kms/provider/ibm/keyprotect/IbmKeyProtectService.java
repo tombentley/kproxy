@@ -6,9 +6,6 @@
 
 package io.kroxylicious.kms.provider.ibm.keyprotect;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-
 import io.kroxylicious.kms.service.KmsService;
 
 public class IbmKeyProtectService implements KmsService<IbmOptions, IbmKeyRef, IbmEdek> {
@@ -16,13 +13,4 @@ public class IbmKeyProtectService implements KmsService<IbmOptions, IbmKeyRef, I
         return new IbmKeyProtect(options);
     }
 
-    @Override
-    public Serializer<IbmKeyRef> keyRefSerializer() {
-        return null;
-    }
-
-    @Override
-    public Deserializer<IbmEdek> edekDeserializer() {
-        return null;
-    }
 }

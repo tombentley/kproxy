@@ -7,21 +7,22 @@
 package io.kroxylicious.kms.provider.azure.keyvault;
 
 import java.util.concurrent.CompletionStage;
-
 import javax.crypto.SecretKey;
+
+import io.kroxylicious.kms.service.De;
+
+import io.kroxylicious.kms.service.Ser;
 
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
 
-import io.kroxylicious.kms.service.DekGenerator;
 import io.kroxylicious.kms.service.Kms;
 
 public class AzureKeyVault
         implements
-        Kms<KeyVaultKeyRef, KeyVaultEdek>,
-        DekGenerator<KeyVaultKeyRef, KeyVaultEdek> {
+        Kms<KeyVaultKeyRef, KeyVaultEdek> {
     private final KeyClient client;
     private final CryptographyClient cryptoClient;
 
@@ -46,6 +47,26 @@ public class AzureKeyVault
 
     @Override
     public CompletionStage<SecretKey> decryptEdek(KeyVaultKeyRef kek, KeyVaultEdek edek) {
+        return null;
+    }
+
+    @Override
+    public De<KeyVaultKeyRef> keyRefDeserializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<KeyVaultEdek> edekSerializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<KeyVaultKeyRef> keyRefSerializer() {
+        return null;
+    }
+
+    @Override
+    public De<KeyVaultEdek> edekDeserializer() {
         return null;
     }
 }

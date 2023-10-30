@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption;
+package io.kroxylicious.kms.service;
 
 import java.nio.ByteBuffer;
 import java.util.function.Function;
@@ -24,22 +24,6 @@ public interface Ser<T> {
                 var buffer = ByteBuffer.wrap(bytes);
                 ser.serialize(data, buffer);
                 return bytes;
-            }
-        };
-    }
-
-    default <Y> Ser<T> then(Function<T, Y> then,
-                            Ser<Y> y) {
-        return new Ser<T>() {
-            @Override
-            public int sizeOf(T t) {
-                return Ser.this.sizeOf(t) + y.sizeOf(then.apply(t));
-            }
-
-            @Override
-            public void serialize(T t, ByteBuffer buffer) {
-                Ser.this.serialize(t, buffer);
-                y.serialize(then.apply(t), buffer);
             }
         };
     }

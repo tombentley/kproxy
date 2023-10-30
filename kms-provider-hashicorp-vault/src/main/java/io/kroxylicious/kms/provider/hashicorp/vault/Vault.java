@@ -7,16 +7,17 @@
 package io.kroxylicious.kms.provider.hashicorp.vault;
 
 import java.util.concurrent.CompletionStage;
-
 import javax.crypto.SecretKey;
 
-import io.kroxylicious.kms.service.DekGenerator;
+import io.kroxylicious.kms.service.De;
+
+import io.kroxylicious.kms.service.Ser;
+
 import io.kroxylicious.kms.service.Kms;
 
 public class Vault
         implements
-        Kms<VaultKeyRef, VaultEdek>,
-        DekGenerator<VaultKeyRef, VaultEdek> {
+        Kms<VaultKeyRef, VaultEdek> {
     Vault(VaultOptions options) {
 
     }
@@ -28,6 +29,26 @@ public class Vault
 
     @Override
     public CompletionStage<SecretKey> decryptEdek(VaultKeyRef kek, VaultEdek edek) {
+        return null;
+    }
+
+    @Override
+    public De<VaultKeyRef> keyRefDeserializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<VaultEdek> edekSerializer() {
+        return null;
+    }
+
+    @Override
+    public Ser<VaultKeyRef> keyRefSerializer() {
+        return null;
+    }
+
+    @Override
+    public De<VaultEdek> edekDeserializer() {
         return null;
     }
 }

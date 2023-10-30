@@ -18,8 +18,5 @@ import org.apache.kafka.common.serialization.Serializer;
 public interface KmsService<C, K, E> {
     Kms<K, E> buildKms(C options);
 
-    Serializer<K> keyRefSerializer();
-
-    Deserializer<E> edekDeserializer();
 
 }

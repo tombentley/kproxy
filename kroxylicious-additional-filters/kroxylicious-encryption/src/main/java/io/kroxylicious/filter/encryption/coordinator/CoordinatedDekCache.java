@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption;
+package io.kroxylicious.filter.encryption.coordinator;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -18,6 +18,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import io.kroxylicious.filter.encryption.AesGcmEncryptor;
+import io.kroxylicious.filter.encryption.AesGcmIvGenerator;
+import io.kroxylicious.filter.encryption.DekCache;
+import io.kroxylicious.filter.encryption.DekContext;
+import io.kroxylicious.kms.service.Ser;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -27,12 +33,9 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.UUIDDeserializer;
 import org.apache.kafka.common.serialization.VoidSerializer;
 
-import io.kroxylicious.filter.encryption.coordinator.DekRecord;
-import io.kroxylicious.filter.encryption.coordinator.DekRecordSerializer;
 import io.kroxylicious.kms.service.Kms;
-import io.kroxylicious.kms.service.KmsService;
 
-public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
+public class CoordinatedDekCache<K, E> /*implements DekCache<K, E>*/ {
 
     private final Kms<K, E> kms;
 
@@ -62,13 +65,12 @@ public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
         this.responseTopic = responseTopic;
     }
 
-    public static <K, E> DekCache<K, UUID> build(KmsService<Object, K, E> kmsService,
+    public static <K, E> DekCache<K, UUID> build(Kms<K, E> kms,
                                                          String requestTopic,
                                                          String responseTopic) {
-        Kms<K, E> kms = kmsService.buildKms(null);
         Map<String, Object> producerConfig = null; // TODO
-        var producer = new KafkaProducer<>(producerConfig, new VoidSerializer(), kmsService.keyRefSerializer());
-        var edekDeserializer = kmsService.edekDeserializer();
+        var producer = new KafkaProducer<>(producerConfig, new VoidSerializer(), kms.keyRefSerializer());
+        var edekDeserializer = kms.edekDeserializer();
         Deserializer<DekRecord<K, E>> dekRecordDeserializer = new DekRecordSerializer<>(edekDeserializer);
         Map<String, Object> consumerConfigs = null; // TODO
         KafkaConsumer<UUID, DekRecord<K, E>> consumer = new KafkaConsumer<>(consumerConfigs,
@@ -77,7 +79,7 @@ public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
         return new CoordinatedDekCache<>(kms, producer, requestTopic, consumer, responseTopic);
     }
 
-    private CompletableFuture<Map.Entry<UUID, AesGcmEncryptor>> encryptor(K kek) {
+    private CompletableFuture<AesGcmEncryptor> encryptor(K kek) {
         return cache.compute(kek, (k, cf) -> {
             if (cf == null) {
                 // a newly observed kek
@@ -117,7 +119,7 @@ public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
             // TODO think about deser -- needs to get get the dekId
             // separately from the ciphertext (or use a view??)
 
-            return Map.entry(pair.getKey(), new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), pair.getValue()));
+            return new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), pair.getValue()));
         });
     }
 
@@ -147,7 +149,7 @@ public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
                 && v.notAfter() < System.currentTimeMillis();
     }
 
-    @Override
+    //@Override
     public Ser<UUID> serializer() {
         return new Ser<>() {
             @Override
@@ -163,8 +165,8 @@ public class CoordinatedDekCache<K, E> implements DekCache<K, UUID> {
         };
     }
 
-    @Override
-    public CompletableFuture<Map<String, Map.Entry<UUID, AesGcmEncryptor>>> encryptors(Map<String, K> keks) {
+    //@Override
+    public CompletableFuture<Map<String, DekContext<K>>> encryptors(Map<String, K> keks) {
         var kekArray = keks.entrySet().stream()
                 .map(entry -> encryptor(entry.getValue()).thenApply(enc -> {
             return Map.entry(entry.getKey(), enc);
