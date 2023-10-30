@@ -61,12 +61,12 @@ class InMemoryKmsServiceTest {
         assertNotNull(kek);
 
         // when
-        Ser<UUID> kekSer = kms.keyRefSerializer();
+        Ser<UUID> kekSer = kms.keyIdSerializer();
         var buffer = ByteBuffer.allocate(kekSer.sizeOf(kek));
         kekSer.serialize(kek, buffer);
         assertFalse(buffer.hasRemaining());
         buffer.flip();
-        var kekDe = kms.keyRefDeserializer();
+        var kekDe = kms.keyIdDeserializer();
         var loadedKek = kekDe.deserialize(buffer);
 
         // then

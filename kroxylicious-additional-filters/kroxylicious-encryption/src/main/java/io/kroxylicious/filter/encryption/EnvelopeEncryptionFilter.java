@@ -42,7 +42,7 @@ import io.kroxylicious.proxy.filter.ResponseFilterResult;
  * @param <K> The type of KEK reference
  * @param <E> The type of wrapped DEK
  */
-public class EnvelopeEncryptionFilter<K, E>
+class EnvelopeEncryptionFilter<K, E>
         implements ProduceRequestFilter, FetchResponseFilter {
     private final TopicNameBasedKekSelector<K> kekSelector;
 
@@ -50,13 +50,13 @@ public class EnvelopeEncryptionFilter<K, E>
 
     private BufferPool bufferPool;
 
-    public EnvelopeEncryptionFilter(DekCache<K, E> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
+    EnvelopeEncryptionFilter(DekCache<K, E> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
         this.kekSelector = kekSelector;
         this.dekCache = dekCache;
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> CompletableFuture<List<T>> join(List<CompletableFuture<T>> futures) {
+    private static <T> CompletableFuture<List<T>> join(List<CompletableFuture<T>> futures) {
         return CompletableFuture.allOf(futures.toArray((CompletableFuture<T>[]) new CompletableFuture[futures.size()])).thenApply(ignored -> {
             return futures.stream().map(cf -> {
                 try {
@@ -72,8 +72,7 @@ public class EnvelopeEncryptionFilter<K, E>
         });
     }
 
-    // @Override
-    public CompletableFuture<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
+    private CompletableFuture<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
         Map<K, List<String>> inverted = new HashMap<>();
         Set<K> kekIds = new HashSet<>(topicToKekId.size());
         topicToKekId.forEach((topicName, kekId) -> {

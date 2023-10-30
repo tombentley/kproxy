@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * KEK selection based on topic name
+ * @param <K> the type of key
+ */
 public abstract non-sealed class TopicNameBasedKekSelector<K> implements KekSelector {
 
     /**

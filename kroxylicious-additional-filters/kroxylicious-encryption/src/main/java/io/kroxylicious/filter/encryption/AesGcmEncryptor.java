@@ -13,7 +13,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-public class AesGcmEncryptor {
+class AesGcmEncryptor {
 
     private final SecretKey key;
     private final Cipher cipher;
@@ -21,7 +21,7 @@ public class AesGcmEncryptor {
     private final byte[] iv;
     private final AesGcmIvGenerator ivGenerator;
 
-    public AesGcmEncryptor(AesGcmIvGenerator ivGenerator, SecretKey key) {
+    AesGcmEncryptor(AesGcmIvGenerator ivGenerator, SecretKey key) {
         // NIST SP.800-38D recommends 96 bit for recommendation about the iv length and generation
         this.iv = new byte[ivGenerator.sizeBytes()];
         this.ivGenerator = ivGenerator;

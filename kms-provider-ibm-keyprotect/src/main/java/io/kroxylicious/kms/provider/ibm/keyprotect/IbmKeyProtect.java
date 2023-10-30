@@ -10,12 +10,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
     IbmKeyProtect(IbmOptions options) {
@@ -42,7 +42,7 @@ public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
 
     @NonNull
     @Override
-    public De<IbmKeyRef> keyRefDeserializer() {
+    public De<IbmKeyRef> keyIdDeserializer() {
         return null;
     }
 
@@ -54,7 +54,7 @@ public class IbmKeyProtect implements Kms<IbmKeyRef, IbmEdek> {
 
     @NonNull
     @Override
-    public Ser<IbmKeyRef> keyRefSerializer() {
+    public Ser<IbmKeyRef> keyIdSerializer() {
         return null;
     }
 

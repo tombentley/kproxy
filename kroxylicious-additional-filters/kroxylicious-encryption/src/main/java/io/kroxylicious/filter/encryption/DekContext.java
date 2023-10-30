@@ -12,14 +12,14 @@ import java.nio.ByteBuffer;
  * A DekContext encapsulates an encryptor
  * @param <K> The type of the KEK id
  */
-public final class DekContext<K> {
+final class DekContext<K> {
     private final AesGcmEncryptor encryptor;
     private final ByteBuffer prefix;
     private final K kekId;
 
-    public DekContext(K kekId,
-                      ByteBuffer prefix,
-                      AesGcmEncryptor encryptor) {
+    DekContext(K kekId,
+               ByteBuffer prefix,
+               AesGcmEncryptor encryptor) {
         this.kekId = kekId;
         this.prefix = prefix;
         this.encryptor = encryptor;

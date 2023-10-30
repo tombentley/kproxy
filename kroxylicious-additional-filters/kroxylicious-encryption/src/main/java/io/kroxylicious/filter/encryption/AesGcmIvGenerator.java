@@ -17,13 +17,13 @@ import java.security.SecureRandom;
  * Galois/Counter Mode (GCM)
  * and GMAC"
  */
-public class AesGcmIvGenerator {
+class AesGcmIvGenerator {
 
     private int low;
     private int mid;
     private int hi;
 
-    public AesGcmIvGenerator(SecureRandom rng) {
+    AesGcmIvGenerator(SecureRandom rng) {
         low = rng.nextInt();
         mid = rng.nextInt();
         hi = rng.nextInt();

@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
-public interface BufferPool {
+interface BufferPool {
 
     ByteBuffer acquire(int size);
 

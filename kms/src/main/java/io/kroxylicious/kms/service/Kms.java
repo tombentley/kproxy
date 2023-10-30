@@ -32,7 +32,7 @@ public interface Kms<K, E> {
     CompletionStage<E> generateDek(@NonNull K kekRef);
 
     /**
-     * Asynchronously generates a Data Encryption Key (DEK) and returns it together with the same DEK wrapped by the Key Encryption Key (KEK) given
+     * Asynchronously generates a new Data Encryption Key (DEK) and returns it together with the same DEK wrapped by the Key Encryption Key (KEK) given
      * by the {@code kekRef},
      * The returned encrypted DEK can later be decrypted with {@link Kms#decryptEdek(Object, Object)}.
      * @param kekRef The key encryption key used to encrypt the generated data encryption key.
@@ -56,15 +56,39 @@ public interface Kms<K, E> {
     @NonNull
     CompletionStage<SecretKey> decryptEdek(@NonNull K kek, @NonNull E edek);
 
+    /**
+     * Get a serializer for KEK ids.
+     * It is required that {@code deserialize(serialize(kekId)).equals(kekId)}.
+     * @return A serializer for KEK ids.
+     * @see #keyIdDeserializer()
+     */
     @NonNull
-    De<K> keyRefDeserializer();
+    Ser<K> keyIdSerializer();
 
+    /**
+     * Get a deserializer for KEK ids.
+     * It is required that {@code deserialize(serialize(kekId)).equals(kekId)}.
+     * @return A deserializer for KEK ids.
+     * @see #keyIdSerializer()
+     */
+    @NonNull
+    De<K> keyIdDeserializer();
+
+    /**
+     * Get a serializer for encrypted DEKs.
+     * It is required that {@code deserialize(serialize(edek)).equals(edek)}.
+     * @return a serializer for encrypted DEKs.
+     * @see #edekDeserializer()
+     */
     @NonNull
     Ser<E> edekSerializer();
 
-    @NonNull
-    Ser<K> keyRefSerializer();
-
+    /**
+     * Get a deserializer for encrypted DEKs.
+     * It is required that {@code deserialize(serialize(edek)).equals(edek)}.
+     * @return a deserializer for encrypted DEKs.
+     * @see #edekSerializer()
+     */
     @NonNull
     De<E> edekDeserializer();
 }

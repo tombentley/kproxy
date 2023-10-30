@@ -14,7 +14,7 @@ import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
 
-public class InBandDekCache<K, E> implements DekCache<K, E> {
+class InBandDekCache<K, E> implements DekCache<K, E> {
 
     private final Kms<K, E> kms;
     private final Ser<K> kekIdSerializer;
@@ -22,12 +22,12 @@ public class InBandDekCache<K, E> implements DekCache<K, E> {
     private final Ser<E> edekSerializer;
     private final De<E> edekDeserializer;
 
-    public InBandDekCache(Kms<K, E> kms) {
+    InBandDekCache(Kms<K, E> kms) {
         this.kms = kms;
         this.edekSerializer = kms.edekSerializer();
-        this.kekIdSerializer = kms.keyRefSerializer();
+        this.kekIdSerializer = kms.keyIdSerializer();
         this.edekDeserializer = kms.edekDeserializer();
-        this.kekIdDeserializer = kms.keyRefDeserializer();
+        this.kekIdDeserializer = kms.keyIdDeserializer();
     }
 
     @Override
