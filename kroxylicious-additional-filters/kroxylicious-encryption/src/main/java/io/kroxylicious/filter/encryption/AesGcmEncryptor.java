@@ -8,6 +8,7 @@ package io.kroxylicious.filter.encryption;
 
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -40,7 +41,6 @@ public class AesGcmEncryptor {
                 + this.cipher.getOutputSize(plaintextSize);
     }
 
-
     /**
      * Encrypt the given plaintext, writing the ciphertext and any necessary extra data to the given {@code output}.
      * @param plaintext The plaintext to encrypt
@@ -71,7 +71,6 @@ public class AesGcmEncryptor {
             throw new EncryptionException(e);
         }
     }
-
 
     public void decrypt(ByteBuffer input, ByteBuffer plaintext) {
         var version = input.get();

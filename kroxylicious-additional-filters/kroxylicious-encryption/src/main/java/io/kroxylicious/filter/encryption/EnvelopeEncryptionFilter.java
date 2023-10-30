@@ -72,7 +72,7 @@ public class EnvelopeEncryptionFilter<K, E>
         });
     }
 
-    //@Override
+    // @Override
     public CompletableFuture<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
         Map<K, List<String>> inverted = new HashMap<>();
         Set<K> kekIds = new HashSet<>(topicToKekId.size());
@@ -84,8 +84,7 @@ public class EnvelopeEncryptionFilter<K, E>
 
         return join(futures).thenApply(list -> {
             Map<String, DekContext<K>> result = new HashMap<>(topicToKekId.size());
-            list.forEach(dekContext ->
-                    inverted.get(dekContext.kekId()).forEach(topicName -> result.put(topicName, dekContext)));
+            list.forEach(dekContext -> inverted.get(dekContext.kekId()).forEach(topicName -> result.put(topicName, dekContext)));
             return result;
         });
     }
@@ -119,7 +118,8 @@ public class EnvelopeEncryptionFilter<K, E>
                     output = bufferPool.acquire(dekContext.encodedSize(kafkaRecord.valueSize()));
                     dekContext.encode(kafkaRecord.value(), output);
                     builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), output, kafkaRecord.headers());
-                } finally {
+                }
+                finally {
                     if (output != null) {
                         bufferPool.release(output);
                     }

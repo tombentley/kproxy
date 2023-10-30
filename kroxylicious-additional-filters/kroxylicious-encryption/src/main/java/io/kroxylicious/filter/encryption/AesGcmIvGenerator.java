@@ -48,15 +48,18 @@ public class AesGcmIvGenerator {
         iv[11] = (byte) (low);
         try {
             low = Math.addExact(low, 1);
-        } catch (ArithmeticException e) {
+        }
+        catch (ArithmeticException e) {
             low = Integer.MIN_VALUE;
             try {
                 mid = Math.addExact(mid, 1);
-            } catch (ArithmeticException e2) {
+            }
+            catch (ArithmeticException e2) {
                 mid = Integer.MIN_VALUE;
                 try {
                     hi = Math.addExact(hi, 1);
-                } catch (ArithmeticException e3) {
+                }
+                catch (ArithmeticException e3) {
                     hi = Integer.MIN_VALUE;
                 }
             }

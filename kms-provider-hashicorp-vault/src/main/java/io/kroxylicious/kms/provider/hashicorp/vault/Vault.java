@@ -7,13 +7,12 @@
 package io.kroxylicious.kms.provider.hashicorp.vault;
 
 import java.util.concurrent.CompletionStage;
+
 import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.De;
-
-import io.kroxylicious.kms.service.Ser;
-
 import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.Ser;
 
 public class Vault
         implements
@@ -24,6 +23,11 @@ public class Vault
 
     @Override
     public CompletionStage<VaultEdek> generateDek(VaultKeyRef kekRef) {
+        return null;
+    }
+
+    @Override
+    public CompletionStage<DekPair<VaultEdek>> generateDekPair(VaultKeyRef kekRef) {
         return null;
     }
 

@@ -29,9 +29,6 @@ import io.kroxylicious.kms.service.KmsException;
 import io.kroxylicious.kms.service.Ser;
 import io.kroxylicious.kms.service.UnknownKeyException;
 
-import org.apache.kafka.common.serialization.UUIDDeserializer;
-import org.apache.kafka.common.serialization.UUIDSerializer;
-
 public class InMemoryKms implements
         Kms<UUID, InMemoryEdek> {
 
@@ -72,7 +69,8 @@ public class InMemoryKms implements
     public CompletionStage<InMemoryEdek> generateDek(UUID kekRef) {
         try {
             return CompletableFuture.completedFuture(wrap(kekRef, () -> this.aes.generateKey()));
-        } catch (KmsException e) {
+        }
+        catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -92,18 +90,17 @@ public class InMemoryKms implements
         return new InMemoryEdek(spec.getTLen(), spec.getIV(), edek);
     }
 
-
     @Override
     public CompletionStage<DekPair<InMemoryEdek>> generateDekPair(UUID kekRef) {
         try {
             var dek = this.aes.generateKey();
             var edek = wrap(kekRef, () -> dek);
             return CompletableFuture.completedFuture(new DekPair<>(edek, dek));
-        } catch (KmsException e) {
+        }
+        catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
         }
     }
-
 
     private GCMParameterSpec aesGcmSpec(SecretKey kek, Cipher aes) {
         byte[] iv = new byte[numIvBytes];

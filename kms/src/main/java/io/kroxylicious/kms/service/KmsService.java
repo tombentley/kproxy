@@ -6,9 +6,6 @@
 
 package io.kroxylicious.kms.service;
 
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
-
 /**
  * Service interface for KMSs
  * @param <C> The config type
@@ -17,6 +14,5 @@ import org.apache.kafka.common.serialization.Serializer;
  */
 public interface KmsService<C, K, E> {
     Kms<K, E> buildKms(C options);
-
 
 }

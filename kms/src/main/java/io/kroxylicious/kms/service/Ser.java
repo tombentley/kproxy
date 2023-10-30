@@ -7,7 +7,6 @@
 package io.kroxylicious.kms.service;
 
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import org.apache.kafka.common.serialization.Serializer;
 
