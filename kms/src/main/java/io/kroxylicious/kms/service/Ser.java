@@ -10,8 +10,6 @@ import java.nio.ByteBuffer;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
-import org.apache.kafka.common.serialization.Serializer;
-
 /**
  * A ByteBuffer-sympathetic serializer for some type, {@code T}.
  * @param <T> The type of the serialized object.

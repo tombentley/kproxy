@@ -10,6 +10,8 @@ import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
@@ -22,43 +24,43 @@ public class Vault
 
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
-    public CompletionStage<VaultEdek> generateDek(@edu.umd.cs.findbugs.annotations.NonNull VaultKeyRef kekRef) {
+    public CompletionStage<VaultEdek> generateDek(@NonNull VaultKeyRef kekRef) {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
-    public CompletionStage<DekPair<VaultEdek>> generateDekPair(@edu.umd.cs.findbugs.annotations.NonNull VaultKeyRef kekRef) {
+    public CompletionStage<DekPair<VaultEdek>> generateDekPair(@NonNull VaultKeyRef kekRef) {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
-    public CompletionStage<SecretKey> decryptEdek(@edu.umd.cs.findbugs.annotations.NonNull VaultKeyRef kek, @edu.umd.cs.findbugs.annotations.NonNull VaultEdek edek) {
+    public CompletionStage<SecretKey> decryptEdek(@NonNull VaultKeyRef kek, @NonNull VaultEdek edek) {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
     public De<VaultKeyRef> keyRefDeserializer() {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
     public Ser<VaultEdek> edekSerializer() {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
     public Ser<VaultKeyRef> keyRefSerializer() {
         return null;
     }
 
-    @edu.umd.cs.findbugs.annotations.NonNull
+    @NonNull
     @Override
     public De<VaultEdek> edekDeserializer() {
         return null;

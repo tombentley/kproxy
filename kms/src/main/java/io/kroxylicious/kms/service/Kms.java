@@ -6,11 +6,11 @@
 
 package io.kroxylicious.kms.service;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Abstracts the KMS operations needed for Envelope Encryption
@@ -28,7 +28,8 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions.
      */
-    @NonNull CompletionStage<E> generateDek(@NonNull K kekRef);
+    @NonNull
+    CompletionStage<E> generateDek(@NonNull K kekRef);
 
     /**
      * Asynchronously generates a Data Encryption Key (DEK) and returns it together with the same DEK wrapped by the Key Encryption Key (KEK) given
@@ -40,7 +41,8 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions.
      */
-    @NonNull CompletionStage<DekPair<E>> generateDekPair(@NonNull K kekRef);
+    @NonNull
+    CompletionStage<DekPair<E>> generateDekPair(@NonNull K kekRef);
 
     /**
      * Asynchronously decrypts a data encryption key that was {@linkplain #generateDek(Object) previously encrypted}.
@@ -51,13 +53,18 @@ public interface Kms<K, E> {
      * @throws InvalidKeyUsageException If the given kek was not intended for key wrapping.
      * @throws KmsException For other exceptions
      */
-    @NonNull CompletionStage<SecretKey> decryptEdek(@NonNull K kek, @NonNull E edek);
+    @NonNull
+    CompletionStage<SecretKey> decryptEdek(@NonNull K kek, @NonNull E edek);
 
-    @NonNull De<K> keyRefDeserializer();
+    @NonNull
+    De<K> keyRefDeserializer();
 
-    @NonNull Ser<E> edekSerializer();
+    @NonNull
+    Ser<E> edekSerializer();
 
-    @NonNull Ser<K> keyRefSerializer();
+    @NonNull
+    Ser<K> keyRefSerializer();
 
-    @NonNull De<E> edekDeserializer();
+    @NonNull
+    De<E> edekDeserializer();
 }

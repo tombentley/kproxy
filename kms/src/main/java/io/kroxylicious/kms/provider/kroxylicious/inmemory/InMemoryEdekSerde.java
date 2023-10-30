@@ -6,10 +6,10 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
+import java.nio.ByteBuffer;
+
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Ser;
-
-import java.nio.ByteBuffer;
 
 class InMemoryEdekSerde implements Ser<InMemoryEdek>, De<InMemoryEdek> {
 

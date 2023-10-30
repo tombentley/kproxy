@@ -21,14 +21,14 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsException;
 import io.kroxylicious.kms.service.Ser;
 import io.kroxylicious.kms.service.UnknownKeyException;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class InMemoryKms implements
         Kms<UUID, InMemoryEdek> {
@@ -41,7 +41,7 @@ public class InMemoryKms implements
     private final int numAuthBits;
     private SecureRandom secureRandom;
 
-    public InMemoryKms(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys) {
+    InMemoryKms(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys) {
         this.keys = keys;
         this.secureRandom = new SecureRandom();
         this.numIvBytes = numIvBytes;

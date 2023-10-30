@@ -6,6 +6,8 @@
 
 package io.kroxylicious.kms.service;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * Service interface for KMSs
  * @param <C> The config type
@@ -13,6 +15,6 @@ package io.kroxylicious.kms.service;
  * @param <E> The type of encrypted DEK
  */
 public interface KmsService<C, K, E> {
-    Kms<K, E> buildKms(C options);
+    @NonNull Kms<K, E> buildKms(C options);
 
 }

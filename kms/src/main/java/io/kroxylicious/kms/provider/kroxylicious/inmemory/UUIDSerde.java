@@ -6,11 +6,11 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import io.kroxylicious.kms.service.De;
-import io.kroxylicious.kms.service.Ser;
-
 import java.nio.ByteBuffer;
 import java.util.UUID;
+
+import io.kroxylicious.kms.service.De;
+import io.kroxylicious.kms.service.Ser;
 
 class UUIDSerde implements Ser<UUID>, De<UUID> {
 
