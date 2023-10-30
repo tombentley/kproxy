@@ -43,8 +43,8 @@ public class AesGcmEncryptor {
 
     /**
      * Encrypt the given plaintext, writing the ciphertext and any necessary extra data to the given {@code output}.
-     * @param plaintext The plaintext to encrypt
-     * @retur the output buffer
+     * @param plaintext The plaintext to encrypt.
+     * @param output The output buffer.
      */
     public void encrypt(ByteBuffer plaintext, ByteBuffer output) {
         byte version = 0;
