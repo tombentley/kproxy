@@ -15,12 +15,12 @@ import com.azure.security.keyvault.keys.KeyClientBuilder;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class AzureKeyVault
         implements
@@ -63,7 +63,7 @@ public class AzureKeyVault
 
     @NonNull
     @Override
-    public De<KeyVaultKeyRef> keyRefDeserializer() {
+    public De<KeyVaultKeyRef> keyIdDeserializer() {
         return null;
     }
 
@@ -75,7 +75,7 @@ public class AzureKeyVault
 
     @NonNull
     @Override
-    public Ser<KeyVaultKeyRef> keyRefSerializer() {
+    public Ser<KeyVaultKeyRef> keyIdSerializer() {
         return null;
     }
 

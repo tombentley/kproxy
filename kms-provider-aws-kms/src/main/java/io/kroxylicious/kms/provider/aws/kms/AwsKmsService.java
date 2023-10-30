@@ -6,10 +6,10 @@
 
 package io.kroxylicious.kms.provider.aws.kms;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsService;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class AwsKmsService implements KmsService<AwsOptions, AwsKeyRef, AwsEdek> {
 

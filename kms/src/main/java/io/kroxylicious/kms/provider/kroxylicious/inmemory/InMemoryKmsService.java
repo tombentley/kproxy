@@ -12,9 +12,9 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.KmsService;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config, UUID, InMemoryEdek> {
     static record Config(int numIvBytes, int numAuthBits) {

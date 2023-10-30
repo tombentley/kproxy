@@ -7,7 +7,7 @@
 package io.kroxylicious.kms.service;
 
 /**
- * Throw when a KMS-managed key is passed to an operation that is incompatible with its allowed key usage.
+ * Thrown when a KMS-managed key is passed to an operation that is incompatible with its allowed key usage.
  * E.g. when a key intended to be used for signing/verifying key, is passed used in an key wrapping operation.
  */
 public class InvalidKeyUsageException extends KmsException {

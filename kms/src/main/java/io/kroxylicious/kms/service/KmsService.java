@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @param <E> The type of encrypted DEK
  */
 public interface KmsService<C, K, E> {
-    @NonNull Kms<K, E> buildKms(C options);
+    @NonNull
+    Kms<K, E> buildKms(C options);
 
 }

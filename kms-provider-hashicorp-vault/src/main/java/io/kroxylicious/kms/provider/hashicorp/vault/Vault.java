@@ -10,12 +10,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class Vault
         implements
@@ -44,7 +44,7 @@ public class Vault
 
     @NonNull
     @Override
-    public De<VaultKeyRef> keyRefDeserializer() {
+    public De<VaultKeyRef> keyIdDeserializer() {
         return null;
     }
 
@@ -56,7 +56,7 @@ public class Vault
 
     @NonNull
     @Override
-    public Ser<VaultKeyRef> keyRefSerializer() {
+    public Ser<VaultKeyRef> keyIdSerializer() {
         return null;
     }
 

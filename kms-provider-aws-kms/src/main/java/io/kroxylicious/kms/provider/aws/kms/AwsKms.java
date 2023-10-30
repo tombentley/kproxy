@@ -10,13 +10,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.crypto.SecretKey;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import software.amazon.awssdk.services.kms.KmsClient;
 
 public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
@@ -47,7 +46,7 @@ public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
 
     @NonNull
     @Override
-    public De<AwsKeyRef> keyRefDeserializer() {
+    public De<AwsKeyRef> keyIdDeserializer() {
         return null;
     }
 
@@ -59,7 +58,7 @@ public class AwsKms implements Kms<AwsKeyRef, AwsEdek> {
 
     @NonNull
     @Override
-    public Ser<AwsKeyRef> keyRefSerializer() {
+    public Ser<AwsKeyRef> keyIdSerializer() {
         return null;
     }
 

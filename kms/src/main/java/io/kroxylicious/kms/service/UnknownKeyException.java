@@ -6,6 +6,9 @@
 
 package io.kroxylicious.kms.service;
 
+/**
+ * Thrown when a KMS instance is passed reference to key that it does not manage.
+ */
 public class UnknownKeyException extends KmsException {
     public UnknownKeyException() {
         super();

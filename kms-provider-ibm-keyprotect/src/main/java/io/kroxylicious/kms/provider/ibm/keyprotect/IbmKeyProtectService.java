@@ -6,9 +6,9 @@
 
 package io.kroxylicious.kms.provider.ibm.keyprotect;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.kms.service.KmsService;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class IbmKeyProtectService implements KmsService<IbmOptions, IbmKeyRef, IbmEdek> {
     @NonNull

@@ -166,7 +166,7 @@ public class InMemoryKms implements
 
     @NonNull
     @Override
-    public Ser<UUID> keyRefSerializer() {
+    public Ser<UUID> keyIdSerializer() {
         return new UUIDSerde();
     }
 
@@ -178,7 +178,7 @@ public class InMemoryKms implements
 
     @NonNull
     @Override
-    public De<UUID> keyRefDeserializer() {
+    public De<UUID> keyIdDeserializer() {
         return new UUIDSerde();
     }
 
