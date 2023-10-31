@@ -37,6 +37,8 @@ import io.kroxylicious.proxy.filter.ProduceRequestFilter;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 
+import org.apache.kafka.common.utils.ByteBufferOutputStream;
+
 /**
  * A filter for encrypting and decrypting records using envelope encryption
  * @param <K> The type of KEK reference
@@ -48,7 +50,7 @@ class EnvelopeEncryptionFilter<K, E>
 
     private final DekCache<K, E> dekCache;
 
-    private BufferPool bufferPool;
+    private BufferPool bufferPool = BufferPool.allocating(); // TMP
 
     EnvelopeEncryptionFilter(DekCache<K, E> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
         this.kekSelector = kekSelector;
@@ -96,7 +98,7 @@ class EnvelopeEncryptionFilter<K, E>
                     request.topicData().forEach(td -> {
                         var keyContext = topicNameToKeyContext.get(td.name());
                         if (keyContext != null) {
-                            td.setPartitionData(encryptPartition(keyContext, td.partitionData()));
+                            td.setPartitionData(encryptPartition(keyContext, td.partitionData(), context));
                         }
                     });
                     return request;
@@ -104,11 +106,11 @@ class EnvelopeEncryptionFilter<K, E>
     }
 
     private List<PartitionProduceData> encryptPartition(DekContext<K> dekContext,
-                                                        List<PartitionProduceData> oldPartitionData) {
+                                                        List<PartitionProduceData> oldPartitionData, FilterContext context) {
         List<PartitionProduceData> newPartitionData = new ArrayList<>(oldPartitionData.size());
         for (var pd : oldPartitionData) {
             int partitionId = pd.index();
-            ByteBuffer buffer = null; /// TODO determine how we should allocate this (is it a configuration parameter??)
+            var buffer = context.createByteBufferOutputStream(0); /// TODO determine how we should allocate this (is it a configuration parameter??)
             MemoryRecords records = (MemoryRecords) pd.records();
             MemoryRecordsBuilder builder = recordsBuilder(buffer, records);
             for (var kafkaRecord : records.records()) {
@@ -116,6 +118,7 @@ class EnvelopeEncryptionFilter<K, E>
                 try {
                     output = bufferPool.acquire(dekContext.encodedSize(kafkaRecord.valueSize()));
                     dekContext.encode(kafkaRecord.value(), output);
+                    output.flip();
                     builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), output, kafkaRecord.headers());
                 }
                 finally {
@@ -133,14 +136,14 @@ class EnvelopeEncryptionFilter<K, E>
 
     @Override
     public CompletionStage<ResponseFilterResult> onFetchResponse(short apiVersion, ResponseHeaderData header, FetchResponseData response, FilterContext context) {
-        return maybeDecodeFetch(response.responses())
+        return maybeDecodeFetch(response.responses(), context)
                 .thenCompose(responses -> context.forwardResponse(header, new FetchResponseData().setResponses(responses)));
     }
 
-    private CompletableFuture<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics) {
+    private CompletableFuture<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
         List<CompletableFuture<FetchableTopicResponse>> result = new ArrayList<>();
         for (FetchableTopicResponse topicData : topics) {
-            result.add(maybeDecodePartitions(topicData.partitions()).thenApply(kk -> {
+            result.add(maybeDecodePartitions(topicData.partitions(), context ).thenApply(kk -> {
                 topicData.setPartitions(kk);
                 return topicData;
             }));
@@ -148,24 +151,24 @@ class EnvelopeEncryptionFilter<K, E>
         return join(result);
     }
 
-    private CompletableFuture<List<PartitionData>> maybeDecodePartitions(List<PartitionData> partitions) {
+    private CompletableFuture<List<PartitionData>> maybeDecodePartitions(List<PartitionData> partitions, FilterContext context) {
         List<CompletableFuture<PartitionData>> result = new ArrayList<>();
         for (PartitionData partitionData : partitions) {
             if (!(partitionData.records() instanceof MemoryRecords)) {
                 throw new IllegalStateException();
             }
-            result.add(maybeDecodeRecords(partitionData, (MemoryRecords) partitionData.records()));
+            result.add(maybeDecodeRecords(partitionData, (MemoryRecords) partitionData.records(), context));
         }
         return join(result);
     }
 
-    private CompletableFuture<PartitionData> maybeDecodeRecords(PartitionData fpr, MemoryRecords memoryRecords) {
+    private CompletableFuture<PartitionData> maybeDecodeRecords(PartitionData fpr, MemoryRecords memoryRecords, FilterContext context) {
         final CompletableFuture<PartitionData> result;
         if (!anyRecordSmellsOfEncryption(memoryRecords)) {
             result = CompletableFuture.completedFuture(fpr);
         }
         else {
-            ByteBuffer buffer = null; // TODO
+            var buffer = context.createByteBufferOutputStream(0); // TODO
             MemoryRecordsBuilder builder = recordsBuilder(buffer, memoryRecords);
             List<CompletableFuture<Integer>> futures = new ArrayList<>();
             for (var kafkaRecord : memoryRecords.records()) {
@@ -209,7 +212,7 @@ class EnvelopeEncryptionFilter<K, E>
         return true; // TODO implement this
     }
 
-    private static MemoryRecordsBuilder recordsBuilder(ByteBuffer buffer, MemoryRecords records) {
+    private static MemoryRecordsBuilder recordsBuilder(ByteBufferOutputStream buffer, MemoryRecords records) {
         RecordBatch firstBatch = records.firstBatch();
         return new MemoryRecordsBuilder(buffer,
                 firstBatch.magic(),

@@ -1,1 +1,1 @@
-io.kroxylicious.proxy.filter.schema.ProduceValidationFilterFactory
+io.kroxylicious.filter.encryption.EnvelopeEncryption

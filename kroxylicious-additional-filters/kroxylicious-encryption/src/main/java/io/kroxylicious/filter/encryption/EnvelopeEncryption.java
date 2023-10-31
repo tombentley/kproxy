@@ -6,8 +6,7 @@
 
 package io.kroxylicious.filter.encryption;
 
-import io.kroxylicious.kms.service.Kms;
-import io.kroxylicious.kms.service.KmsService;
+import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 import io.kroxylicious.proxy.filter.FilterCreationContext;
 import io.kroxylicious.proxy.filter.FilterFactory;
 
@@ -16,7 +15,7 @@ import io.kroxylicious.proxy.filter.FilterFactory;
  */
 public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K, E>, EnvelopeEncryption.Config> {
 
-    static record Config(
+    record Config(
                          String kms,
                          Object kmsConfig) {
 
@@ -34,11 +33,17 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
 
     @Override
     public EnvelopeEncryptionFilter<K, E> createFilter(FilterCreationContext context, Config configuration) {
-        KmsService<Object, K, E> kmsService = null;
-        Kms<K, E> kms = kmsService.buildKms(null);
-        DekCache<K, E> dk = new InBandDekCache<>(kms);
-        TopicNameBasedKekSelector<K> kekSelector = new TemplateKekSelector<>(kms, "topic-${topicName}");
+        // Replace with nested factories stuff
+        var kmsService = new InMemoryKmsService();
+        var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128));
+
+        // More temporary code
+        var key = kms.generateKey();
+        kms.createAlias(key, "all");
+
+        var dk = new InBandDekCache<>(kms);
+        var kekSelector = new TemplateKekSelector<>(kms, "all");
         // TODO validation of generics
-        return new EnvelopeEncryptionFilter<>(dk, kekSelector);
+        return (EnvelopeEncryptionFilter<K, E>) new EnvelopeEncryptionFilter<>(dk, kekSelector);
     }
 }
