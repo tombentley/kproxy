@@ -17,8 +17,8 @@ import io.kroxylicious.kms.service.KmsService;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config, UUID, InMemoryEdek> {
-    static record Config(int numIvBytes, int numAuthBits) {
-        Config {
+    public static record Config(int numIvBytes, int numAuthBits) {
+        public Config {
             if (numIvBytes < 1) {
                 throw new IllegalArgumentException();
             }
@@ -29,11 +29,12 @@ public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config,
     }
 
     private final Map<UUID, SecretKey> keys = new HashMap<>();
+    private final Map<String, UUID> aliases = new HashMap<>();
 
     @NonNull
     @Override
     public InMemoryKms buildKms(Config options) {
-        return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), keys);
+        return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), keys, aliases);
     }
 
 }

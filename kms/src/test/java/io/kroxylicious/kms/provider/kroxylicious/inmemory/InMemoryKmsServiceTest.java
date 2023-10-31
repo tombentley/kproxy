@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.kms.service.KmsService;
 import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.UnknownAliasException;
 import io.kroxylicious.kms.service.UnknownKeyException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,7 +136,25 @@ class InMemoryKmsServiceTest {
         var deserialized = de.deserialize(buffer);
 
         assertEquals(edek, deserialized);
+    }
 
+    @Test
+    void shouldLookupByAlias() throws ExecutionException, InterruptedException {
+        var kms = service.buildKms(new InMemoryKmsService.Config(12, 128));
+        var kek = kms.generateKey();
+
+        var lookup = kms.resolveAlias("bob");
+        var ee = assertThrows(ExecutionException.class, lookup::get);
+        assertInstanceOf(UnknownAliasException.class, ee.getCause());
+
+        kms.createAlias(kek, "bob");
+        var gotFromAlias = kms.resolveAlias("bob").get();
+        assertEquals(kek, gotFromAlias);
+
+        kms.deleteAlias("bob");
+        lookup = kms.resolveAlias("bob");
+        ee = assertThrows(ExecutionException.class, lookup::get);
+        assertInstanceOf(UnknownAliasException.class, ee.getCause());
     }
 
 }

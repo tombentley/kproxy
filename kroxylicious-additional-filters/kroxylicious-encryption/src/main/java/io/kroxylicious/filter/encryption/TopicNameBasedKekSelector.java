@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * KEK selection based on topic name
  * @param <K> the type of key
@@ -22,5 +24,5 @@ public abstract class TopicNameBasedKekSelector<K> {
      * @param topicNames A set of topic names
      * @return A completion stage for the map form topic name to KEK id.
      */
-    public abstract CompletionStage<Map<String, K>> selectKek(Set<String> topicNames);
+    public abstract @NonNull CompletionStage<Map<String, K>> selectKek(@NonNull Set<String> topicNames);
 }
