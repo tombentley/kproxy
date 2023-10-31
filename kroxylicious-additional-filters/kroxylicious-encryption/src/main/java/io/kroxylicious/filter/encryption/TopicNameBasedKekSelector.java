@@ -14,7 +14,7 @@ import java.util.concurrent.CompletionStage;
  * KEK selection based on topic name
  * @param <K> the type of key
  */
-public abstract non-sealed class TopicNameBasedKekSelector<K> implements KekSelector {
+public abstract class TopicNameBasedKekSelector<K> {
 
     /**
      * Returns a completion stage whose value, on successful completion, is a map from each of the given topic
