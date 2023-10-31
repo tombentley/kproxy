@@ -37,7 +37,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
         KmsService<Object, K, E> kmsService = null;
         Kms<K, E> kms = kmsService.buildKms(null);
         DekCache<K, E> dk = new InBandDekCache<>(kms);
-        TopicNameBasedKekSelector<K> kekSelector = null;
+        TopicNameBasedKekSelector<K> kekSelector = new TemplateKekSelector<>(kms, "topic-${topicName}");
         // TODO validation of generics
         return new EnvelopeEncryptionFilter<>(dk, kekSelector);
     }

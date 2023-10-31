@@ -91,4 +91,14 @@ public interface Kms<K, E> {
      */
     @NonNull
     De<E> edekDeserializer();
+
+    /**
+     * Asynchronously resolve an alias to a key id
+     * @param alias The alias
+     * @return A completion stage for the key id.
+     * @throws UnknownAliasException If the alias does not resolve to a key in this KMS.
+     * @throws KmsException For other exceptions.
+     */
+    @NonNull
+    CompletionStage<K> resolveAlias(@NonNull String alias);
 }

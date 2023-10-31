@@ -26,6 +26,7 @@ import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsException;
 import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.UnknownAliasException;
 import io.kroxylicious.kms.service.UnknownKeyException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -40,9 +41,13 @@ public class InMemoryKms implements
     private final int numIvBytes;
     private final int numAuthBits;
     private final SecureRandom secureRandom;
+    private final Map<String, UUID> aliases;
 
-    InMemoryKms(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys) {
+    InMemoryKms(int numIvBytes, int numAuthBits,
+                Map<UUID, SecretKey> keys,
+                Map<String, UUID> aliases) {
         this.keys = keys;
+        this.aliases = aliases;
         this.secureRandom = new SecureRandom();
         this.numIvBytes = numIvBytes;
         this.numAuthBits = numAuthBits;
@@ -64,6 +69,18 @@ public class InMemoryKms implements
         var ref = UUID.randomUUID();
         keys.put(ref, key);
         return ref;
+    }
+
+    public void createAlias(UUID keyId, String alias) {
+        lookupKey(keyId); // check the key exists in this KMS
+        aliases.put(alias, keyId);
+    }
+
+    public void deleteAlias(String alias) {
+        var was = aliases.remove(alias);
+        if (was == null) {
+            throw new UnknownAliasException(alias);
+        }
     }
 
     @NonNull
@@ -161,14 +178,12 @@ public class InMemoryKms implements
     }
 
     private static Cipher aesGcm() {
-        Cipher aes = null;
         try {
-            aes = Cipher.getInstance(WRAP_ALGO);
+            return Cipher.getInstance(WRAP_ALGO);
         }
         catch (GeneralSecurityException e) {
             throw new KmsException(e);
         }
-        return aes;
     }
 
     @NonNull
@@ -181,6 +196,16 @@ public class InMemoryKms implements
     @Override
     public De<InMemoryEdek> edekDeserializer() {
         return new InMemoryEdekSerde();
+    }
+
+    @NonNull
+    @Override
+    public CompletableFuture<UUID> resolveAlias(@NonNull String alias) {
+        UUID uuid = aliases.get(alias);
+        if (uuid == null) {
+            return CompletableFuture.failedFuture(new UnknownAliasException(alias));
+        }
+        return CompletableFuture.completedFuture(uuid);
     }
 
     @NonNull

@@ -7,8 +7,8 @@
 package io.kroxylicious.filter.encryption;
 
 import java.nio.ByteBuffer;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 interface BufferPool {
 
@@ -30,7 +30,7 @@ interface BufferPool {
         };
     }
 
-    static BufferPool direct() {
+    static BufferPool directAllocating() {
         return new BufferPool() {
             @Override
             public ByteBuffer acquire(int size) {
@@ -45,19 +45,35 @@ interface BufferPool {
     }
 
     static BufferPool pooled(int poolSize) {
-        Queue<ByteBuffer> free = new ArrayBlockingQueue<>(100);
+        AtomicReferenceArray<ArrayBlockingQueue<ByteBuffer>> freeLists = new AtomicReferenceArray<>(32);
 
         return new BufferPool() {
             @Override
             public ByteBuffer acquire(int size) {
-                int roundedSize = Math.max(size, size & (size - 1));
-                return free.poll();
+                int index = ceil(size);
+                ArrayBlockingQueue<ByteBuffer> freeList = freeList(index);
+                return freeList.poll();
+            }
+
+            private ArrayBlockingQueue<ByteBuffer> freeList(int index) {
+                var freeList = freeLists.updateAndGet(index, x -> {
+                    if (x == null) {
+                        x = new ArrayBlockingQueue<>(10);
+                    }
+                    return x;
+                });
+                return freeList;
+            }
+
+            private int ceil(int size) {
+                return size & (size - 1);
             }
 
             @Override
             public void release(ByteBuffer buffer) {
                 buffer.position(0);
-                free.offer(buffer);
+                int index = ceil(buffer.capacity());
+                freeList(index).offer(buffer);
             }
         };
     }

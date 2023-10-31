@@ -56,7 +56,7 @@ class EnvelopeEncryptionFilter<K, E>
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> CompletableFuture<List<T>> join(List<CompletableFuture<T>> futures) {
+    static <T> CompletableFuture<List<T>> join(List<CompletableFuture<T>> futures) {
         return CompletableFuture.allOf(futures.toArray((CompletableFuture<T>[]) new CompletableFuture[futures.size()])).thenApply(ignored -> {
             return futures.stream().map(cf -> {
                 try {
