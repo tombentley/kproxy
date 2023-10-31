@@ -36,7 +36,9 @@ class AesGcmEncryptor {
     }
 
     public int outputSize(int plaintextSize) {
+        init(Cipher.ENCRYPT_MODE);
         return Byte.BYTES // version
+                + Byte.BYTES // iv length
                 + ivGenerator.sizeBytes() // iv
                 + this.cipher.getOutputSize(plaintextSize);
     }
@@ -49,7 +51,7 @@ class AesGcmEncryptor {
     public void encrypt(ByteBuffer plaintext, ByteBuffer output) {
         byte version = 0;
         output.put(version);
-
+        output.put((byte) iv.length);
         ivGenerator.generateIv(iv);
         init(Cipher.ENCRYPT_MODE);
         try {
