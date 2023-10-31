@@ -39,7 +39,7 @@ public class InMemoryKms implements
     private final KeyGenerator aes;
     private final int numIvBytes;
     private final int numAuthBits;
-    private SecureRandom secureRandom;
+    private final SecureRandom secureRandom;
 
     InMemoryKms(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys) {
         this.keys = keys;
@@ -132,24 +132,31 @@ public class InMemoryKms implements
         try {
             var kek = lookupKey(kekRef);
             Cipher aesCipher = aesGcm();
-            var spec = new GCMParameterSpec(edek.numAuthBits(), edek.iv());
-            try {
-                aesCipher.init(Cipher.UNWRAP_MODE, kek, spec);
-            }
-            catch (GeneralSecurityException e) {
-                throw new KmsException("Error initializing cipher", e);
-            }
-            SecretKey key;
-            try {
-                key = (SecretKey) aesCipher.unwrap(edek.edek(), KEY_ALGO, Cipher.SECRET_KEY);
-            }
-            catch (GeneralSecurityException e) {
-                throw new KmsException("Error unwrapping DEK", e);
-            }
+            initializeforUnwrap(aesCipher, edek, kek);
+            SecretKey key = unwrap(edek, aesCipher);
             return CompletableFuture.completedFuture(key);
         }
         catch (KmsException e) {
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private static SecretKey unwrap(@NonNull InMemoryEdek edek, Cipher aesCipher) {
+        try {
+            return (SecretKey) aesCipher.unwrap(edek.edek(), KEY_ALGO, Cipher.SECRET_KEY);
+        }
+        catch (GeneralSecurityException e) {
+            throw new KmsException("Error unwrapping DEK", e);
+        }
+    }
+
+    private static void initializeforUnwrap(Cipher aesCipher, @NonNull InMemoryEdek edek, SecretKey kek) {
+        var spec = new GCMParameterSpec(edek.numAuthBits(), edek.iv());
+        try {
+            aesCipher.init(Cipher.UNWRAP_MODE, kek, spec);
+        }
+        catch (GeneralSecurityException e) {
+            throw new KmsException("Error initializing cipher", e);
         }
     }
 

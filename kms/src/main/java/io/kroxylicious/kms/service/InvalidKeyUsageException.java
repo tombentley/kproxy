@@ -11,6 +11,10 @@ package io.kroxylicious.kms.service;
  * E.g. when a key intended to be used for signing/verifying key, is passed used in an key wrapping operation.
  */
 public class InvalidKeyUsageException extends KmsException {
+    /**
+     * Initializes a new instance.
+     */
     public InvalidKeyUsageException() {
+        super();
     }
 }
