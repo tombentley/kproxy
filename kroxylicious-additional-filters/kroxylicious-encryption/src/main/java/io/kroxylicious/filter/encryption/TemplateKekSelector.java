@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,12 +30,10 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
     public TemplateKekSelector(@NonNull Kms<K, ?> kms, @NonNull String template) {
         var matcher = PATTERN.matcher(Objects.requireNonNull(template));
         while (matcher.find()) {
-            switch (matcher.group(1)) {
-                case "topicName":
-                    continue;
-                default:
-                    throw new IllegalArgumentException("Unknown template parameter: " + matcher.group(1));
+            if (matcher.group(1).equals("topicName")) {
+                continue;
             }
+            throw new IllegalArgumentException("Unknown template parameter: " + matcher.group(1));
         }
         this.template = Objects.requireNonNull(template);
         this.kms = Objects.requireNonNull(kms);
@@ -46,15 +45,12 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
     @Override
     public CompletionStage<Map<String, K>> selectKek(@NonNull Set<String> topicNames) {
         var collect = topicNames.stream().collect(Collectors.toMap(topicName -> topicName,
-                topicName -> kms.resolveAlias(evaluateTemplate(topicName)).exceptionally(e -> {
+                topicName -> kms.resolveAlias(evaluateTemplate(topicName)).exceptionallyCompose(e -> {
                     if (e instanceof UnknownAliasException) {
-                        return null;
-                    }
-                    else if (e instanceof RuntimeException re) {
-                        throw re;
+                        return CompletableFuture.completedFuture(null);
                     }
                     else {
-                        throw new RuntimeException(e);
+                        return CompletableFuture.failedFuture(e);
                     }
                 }).thenApply(x -> new Pair<>(topicName, x)).toCompletableFuture()));
         var futures = new ArrayList<>(collect.values());
@@ -74,13 +70,11 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String replacement;
-            switch (matcher.group(1)) {
-                case "topicName":
-                    replacement = topicName;
-                    break;
-                default:
-                    // this should be impossible because of the check in the constructor
-                    throw new IllegalStateException();
+            if (matcher.group(1).equals("topicName")) {
+                replacement = topicName;
+            }
+            else {// this should be impossible because of the check in the constructor
+                throw new IllegalStateException();
             }
             matcher.appendReplacement(sb, replacement);
         }
