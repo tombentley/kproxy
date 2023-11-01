@@ -26,7 +26,6 @@ class TemplateKekSelectorTest {
         assertEquals("Unknown template parameter: topicId", e.getMessage());
     }
 
-
     @Test
     void shouldResolveWhenAliasExists() throws ExecutionException, InterruptedException {
         InMemoryKms kms = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));

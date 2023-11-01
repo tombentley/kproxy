@@ -26,5 +26,5 @@ public interface DekCache<K, E> {
      * @param buffer The buffer.
      * @return The DEK context for the given buffer.
      */
-    CompletionStage<DekContext<K>> resolve(ByteBuffer buffer);
+    CompletionStage<AesGcmEncryptor> resolve(ByteBuffer buffer);
 }

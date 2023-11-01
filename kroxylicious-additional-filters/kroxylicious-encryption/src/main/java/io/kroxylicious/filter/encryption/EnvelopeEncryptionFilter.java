@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.kafka.common.message.FetchResponseData;
@@ -57,30 +57,23 @@ class EnvelopeEncryptionFilter<K, E>
     }
 
     @SuppressWarnings("unchecked")
-    static <T> CompletableFuture<List<T>> join(List<CompletableFuture<T>> futures) {
-        return CompletableFuture.allOf(futures.toArray((CompletableFuture<T>[]) new CompletableFuture[futures.size()])).thenApply(ignored -> {
-            return futures.stream().map(cf -> {
-                try {
-                    return cf.get();
-                }
-                catch (InterruptedException | ExecutionException e) {
-                    // this should be impossible, because if any of the futures completed exceptionally then the thenApply()
-                    // won't be called
-                    throw new IllegalStateException(e);
-                }
-
-            }).toList();
-        });
+    static <T> CompletionStage<List<T>> join(List<? extends CompletionStage<T>> stages) {
+        CompletableFuture<T>[] futures = new CompletableFuture[stages.size()];
+        for (int i = 0; i < stages.size(); i++) {
+            futures[i] = stages.get(i).toCompletableFuture();
+        }
+        return CompletableFuture.allOf(futures)
+                .thenApply(ignored -> Stream.of(futures).map(CompletableFuture::join).toList());
     }
 
-    private CompletableFuture<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
+    private CompletionStage<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
         Map<K, List<String>> inverted = new HashMap<>();
         Set<K> kekIds = new HashSet<>(topicToKekId.size());
         topicToKekId.forEach((topicName, kekId) -> {
             kekIds.add(kekId);
             inverted.computeIfAbsent(kekId, k -> new ArrayList<>()).add(topicName);
         });
-        var futures = kekIds.stream().map(kekId -> dekCache.forKekId(kekId).toCompletableFuture()).toList();
+        var futures = kekIds.stream().map(dekCache::forKekId).toList();
 
         return join(futures).thenApply(list -> {
             Map<String, DekContext<K>> result = new HashMap<>(topicToKekId.size());
@@ -139,8 +132,8 @@ class EnvelopeEncryptionFilter<K, E>
                 .thenCompose(responses -> context.forwardResponse(header, new FetchResponseData().setResponses(responses)));
     }
 
-    private CompletableFuture<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
-        List<CompletableFuture<FetchableTopicResponse>> result = new ArrayList<>();
+    private CompletionStage<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
+        List<CompletionStage<FetchableTopicResponse>> result = new ArrayList<>();
         for (FetchableTopicResponse topicData : topics) {
             result.add(maybeDecodePartitions(topicData.partitions(), context).thenApply(kk -> {
                 topicData.setPartitions(kk);
@@ -150,8 +143,8 @@ class EnvelopeEncryptionFilter<K, E>
         return join(result);
     }
 
-    private CompletableFuture<List<PartitionData>> maybeDecodePartitions(List<PartitionData> partitions, FilterContext context) {
-        List<CompletableFuture<PartitionData>> result = new ArrayList<>();
+    private CompletionStage<List<PartitionData>> maybeDecodePartitions(List<PartitionData> partitions, FilterContext context) {
+        List<CompletionStage<PartitionData>> result = new ArrayList<>();
         for (PartitionData partitionData : partitions) {
             if (!(partitionData.records() instanceof MemoryRecords)) {
                 throw new IllegalStateException();
@@ -161,15 +154,15 @@ class EnvelopeEncryptionFilter<K, E>
         return join(result);
     }
 
-    private CompletableFuture<PartitionData> maybeDecodeRecords(PartitionData fpr, MemoryRecords memoryRecords, FilterContext context) {
-        final CompletableFuture<PartitionData> result;
+    private CompletionStage<PartitionData> maybeDecodeRecords(PartitionData fpr, MemoryRecords memoryRecords, FilterContext context) {
+        final CompletionStage<PartitionData> result;
         if (!anyRecordSmellsOfEncryption(memoryRecords)) {
             result = CompletableFuture.completedFuture(fpr);
         }
         else {
             var buffer = context.createByteBufferOutputStream(0); // TODO
             MemoryRecordsBuilder builder = recordsBuilder(buffer, memoryRecords);
-            List<CompletableFuture<Integer>> futures = new ArrayList<>();
+            List<CompletionStage<Integer>> futures = new ArrayList<>();
             for (var kafkaRecord : memoryRecords.records()) {
                 if (!smellsOfEncryption(kafkaRecord.value())) {
                     builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), kafkaRecord.value(), kafkaRecord.headers());
@@ -177,14 +170,14 @@ class EnvelopeEncryptionFilter<K, E>
                 }
                 else {
                     ByteBuffer value = kafkaRecord.value();
-                    var cf = dekCache.resolve(value).thenApply((DekContext<K> dekContext) -> {
+                    var cf = dekCache.resolve(value).thenApply(encryptor -> {
 
                         ByteBuffer output = null;
                         try {
                             int plaintextSize = kafkaRecord.valueSize();
                             // TODO ^^ this is an overestimate!
                             output = bufferPool.acquire(plaintextSize);
-                            dekContext.decode(value, output);
+                            encryptor.decrypt(value, output);
                             builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), output, kafkaRecord.headers());
                             return 1;
                         }

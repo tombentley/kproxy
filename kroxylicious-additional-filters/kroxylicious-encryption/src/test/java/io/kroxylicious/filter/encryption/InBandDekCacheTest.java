@@ -39,7 +39,10 @@ class InBandDekCacheTest {
 
         var resolvedContextStage = cache.resolve(out);
         assertThat(resolvedContextStage).isCompleted();
-        assertThat(resolvedContextStage).isCompletedWithValueMatching(c -> c.kekId().equals(key));
+        var encryptor = resolvedContextStage.toCompletableFuture().join();
+        var roundTripped = ByteBuffer.allocate(5);
+        encryptor.decrypt(out, roundTripped);
+        assertThat(new String(roundTripped.array(), StandardCharsets.UTF_8)).isEqualTo("input");
 
     }
 }

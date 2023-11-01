@@ -35,13 +35,17 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
         return kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
-                    ByteBuffer prefix = ByteBuffer.allocate(Short.BYTES +
-                            kekIdSerializer.sizeOf(kekId) +
-                            Short.BYTES +
-                            edekSerializer.sizeOf(edek));
-                    prefix.putShort((short) kekIdSerializer.sizeOf(kekId));
+                    short kekIdSize = (short) kekIdSerializer.sizeOf(kekId);
+                    short edekSize = (short) edekSerializer.sizeOf(edek);
+                    // TODO use buffer pool?
+                    ByteBuffer prefix = ByteBuffer.allocate(
+                            Short.BYTES + // kekId size
+                                    kekIdSize + // the kekId
+                                    Short.BYTES + // DEK size
+                                    edekSize); // the DEK
+                    prefix.putShort(kekIdSize);
                     kekIdSerializer.serialize(kekId, prefix);
-                    prefix.putShort((short) edekSerializer.sizeOf(edek));
+                    prefix.putShort(edekSize);
                     edekSerializer.serialize(edek, prefix);
                     prefix.flip();
 
@@ -52,19 +56,19 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
     }
 
     @Override
-    public CompletionStage<DekContext<K>> resolve(ByteBuffer buffer) {
+    public CompletionStage<AesGcmEncryptor> resolve(ByteBuffer buffer) {
         // Read the prefix
         var kekLength = buffer.getShort();
+        int origLimit = buffer.limit();
         buffer.limit(buffer.position() + kekLength);
         var kekId = kekIdDeserializer.deserialize(buffer);
+        buffer.limit(origLimit);
         var edekLength = buffer.getShort();
         buffer.limit(buffer.position() + edekLength);
         var edek = edekDeserializer.deserialize(buffer);
+        buffer.limit(origLimit);
 
-        var f = kms.decryptEdek(kekId, edek);
-        return f.thenApply(dek -> {
-            return new DekContext<>(kekId, null,
-                    new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), dek));
-        });
+        return kms.decryptEdek(kekId, edek)
+                .thenApply(dek -> new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), dek));
     }
 }

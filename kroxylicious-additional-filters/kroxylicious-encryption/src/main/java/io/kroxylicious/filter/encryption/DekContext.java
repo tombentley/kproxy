@@ -45,12 +45,10 @@ final class DekContext<K> {
      * @param output The output buffer
      */
     public void encode(ByteBuffer plaintext, ByteBuffer output) {
+        this.prefix.mark();
         output.put(this.prefix);
+        this.prefix.reset();
         encryptor.encrypt(plaintext, output);
-    }
-
-    public void decode(ByteBuffer encoded, ByteBuffer output) {
-        encryptor.decrypt(encoded, output);
     }
 
 }
