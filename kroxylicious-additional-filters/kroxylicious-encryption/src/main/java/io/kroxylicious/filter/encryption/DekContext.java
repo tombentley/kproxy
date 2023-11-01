@@ -8,6 +8,8 @@ package io.kroxylicious.filter.encryption;
 
 import java.nio.ByteBuffer;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * A DekContext encapsulates an encryptor
  * @param <K> The type of the KEK id
@@ -17,15 +19,15 @@ final class DekContext<K> {
     private final ByteBuffer prefix;
     private final K kekId;
 
-    DekContext(K kekId,
-               ByteBuffer prefix,
-               AesGcmEncryptor encryptor) {
+    DekContext(@NonNull K kekId,
+               @NonNull ByteBuffer prefix,
+               @NonNull AesGcmEncryptor encryptor) {
         this.kekId = kekId;
         this.prefix = prefix;
         this.encryptor = encryptor;
     }
 
-    public K kekId() {
+    public @NonNull K kekId() {
         return kekId;
     }
 
@@ -44,7 +46,7 @@ final class DekContext<K> {
      * @param plaintext The plaintext
      * @param output The output buffer
      */
-    public void encode(ByteBuffer plaintext, ByteBuffer output) {
+    public void encode(@NonNull ByteBuffer plaintext, @NonNull ByteBuffer output) {
         this.prefix.mark();
         output.put(this.prefix);
         this.prefix.reset();

@@ -8,6 +8,8 @@ package io.kroxylicious.filter.encryption;
 
 import java.security.SecureRandom;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * RBG-based construction of the Initialization Vector for AES-GCM.
  * The random field is 96 bits and the free field is empty.
@@ -23,7 +25,7 @@ class AesGcmIvGenerator {
     private int mid;
     private int hi;
 
-    AesGcmIvGenerator(SecureRandom rng) {
+    AesGcmIvGenerator(@NonNull SecureRandom rng) {
         low = rng.nextInt();
         mid = rng.nextInt();
         hi = rng.nextInt();
