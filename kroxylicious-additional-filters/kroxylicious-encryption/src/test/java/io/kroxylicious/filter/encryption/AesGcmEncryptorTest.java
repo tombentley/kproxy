@@ -66,7 +66,7 @@ class AesGcmEncryptorTest {
     }
 
     @Test
-    void shouldThrowDeserializingByIv() throws NoSuchAlgorithmException {
+    void shouldThrowDeserializingUnexpectedIvLength() throws NoSuchAlgorithmException {
         var keygen = KeyGenerator.getInstance("AES");
         var enc = new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), keygen.generateKey());
 

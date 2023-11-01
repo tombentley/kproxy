@@ -9,15 +9,17 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
+@NotThreadSafe
 class AesGcmEncryptor {
 
     private final SecretKey key;
     private final Cipher cipher;
-    private final int numTagBits;
+    private final int numAuthBits;
     private final byte[] iv;
     private final AesGcmIvGenerator ivGenerator;
 
@@ -25,7 +27,7 @@ class AesGcmEncryptor {
         // NIST SP.800-38D recommends 96 bit for recommendation about the iv length and generation
         this.iv = new byte[ivGenerator.sizeBytes()];
         this.ivGenerator = ivGenerator;
-        this.numTagBits = 128;
+        this.numAuthBits = 128;
         this.key = key;
         try {
             this.cipher = Cipher.getInstance("AES_256/GCM/NoPadding");
@@ -65,7 +67,7 @@ class AesGcmEncryptor {
     }
 
     private void init(int encryptMode) {
-        var spec = new GCMParameterSpec(numTagBits, iv);
+        var spec = new GCMParameterSpec(numAuthBits, iv);
         try {
             this.cipher.init(encryptMode, key, spec);
         }
