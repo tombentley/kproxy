@@ -73,7 +73,7 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
             if (matcher.group(1).equals("topicName")) {
                 replacement = topicName;
             }
-            else {// this should be impossible because of the check in the constructor
+            else { // this should be impossible because of the check in the constructor
                 throw new IllegalStateException();
             }
             matcher.appendReplacement(sb, replacement);
