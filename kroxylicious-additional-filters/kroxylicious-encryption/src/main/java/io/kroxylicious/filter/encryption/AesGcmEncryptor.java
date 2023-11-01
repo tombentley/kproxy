@@ -14,6 +14,8 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 @NotThreadSafe
 class AesGcmEncryptor {
 
@@ -23,7 +25,7 @@ class AesGcmEncryptor {
     private final byte[] iv;
     private final AesGcmIvGenerator ivGenerator;
 
-    AesGcmEncryptor(AesGcmIvGenerator ivGenerator, SecretKey key) {
+    AesGcmEncryptor(@NonNull AesGcmIvGenerator ivGenerator, @NonNull SecretKey key) {
         // NIST SP.800-38D recommends 96 bit for recommendation about the iv length and generation
         this.iv = new byte[ivGenerator.sizeBytes()];
         this.ivGenerator = ivGenerator;
@@ -50,7 +52,7 @@ class AesGcmEncryptor {
      * @param plaintext The plaintext to encrypt.
      * @param output The output buffer.
      */
-    public void encrypt(ByteBuffer plaintext, ByteBuffer output) {
+    public void encrypt(@NonNull ByteBuffer plaintext, @NonNull ByteBuffer output) {
         byte version = 0;
         output.put(version);
         output.put((byte) iv.length);
@@ -76,7 +78,7 @@ class AesGcmEncryptor {
         }
     }
 
-    public void decrypt(ByteBuffer input, ByteBuffer plaintext) {
+    public void decrypt(@NonNull ByteBuffer input, @NonNull ByteBuffer plaintext) {
         var version = input.get();
         if (version == 0) {
             int ivLength = input.get();

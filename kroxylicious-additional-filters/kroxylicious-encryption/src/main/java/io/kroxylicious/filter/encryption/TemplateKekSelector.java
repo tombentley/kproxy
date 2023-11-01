@@ -39,7 +39,7 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
         this.kms = Objects.requireNonNull(kms);
     }
 
-    static record Pair<K>(String topicName, K key) {}
+    private record Pair<K>(String topicName, K kekId) {}
 
     @NonNull
     @Override
@@ -52,14 +52,14 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
                     else {
                         return CompletableFuture.failedFuture(e);
                     }
-                }).thenApply(x -> new Pair<>(topicName, x)).toCompletableFuture()));
+                }).thenApply(kekId -> new Pair<>(topicName, kekId)).toCompletableFuture()));
         var futures = new ArrayList<>(collect.values());
         var joined = EnvelopeEncryptionFilter.join(futures);
         return joined.thenApply(list -> {
             // Note we ca use java.util.stream for to collection is map, because it has null values
             HashMap<String, K> map = new HashMap<>();
             for (Pair<K> pair : list) {
-                map.put(pair.topicName(), pair.key());
+                map.put(pair.topicName(), pair.kekId());
             }
             return map;
         });

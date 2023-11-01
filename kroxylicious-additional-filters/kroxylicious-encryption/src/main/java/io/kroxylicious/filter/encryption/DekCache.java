@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.encryption;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 
@@ -18,7 +20,7 @@ public interface DekCache<K, E> {
      * @param kekId The KEK ids
      * @return The DEK context for this key
      */
-    CompletionStage<DekContext<K>> forKekId(K kekId);
+    @NonNull CompletionStage<DekContext<K>> forKekId(@NonNull K kekId);
 
     /**
      * Asynchronously resolves the DEK context from (a prefix of) the given {@code buffer}.
@@ -26,5 +28,5 @@ public interface DekCache<K, E> {
      * @param buffer The buffer.
      * @return The DEK context for the given buffer.
      */
-    CompletionStage<AesGcmEncryptor> resolve(ByteBuffer buffer);
+    @NonNull CompletionStage<AesGcmEncryptor> resolve(@NonNull ByteBuffer buffer);
 }

@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.concurrent.CompletionStage;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
@@ -30,8 +32,9 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
         this.kekIdDeserializer = kms.keyIdDeserializer();
     }
 
+    @NonNull
     @Override
-    public CompletionStage<DekContext<K>> forKekId(K kekId) {
+    public CompletionStage<DekContext<K>> forKekId(@NonNull K kekId) {
         return kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
@@ -55,8 +58,9 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
                 });
     }
 
+    @NonNull
     @Override
-    public CompletionStage<AesGcmEncryptor> resolve(ByteBuffer buffer) {
+    public CompletionStage<AesGcmEncryptor> resolve(@NonNull ByteBuffer buffer) {
         // Read the prefix
         var kekLength = buffer.getShort();
         int origLimit = buffer.limit();
