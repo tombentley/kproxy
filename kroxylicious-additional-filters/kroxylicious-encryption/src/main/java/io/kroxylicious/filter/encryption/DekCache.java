@@ -11,6 +11,8 @@ import java.util.concurrent.CompletionStage;
 
 public interface DekCache<K, E> {
 
+    // TODO define contract for the DekCache attempting to destroy key material when it's no longer being used
+
     /**
      * Asynchronously gets the current DEK context for the Key Encryption Key with the given {@code kekId}.
      * @param kekId The KEK ids

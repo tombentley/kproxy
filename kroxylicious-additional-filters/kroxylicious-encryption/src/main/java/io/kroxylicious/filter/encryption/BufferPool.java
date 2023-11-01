@@ -30,20 +30,6 @@ interface BufferPool {
         };
     }
 
-    static BufferPool directAllocating() {
-        return new BufferPool() {
-            @Override
-            public ByteBuffer acquire(int size) {
-                return ByteBuffer.allocateDirect(size);
-            }
-
-            @Override
-            public void release(ByteBuffer buffer) {
-
-            }
-        };
-    }
-
     static BufferPool pooled(int poolSize) {
         AtomicReferenceArray<ArrayBlockingQueue<ByteBuffer>> freeLists = new AtomicReferenceArray<>(32);
 

@@ -21,6 +21,7 @@ public interface De<T> {
      * Deserialize an instance of {@code T} from the given buffer.
      * @param buffer The buffer.
      * @return The instance, which in general could be null.
+     * @throws java.nio.BufferUnderflowException If the buffer didn't contain as many bytes as expected.
      */
     T deserialize(@NonNull ByteBuffer buffer);
 
