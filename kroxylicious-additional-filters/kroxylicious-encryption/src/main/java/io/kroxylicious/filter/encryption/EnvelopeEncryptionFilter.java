@@ -129,7 +129,7 @@ class EnvelopeEncryptionFilter<K, E>
     @Override
     public CompletionStage<ResponseFilterResult> onFetchResponse(short apiVersion, ResponseHeaderData header, FetchResponseData response, FilterContext context) {
         return maybeDecodeFetch(response.responses(), context)
-                .thenCompose(responses -> context.forwardResponse(header, new FetchResponseData().setResponses(responses)));
+                .thenCompose(responses -> context.forwardResponse(header, response.setResponses(responses)));
     }
 
     private CompletionStage<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
