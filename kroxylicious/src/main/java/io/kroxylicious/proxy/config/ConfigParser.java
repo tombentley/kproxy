@@ -8,6 +8,8 @@ package io.kroxylicious.proxy.config;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.crypto.SecretKey;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -62,6 +64,8 @@ public class ConfigParser {
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new Jdk8Module())
                 .registerModule(new SimpleModule().addSerializer(HostPort.class, new ToStringSerializer()))
+                .registerModule(new SimpleModule().addSerializer(SecretKey.class, new SecretKeySerializer()))
+                .registerModule(new SimpleModule().addDeserializer(SecretKey.class, new SecretKeyDeserializer()))
                 .setVisibility(PropertyAccessor.ALL, Visibility.NONE)
                 .setVisibility(PropertyAccessor.FIELD, Visibility.ANY)
                 .setVisibility(PropertyAccessor.CREATOR, Visibility.ANY)
