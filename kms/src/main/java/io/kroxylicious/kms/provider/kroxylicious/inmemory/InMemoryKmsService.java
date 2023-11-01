@@ -34,6 +34,7 @@ public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config,
                 .get()
                 .get();
     }
+
     public static record Config(int numIvBytes, int numAuthBits) {
         public Config {
             if (numIvBytes < 1) {
