@@ -16,8 +16,8 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K, E>, EnvelopeEncryption.Config> {
 
     record Config(
-                         String kms,
-                         Object kmsConfig) {
+                  String kms,
+                  Object kmsConfig) {
 
     }
 
