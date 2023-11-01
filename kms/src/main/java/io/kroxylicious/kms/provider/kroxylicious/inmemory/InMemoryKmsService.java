@@ -6,7 +6,6 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.UUID;
@@ -35,7 +34,7 @@ public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config,
                 .get();
     }
 
-    public static record Config(int numIvBytes, int numAuthBits) {
+    public record Config(int numIvBytes, int numAuthBits, Map<UUID, SecretKey> keys, Map<String, UUID> aliases) {
         public Config {
             if (numIvBytes < 1) {
                 throw new IllegalArgumentException();
@@ -44,15 +43,16 @@ public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config,
                 throw new IllegalArgumentException();
             }
         }
-    }
 
-    private final Map<UUID, SecretKey> keys = new HashMap<>();
-    private final Map<String, UUID> aliases = new HashMap<>();
+        public Config(int numIvBytes, int numAuthBits) {
+            this(numIvBytes, numAuthBits, Map.of(), Map.of());
+        }
+    }
 
     @NonNull
     @Override
     public InMemoryKms buildKms(Config options) {
-        return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), keys, aliases);
+        return new InMemoryKms(options.numIvBytes(), options.numAuthBits(), options.keys(), options.aliases());
     }
 
 }

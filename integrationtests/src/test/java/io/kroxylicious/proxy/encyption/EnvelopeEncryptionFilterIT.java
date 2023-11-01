@@ -8,12 +8,13 @@ package io.kroxylicious.proxy.encyption;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -28,13 +29,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @ExtendWith(KafkaClusterExtension.class)
-@Disabled("failing at fetch side")
 class EnvelopeEncryptionFilterIT {
 
     @Test
     void roundTrip(KafkaCluster cluster) throws Exception {
         var builder = proxy(cluster);
-        builder.addToFilters(new FilterDefinitionBuilder("EnvelopeEncryptionFilter").withConfig("foo", "bar").build());
+        var key = UUID.randomUUID().toString();
+
+        builder.addToFilters(new FilterDefinitionBuilder("EnvelopeEncryptionFilter")
+                .withConfig("aliases", Map.of("all", key))
+                .withConfig("keys", Map.of(key,
+                        Map.of("key", "SEyeJwE78EvtCtRWpoFL3DN9JC/1wFR+XpNpJOPUt4E=", "algo", "AES")))
+                .build());
 
         try (var tester = kroxyliciousTester(builder);
                 var admin = tester.admin();
@@ -50,7 +56,7 @@ class EnvelopeEncryptionFilterIT {
             producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
 
             consumer.subscribe(List.of(topic));
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(5));
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
             assertThat(records).hasSize(1);
             assertThat(records.iterator()).toIterable().map(ConsumerRecord::value).containsExactly(message);
         }

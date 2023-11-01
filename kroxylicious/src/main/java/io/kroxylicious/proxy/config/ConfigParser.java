@@ -11,6 +11,8 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 
+import javax.crypto.SecretKey;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -87,6 +89,8 @@ public class ConfigParser implements PluginFactoryRegistry {
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new Jdk8Module())
                 .registerModule(new SimpleModule().addSerializer(HostPort.class, new ToStringSerializer()))
+                .registerModule(new SimpleModule().addSerializer(SecretKey.class, new SecretKeySerializer()))
+                .registerModule(new SimpleModule().addDeserializer(SecretKey.class, new SecretKeyDeserializer()))
                 .setVisibility(PropertyAccessor.ALL, Visibility.NONE)
                 .setVisibility(PropertyAccessor.FIELD, Visibility.ANY)
                 .setVisibility(PropertyAccessor.CREATOR, Visibility.ANY)

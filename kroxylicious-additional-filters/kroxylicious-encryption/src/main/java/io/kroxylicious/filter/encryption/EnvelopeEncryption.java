@@ -6,6 +6,11 @@
 
 package io.kroxylicious.filter.encryption;
 
+import java.util.Map;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
 import io.kroxylicious.filter.encryption.inband.BufferPool;
 import io.kroxylicious.filter.encryption.inband.InBandKeyManager;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
@@ -21,7 +26,10 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
 
     record Config(
                   String kms,
-                  Object kmsConfig) {
+                  Object kmsConfig,
+
+                  Map<UUID, SecretKey> keys, /* Temporary - these fields will move */
+                  Map<String, UUID> aliases) {
 
     }
 
@@ -42,11 +50,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
     @Override
     public EnvelopeEncryptionFilter<K> createFilter(FilterCreationContext context, Config configuration) {
         // Replace with nested factories stuff
-        var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128));
-
-        // More temporary code
-        var key = kms.generateKey();
-        kms.createAlias(key, "all");
+        var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128, configuration.keys(), configuration.aliases()));
 
         var dk = new InBandKeyManager<>(kms, BufferPool.allocating());
         var kekSelector = new TemplateKekSelector<>(kms, "all");
