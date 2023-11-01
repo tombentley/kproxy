@@ -6,6 +6,9 @@
 
 package io.kroxylicious.kms.service;
 
+/**
+ * Thrown when a client tries to resolve a key with an alias which is not know to the KMS.
+ */
 public class UnknownAliasException extends KmsException {
 
     public UnknownAliasException(String alias) {

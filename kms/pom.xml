@@ -21,6 +21,8 @@
     <artifactId>kms</artifactId>
     <packaging>jar</packaging>
 
+    <description>An API for interacting with Key Management Systems (KMSes).</description>
+
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

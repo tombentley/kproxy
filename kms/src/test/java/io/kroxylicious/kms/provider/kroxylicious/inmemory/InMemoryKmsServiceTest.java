@@ -7,7 +7,6 @@
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
 import java.nio.ByteBuffer;
-import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +14,6 @@ import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.kms.service.KmsService;
 import io.kroxylicious.kms.service.Ser;
 import io.kroxylicious.kms.service.UnknownAliasException;
 import io.kroxylicious.kms.service.UnknownKeyException;
@@ -32,15 +30,7 @@ class InMemoryKmsServiceTest {
 
     @BeforeEach
     public void before() {
-        service = createServiceInstance();
-    }
-
-    private static InMemoryKmsService createServiceInstance() {
-        return (InMemoryKmsService) ServiceLoader.load(KmsService.class).stream()
-                .filter(p -> p.type() == InMemoryKmsService.class)
-                .findFirst()
-                .get()
-                .get();
+        service = InMemoryKmsService.newInstance();
     }
 
     @Test
@@ -78,7 +68,7 @@ class InMemoryKmsServiceTest {
     void shouldGenerateDeks() {
         // given
         var kms1 = service.buildKms(new InMemoryKmsService.Config(12, 128));
-        var kms2 = createServiceInstance().buildKms(new InMemoryKmsService.Config(12, 128));
+        var kms2 = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
         var key1 = kms1.generateKey();
         assertNotNull(key1);
         var key2 = kms2.generateKey();
@@ -91,6 +81,23 @@ class InMemoryKmsServiceTest {
         // then
         assertNotNull(kms1.generateDek(key1), "Expect kms to be able to generate deks for its own key");
         assertNotNull(kms2.generateDek(key2), "Expect kms to be able to generate deks for its own key");
+    }
+
+    @Test
+    void shouldRejectsAnotherKmsesKeks() {
+        // given
+        var kms1 = service.buildKms(new InMemoryKmsService.Config(12, 128));
+        var kms2 = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
+        var key1 = kms1.generateKey();
+        assertNotNull(key1);
+        var key2 = kms2.generateKey();
+        assertNotNull(key2);
+
+        // when
+        CompletableFuture<InMemoryEdek> gen1 = kms1.generateDek(key2);
+        CompletableFuture<InMemoryEdek> gen2 = kms2.generateDek(key1);
+
+        // then
 
         var e1 = assertThrows(ExecutionException.class, gen1::get,
                 "Expect kms to not generate dek for another kms's key");

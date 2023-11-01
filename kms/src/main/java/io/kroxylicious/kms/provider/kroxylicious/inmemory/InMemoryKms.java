@@ -31,6 +31,11 @@ import io.kroxylicious.kms.service.UnknownKeyException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+/**
+ * An in-memory KMS to be used only for testing.
+ * Note that this exposes public methods that are not part of the {@link Kms} interface which are used for those
+ * KMS operations which are outside the scope of Kroxy itself (such as key provisioning).
+ */
 public class InMemoryKms implements
         Kms<UUID, InMemoryEdek> {
 

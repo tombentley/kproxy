@@ -9,31 +9,21 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
-import io.kroxylicious.kms.service.KmsService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class DekContextTest {
 
-    private static InMemoryKmsService createServiceInstance() {
-        return (InMemoryKmsService) ServiceLoader.load(KmsService.class).stream()
-                .filter(p -> p.type() == InMemoryKmsService.class)
-                .findFirst()
-                .get()
-                .get();
-    }
-
     @Test
     void foo() throws ExecutionException, InterruptedException {
-        InMemoryKms kms = createServiceInstance().buildKms(new InMemoryKmsService.Config(12, 128));
+        InMemoryKms kms = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
         var kek = kms.generateKey();
         var pair = kms.generateDekPair(kek).get();
         var context = new DekContext<>(kek, null, new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), pair.dek()));

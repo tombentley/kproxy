@@ -18,16 +18,19 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 public interface Ser<T> {
     /**
      * Returns the number of bytes required to serialize the given object.
-     * @param t The object to be serialized.
+     * @param object The object to be serialized.
      * @return the number of bytes required to serialize the given object.
      */
-    int sizeOf(T t);
+    int sizeOf(T object);
 
     /**
      * Serializes the given object to the given buffer.
-     * @param t The object to be serialized.
+     * @param object The object to be serialized.
      * @param buffer the buffer to serialize the object to.
+     * @throws java.nio.BufferOverflowException if the given {@code buffer} does not have
+     * sufficient remaining space to serialize the given {@code object}.
+     * This should never be the case if the {@code buffer} has at least {@link #sizeOf(Object) sizeOf(object)} bytes remaining.
      */
-    void serialize(T t, @NonNull ByteBuffer buffer);
+    void serialize(T object, @NonNull ByteBuffer buffer);
 
 }
