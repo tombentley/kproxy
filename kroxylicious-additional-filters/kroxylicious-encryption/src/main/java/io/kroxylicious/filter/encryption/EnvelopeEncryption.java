@@ -15,6 +15,8 @@ import io.kroxylicious.proxy.filter.FilterFactory;
  */
 public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K, E>, EnvelopeEncryption.Config> {
 
+    private final InMemoryKmsService kmsService;
+
     record Config(
                   String kms,
                   Object kmsConfig) {
@@ -31,10 +33,13 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
         return Config.class;
     }
 
+    public EnvelopeEncryption() {
+        this.kmsService = InMemoryKmsService.newInstance();
+    }
+
     @Override
     public EnvelopeEncryptionFilter<K, E> createFilter(FilterCreationContext context, Config configuration) {
         // Replace with nested factories stuff
-        var kmsService = new InMemoryKmsService();
         var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128));
 
         // More temporary code
