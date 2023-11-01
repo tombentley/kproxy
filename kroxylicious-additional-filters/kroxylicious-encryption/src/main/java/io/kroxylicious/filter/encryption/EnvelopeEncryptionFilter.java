@@ -178,6 +178,7 @@ class EnvelopeEncryptionFilter<K, E>
                             // TODO ^^ this is an overestimate!
                             output = bufferPool.acquire(plaintextSize);
                             encryptor.decrypt(value, output);
+                            output.flip();
                             builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), output, kafkaRecord.headers());
                             return 1;
                         }
