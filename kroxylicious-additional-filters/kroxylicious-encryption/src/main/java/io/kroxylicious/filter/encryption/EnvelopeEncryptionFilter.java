@@ -107,7 +107,7 @@ class EnvelopeEncryptionFilter<K>
     }
 
     private CompletionStage<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
-        List<CompletionStage<FetchableTopicResponse>> result = new ArrayList<>();
+        List<CompletionStage<FetchableTopicResponse>> result = new ArrayList<>(topics.size());
         for (FetchableTopicResponse topicData : topics) {
             result.add(maybeDecodePartitions(topicData.partitions(), context).thenApply(kk -> {
                 topicData.setPartitions(kk);
@@ -118,7 +118,7 @@ class EnvelopeEncryptionFilter<K>
     }
 
     private CompletionStage<List<PartitionData>> maybeDecodePartitions(List<PartitionData> partitions, FilterContext context) {
-        List<CompletionStage<PartitionData>> result = new ArrayList<>();
+        List<CompletionStage<PartitionData>> result = new ArrayList<>(partitions.size());
         for (PartitionData partitionData : partitions) {
             if (!(partitionData.records() instanceof MemoryRecords)) {
                 throw new IllegalStateException();
