@@ -49,6 +49,8 @@
                                         <include>io.kroxylicious:kroxylicious-api</include>
                                         <include>io.kroxylicious:kms</include>
                                         <include>io.kroxylicious:kroxylicious-unit-test</include>
+                                        <include>io.kroxylicious:kroxylicious-test-tools</include>
+                                        <exclude>io.kroxylicious:kroxylicious:*:jar:test</exclude>
                                     </includes>
                                 </bannedDependencies>
                             </rules>
