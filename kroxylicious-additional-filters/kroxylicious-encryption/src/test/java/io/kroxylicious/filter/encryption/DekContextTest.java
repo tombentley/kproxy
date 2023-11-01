@@ -6,17 +6,17 @@
 
 package io.kroxylicious.filter.encryption;
 
-import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
-import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
-import io.kroxylicious.kms.service.KmsService;
-
-import org.junit.jupiter.api.Test;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
+
+import org.junit.jupiter.api.Test;
+
+import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
+import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
+import io.kroxylicious.kms.service.KmsService;
 
 import static org.junit.jupiter.api.Assertions.*;
 

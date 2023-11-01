@@ -6,15 +6,14 @@
 
 package io.kroxylicious.filter.encryption;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InBandDekCacheTest {
@@ -26,8 +25,7 @@ class InBandDekCacheTest {
     void roundTrip() {
         var key = inMemoryKms.generateKey();
 
-
-        var cache =  new InBandDekCache<>(inMemoryKms);
+        var cache = new InBandDekCache<>(inMemoryKms);
 
         var stage = cache.forKekId(key);
         assertThat(stage).isCompleted();
@@ -42,10 +40,6 @@ class InBandDekCacheTest {
         var resolvedContextStage = cache.resolve(out);
         assertThat(resolvedContextStage).isCompleted();
         assertThat(resolvedContextStage).isCompletedWithValueMatching(c -> c.kekId().equals(key));
-
-
-
-
 
     }
 }

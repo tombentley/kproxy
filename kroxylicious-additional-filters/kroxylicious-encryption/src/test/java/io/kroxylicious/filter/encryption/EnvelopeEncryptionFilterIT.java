@@ -31,7 +31,6 @@ class EnvelopeEncryptionFilterIT {
 
     private static final String TENANT_1_CLUSTER = "cluster";
 
-
     @Test
     void roundTrip(KafkaCluster cluster) throws Exception {
         var builder = proxy(cluster);

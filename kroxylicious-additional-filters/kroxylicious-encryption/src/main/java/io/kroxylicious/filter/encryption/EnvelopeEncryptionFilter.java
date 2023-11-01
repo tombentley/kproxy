@@ -30,14 +30,13 @@ import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.MemoryRecordsBuilder;
 import org.apache.kafka.common.record.RecordBatch;
+import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
-
-import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 /**
  * A filter for encrypting and decrypting records using envelope encryption
@@ -143,7 +142,7 @@ class EnvelopeEncryptionFilter<K, E>
     private CompletableFuture<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
         List<CompletableFuture<FetchableTopicResponse>> result = new ArrayList<>();
         for (FetchableTopicResponse topicData : topics) {
-            result.add(maybeDecodePartitions(topicData.partitions(), context ).thenApply(kk -> {
+            result.add(maybeDecodePartitions(topicData.partitions(), context).thenApply(kk -> {
                 topicData.setPartitions(kk);
                 return topicData;
             }));
