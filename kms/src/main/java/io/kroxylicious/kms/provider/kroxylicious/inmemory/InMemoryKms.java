@@ -97,7 +97,7 @@ public class InMemoryKms implements
     private InMemoryEdek wrap(UUID kekRef, Supplier<SecretKey> generator) {
         SecretKey kek = lookupKey(kekRef);
         Cipher aesCipher = aesGcm();
-        GCMParameterSpec spec = aesGcmSpec(kek, aesCipher);
+        GCMParameterSpec spec = initializeForWrap(kek, aesCipher);
         var dek = generator.get();
         byte[] edek;
         try {
@@ -122,7 +122,7 @@ public class InMemoryKms implements
         }
     }
 
-    private GCMParameterSpec aesGcmSpec(SecretKey kek, Cipher aes) {
+    private GCMParameterSpec initializeForWrap(SecretKey kek, Cipher aes) {
         byte[] iv = new byte[numIvBytes];
         secureRandom.nextBytes(iv);
         var spec = new GCMParameterSpec(numAuthBits, iv);
