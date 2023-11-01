@@ -90,18 +90,5 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.kroxylicious.testing</groupId>
-            <artifactId>testing-junit5-extension</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-test-tools</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-
-
     </dependencies>
 </project>
