@@ -6,17 +6,18 @@
 
 package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 
-import org.junit.jupiter.api.Test;
-
 import java.nio.ByteBuffer;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class InMemoryEdekSerdeTest {
 
     @Test
     void shouldRoundTripAllAllowedAuthBits() {
-        for (int bits: new int[]{128, 120, 112, 104, 96}) {
+        for (int bits : new int[]{ 128, 120, 112, 104, 96 }) {
             var edek = new InMemoryEdek(bits, new byte[0], new byte[0]);
             InMemoryEdekSerde serde = new InMemoryEdekSerde();
             int size = serde.sizeOf(edek);
