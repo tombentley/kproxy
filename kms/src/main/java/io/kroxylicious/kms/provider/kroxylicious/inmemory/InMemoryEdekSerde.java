@@ -11,12 +11,14 @@ import java.nio.ByteBuffer;
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Ser;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 class InMemoryEdekSerde implements Ser<InMemoryEdek>, De<InMemoryEdek> {
 
     @Override
-    public InMemoryEdek deserialize(ByteBuffer buffer) {
-        short numAuthBits = (short) (buffer.get() & 0xFF);
-        var ivLength = (short) (buffer.get() & 0xFF);
+    public InMemoryEdek deserialize(@NonNull ByteBuffer buffer) {
+        short numAuthBits = De.getUnsignedByte(buffer);
+        var ivLength = De.getUnsignedByte(buffer);
         var iv = new byte[ivLength];
         buffer.get(iv);
         int edekLength = buffer.limit() - buffer.position();
@@ -34,9 +36,9 @@ class InMemoryEdekSerde implements Ser<InMemoryEdek>, De<InMemoryEdek> {
     }
 
     @Override
-    public void serialize(InMemoryEdek inMemoryEdek, ByteBuffer buffer) {
-        buffer.put((byte) (inMemoryEdek.numAuthBits() & 0xFF));
-        buffer.put((byte) (inMemoryEdek.iv().length & 0xFF));
+    public void serialize(InMemoryEdek inMemoryEdek, @NonNull ByteBuffer buffer) {
+        Ser.putUnsignedByte(buffer, inMemoryEdek.numAuthBits());
+        Ser.putUnsignedByte(buffer, inMemoryEdek.iv().length);
         buffer.put(inMemoryEdek.iv());
         buffer.put(inMemoryEdek.edek());
     }

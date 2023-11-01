@@ -12,10 +12,12 @@ import java.util.UUID;
 import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Ser;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 class UUIDSerde implements Ser<UUID>, De<UUID> {
 
     @Override
-    public UUID deserialize(ByteBuffer buffer) {
+    public UUID deserialize(@NonNull ByteBuffer buffer) {
         var msb = buffer.getLong();
         var lsb = buffer.getLong();
         return new UUID(msb, lsb);
@@ -27,7 +29,7 @@ class UUIDSerde implements Ser<UUID>, De<UUID> {
     }
 
     @Override
-    public void serialize(UUID uuid, ByteBuffer buffer) {
+    public void serialize(UUID uuid, @NonNull ByteBuffer buffer) {
         buffer.putLong(uuid.getMostSignificantBits());
         buffer.putLong(uuid.getLeastSignificantBits());
     }
