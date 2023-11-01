@@ -13,6 +13,18 @@ record InMemoryEdek(
                     int numAuthBits,
                     byte[] iv,
                     byte[] edek) {
+
+    InMemoryEdek {
+        if (numAuthBits != 128
+                && numAuthBits != 120
+                && numAuthBits != 112
+                && numAuthBits != 104
+                && numAuthBits != 96) {
+            // Per NIST.SP.800-138D §5.2.1.2
+            throw new IllegalArgumentException("numAuthBits must be one of 128, 120, 112, 104, or 96");
+        }
+    }
+
     /**
      * Overridden to provide deep equality on the {@code byte[]}.
      * @param o   the reference object with which to compare.
