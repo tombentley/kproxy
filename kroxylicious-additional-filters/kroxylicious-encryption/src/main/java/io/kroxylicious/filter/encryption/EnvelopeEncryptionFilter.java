@@ -12,12 +12,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.FetchResponseData.FetchableTopicResponse;
 import org.apache.kafka.common.message.FetchResponseData.PartitionData;
@@ -30,26 +28,25 @@ import org.apache.kafka.common.record.MemoryRecordsBuilder;
 import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * A filter for encrypting and decrypting records using envelope encryption
  * @param <K> The type of KEK reference
- * @param <E> The type of wrapped DEK
  */
-class EnvelopeEncryptionFilter<K, E>
+class EnvelopeEncryptionFilter<K>
         implements ProduceRequestFilter, FetchResponseFilter {
     private final TopicNameBasedKekSelector<K> kekSelector;
 
-    private final DekCache<K, E> dekCache;
+    private final DekCache<K> dekCache;
 
-    EnvelopeEncryptionFilter(DekCache<K, E> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
+    EnvelopeEncryptionFilter(DekCache<K> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
         this.kekSelector = kekSelector;
         this.dekCache = dekCache;
     }
@@ -74,35 +71,29 @@ class EnvelopeEncryptionFilter<K, E>
     }
 
     private CompletionStage<ProduceRequestData> maybeEncodeProduce(ProduceRequestData request, FilterContext context) {
-        var topicNames = request.topicData().stream().collect(Collectors.toMap(TopicProduceData::name, Function.identity()));
-        return kekSelector.selectKek(topicNames.keySet()) // figure out what keks we need
+        var topicNameToData = request.topicData().stream().collect(Collectors.toMap(TopicProduceData::name, Function.identity()));
+        return kekSelector.selectKek(topicNameToData.keySet()) // figure out what keks we need
                 .thenCompose(kekMap -> {
                     var futures = kekMap.entrySet().stream().flatMap(e -> {
                         String topicName = e.getKey();
                         var kekId = e.getValue();
-                        TopicProduceData tpd = topicNames.get(topicName);
+                        TopicProduceData tpd = topicNameToData.get(topicName);
                         return tpd.partitionData().stream().map(ppd -> {
                             var buffer = context.createByteBufferOutputStream(0);
                             // ^^ TODO determine how we should allocate this (is it a configuration parameter??)
                             MemoryRecords records = (MemoryRecords) ppd.records();
                             MemoryRecordsBuilder builder = recordsBuilder(buffer, records);
                             var recordStream = recordStream(records);
-                            var zz = recordStream.map(r -> {
-                                return new RecordEncryptionRequest(r.valueSize(), r.value(), r);
+                            var encryptionRequests = recordStream.map(r -> {
+                                return new RecordEncryptionRequest(r, r.valueSize(), r.value());
                             });
-                            return dekCache.encrypt(kekId, zz, 
-                                    (kafkaRecord, encryptedBuffer) -> {
-                                        // .. and use it to encrypt the records in the partitions for those topics
-                                        // TODO there's an operator on records
+                            return dekCache.encrypt(
+                                    kekId,
+                                    encryptionRequests,
+                                    (encryptedBuffer, kafkaRecord) -> {
                                         builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), encryptedBuffer, kafkaRecord.headers());
-                                    },
-                                    (partitionEncryptionRequest, memoryRecords) -> {
-
-                                    }).thenApply(ignored -> {
-                                MemoryRecords build = builder.build();
-                                ppd.setRecords(build);
-                                return null;
-                            });
+                                    })
+                                    .thenApply(ignored -> ppd.setRecords(builder.build()));
                         });
                     }).toList();
                     return join(futures).thenApply(x -> request);
@@ -164,20 +155,19 @@ class EnvelopeEncryptionFilter<K, E>
 
     @NonNull
     private CompletionStage<Void> maybeDecryptRecord(MemoryRecordsBuilder builder, org.apache.kafka.common.record.Record kafkaRecord) {
-        CompletionStage<Void> cs;
         if (!smellsOfEncryption(kafkaRecord.value())) {
             builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), kafkaRecord.value(), kafkaRecord.headers());
-            cs = CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(null);
         }
         else {
-            cs = dekCache.decrypt(kafkaRecord,
-                    (kafkaRecord2, encryptedBuffer) -> {
+            return dekCache.decrypt(
+                    kafkaRecord,
+                    (plaintextBuffer, kafkaRecord2) -> {
                         // .. and use it to encrypt the records in the partitions for those topics
-                        // TODO there's an operator on records
-                        builder.append(kafkaRecord2.timestamp(), kafkaRecord2.key(), encryptedBuffer, kafkaRecord2.headers());
+                        // TODO this receiver pattern doesn't compose nicely, but it does avoid allocating a record for each record.
+                        builder.append(kafkaRecord2.timestamp(), kafkaRecord2.key(), plaintextBuffer, kafkaRecord2.headers());
                     });
         }
-        return cs;
     }
 
     private boolean anyRecordSmellsOfEncryption(MemoryRecords memoryRecords) {
@@ -204,17 +194,5 @@ class EnvelopeEncryptionFilter<K, E>
                 firstBatch.isControlBatch(),
                 firstBatch.partitionLeaderEpoch(),
                 0);
-    }
-
-    private <X> void foo(@NonNull ByteBufferOutputStream buffer, @NonNull MemoryRecords records) {
-        Collector.<X, MemoryRecordsBuilder, MemoryRecords>of(
-                () -> recordsBuilder(buffer, records),
-                (builder, x) -> {
-                    builder.append(0L, (ByteBuffer) null, (ByteBuffer) null, (Header[]) null);
-                },
-                (mr1, mr2) -> {
-                    return mr1; // TODO merging is not possible using MemoryRecordsBuilder
-                },
-                builder -> builder.build());
     }
 }

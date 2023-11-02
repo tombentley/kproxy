@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption;
+package io.kroxylicious.filter.encryption.inband;
 
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
@@ -13,6 +13,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+
+import io.kroxylicious.filter.encryption.EncryptionException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 

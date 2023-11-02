@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.encryption;
 
+import io.kroxylicious.filter.encryption.inband.BufferPool;
+import io.kroxylicious.filter.encryption.inband.InBandDekCache;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 import io.kroxylicious.proxy.filter.FilterCreationContext;
 import io.kroxylicious.proxy.filter.FilterFactory;
@@ -13,7 +15,7 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 /**
  * A {@link FilterFactory} for {@link EnvelopeEncryptionFilter}.
  */
-public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K, E>, EnvelopeEncryption.Config> {
+public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K>, EnvelopeEncryption.Config> {
 
     private final InMemoryKmsService kmsService;
 
@@ -24,7 +26,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
     }
 
     @Override
-    public Class<EnvelopeEncryptionFilter<K, E>> filterType() {
+    public Class<EnvelopeEncryptionFilter<K>> filterType() {
         return (Class) EnvelopeEncryptionFilter.class;
     }
 
@@ -38,7 +40,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
     }
 
     @Override
-    public EnvelopeEncryptionFilter<K, E> createFilter(FilterCreationContext context, Config configuration) {
+    public EnvelopeEncryptionFilter<K> createFilter(FilterCreationContext context, Config configuration) {
         // Replace with nested factories stuff
         var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128));
 
@@ -46,9 +48,9 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
         var key = kms.generateKey();
         kms.createAlias(key, "all");
 
-        var dk = new InBandDekCache<>(kms);
+        var dk = new InBandDekCache<>(kms, BufferPool.allocating());
         var kekSelector = new TemplateKekSelector<>(kms, "all");
         // TODO validation of generics
-        return (EnvelopeEncryptionFilter<K, E>) new EnvelopeEncryptionFilter<>(dk, kekSelector);
+        return (EnvelopeEncryptionFilter<K>) new EnvelopeEncryptionFilter<>(dk, kekSelector);
     }
 }

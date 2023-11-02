@@ -6,43 +6,40 @@
 
 package io.kroxylicious.filter.encryption;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
-import org.apache.kafka.common.record.MemoryRecords;
-import org.apache.kafka.common.record.MemoryRecordsBuilder;
-import org.apache.kafka.common.record.Record;
-
-import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-public interface DekCache<K, E> {
+import org.apache.kafka.common.record.Record;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
+
+/**
+ * A manager of (data) encryption keys supporting encryption and decryption operations,
+ * encapsulating access to the data encryption keys.
+ * @param <K> The type of KEK id.
+ */
+public interface DekCache<K> {
 
     // TODO define contract for the DekCache attempting to destroy key material when it's no longer being used
 
     /**
-     * Asynchronously gets the current DEK context for the Key Encryption Key with the given {@code kekId}.
-     * @param kekId The KEK ids
-     * @param receiver The
-     * @param finisher
-     * @return A completion stage that completes when all the records in the given {@code partitions} have been processed.
+     * Asynchronously encrypt the given {@code recordRequests} using the current DEK for the given KEK, calling the given receiver for each encrypted record
+     * @param kekId The KEK id
+     * @param receiver The receiver of the encrypted buffers
+     * @return A completion stage that completes when all the records in the given {@code recordRequests} have been processed.
      */
-    @NonNull CompletionStage<Void> encrypt(@NonNull K kekId,
-                                           //@NonNull PartitionEncryptionRequest partition,
-                                           Stream<RecordEncryptionRequest> recordRequests,
-                                           //MemoryRecordsBuilder builder,
-                                           @NonNull Receiver receiver,
-                                           @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> finisher);
-
+    @NonNull
+    CompletionStage<Void> encrypt(@NonNull K kekId,
+                                  @NonNull Stream<RecordEncryptionRequest> recordRequests,
+                                  @NonNull Receiver receiver);
 
     /**
-     * Asynchronously resolves the DEK context from (a prefix of) the given {@code buffer}.
-     * Following a successful call the given {@code buffer}'s position should at the first byte following the DEK
-     * @param buffer The buffer.
-     * @return The DEK context for the given buffer.
+     * Asynchronously decrypt the given {@code kafkaRecord}, calling the given {@code receiver} with the plaintext
+     * @param kafkaRecord The record
+     * @param receiver The receiver of the plaintext buffers
+     * @return A completion stage that completes when the record has been processed.
      */
-    @NonNull CompletionStage<AesGcmEncryptor> resolve(@NonNull ByteBuffer buffer);
-
-    @NonNull CompletionStage<Void> decrypt(@NonNull Record kafkaRecord, Receiver receiver);
+    @NonNull
+    CompletionStage<Void> decrypt(@NonNull Record kafkaRecord,
+                                  @NonNull Receiver receiver);
 }
