@@ -16,9 +16,8 @@ import org.apache.kafka.common.record.Record;
 import io.kroxylicious.filter.encryption.KeyManager;
 import io.kroxylicious.filter.encryption.Receiver;
 import io.kroxylicious.filter.encryption.RecordEncryptionRequest;
-import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
-import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.Serde;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -32,18 +31,14 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
 
     private final Kms<K, E> kms;
     private final BufferPool bufferPool;
-    private final Ser<K> kekIdSerializer;
-    private final De<K> kekIdDeserializer;
-    private final Ser<E> edekSerializer;
-    private final De<E> edekDeserializer;
+    private final Serde<K> kekIdSerde;
+    private final Serde<E> edekSerde;
 
     public InBandKeyManager(Kms<K, E> kms, BufferPool bufferPool) {
         this.kms = kms;
         this.bufferPool = bufferPool;
-        this.edekSerializer = kms.edekSerializer();
-        this.kekIdSerializer = kms.keyIdSerializer();
-        this.edekDeserializer = kms.edekDeserializer();
-        this.kekIdDeserializer = kms.keyIdDeserializer();
+        this.edekSerde = kms.edekSerde();
+        this.kekIdSerde = kms.keyIdSerde();
     }
 
     private CompletionStage<DekContext<K>> currentDekContext(@NonNull K kekId) {
@@ -53,8 +48,8 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
         return kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
-                    short kekIdSize = (short) kekIdSerializer.sizeOf(kekId);
-                    short edekSize = (short) edekSerializer.sizeOf(edek);
+                    short kekIdSize = (short) kekIdSerde.sizeOf(kekId);
+                    short edekSize = (short) edekSerde.sizeOf(edek);
                     // TODO use buffer pool
                     ByteBuffer prefix = ByteBuffer.allocate(
                             Short.BYTES + // kekId size
@@ -62,9 +57,9 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                                     Short.BYTES + // DEK size
                                     edekSize); // the DEK
                     prefix.putShort(kekIdSize);
-                    kekIdSerializer.serialize(kekId, prefix);
+                    kekIdSerde.serialize(kekId, prefix);
                     prefix.putShort(edekSize);
-                    edekSerializer.serialize(edek, prefix);
+                    edekSerde.serialize(edek, prefix);
                     prefix.flip();
 
                     return new DekContext<>(kekId, prefix,
@@ -99,11 +94,11 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
         var kekLength = buffer.getShort();
         int origLimit = buffer.limit();
         buffer.limit(buffer.position() + kekLength);
-        var kekId = kekIdDeserializer.deserialize(buffer);
+        var kekId = kekIdSerde.deserialize(buffer);
         buffer.limit(origLimit);
         var edekLength = buffer.getShort();
         buffer.limit(buffer.position() + edekLength);
-        var edek = edekDeserializer.deserialize(buffer);
+        var edek = edekSerde.deserialize(buffer);
         buffer.limit(origLimit);
 
         return kms.decryptEdek(kekId, edek)

@@ -9,12 +9,11 @@ package io.kroxylicious.kms.provider.kroxylicious.inmemory;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import io.kroxylicious.kms.service.De;
-import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.Serde;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
-class UUIDSerde implements Ser<UUID>, De<UUID> {
+class UUIDSerde implements Serde<UUID> {
 
     @Override
     public UUID deserialize(@NonNull ByteBuffer buffer) {

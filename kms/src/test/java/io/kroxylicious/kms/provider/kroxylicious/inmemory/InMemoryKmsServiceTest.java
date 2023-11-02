@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.Serde;
 import io.kroxylicious.kms.service.UnknownAliasException;
 import io.kroxylicious.kms.service.UnknownKeyException;
 
@@ -52,13 +52,12 @@ class InMemoryKmsServiceTest {
         assertNotNull(kek);
 
         // when
-        Ser<UUID> kekSer = kms.keyIdSerializer();
-        var buffer = ByteBuffer.allocate(kekSer.sizeOf(kek));
-        kekSer.serialize(kek, buffer);
+        Serde<UUID> keyIdSerde = kms.keyIdSerde();
+        var buffer = ByteBuffer.allocate(keyIdSerde.sizeOf(kek));
+        keyIdSerde.serialize(kek, buffer);
         assertFalse(buffer.hasRemaining());
         buffer.flip();
-        var kekDe = kms.keyIdDeserializer();
-        var loadedKek = kekDe.deserialize(buffer);
+        var loadedKek = keyIdSerde.deserialize(buffer);
 
         // then
         assertEquals(kek, loadedKek, "Expect the deserialized kek to be equal to the original kek");
@@ -133,14 +132,13 @@ class InMemoryKmsServiceTest {
 
         var edek = kms.generateDek(kek).get();
 
-        var ser = kms.edekSerializer();
-        var buffer = ByteBuffer.allocate(ser.sizeOf(edek));
-        ser.serialize(edek, buffer);
+        var serde = kms.edekSerde();
+        var buffer = ByteBuffer.allocate(serde.sizeOf(edek));
+        serde.serialize(edek, buffer);
         assertFalse(buffer.hasRemaining());
         buffer.flip();
 
-        var de = kms.edekDeserializer();
-        var deserialized = de.deserialize(buffer);
+        var deserialized = serde.deserialize(buffer);
 
         assertEquals(edek, deserialized);
     }
