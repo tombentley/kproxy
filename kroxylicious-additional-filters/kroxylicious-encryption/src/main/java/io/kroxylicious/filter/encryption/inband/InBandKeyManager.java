@@ -62,7 +62,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                     edekSerde.serialize(edek, prefix);
                     prefix.flip();
 
-                    return new DekContext<>(kekId, prefix,
+                    return new DekContext<>(prefix,
                             new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), dekPair.dek()));
                 });
     }

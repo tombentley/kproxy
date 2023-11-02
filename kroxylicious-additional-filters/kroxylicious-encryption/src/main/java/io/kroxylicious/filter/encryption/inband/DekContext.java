@@ -17,18 +17,11 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 final class DekContext<K> {
     private final AesGcmEncryptor encryptor;
     private final ByteBuffer prefix;
-    private final K kekId;
 
-    DekContext(@NonNull K kekId,
-               @NonNull ByteBuffer prefix,
+    DekContext(@NonNull ByteBuffer prefix,
                @NonNull AesGcmEncryptor encryptor) {
-        this.kekId = kekId;
         this.prefix = prefix;
         this.encryptor = encryptor;
-    }
-
-    public @NonNull K kekId() {
-        return kekId;
     }
 
     /**
