@@ -14,11 +14,11 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * A DekContext encapsulates an encryptor
  * @param <K> The type of the KEK id
  */
-final class DekContext<K> {
+final class KeyContext<K> {
     private final AesGcmEncryptor encryptor;
     private final ByteBuffer prefix;
 
-    DekContext(@NonNull ByteBuffer prefix,
+    KeyContext(@NonNull ByteBuffer prefix,
                @NonNull AesGcmEncryptor encryptor) {
         this.prefix = prefix;
         this.encryptor = encryptor;
