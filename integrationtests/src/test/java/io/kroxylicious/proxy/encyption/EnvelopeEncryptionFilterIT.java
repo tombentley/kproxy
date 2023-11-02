@@ -277,7 +277,7 @@ class EnvelopeEncryptionFilterIT {
      * exploratory test examining what the client will see/do when decryption fails - looking to verify
      * - behaviour is reasonable
      * - the user has a chance to understand what's wrong.
-     *
+     * behaviour when KMS throws a KmsException a) during produce, b) during fetch
      */
     private FilterDefinition configureFilter(Map<String, UUID> aliases, Map<UUID, Map<String, Object>> keys) {
         return buildFilterDefinition(aliases, keys);
