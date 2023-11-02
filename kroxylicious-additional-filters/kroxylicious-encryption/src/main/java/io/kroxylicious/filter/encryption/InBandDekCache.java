@@ -9,6 +9,12 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
+
+import org.apache.kafka.common.record.MemoryRecords;
+import org.apache.kafka.common.record.MemoryRecordsBuilder;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -24,6 +30,8 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
     private final Ser<E> edekSerializer;
     private final De<E> edekDeserializer;
 
+    private BufferPool bufferPool = BufferPool.allocating(); // TODO
+
     InBandDekCache(Kms<K, E> kms) {
         this.kms = kms;
         this.edekSerializer = kms.edekSerializer();
@@ -32,9 +40,11 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
         this.kekIdDeserializer = kms.keyIdDeserializer();
     }
 
-    @NonNull
     @Override
-    public CompletionStage<DekContext<K>> forKekId(@NonNull K kekId) {
+    public CompletionStage<Void> forKekId(@NonNull K kekId,
+                                          Stream<PartitionEncryptionRequest> encryptionRequestStream,
+                                          @NonNull Receiver receiver,
+                                          @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> consumer) {
         return kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
@@ -42,10 +52,10 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
                     short edekSize = (short) edekSerializer.sizeOf(edek);
                     // TODO use buffer pool?
                     ByteBuffer prefix = ByteBuffer.allocate(
-                            Short.BYTES + // kekId size
-                                    kekIdSize + // the kekId
+                            Short.BYTES +  // kekId size
+                                    kekIdSize +   // the kekId
                                     Short.BYTES + // DEK size
-                                    edekSize); // the DEK
+                                    edekSize);    // the DEK
                     prefix.putShort(kekIdSize);
                     kekIdSerializer.serialize(kekId, prefix);
                     prefix.putShort(edekSize);
@@ -55,6 +65,26 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
                     var ivGenerator = new AesGcmIvGenerator(new SecureRandom());
                     return new DekContext<>(kekId, prefix,
                             new AesGcmEncryptor(ivGenerator, dekPair.dek()));
+                }).thenAccept(dekContext -> {
+                    encryptionRequestStream.forEach(partitionRequest -> {
+                        // XXX supplier
+                        MemoryRecordsBuilder builder = partitionRequest.builder();
+                        partitionRequest.recordRequests().forEach(recordRequest -> {
+                            // XXX accumulator
+                            var output = bufferPool.acquire(dekContext.encodedSize(recordRequest.size()));
+                            try {
+                                dekContext.encode(recordRequest.plaintext(), output);
+                                output.flip();
+                                receiver.receive(builder, recordRequest.kafkaRecord(), output);
+                            }
+                            finally {
+                                bufferPool.release(output);
+                            }
+                        });
+                        // XXX finisher
+                        MemoryRecords build = builder.build();
+                        consumer.accept(partitionRequest, build);
+                    });
                 });
     }
 

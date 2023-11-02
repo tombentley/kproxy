@@ -8,8 +8,14 @@ package io.kroxylicious.filter.encryption;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+import org.apache.kafka.common.record.MemoryRecords;
+import org.apache.kafka.common.record.MemoryRecordsBuilder;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public interface DekCache<K, E> {
 
@@ -20,7 +26,10 @@ public interface DekCache<K, E> {
      * @param kekId The KEK ids
      * @return The DEK context for this key
      */
-    @NonNull CompletionStage<DekContext<K>> forKekId(@NonNull K kekId);
+    @NonNull CompletionStage<Void> forKekId(@NonNull K kekId, Stream<PartitionEncryptionRequest> x,
+                                          @NonNull Receiver consumer,
+                                          @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> fooble);
+
 
     /**
      * Asynchronously resolves the DEK context from (a prefix of) the given {@code buffer}.

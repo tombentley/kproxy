@@ -9,15 +9,16 @@ package io.kroxylicious.filter.encryption;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.FetchResponseData.FetchableTopicResponse;
@@ -66,35 +67,54 @@ class EnvelopeEncryptionFilter<K, E>
                 .thenApply(ignored -> Stream.of(futures).map(CompletableFuture::join).toList());
     }
 
-    private CompletionStage<Map<String, DekContext<K>>> keyContexts(Map<String, K> topicToKekId) {
-        Map<K, List<String>> inverted = new HashMap<>();
-        Set<K> kekIds = new HashSet<>(topicToKekId.size());
-        topicToKekId.forEach((topicName, kekId) -> {
-            kekIds.add(kekId);
-            inverted.computeIfAbsent(kekId, k -> new ArrayList<>()).add(topicName);
-        });
-        var futures = kekIds.stream().map(dekCache::forKekId).toList();
-
-        return join(futures).thenApply(list -> {
-            Map<String, DekContext<K>> result = new HashMap<>(topicToKekId.size());
-            list.forEach(dekContext -> inverted.get(dekContext.kekId()).forEach(topicName -> result.put(topicName, dekContext)));
-            return result;
-        });
-    }
-
     @Override
     public CompletionStage<RequestFilterResult> onProduceRequest(short apiVersion, RequestHeaderData header, ProduceRequestData request, FilterContext context) {
-        var topicNames = request.topicData().stream().map(TopicProduceData::name).collect(Collectors.toSet());
-        return kekSelector.selectKek(topicNames)
-                .thenCompose(kekMap -> keyContexts(kekMap).thenApply(topicNameToKeyContext -> {
-                    request.topicData().forEach(td -> {
-                        var keyContext = topicNameToKeyContext.get(td.name());
-                        if (keyContext != null) {
-                            td.setPartitionData(encryptPartition(keyContext, td.partitionData(), context));
-                        }
+        var topicNames = request.topicData().stream().collect(Collectors.toMap(TopicProduceData::name, Function.identity()));
+        return kekSelector.selectKek(topicNames.keySet()) // figure out what keks we need
+                .thenCompose(kekMap -> {
+                    // build a map from kek to topic names
+                    Map<K, List<TopicProduceData>> inverted = new HashMap<>();
+                    kekMap.forEach((topicName, kekId) -> {
+                        inverted.computeIfAbsent(kekId, k -> new ArrayList<>()).add(topicNames.get(topicName));
                     });
-                    return request;
-                }).thenCompose(yy -> context.forwardRequest(header, request)));
+                    // for each kek get a dek context...
+                    var futures = inverted.keySet().stream().map(kekId -> {
+                        // all TD for this KEK
+                        // TODO this is a lot like a Collector
+                        Stream<PartitionEncryptionRequest> requestStream = requestStream(context, inverted);
+                        return dekCache.forKekId(kekId, requestStream,
+                            (builder, kafkaRecord, encryptedBuffer) -> {
+                                // .. and use it to encrypt the records in the partitions for those topics
+                                // TODO there's an operator on records
+                                builder.append(kafkaRecord.timestamp(), kafkaRecord.key(), encryptedBuffer, kafkaRecord.headers());
+                            },
+                                (partitionEncryptionRequest, memoryRecords) -> {
+                                    partitionEncryptionRequest.ppd().setRecords(memoryRecords);
+                            });
+                    }).toList();
+                    return join(futures).thenApply(x -> request);
+                }).thenCompose(yy -> context.forwardRequest(header, request));
+    }
+
+    @NonNull
+    private Stream<PartitionEncryptionRequest> requestStream(FilterContext context,
+                                                             Map<K, List<TopicProduceData>> inverted) {
+
+        // collect(
+        return inverted.values().stream().flatMap(tpds -> {
+            return tpds.stream().flatMap(tpd -> {
+                return tpd.partitionData().stream().map(ppd -> {
+                    var buffer = context.createByteBufferOutputStream(0);
+                    // ^^ TODO determine how we should allocate this (is it a configuration parameter??)
+                    MemoryRecords records = (MemoryRecords) ppd.records();
+                    MemoryRecordsBuilder builder = recordsBuilder(buffer, records);
+                    var recordStream = StreamSupport.stream(records.records().spliterator(), false);
+                    return new PartitionEncryptionRequest(ppd, builder, recordStream.map(r -> {
+                        return new RecordEncryptionRequest(r.valueSize(), r.value(), r);
+                    }));
+                });
+            });
+        });
     }
 
     private List<PartitionProduceData> encryptPartition(DekContext<K> dekContext,
