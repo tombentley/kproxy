@@ -18,7 +18,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * encapsulating access to the data encryption keys.
  * @param <K> The type of KEK id.
  */
-public interface DekCache<K> {
+public interface KeyManager<K> {
 
     // TODO define contract for the DekCache attempting to destroy key material when it's no longer being used
 

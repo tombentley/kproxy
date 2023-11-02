@@ -44,11 +44,11 @@ class EnvelopeEncryptionFilter<K>
         implements ProduceRequestFilter, FetchResponseFilter {
     private final TopicNameBasedKekSelector<K> kekSelector;
 
-    private final DekCache<K> dekCache;
+    private final KeyManager<K> keyManager;
 
-    EnvelopeEncryptionFilter(DekCache<K> dekCache, TopicNameBasedKekSelector<K> kekSelector) {
+    EnvelopeEncryptionFilter(KeyManager<K> keyManager, TopicNameBasedKekSelector<K> kekSelector) {
         this.kekSelector = kekSelector;
-        this.dekCache = dekCache;
+        this.keyManager = keyManager;
     }
 
     @SuppressWarnings("unchecked")
@@ -87,7 +87,7 @@ class EnvelopeEncryptionFilter<K>
                             var encryptionRequests = recordStream.map(r -> {
                                 return new RecordEncryptionRequest(r, r.valueSize(), r.value());
                             });
-                            return dekCache.encrypt(
+                            return keyManager.encrypt(
                                     kekId,
                                     encryptionRequests,
                                     (encryptedBuffer, kafkaRecord) -> {
@@ -160,7 +160,7 @@ class EnvelopeEncryptionFilter<K>
             return CompletableFuture.completedFuture(null);
         }
         else {
-            return dekCache.decrypt(
+            return keyManager.decrypt(
                     kafkaRecord,
                     (plaintextBuffer, kafkaRecord2) -> {
                         // .. and use it to encrypt the records in the partitions for those topics

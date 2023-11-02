@@ -7,7 +7,7 @@
 package io.kroxylicious.filter.encryption;
 
 import io.kroxylicious.filter.encryption.inband.BufferPool;
-import io.kroxylicious.filter.encryption.inband.InBandDekCache;
+import io.kroxylicious.filter.encryption.inband.InBandKeyManager;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 import io.kroxylicious.proxy.filter.FilterCreationContext;
 import io.kroxylicious.proxy.filter.FilterFactory;
@@ -48,7 +48,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
         var key = kms.generateKey();
         kms.createAlias(key, "all");
 
-        var dk = new InBandDekCache<>(kms, BufferPool.allocating());
+        var dk = new InBandKeyManager<>(kms, BufferPool.allocating());
         var kekSelector = new TemplateKekSelector<>(kms, "all");
         // TODO validation of generics
         return (EnvelopeEncryptionFilter<K>) new EnvelopeEncryptionFilter<>(dk, kekSelector);

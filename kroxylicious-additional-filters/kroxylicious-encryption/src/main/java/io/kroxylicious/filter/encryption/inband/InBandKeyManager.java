@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import org.apache.kafka.common.record.Record;
 
-import io.kroxylicious.filter.encryption.DekCache;
+import io.kroxylicious.filter.encryption.KeyManager;
 import io.kroxylicious.filter.encryption.Receiver;
 import io.kroxylicious.filter.encryption.RecordEncryptionRequest;
 import io.kroxylicious.kms.service.De;
@@ -23,12 +23,12 @@ import io.kroxylicious.kms.service.Ser;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
- * An implementation of {@link DekCache} that uses envelope encryption, AES-GCM and stores the KEK id and encrypted DEK
+ * An implementation of {@link KeyManager} that uses envelope encryption, AES-GCM and stores the KEK id and encrypted DEK
  * alongside the record ("in-band").
  * @param <K> The type of KEK id.
  * @param <E> The type of the encrypted DEK.
  */
-public class InBandDekCache<K, E> implements DekCache<K> {
+public class InBandKeyManager<K, E> implements KeyManager<K> {
 
     private final Kms<K, E> kms;
     private final BufferPool bufferPool;
@@ -37,7 +37,7 @@ public class InBandDekCache<K, E> implements DekCache<K> {
     private final Ser<E> edekSerializer;
     private final De<E> edekDeserializer;
 
-    public InBandDekCache(Kms<K, E> kms, BufferPool bufferPool) {
+    public InBandKeyManager(Kms<K, E> kms, BufferPool bufferPool) {
         this.kms = kms;
         this.bufferPool = bufferPool;
         this.edekSerializer = kms.edekSerializer();
