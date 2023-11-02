@@ -44,19 +44,22 @@ public class TemplateKekSelector<K> extends TopicNameBasedKekSelector<K> {
     @NonNull
     @Override
     public CompletionStage<Map<String, K>> selectKek(@NonNull Set<String> topicNames) {
-        var collect = topicNames.stream().collect(Collectors.toMap(topicName -> topicName,
-                topicName -> kms.resolveAlias(evaluateTemplate(topicName)).exceptionallyCompose(e -> {
-                    if (e instanceof UnknownAliasException) {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                    else {
-                        return CompletableFuture.failedFuture(e);
-                    }
-                }).thenApply(kekId -> new Pair<>(topicName, kekId)).toCompletableFuture()));
-        var futures = new ArrayList<>(collect.values());
-        var joined = EnvelopeEncryptionFilter.join(futures);
-        return joined.thenApply(list -> {
-            // Note we ca use java.util.stream for to collection is map, because it has null values
+        var collect = topicNames.stream()
+                .map(
+                        topicName -> kms.resolveAlias(evaluateTemplate(topicName))
+                                .exceptionallyCompose(e -> {
+                                    if (e instanceof UnknownAliasException) {
+                                        return CompletableFuture.completedFuture(null);
+                                    }
+                                    else {
+                                        return CompletableFuture.failedFuture(e);
+                                    }
+                                })
+                                .thenApply(kekId -> new Pair<>(topicName, kekId)))
+                .toList();
+        return EnvelopeEncryptionFilter.join(collect).thenApply(list -> {
+            // Note we can't use `java.util.stream...(Collectors.toMap())` to build the map, because it has null values
+            // which Collectors.toMap() does now allow.
             HashMap<String, K> map = new HashMap<>();
             for (Pair<K> pair : list) {
                 map.put(pair.topicName(), pair.kekId());

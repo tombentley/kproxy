@@ -10,11 +10,11 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.MemoryRecordsBuilder;
+import org.apache.kafka.common.record.Record;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public interface DekCache<K, E> {
@@ -24,11 +24,16 @@ public interface DekCache<K, E> {
     /**
      * Asynchronously gets the current DEK context for the Key Encryption Key with the given {@code kekId}.
      * @param kekId The KEK ids
-     * @return The DEK context for this key
+     * @param receiver The
+     * @param finisher
+     * @return A completion stage that completes when all the records in the given {@code partitions} have been processed.
      */
-    @NonNull CompletionStage<Void> forKekId(@NonNull K kekId, Stream<PartitionEncryptionRequest> x,
-                                          @NonNull Receiver consumer,
-                                          @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> fooble);
+    @NonNull CompletionStage<Void> encrypt(@NonNull K kekId,
+                                           //@NonNull PartitionEncryptionRequest partition,
+                                           Stream<RecordEncryptionRequest> recordRequests,
+                                           //MemoryRecordsBuilder builder,
+                                           @NonNull Receiver receiver,
+                                           @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> finisher);
 
 
     /**
@@ -38,4 +43,6 @@ public interface DekCache<K, E> {
      * @return The DEK context for the given buffer.
      */
     @NonNull CompletionStage<AesGcmEncryptor> resolve(@NonNull ByteBuffer buffer);
+
+    @NonNull CompletionStage<Void> decrypt(@NonNull Record kafkaRecord, Receiver receiver);
 }
