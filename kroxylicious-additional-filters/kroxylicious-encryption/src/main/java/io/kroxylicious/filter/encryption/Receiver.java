@@ -6,18 +6,21 @@
 
 package io.kroxylicious.filter.encryption;
 
-import org.apache.kafka.common.record.MemoryRecordsBuilder;
+import java.nio.ByteBuffer;
+import java.util.function.BiConsumer;
+
 import org.apache.kafka.common.record.Record;
 
-import java.nio.ByteBuffer;
-
-public interface Receiver {
+/**
+ * Something that receives the result of an encryption or decryption operation
+ */
+public interface Receiver extends BiConsumer<ByteBuffer, Record> {
     /**
-     * Append a revised record, based on the given {@code kafkaRecord}, but with the relevant part
-     * replaced with the given encrypted {@code buffer}, to the given {@code builder}.
+     * Receive the ciphertext (encryption) or the plaintext (decryption) associated with the given record..
+     * @param buffer The ciphertext or plaintext buffer.
      * @param kafkaRecord The record on which to base the revised record
-     * @param buffer The encrypted buffer.
      */
     // TODO this doesn't compose: We can't use this interface to encrypt both the value and the key, for example
-    void receive(Record kafkaRecord, ByteBuffer buffer);
+    @Override
+    void accept(ByteBuffer buffer, Record kafkaRecord);
 }
