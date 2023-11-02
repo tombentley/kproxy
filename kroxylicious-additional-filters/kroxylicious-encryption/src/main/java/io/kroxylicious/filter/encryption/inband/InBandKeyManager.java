@@ -41,7 +41,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
         this.kekIdSerde = kms.keyIdSerde();
     }
 
-    private CompletionStage<DekContext<K>> currentDekContext(@NonNull K kekId) {
+    private CompletionStage<KeyContext<K>> currentDekContext(@NonNull K kekId) {
         // TODO caching with expiry
         // TODO count the number of encryptions
         // TODO destroy DEK material
@@ -62,7 +62,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                     edekSerde.serialize(edek, prefix);
                     prefix.flip();
 
-                    return new DekContext<>(prefix,
+                    return new KeyContext<>(prefix,
                             new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), dekPair.dek()));
                 });
     }
@@ -72,13 +72,13 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
     public CompletionStage<Void> encrypt(@NonNull K kekId,
                                          @NonNull Stream<RecordEncryptionRequest> recordRequests,
                                          @NonNull Receiver receiver) {
-        return currentDekContext(kekId).thenAccept(dekContext -> {
+        return currentDekContext(kekId).thenAccept(keyContext -> {
             recordRequests.forEach(recordRequest -> {
                 // XXX accumulator
-                var output = bufferPool.acquire(dekContext.encodedSize(recordRequest.plaintextSize()));
+                var output = bufferPool.acquire(keyContext.encodedSize(recordRequest.plaintextSize()));
                 try {
                     // TODO encrypt null values
-                    dekContext.encode(recordRequest.plaintext(), output);
+                    keyContext.encode(recordRequest.plaintext(), output);
                     output.flip();
                     receiver.accept(output, recordRequest.kafkaRecord());
                 }

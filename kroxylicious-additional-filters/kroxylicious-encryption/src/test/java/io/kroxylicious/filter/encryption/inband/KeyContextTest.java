@@ -19,14 +19,14 @@ import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-class DekContextTest {
+class KeyContextTest {
 
     @Test
     void foo() throws ExecutionException, InterruptedException {
         InMemoryKms kms = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
         var kek = kms.generateKey();
         var pair = kms.generateDekPair(kek).get();
-        var context = new DekContext<>(ByteBuffer.wrap(new byte[]{ 1, 2, 3 }), new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), pair.dek()));
+        var context = new KeyContext<>(ByteBuffer.wrap(new byte[]{ 1, 2, 3 }), new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), pair.dek()));
 
         ByteBuffer bb = ByteBuffer.wrap("hello, world!".getBytes(StandardCharsets.UTF_8));
         int size = context.encodedSize(bb.capacity());
