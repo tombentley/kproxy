@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 
-class InBandDekCacheTest {
+class InBandKeyManagerTest {
 
     private final InMemoryKmsService service = new InMemoryKmsService();
     private final InMemoryKms inMemoryKms = service.buildKms(new InMemoryKmsService.Config(12, 128));
@@ -20,7 +20,7 @@ class InBandDekCacheTest {
     void roundTrip() {
         var key = inMemoryKms.generateKey();
 
-        var cache = new InBandDekCache<>(inMemoryKms, BufferPool.allocating());
+        var cache = new InBandKeyManager<>(inMemoryKms, BufferPool.allocating());
 
         // var stage = (CompletableFuture<? extends Object>) null; // cache.forKekId(key);
         // assertThat(stage).isCompleted();
