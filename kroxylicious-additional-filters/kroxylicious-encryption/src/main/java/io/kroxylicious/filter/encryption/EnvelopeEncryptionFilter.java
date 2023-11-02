@@ -176,7 +176,7 @@ class EnvelopeEncryptionFilter<K>
     }
 
     private boolean smellsOfEncryption(ByteBuffer value) {
-        return true; // TODO implement this
+        return value.remaining() > 0 && value.get(0) == 0 /* version byte */; // TODO implement this
     }
 
     private static MemoryRecordsBuilder recordsBuilder(@NonNull ByteBufferOutputStream buffer, @NonNull MemoryRecords records) {

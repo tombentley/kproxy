@@ -13,8 +13,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
@@ -55,14 +55,17 @@ class EnvelopeEncryptionFilterIT {
             producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
 
             consumer.subscribe(List.of(topic));
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
-            assertThat(records).hasSize(1);
-            assertThat(records.iterator()).toIterable().map(ConsumerRecord::value).containsExactly(message);
+            var records = consumer.poll(Duration.ofSeconds(10));
+            assertThat(records.iterator())
+                    .toIterable()
+                    .singleElement()
+                    .extracting(ConsumerRecord::value)
+                    .isEqualTo(message);
         }
     }
 
     @Test
-    void topicRecordsAreUnreadableOnServer(KafkaCluster cluster, KafkaConsumer<String, String> clusterDirect) throws Exception {
+    void topicRecordsAreUnreadableOnServer(KafkaCluster cluster, KafkaConsumer<String, String> directConsumer) throws Exception {
         var builder = proxy(cluster);
         var key = UUID.randomUUID().toString();
 
@@ -81,19 +84,54 @@ class EnvelopeEncryptionFilterIT {
             producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
 
             var tps = List.of(new TopicPartition(topic, 0));
-            clusterDirect.assign(tps);
-            clusterDirect.seekToBeginning(tps);
-            ConsumerRecords<String, String> records = clusterDirect.poll(Duration.ofSeconds(10));
+            directConsumer.assign(tps);
+            directConsumer.seekToBeginning(tps);
+            var records = directConsumer.poll(Duration.ofSeconds(10));
+            assertThat(records.iterator())
+                    .toIterable()
+                    .singleElement()
+                    .extracting(ConsumerRecord::value)
+                    .isNotEqualTo(message);
+        }
+    }
+
+    @Test
+    void unencryptedRecordsConsumable(KafkaCluster cluster, KafkaProducer<String, String> directProducer) throws Exception {
+        var builder = proxy(cluster);
+        var key = UUID.randomUUID().toString();
+
+        configure(builder, key);
+
+        try (var tester = kroxyliciousTester(builder);
+                var admin = tester.admin();
+                var producer = tester.producer();
+                var consumer = tester.consumer()) {
+
+            String topic = tester.createTopic(DEFAULT_VIRTUAL_CLUSTER);
+
+            await().atMost(Duration.ofSeconds(5)).until(() -> admin.listTopics().namesToListings().get(),
+                    n -> n.containsKey(topic));
+
+            // messages produced via Kroxylicious will be encrypted
+            var message = "hello encrypted world";
+            producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
+
+            // messages produced direct will be plain
+            var plainMessage = "hello plain world";
+            directProducer.send(new ProducerRecord<>(topic, plainMessage)).get(5, TimeUnit.SECONDS);
+
+            consumer.subscribe(List.of(topic));
+            var records = consumer.poll(Duration.ofSeconds(10));
             assertThat(records.iterator()).toIterable()
-                    .hasSize(1)
-                    .map(ConsumerRecord::value).doesNotContain(message);
+                    .hasSize(2)
+                    .map(ConsumerRecord::value)
+                    .containsExactly(message, plainMessage);
         }
     }
 
     /*
      *
      * further IT ideas:
-     * verify that unencrypted messages are consumable
      * records with null values
      * fetching from > 1 topics (mixed encryption/plain case)
      * exploratory test examining what the client will see/do when decryption fails - looking to verify
