@@ -29,7 +29,8 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
                   Object kmsConfig,
 
                   Map<UUID, SecretKey> keys, /* Temporary - these fields will move */
-                  Map<String, UUID> aliases) {
+                  Map<String, UUID> aliases,
+                  String selectorTemplate) {
 
     }
 
@@ -53,7 +54,7 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
         var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128, configuration.keys(), configuration.aliases()));
 
         var dk = new InBandKeyManager<>(kms, BufferPool.allocating());
-        var kekSelector = new TemplateKekSelector<>(kms, "all");
+        var kekSelector = new TemplateKekSelector<>(kms, configuration.selectorTemplate());
         // TODO validation of generics
         return (EnvelopeEncryptionFilter<K>) new EnvelopeEncryptionFilter<>(dk, kekSelector);
     }
