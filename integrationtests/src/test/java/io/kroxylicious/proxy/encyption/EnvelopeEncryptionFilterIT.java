@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -55,7 +56,7 @@ class EnvelopeEncryptionFilterIT {
             producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
 
             consumer.subscribe(List.of(topic));
-            var records = consumer.poll(Duration.ofSeconds(10));
+            var records = consumer.poll(Duration.ofSeconds(5));
             assertThat(records.iterator())
                     .toIterable()
                     .singleElement()
@@ -86,7 +87,7 @@ class EnvelopeEncryptionFilterIT {
             var tps = List.of(new TopicPartition(topic, 0));
             directConsumer.assign(tps);
             directConsumer.seekToBeginning(tps);
-            var records = directConsumer.poll(Duration.ofSeconds(10));
+            var records = directConsumer.poll(Duration.ofSeconds(5));
             assertThat(records.iterator())
                     .toIterable()
                     .singleElement()
@@ -121,11 +122,42 @@ class EnvelopeEncryptionFilterIT {
             directProducer.send(new ProducerRecord<>(topic, plainMessage)).get(5, TimeUnit.SECONDS);
 
             consumer.subscribe(List.of(topic));
-            var records = consumer.poll(Duration.ofSeconds(10));
+            var records = consumer.poll(Duration.ofSeconds(5));
             assertThat(records.iterator()).toIterable()
                     .hasSize(2)
                     .map(ConsumerRecord::value)
                     .containsExactly(message, plainMessage);
+        }
+    }
+
+    @Test
+    @Disabled("InBandKeyManger doesn't handle nulls")
+    void nullValueRecord(KafkaCluster cluster) throws Exception {
+        var builder = proxy(cluster);
+        var key = UUID.randomUUID().toString();
+
+        configure(builder, key);
+
+        try (var tester = kroxyliciousTester(builder);
+                var admin = tester.admin();
+                var producer = tester.producer();
+                var consumer = tester.consumer()) {
+
+            String topic = tester.createTopic(DEFAULT_VIRTUAL_CLUSTER);
+
+            await().atMost(Duration.ofSeconds(5)).until(() -> admin.listTopics().namesToListings().get(),
+                    n -> n.containsKey(topic));
+
+            String message = null;
+            producer.send(new ProducerRecord<>(topic, message)).get(5, TimeUnit.SECONDS);
+
+            consumer.subscribe(List.of(topic));
+            var records = consumer.poll(Duration.ofSeconds(5));
+            assertThat(records.iterator())
+                    .toIterable()
+                    .singleElement()
+                    .extracting(ConsumerRecord::value)
+                    .isNull();
         }
     }
 
