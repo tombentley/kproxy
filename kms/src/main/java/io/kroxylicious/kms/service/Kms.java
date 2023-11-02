@@ -59,38 +59,20 @@ public interface Kms<K, E> {
     /**
      * Get a serializer for KEK ids.
      * It is required that {@code deserialize(serialize(kekId)).equals(kekId)}.
+     *
      * @return A serializer for KEK ids.
-     * @see #keyIdDeserializer()
      */
     @NonNull
-    Ser<K> keyIdSerializer();
-
-    /**
-     * Get a deserializer for KEK ids.
-     * It is required that {@code deserialize(serialize(kekId)).equals(kekId)}.
-     * @return A deserializer for KEK ids.
-     * @see #keyIdSerializer()
-     */
-    @NonNull
-    De<K> keyIdDeserializer();
+    Serde<K> keyIdSerde();
 
     /**
      * Get a serializer for encrypted DEKs.
      * It is required that {@code deserialize(serialize(edek)).equals(edek)}.
+     *
      * @return a serializer for encrypted DEKs.
-     * @see #edekDeserializer()
      */
     @NonNull
-    Ser<E> edekSerializer();
-
-    /**
-     * Get a deserializer for encrypted DEKs.
-     * It is required that {@code deserialize(serialize(edek)).equals(edek)}.
-     * @return a deserializer for encrypted DEKs.
-     * @see #edekSerializer()
-     */
-    @NonNull
-    De<E> edekDeserializer();
+    Serde<E> edekSerde();
 
     /**
      * Asynchronously resolve an alias to a key id

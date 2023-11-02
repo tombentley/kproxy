@@ -21,11 +21,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.KmsException;
-import io.kroxylicious.kms.service.Ser;
+import io.kroxylicious.kms.service.Serde;
 import io.kroxylicious.kms.service.UnknownAliasException;
 import io.kroxylicious.kms.service.UnknownKeyException;
 
@@ -193,14 +192,8 @@ public class InMemoryKms implements
 
     @NonNull
     @Override
-    public Ser<UUID> keyIdSerializer() {
+    public Serde<UUID> keyIdSerde() {
         return new UUIDSerde();
-    }
-
-    @NonNull
-    @Override
-    public De<InMemoryEdek> edekDeserializer() {
-        return new InMemoryEdekSerde();
     }
 
     @NonNull
@@ -215,13 +208,7 @@ public class InMemoryKms implements
 
     @NonNull
     @Override
-    public De<UUID> keyIdDeserializer() {
-        return new UUIDSerde();
-    }
-
-    @NonNull
-    @Override
-    public Ser<InMemoryEdek> edekSerializer() {
+    public Serde<InMemoryEdek> edekSerde() {
         return new InMemoryEdekSerde();
     }
 }
