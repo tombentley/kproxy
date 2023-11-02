@@ -22,6 +22,8 @@ import io.kroxylicious.kms.service.De;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Ser;
 
+import org.apache.kafka.common.record.Record;
+
 class InBandDekCache<K, E> implements DekCache<K, E> {
 
     private final Kms<K, E> kms;
@@ -40,11 +42,15 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
         this.kekIdDeserializer = kms.keyIdDeserializer();
     }
 
+    @NonNull
     @Override
-    public CompletionStage<Void> forKekId(@NonNull K kekId,
-                                          Stream<PartitionEncryptionRequest> encryptionRequestStream,
-                                          @NonNull Receiver receiver,
-                                          @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> consumer) {
+    public CompletionStage<Void> encrypt(@NonNull K kekId,
+                                         //@NonNull PartitionEncryptionRequest partitionRequest,
+                                         Stream<RecordEncryptionRequest> recordRequests,
+                                         //MemoryRecordsBuilder builder,
+                                         @NonNull Receiver receiver,
+                                         @NonNull BiConsumer<PartitionEncryptionRequest, MemoryRecords> finisher) {
+
         return kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
@@ -66,25 +72,21 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
                     return new DekContext<>(kekId, prefix,
                             new AesGcmEncryptor(ivGenerator, dekPair.dek()));
                 }).thenAccept(dekContext -> {
-                    encryptionRequestStream.forEach(partitionRequest -> {
-                        // XXX supplier
-                        MemoryRecordsBuilder builder = partitionRequest.builder();
-                        partitionRequest.recordRequests().forEach(recordRequest -> {
-                            // XXX accumulator
-                            var output = bufferPool.acquire(dekContext.encodedSize(recordRequest.size()));
-                            try {
-                                dekContext.encode(recordRequest.plaintext(), output);
-                                output.flip();
-                                receiver.receive(builder, recordRequest.kafkaRecord(), output);
-                            }
-                            finally {
-                                bufferPool.release(output);
-                            }
-                        });
-                        // XXX finisher
-                        MemoryRecords build = builder.build();
-                        consumer.accept(partitionRequest, build);
+                    // XXX supplier
+                    //MemoryRecordsBuilder builder = partitionRequest.builder();
+                    recordRequests.forEach(recordRequest -> {
+                        // XXX accumulator
+                        var output = bufferPool.acquire(dekContext.encodedSize(recordRequest.size()));
+                        try {
+                            dekContext.encode(recordRequest.plaintext(), output);
+                            output.flip();
+                            receiver.receive(recordRequest.kafkaRecord(), output);
+                        }
+                        finally {
+                            bufferPool.release(output);
+                        }
                     });
+                    // XXX finisher
                 });
     }
 
@@ -104,5 +106,27 @@ class InBandDekCache<K, E> implements DekCache<K, E> {
 
         return kms.decryptEdek(kekId, edek)
                 .thenApply(dek -> new AesGcmEncryptor(new AesGcmIvGenerator(new SecureRandom()), dek));
+    }
+
+    @NonNull
+    @Override
+    public CompletionStage<Void> decrypt(@NonNull Record kafkaRecord,
+                                         @NonNull Receiver receiver) {
+        ByteBuffer value = kafkaRecord.value();
+        return resolve(value).thenApply(encryptor -> {
+            ByteBuffer output = null;
+            try {
+                int plaintextSize = kafkaRecord.valueSize();
+                // TODO ^^ this is an overestimate!
+                output = bufferPool.acquire(plaintextSize);
+                encryptor.decrypt(value, output);
+                output.flip();
+                receiver.receive(kafkaRecord, output);
+                return null;
+            }
+            finally {
+                bufferPool.release(output);
+            }
+        });
     }
 }
