@@ -79,6 +79,10 @@ class EnvelopeEncryptionFilter<K>
                         var kekId = e.getValue();
                         TopicProduceData tpd = topicNameToData.get(topicName);
                         return tpd.partitionData().stream().map(ppd -> {
+                            // handle case where this topic is to be left unencrypted
+                            if (kekId == null) {
+                                return CompletableFuture.completedStage(ppd);
+                            }
                             var buffer = context.createByteBufferOutputStream(0);
                             // ^^ TODO determine how we should allocate this (is it a configuration parameter??)
                             MemoryRecords records = (MemoryRecords) ppd.records();

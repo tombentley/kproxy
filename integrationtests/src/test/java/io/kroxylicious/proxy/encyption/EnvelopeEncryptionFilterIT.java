@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -23,6 +24,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Disabled;
@@ -231,6 +233,43 @@ class EnvelopeEncryptionFilterIT {
         }
     }
 
+    @Test
+    void produceAndConsumeEncryptedAndPlainTopicsAtSameTime(KafkaCluster cluster, Admin admin) throws Exception {
+        var encryptedTopic = UUID.randomUUID().toString();
+        var plainTopic = UUID.randomUUID().toString();
+
+        var topics = Stream.of(encryptedTopic, plainTopic).map(t -> new NewTopic(t, Optional.empty(), Optional.empty())).toList();
+        admin.createTopics(topics).all().get(5, TimeUnit.SECONDS);
+        await().atMost(Duration.ofSeconds(5)).until(() -> admin.listTopics().namesToListings().get(),
+                n -> n.containsKey(encryptedTopic) && n.containsKey(plainTopic));
+
+        var builder = proxy(cluster);
+
+        UUID keyId = UUID.randomUUID();
+        SecretKey v1 = aesGenerator.generateKey();
+        builder.addToFilters(configureFilter(Map.of(encryptedTopic, keyId), Map.of(keyId,
+                buildMapForKey(v1))));
+
+        try (var tester = kroxyliciousTester(builder);
+                var producer = tester.producer(Map.of(ProducerConfig.LINGER_MS_CONFIG, 1000, ProducerConfig.BATCH_SIZE_CONFIG, 2));
+                var consumer = tester.consumer()) {
+
+            var secretMessage = "hello secret";
+            var plainMessage = "hello world";
+
+            producer.send(new ProducerRecord<>(encryptedTopic, secretMessage));
+            producer.send(new ProducerRecord<>(plainTopic, plainMessage));
+            producer.flush();
+
+            consumer.subscribe(List.of(encryptedTopic, plainTopic));
+            var records = consumer.poll(Duration.ofSeconds(2));
+            assertThat(records.iterator())
+                    .toIterable()
+                    .extracting(ConsumerRecord::value)
+                    .contains(secretMessage, plainMessage);
+        }
+    }
+
     /*
      *
      * further IT ideas:
@@ -253,6 +292,7 @@ class EnvelopeEncryptionFilterIT {
         return new FilterDefinitionBuilder("EnvelopeEncryptionFilter")
                 .withConfig("aliases", aliases)
                 .withConfig("keys", keys)
+                .withConfig("selectorTemplate", "all")
                 .build();
     }
 
