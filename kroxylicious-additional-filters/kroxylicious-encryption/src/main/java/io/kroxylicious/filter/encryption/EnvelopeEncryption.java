@@ -14,13 +14,18 @@ import javax.crypto.SecretKey;
 import io.kroxylicious.filter.encryption.inband.BufferPool;
 import io.kroxylicious.filter.encryption.inband.InBandKeyManager;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
-import io.kroxylicious.proxy.filter.FilterCreationContext;
 import io.kroxylicious.proxy.filter.FilterFactory;
+import io.kroxylicious.proxy.filter.FilterFactoryContext;
+import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.proxy.plugin.PluginConfigurationException;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * A {@link FilterFactory} for {@link EnvelopeEncryptionFilter}.
  */
-public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptionFilter<K>, EnvelopeEncryption.Config> {
+@Plugin(configType = EnvelopeEncryption.Config.class)
+public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryption.Config, EnvelopeEncryption.Config> {
 
     private final InMemoryKmsService kmsService;
 
@@ -34,22 +39,18 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
 
     }
 
-    @Override
-    public Class<EnvelopeEncryptionFilter<K>> filterType() {
-        return (Class) EnvelopeEncryptionFilter.class;
-    }
-
-    @Override
-    public Class<Config> configType() {
-        return Config.class;
-    }
-
     public EnvelopeEncryption() {
         this.kmsService = InMemoryKmsService.newInstance();
     }
 
     @Override
-    public EnvelopeEncryptionFilter<K> createFilter(FilterCreationContext context, Config configuration) {
+    public Config initialize(FilterFactoryContext context, Config config) throws PluginConfigurationException {
+        return config;
+    }
+
+    @NonNull
+    @Override
+    public EnvelopeEncryptionFilter<K> createFilter(FilterFactoryContext context, Config configuration) {
         // Replace with nested factories stuff
         var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128, configuration.keys(), configuration.aliases()));
 

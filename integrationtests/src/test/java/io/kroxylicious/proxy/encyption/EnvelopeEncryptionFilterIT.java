@@ -289,7 +289,7 @@ class EnvelopeEncryptionFilterIT {
     }
 
     private FilterDefinition buildFilterDefinition(Map<String, UUID> aliases, Map<UUID, Map<String, Object>> keys) {
-        return new FilterDefinitionBuilder("EnvelopeEncryptionFilter")
+        return new FilterDefinitionBuilder("EnvelopeEncryption")
                 .withConfig("aliases", aliases)
                 .withConfig("keys", keys)
                 .withConfig("selectorTemplate", "all")
