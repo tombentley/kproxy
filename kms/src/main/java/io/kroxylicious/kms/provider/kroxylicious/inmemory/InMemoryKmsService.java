@@ -13,6 +13,7 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import io.kroxylicious.kms.service.KmsService;
+import io.kroxylicious.proxy.plugin.Plugin;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -24,6 +25,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * the instances created via {@link #buildKms(Config)}.
  * In that respect the {@link InMemoryKms} behaves like a client of a KMS service.
  */
+@Plugin(configType = InMemoryKmsService.Config.class)
 public class InMemoryKmsService implements KmsService<InMemoryKmsService.Config, UUID, InMemoryEdek> {
 
     public static InMemoryKmsService newInstance() {

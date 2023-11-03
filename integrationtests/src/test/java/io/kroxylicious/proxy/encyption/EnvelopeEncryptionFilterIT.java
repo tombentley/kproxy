@@ -33,6 +33,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.encryption.TemplateKekSelector;
+import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
 import io.kroxylicious.proxy.config.FilterDefinition;
 import io.kroxylicious.proxy.config.FilterDefinitionBuilder;
 import io.kroxylicious.testing.kafka.api.KafkaCluster;
@@ -289,10 +291,15 @@ class EnvelopeEncryptionFilterIT {
     }
 
     private FilterDefinition buildFilterDefinition(Map<String, UUID> aliases, Map<UUID, Map<String, Object>> keys) {
+        
         return new FilterDefinitionBuilder("EnvelopeEncryption")
-                .withConfig("aliases", aliases)
-                .withConfig("keys", keys)
-                .withConfig("selectorTemplate", "all")
+                .withConfig("kms", InMemoryKmsService.class.getSimpleName())
+                .withConfig("kmsConfig", Map.of("numIvBytes", 12,
+                        "numAuthBits", 128,
+                        "keys", keys,
+                        "aliases", aliases))
+                .withConfig("selector", TemplateKekSelector.class.getSimpleName())
+                .withConfig("selectorConfig", Map.of("template", "all"))
                 .build();
     }
 

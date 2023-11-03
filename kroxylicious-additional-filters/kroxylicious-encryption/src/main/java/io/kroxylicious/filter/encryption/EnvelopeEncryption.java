@@ -6,18 +6,18 @@
 
 package io.kroxylicious.filter.encryption;
 
-import java.util.Map;
-import java.util.UUID;
-
-import javax.crypto.SecretKey;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kroxylicious.filter.encryption.inband.BufferPool;
 import io.kroxylicious.filter.encryption.inband.InBandKeyManager;
-import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
+import io.kroxylicious.kms.service.Kms;
+import io.kroxylicious.kms.service.KmsService;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
+import io.kroxylicious.proxy.plugin.PluginImplConfig;
+import io.kroxylicious.proxy.plugin.PluginImplName;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -27,20 +27,13 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 @Plugin(configType = EnvelopeEncryption.Config.class)
 public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryption.Config, EnvelopeEncryption.Config> {
 
-    private final InMemoryKmsService kmsService;
-
     record Config(
-                  String kms,
-                  Object kmsConfig,
+                  @JsonProperty(required = true) @PluginImplName(KmsService.class) String kms,
+                  @PluginImplConfig(implNameProperty = "kms") Object kmsConfig,
 
-                  Map<UUID, SecretKey> keys, /* Temporary - these fields will move */
-                  Map<String, UUID> aliases,
-                  String selectorTemplate) {
+                  @JsonProperty(required = true) @PluginImplName(KekSelectorService.class) String selector,
+                  @PluginImplConfig(implNameProperty = "selector") Object selectorConfig) {
 
-    }
-
-    public EnvelopeEncryption() {
-        this.kmsService = InMemoryKmsService.newInstance();
     }
 
     @Override
@@ -51,12 +44,13 @@ public class EnvelopeEncryption<K, E> implements FilterFactory<EnvelopeEncryptio
     @NonNull
     @Override
     public EnvelopeEncryptionFilter<K> createFilter(FilterFactoryContext context, Config configuration) {
-        // Replace with nested factories stuff
-        var kms = kmsService.buildKms(new InMemoryKmsService.Config(12, 128, configuration.keys(), configuration.aliases()));
+        KmsService<Object, K, E> kmsPlugin = context.pluginInstance(KmsService.class, configuration.kms());
+        Kms<K, E> kms = kmsPlugin.buildKms(configuration.kmsConfig());
 
-        var dk = new InBandKeyManager<>(kms, BufferPool.allocating());
-        var kekSelector = new TemplateKekSelector<>(kms, configuration.selectorTemplate());
-        // TODO validation of generics
-        return (EnvelopeEncryptionFilter<K>) new EnvelopeEncryptionFilter<>(dk, kekSelector);
+        var keyManager = new InBandKeyManager<>(kms, BufferPool.allocating());
+
+        KekSelectorService<Object, K> ksPlugin = context.pluginInstance(KekSelectorService.class, configuration.selector());
+        TopicNameBasedKekSelector<K> kekSelector = ksPlugin.buildSelector(kms, configuration.selectorConfig());
+        return new EnvelopeEncryptionFilter<>(keyManager, kekSelector);
     }
 }

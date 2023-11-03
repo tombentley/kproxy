@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKmsService;
+import io.kroxylicious.kms.service.Kms;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,14 +25,14 @@ class TemplateKekSelectorTest {
 
     @Test
     void shouldRejectUnknownPlaceholders() {
-        var e = assertThrows(IllegalArgumentException.class, () -> new TemplateKekSelector<>(null, "foo-${topicId}-bar"));
+        var e = assertThrows(IllegalArgumentException.class, () -> getSelector(null, "foo-${topicId}-bar"));
         assertEquals("Unknown template parameter: topicId", e.getMessage());
     }
 
     @Test
     void shouldResolveWhenAliasExists() throws ExecutionException, InterruptedException {
         InMemoryKms kms = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
-        var selector = new TemplateKekSelector<>(kms, "topic-${topicName}");
+        var selector = getSelector(kms, "topic-${topicName}");
 
         var kek = kms.generateKey();
         kms.createAlias(kek, "topic-my-topic");
@@ -40,10 +43,16 @@ class TemplateKekSelectorTest {
     @Test
     void shouldThrowWhenAliasDoesNotExist() throws ExecutionException, InterruptedException {
         InMemoryKms kms = InMemoryKmsService.newInstance().buildKms(new InMemoryKmsService.Config(12, 128));
-        var selector = new TemplateKekSelector<>(kms, "topic-${topicName}");
+        var selector = getSelector(kms, "topic-${topicName}");
 
         var map = selector.selectKek(Set.of("my-topic")).toCompletableFuture().get();
         assertNull(map.get("my-topic"));
+    }
+
+    @NonNull
+    private <K> TopicNameBasedKekSelector<K> getSelector(Kms<K, ?> kms, String template) {
+        var config = new TemplateKekSelector.Config(template);
+        return new TemplateKekSelector<K>().buildSelector(kms, config);
     }
 
 }
