@@ -113,7 +113,11 @@ public class EnvelopeEncryptionFilter<K>
     @Override
     public CompletionStage<ResponseFilterResult> onFetchResponse(short apiVersion, ResponseHeaderData header, FetchResponseData response, FilterContext context) {
         return maybeDecodeFetch(response.responses(), context)
-                .thenCompose(responses -> context.forwardResponse(header, response.setResponses(responses)));
+                .thenCompose(responses -> context.forwardResponse(header, response.setResponses(responses)))
+                .exceptionallyCompose(throwable -> {
+                    log.warn("failed to encrypt records", throwable);
+                    return CompletableFuture.failedStage(throwable);
+                });
     }
 
     private CompletionStage<List<FetchableTopicResponse>> maybeDecodeFetch(List<FetchableTopicResponse> topics, FilterContext context) {
