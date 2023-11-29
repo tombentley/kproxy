@@ -45,7 +45,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public class EnvelopeEncryptionFilter<K>
         implements ProduceRequestFilter, FetchResponseFilter {
-    private final Logger log = getLogger(EnvelopeEncryptionFilter.class);
+    private static final Logger log = getLogger(EnvelopeEncryptionFilter.class);
     private final TopicNameBasedKekSelector<K> kekSelector;
 
     private final KeyManager<K> keyManager;
