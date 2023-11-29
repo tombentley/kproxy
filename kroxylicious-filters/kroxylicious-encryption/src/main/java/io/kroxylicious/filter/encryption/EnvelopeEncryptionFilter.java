@@ -115,7 +115,7 @@ public class EnvelopeEncryptionFilter<K>
         return maybeDecodeFetch(response.responses(), context)
                 .thenCompose(responses -> context.forwardResponse(header, response.setResponses(responses)))
                 .exceptionallyCompose(throwable -> {
-                    log.warn("failed to encrypt records", throwable);
+                    log.warn("failed to decrypt records", throwable);
                     return CompletableFuture.failedStage(throwable);
                 });
     }
