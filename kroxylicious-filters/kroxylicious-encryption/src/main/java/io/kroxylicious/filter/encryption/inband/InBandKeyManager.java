@@ -21,6 +21,8 @@ import java.util.function.Supplier;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
+import io.kroxylicious.filter.encryption.EncryptionException;
+
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.record.Record;
@@ -102,7 +104,10 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
         });
     }
 
-    private CompletionStage<KeyContext> currentDekContext(@NonNull K kekId, int numRecords) {
+    private CompletionStage<KeyContext> currentDekContext(@NonNull K kekId, int numRecords, int attemptsRemaining) {
+        if (attemptsRemaining == 0) {
+            return CompletableFuture.failedFuture(new EncryptionException("failed to obtain a usable DEK"));
+        }
         return getKeyContext(kekId, makeKeyContext(kekId), numRecords)
                 .thenCompose(cachedContext -> {
                     if (!cachedContext.isExpiredForEncryption(System.nanoTime())
@@ -111,7 +116,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                         return CompletableFuture.completedFuture(cachedContext);
                     }
                     else {
-                        return currentDekContext(kekId, numRecords);
+                        return currentDekContext(kekId, numRecords, attemptsRemaining - 1);
                     }
                 });
     }
@@ -169,7 +174,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                                          @NonNull Receiver receiver) {
 
         var fieldsHeader = createEncryptedFieldsHeader(encryptionScheme.recordFields());
-        return currentDekContext(encryptionScheme.kekId(), records.size()).thenAccept(keyContext -> {
+        return currentDekContext(encryptionScheme.kekId(), records.size(), 3).thenAccept(keyContext -> {
             var dekHeader = createEdekHeader(keyContext);
             var maxValuePlaintextSize = encryptionScheme.recordFields().contains(RecordField.RECORD_VALUE)
                     ? records.stream().mapToInt(Record::valueSize).max().orElse(-1)
