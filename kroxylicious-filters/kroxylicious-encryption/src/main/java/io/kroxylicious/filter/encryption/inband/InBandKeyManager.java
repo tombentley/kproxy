@@ -56,26 +56,28 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
     private final Serde<K> kekIdSerde;
     private final Serde<E> edekSerde;
     // TODO cache expiry, with key descruction
-    private final ConcurrentHashMap<K, CompletionStage<KeyContext>> keyContextCache;
+    private final ConcurrentHashMap<K, CompletableFuture<KeyContext>> keyContextCache;
     private final ConcurrentHashMap<RecordHeader, CompletionStage<AesGcmEncryptor>> decryptorCache;
     private final long dekTtlNanos;
     private final int maxEncryptionsPerDek;
 
     public InBandKeyManager(Kms<K, E> kms,
-                            BufferPool bufferPool) {
+                            BufferPool bufferPool,
+                            int maxEncryptionsPerDek) {
         this.kms = kms;
         this.bufferPool = bufferPool;
         this.edekSerde = kms.edekSerde();
         this.kekIdSerde = kms.keyIdSerde();
         this.dekTtlNanos = 5_000_000_000L;
-        this.maxEncryptionsPerDek = 500_000;
+        this.maxEncryptionsPerDek = maxEncryptionsPerDek;
         // TODO This ^^ must be > the maximum size of a batch to avoid an infinite loop
         this.keyContextCache = new ConcurrentHashMap<>();
         this.decryptorCache = new ConcurrentHashMap<>();
     }
 
     private CompletionStage<KeyContext> getKeyContext(K key,
-                                                      Supplier<CompletionStage<KeyContext>> valueSupplier) {
+                                                      Supplier<CompletableFuture<KeyContext>> valueSupplier,
+                                                      int numRecordsToEncrypt) {
         return keyContextCache.compute(key, (k, v) -> {
             if (v == null) {
                 return valueSupplier.get();
@@ -83,13 +85,25 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                 // TODO what happens if the CS doesn't complete at all in a reasonably time frame?
             }
             else {
+                if (v.isDone()) {
+                    KeyContext keyContext = v.join();
+                    if (keyContext.isExpiredForEncryption(System.nanoTime())
+                            || keyContext.remainingEncryptions() < numRecordsToEncrypt) {
+                        // is it safe to destroy a context just because the limits are exceeded? we decrement the remaining count before doing encryption work
+                        destroy(keyContext);
+                        return valueSupplier.get();
+                    }
+                    else {
+                        return v;
+                    }
+                }
                 return v;
             }
         });
     }
 
     private CompletionStage<KeyContext> currentDekContext(@NonNull K kekId, int numRecords) {
-        return getKeyContext(kekId, makeKeyContext(kekId))
+        return getKeyContext(kekId, makeKeyContext(kekId), numRecords)
                 .thenCompose(cachedContext -> {
                     if (!cachedContext.isExpiredForEncryption(System.nanoTime())
                             && cachedContext.hasAtLeastRemainingEncryptions(numRecords)) {
@@ -97,7 +111,6 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                         return CompletableFuture.completedFuture(cachedContext);
                     }
                     else {
-                        destroy(cachedContext);
                         return currentDekContext(kekId, numRecords);
                     }
                 });
@@ -121,7 +134,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
         }
     }
 
-    private Supplier<CompletionStage<KeyContext>> makeKeyContext(@NonNull K kekId) {
+    private Supplier<CompletableFuture<KeyContext>> makeKeyContext(@NonNull K kekId) {
         return () -> kms.generateDekPair(kekId)
                 .thenApply(dekPair -> {
                     E edek = dekPair.edek();
@@ -145,7 +158,7 @@ public class InBandKeyManager<K, E> implements KeyManager<K> {
                             // or we need mutex
                             // or we externalize the state
                             AesGcmEncryptor.forEncrypt(new AesGcmIvGenerator(new SecureRandom()), dekPair.dek()));
-                });
+                }).toCompletableFuture();
     }
 
     @NonNull

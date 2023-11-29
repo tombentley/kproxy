@@ -51,6 +51,10 @@ final class KeyContext implements Destroyable {
         return remainingEncryptions.getAndAdd(-numEncryptions) >= numEncryptions;
     }
 
+    public int remainingEncryptions() {
+        return remainingEncryptions.get();
+    }
+
     /**
      * Returns the size of the encoding of a plaintext of the given size
      * @param plaintextSize The plaintext.
