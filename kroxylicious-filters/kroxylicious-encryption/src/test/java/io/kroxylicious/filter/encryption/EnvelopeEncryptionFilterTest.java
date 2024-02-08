@@ -127,7 +127,7 @@ class EnvelopeEncryptionFilterTest {
 
         when(decryptionManager.decrypt(any(), anyInt(), any(), any())).thenReturn(CompletableFuture.completedFuture(RecordTestUtils.singleElementMemoryRecords("decrypt", "decrypt")));
 
-        encryptionFilter = new EnvelopeEncryptionFilter<>(encryptionManager, decryptionManager, kekSelector);
+        encryptionFilter = new EnvelopeEncryptionFilter<>(encryptionManager, decryptionManager, kekSelector, new FilterThreadExecutor(Runnable::run));
     }
 
     @Test
