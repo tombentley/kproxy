@@ -572,7 +572,7 @@ class RecordEncryptionFilterIT {
     private FilterDefinition buildEncryptionFilterDefinitionOneTopic(
                                                                      TestKmsFacade<?, ?, ?> testKmsFacade,
                                                                      String encryptedTopicName) {
-        return new FilterDefinitionBuilder(EnvelopeEncryption.class.getSimpleName())
+        return new FilterDefinitionBuilder(RecordEncryption.class.getSimpleName())
                 .withConfig("kms", testKmsFacade.getKmsServiceClass().getSimpleName())
                 .withConfig("kmsConfig", testKmsFacade.getKmsServiceConfig())
                 .withConfig("selector", TemplateKekSelector.class.getSimpleName())

@@ -109,7 +109,7 @@ public class RecordEncryptionFilter<K>
 
         CompletableFuture<RequestFilterResult> cf = new CompletableFuture<>();
 
-        filterThreadExecutor.completingOnFilterThread(EnvelopeEncryptionFilter.join(new ArrayList<>(keks.values()))) // figure out what keks we need
+        filterThreadExecutor.completingOnFilterThread(RecordEncryptionFilter.join(new ArrayList<>(keks.values()))) // figure out what keks we need
                 .whenComplete((ignoredValue, ignoredException) -> {
                     var partitioned = partitionBySuccess(keks);
                     var withoutErrors = succeeded(partitioned.getOrDefault(true, List.of()));

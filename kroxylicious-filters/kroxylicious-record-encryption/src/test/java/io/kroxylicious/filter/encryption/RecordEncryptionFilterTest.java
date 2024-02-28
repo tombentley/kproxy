@@ -251,7 +251,7 @@ class RecordEncryptionFilterTest {
         // Then
         assertThat(stage.toCompletableFuture()).isCompletedWithValue(null);
         verify(context).requestFilterResultBuilder();
-        verify(resultBuilder).shortCircuitResponse(any(), EnvelopeEncryptionFilterTest.<ProduceResponseData> argThat(r -> {
+        verify(resultBuilder).shortCircuitResponse(any(), RecordEncryptionFilterTest.<ProduceResponseData> argThat(r -> {
             var actual = r.responses().find(ENCRYPTED_TOPIC).partitionResponses().get(0);
             assertThat(actual.errorCode()).isEqualTo(expectedError.code());
             assertThat(actual.errorMessage()).isEqualTo(expectedErrorMessage);
