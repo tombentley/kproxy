@@ -1,0 +1,142 @@
+# Kubernetes CRD schemas use the "Wright 00" draft of JSON Schema
+# which corresponds to following metaschema
+$schema: https://json-schema.org/draft-04/schema
+description: Proxy configuration schema
+title: Proxy configuration schema
+
+definitions:
+  PasswordProvider:
+    type: object
+    oneOf:
+      - javaClass: InlinePassword
+        required:
+          - password
+        properties:
+          password:
+            type: string
+      - javaClass: FilePassword
+        required:
+          - filePath
+        properties:
+          filePath:
+            type: string
+  Tls:
+    type: object
+    properties:
+      key:
+        type: object
+        oneOf:
+          - javaClass: KeyPair
+            required:
+              - privateKeyFile
+              - certificateFile
+            properties:
+              privateKeyFile:
+                type: string
+              certificateFile:
+                type: string
+              keyPassword:
+                $ref: "#/definitions/PasswordProvider"
+          - javaClass: KeyStore
+            required:
+              - storeFile
+            properties:
+              storeFile:
+                type: string
+              storeType:
+                type: string
+                default: PEM
+              storePassword:
+                $ref: "#/definitions/PasswordProvider"
+              keyPassword:
+                $ref: "#/definitions/PasswordProvider"
+      trust:
+        type: object
+        oneOf:
+          - javaClass: TrustStore
+            properties:
+              storeFile:
+                type: string
+              storeType:
+                type: string
+              storePassword:
+                $ref: "#/definitions/PasswordProvider"
+          - javaClass: InsecureTls
+            properties:
+              insecure:
+                type: boolean
+                description: true if trust is disabled, false to use the OS truststore.
+  VirtualCluster:
+    type: object
+    required:
+      - clusterNetworkAddressConfigProvider
+      - targetCluster
+    properties:
+      targetCluster:
+        type: object
+        required:
+          - bootstrapServers
+        properties:
+          bootstrapServers:
+            type: string
+          tls:
+            $ref: "#/definitions/Tls"
+      clusterNetworkAddressConfigProvider:
+        type: object
+        required:
+          - type
+          - config
+        properties:
+          type:
+            type: string
+          config:
+            type: object
+      tls:
+        type: object
+        $ref: "#/definitions/Tls"
+      logNetwork:
+        type: boolean
+      logFrame:
+        type: boolean
+
+type: object
+required:
+  - virtualClusters
+properties:
+  adminHttp:
+    type: object
+    properties:
+      host:
+        type: string
+      port:
+        type: integer
+      endpoints:
+        type: object
+        properties:
+          prometheus:
+            type: object
+  virtualClusters:
+    type: object
+    additionalProperties:
+      $ref: "#/definitions/VirtualCluster"
+    minProperties: 1
+  filters:
+    type: array
+    items:
+      type: object
+      required:
+        - type
+        - config
+      properties:
+        type:
+          description: The fully qualified or simple class name of the filter factory.
+          type: string
+        config:
+          description: The configuration for this filter.
+          type: object
+  micrometer:
+    type: array
+    items:
+      type: object
+  userIoUring:
+    type: boolean
