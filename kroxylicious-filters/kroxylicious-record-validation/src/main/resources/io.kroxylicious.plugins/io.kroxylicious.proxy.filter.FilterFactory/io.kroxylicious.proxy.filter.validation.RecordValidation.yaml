@@ -1,0 +1,49 @@
+$schema: https://json-schema.org/draft-04/schema
+description: Record validation filter configuration schema
+title: Record validation filter configuration schema
+type: object
+definitions:
+  ByteBufValidation:
+    type: object
+    properties:
+      syntacticallyCorrectJson:
+        type: object
+        properties:
+          validateObjectKeysUnique:
+            type: boolean
+            default: false
+      schemaValidationConfig:
+        properties:
+          apicurioRegistryUrl:
+            type: string
+          apicurioGlobalId:
+            type: long
+      allowNulls:
+        type: boolean
+        default: true
+      allowEmpty:
+        type: boolean
+        default: false
+properties:
+  forwardPartialRequests:
+    type: boolean
+    default: false
+  rules:
+    type: array
+    items:
+      type: object
+      properties:
+        topicNames:
+          type: array
+          items:
+            type: string
+        keyRule:
+          $ref: #/definitions/ByteBufValidation
+        valueRule:
+  defaultRule:
+    type: object
+    properties:
+      keyRule:
+        $ref: #/definitions/ByteBufValidation
+      valueRule:
+        $ref: #/definitions/ByteBufValidation

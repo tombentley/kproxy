@@ -1,0 +1,32 @@
+$schema: https://json-schema.org/draft-04/schema
+description: Record encryption filter configuration schema
+title: Record encryption filter configuration schema
+type: object
+properties:
+  kms:
+    type: string
+  kmsConfig:
+    type: object
+  selector:
+    type: string
+  selectorConfig:
+    type: object
+  experimental:
+    type: object
+    properties:
+      decryptedDekCacheSize:
+        type: integer
+      decryptedDekExpireAfterAccessSeconds:
+        type: long
+      resolvedAliasCacheSize:
+        type: integer
+      resolvedAliasExpireAfterWriteSeconds:
+        type: long
+      resolvedAliasRefreshAfterWriteSeconds:
+        type: long
+      notFoundAliasExpireAfterWriteSeconds:
+        type: long
+      encryptionDekRefreshAfterWriteSeconds:
+        type: long
+      encryptionDekExpireAfterWriteSeconds:
+        type: long

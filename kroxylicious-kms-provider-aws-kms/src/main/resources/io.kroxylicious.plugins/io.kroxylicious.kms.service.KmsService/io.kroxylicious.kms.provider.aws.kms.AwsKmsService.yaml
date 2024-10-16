@@ -1,0 +1,81 @@
+$schema: https://json-schema.org/draft-04/schema#
+description: AWS KMS configuration schema
+title: AWS KMS configuration schema
+#### TODO Factor these definitions into some common place for reuse
+definitions:
+  PasswordProvider:
+    type: object
+    oneOf:
+      - javaClass: InlinePassword
+        required:
+          - password
+        properties:
+          password:
+            type: string
+      - javaClass: FilePassword
+        required:
+          - filePath
+        properties:
+          filePath:
+            type: string
+  Tls:
+    type: object
+    properties:
+      key:
+        type: object
+        oneOf:
+          - javaClass: KeyPair
+            required:
+              - privateKeyFile
+              - certificateFile
+            properties:
+              privateKeyFile:
+                type: string
+              certificateFile:
+                type: string
+              keyPassword:
+                $ref: "#/definitions/PasswordProvider"
+          - javaClass: KeyStore
+            required:
+              - storeFile
+            properties:
+              storeFile:
+                type: string
+              storeType:
+                type: string
+                default: PEM
+              storePassword:
+                $ref: "#/definitions/PasswordProvider"
+              keyPassword:
+                $ref: "#/definitions/PasswordProvider"
+      trust:
+        type: object
+        oneOf:
+          - javaClass: TrustStore
+            properties:
+              storeFile:
+                type: string
+              storeType:
+                type: string
+              storePassword:
+                $ref: "#/definitions/PasswordProvider"
+          - javaClass: InsecureTls
+            properties:
+              insecure:
+                type: boolean
+                description: true if trust is disabled, false to use the OS truststore.
+
+
+type: object
+properties:
+  endpointUrl:
+    type: string
+    format: uri
+  accessKey:
+    $ref: #/definitions/PasswordProvider
+  secretKey:
+    $ref: #/definitions/PasswordProvider
+  region:
+    type: string
+  tls:
+    $ref: #/definitions/Tls

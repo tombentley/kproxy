@@ -1,4 +1,10 @@
-package io.kroxylicious;
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.schema;
 
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.JsonSchema;
@@ -85,7 +91,7 @@ public class Main {
         //                + "  }\r\n"
         //                + "}";
         String schemaAsString;
-        try (InputStream resourceAsStream = Objects.requireNonNull(ConfigValidator.class.getResourceAsStream("/schema/config-schema.yaml"))) {
+        try (InputStream resourceAsStream = Objects.requireNonNull(KroxySchemaValidator.class.getResourceAsStream("/schema/config-schema.yaml"))) {
             schemaAsString = new String(resourceAsStream.readAllBytes());
         }
 

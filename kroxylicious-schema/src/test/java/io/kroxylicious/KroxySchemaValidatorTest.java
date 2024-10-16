@@ -8,13 +8,13 @@ package io.kroxylicious;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import io.kroxylicious.schema.KroxySchemaValidator;
 
-class ConfigValidatorTest {
+class KroxySchemaValidatorTest {
 
     @Test
     void testResolveDefinitions() {
-        var cv = new ConfigValidator();
+        var cv = new KroxySchemaValidator();
         cv.parseYaml("""
                 type: object
                 definitions:

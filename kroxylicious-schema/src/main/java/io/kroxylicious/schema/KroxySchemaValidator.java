@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious;
+package io.kroxylicious.schema;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +19,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -31,7 +30,28 @@ import com.networknt.schema.ValidationMessage;
 import com.networknt.schema.ValidationResult;
 import com.networknt.schema.walk.JsonSchemaWalkListener;
 
-public class ConfigValidator {
+/**
+ * <p>Validates schemas, confirming that a document that is supposedly a schema is a <em>valid</em> schema.</p>
+ * <p>A schema:</p>
+ * <ul>
+ * <li>Is a Draft 4 JSONSchema</li>
+ * <li>Is also compatible with the rules Kubernetes has for CRD validation schemas, except:
+ * <ul>
+ *     <li>A top-level {@code definitions} are allowed,
+ *     provided none of the schemas defined there are defined recursively</li>
+ * </ul>
+ * </li>
+ * <li>Is also compatible with the rules Kubernetes has for structural schemas</li>
+ * </ul>
+ *
+ * <p>The above rules mean</p>
+ * <ul>
+ *     <li>Given a set of schemas (e.g. provided by a plugin path) we can generate a CRD with a structural schema</li>
+ *     <li>Given a set of schemas (e.g. provided by a plugin path) we can construct
+ *     a single virtual schema than can be used to validate configs</li>
+ * <ul>
+ */
+public class KroxySchemaValidator {
 
     public static final String DEFINITIONS = "definitions";
     public static final String ADDITIONAL_PROPERTIES = "additionalProperties";
@@ -55,12 +75,16 @@ public class ConfigValidator {
     private final YAMLMapper mapper;
     private JsonNode root;
 
-    public ConfigValidator() {
+    public KroxySchemaValidator() {
         mapper = new YAMLMapper();
     }
 
-    public void doIt() throws IOException {
-        this.parse();
+    public KubeSchema doIt(String schemaAsString) throws IOException, InvalidSchemaException {
+//        String schemaAsString;
+//        try (InputStream resourceAsStream = Objects.requireNonNull(KroxySchemaValidator.class.getResourceAsStream("/schema/config-schema.yaml"))) {
+//            schemaAsString = new String(resourceAsStream.readAllBytes());
+//        }
+        this.parse(schemaAsString);
         // Resolve definitions before doing the networknt validation
         // because its visitor/walker mechanism does not visit keywords in referenced schemas
         // meaning
@@ -71,50 +95,15 @@ public class ConfigValidator {
         // we want to allow authors to use local $refs
         this.checkKubeConstraints();
         this.checkIsStructural();
-
+        return null;
     }
 
     /**
-     * Replaces {@code $ref} iff they're local to the scale (in some {@code definitions}).
+     * Replaces {@code $ref} iff they're local to the schema (in some {@code definitions}).
      * Rejects the schema if there are any {@code $ref} that point externally
      */
-    private void parse() throws IOException {
-        String schemaAsString;
-        try (InputStream resourceAsStream = Objects.requireNonNull(ConfigValidator.class.getResourceAsStream("/schema/config-schema.yaml"))) {
-            schemaAsString = new String(resourceAsStream.readAllBytes());
-        }
+    private void parse(String schemaAsString) throws IOException {
         root = mapper.readTree(schemaAsString);
-    }
-
-    /**
-     * Replaces {@code $ref} iff they're local to the scale (in some {@code definitions}).
-     * Rejects the schema if there are any {@code $ref} that point externally
-     */
-    private void validateAgainstDraft4() {
-        // TODO Require draft 4
-        // TODO And no unknown keywords
-        SchemaValidatorsConfig.Builder builder = SchemaValidatorsConfig.builder();
-        SchemaValidatorsConfig config = builder.build();
-
-        //JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
-        JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4))
-                //.metaSchema(null)
-                .schemaMappers(
-                        schemaMappers -> schemaMappers.mapPrefix("https://www.example.org/", "classpath:schema/")
-                )
-                .build();
-        // Due to the mapping the meta-schema will be retrieved from the classpath at classpath:draft/2020-12/schema.
-        JsonSchema metaschema = jsonSchemaFactory.getSchema(SchemaLocation.of(SchemaId.V4), config);
-        Set<ValidationMessage> schemaAssertions = metaschema.validate(root, executionContext -> {
-            // By default since Draft 2019-09 the format keyword only generates annotations and not assertions
-            executionContext.getExecutionConfig().setFormatAssertionsEnabled(true);
-        });
-    }
-
-    static class KeywordVisitor {
-        void visitType(ObjectNode schema) { }
-        void visitProperties(ObjectNode object) { }
-        void visitDefinition(ObjectNode definitions) { }
     }
 
     /**
@@ -194,6 +183,31 @@ public class ConfigValidator {
             }
         }
         return byId;
+    }
+
+    /**
+     * Replaces {@code $ref} iff they're local to the scale (in some {@code definitions}).
+     * Rejects the schema if there are any {@code $ref} that point externally
+     */
+    private void validateAgainstDraft4() {
+        // TODO Require draft 4
+        // TODO And no unknown keywords
+        SchemaValidatorsConfig.Builder builder = SchemaValidatorsConfig.builder();
+        SchemaValidatorsConfig config = builder.build();
+
+        //JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
+        JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4))
+                //.metaSchema(null)
+                .schemaMappers(
+                        schemaMappers -> schemaMappers.mapPrefix("https://www.example.org/", "classpath:schema/")
+                )
+                .build();
+        // Due to the mapping the meta-schema will be retrieved from the classpath at classpath:draft/2020-12/schema.
+        JsonSchema metaschema = jsonSchemaFactory.getSchema(SchemaLocation.of(SchemaId.V4), config);
+        Set<ValidationMessage> schemaAssertions = metaschema.validate(root, executionContext -> {
+            // By default since Draft 2019-09 the format keyword only generates annotations and not assertions
+            executionContext.getExecutionConfig().setFormatAssertionsEnabled(true);
+        });
     }
 
     private static <T, A, R> A visitSchemas(
@@ -326,7 +340,7 @@ public class ConfigValidator {
         // Structural schema limitations
         // 1. type=object => all properties and additionalProperties have a type, or x-kubernetes-int-or-string: true, or x-kubernetes-preserve-unknown-fields: true
         // 1. type=array => all items have a type, or x-kubernetes-int-or-string: true, or x-kubernetes-preserve-unknown-fields: true
-        var x = ConfigValidator.visitSchemas("#", root,
+        var x = KroxySchemaValidator.visitSchemas("#", root,
                 Collector.<String, List<String>, List<String>>of(
                     ArrayList::new,
                     List::add,
