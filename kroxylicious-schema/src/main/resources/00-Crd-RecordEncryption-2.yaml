@@ -1,0 +1,147 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: record-encryption-filters.filter.kroxylicious.io
+spec:
+  # either Namespaced or Cluster
+  scope: Namespaced
+  # group name to use for REST API: /apis/<group>/<version>
+  group: filter.kroxylicious.io
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: record-encryption-filters
+    # singular name to be used as an alias on the CLI and for display
+    singular: record-encryption-filter
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: RecordEncryptionFilter
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - renc
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1alpha1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            kms:
+              type: object
+              properties:
+                hashicorpVault:
+                  type: object
+                awsKms:
+                  type: object
+                  properties:
+                    endpointUrl:
+                      type: string
+                      format: uri
+                    accessKey:
+                      type: object
+                      properties:
+                        filePath:
+                          type: string
+                    secretKey:
+                      type: object
+                      properties:
+                        filePath:
+                          type: string
+                    region:
+                      type: string
+                    tls:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            keyPair:
+                              type: object
+                              required:
+                                - privateKeyFile
+                                - certificateFile
+                              properties:
+                                privateKeyFile:
+                                  type: string
+                                certificateFile:
+                                  type: string
+                                keyPassword:
+                                  type: object
+                                  properties:
+                                    filePath:
+                                      type: string
+                            keyStore:
+                              type: object
+                              required:
+                                - storeFile
+                              properties:
+                                storeFile:
+                                  type: string
+                                storeType:
+                                  type: string
+                                  default: PEM
+                                storePassword:
+                                  type: object
+                                  properties:
+                                    filePath:
+                                      type: string
+                                keyPassword:
+                                  type: object
+                                  properties:
+                                    filePath:
+                                      type: string
+                        trust:
+                          type: object
+                          required: storeFile
+                          properties:
+                            storeFile:
+                              type: string
+                            storeType:
+                              type: string
+                            storePassword:
+                              type: object
+                              properties:
+                                filePath:
+                                  type: string
+              maxProperties: 1
+              minProperties: 1
+              #####################
+              kms:
+                awsKms:
+                  ...
+              # =>
+              kms: AwsKms
+              kmsConfig:
+                ....
+
+
+              #####################
+            selector:
+              type: object
+              properties:
+                template:
+                  type: string
+              maxProperties: 1
+              minProperties: 1
+            experimental:
+              type: object
+              properties:
+                decryptedDekCacheSize:
+                  type: integer
+                decryptedDekExpireAfterAccessSeconds:
+                  type: integer # long
+                resolvedAliasCacheSize:
+                  type: integer
+                resolvedAliasExpireAfterWriteSeconds:
+                  type: integer # long
+                resolvedAliasRefreshAfterWriteSeconds:
+                  type: integer # long
+                notFoundAliasExpireAfterWriteSeconds:
+                  type: integer # long
+                encryptionDekRefreshAfterWriteSeconds:
+                  type: integer # long
+                encryptionDekExpireAfterWriteSeconds:
+                  type: integer # long
