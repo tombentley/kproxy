@@ -449,6 +449,7 @@
         <module>kroxylicious-filters</module>
         <module>kroxylicious-sample</module>
         <module>kroxylicious-schema</module>
+        <module>kroxylicious-bootstrap</module>
     </modules>
 
 
