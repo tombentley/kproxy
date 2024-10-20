@@ -35,7 +35,7 @@ public class Bootstrap {
     }
 
     <T extends Plugin> T start(Class<T> rootPlugin, String config) {
-        var root = plugins.implementationsOf(rootPlugin).get(0);
+        var root = plugins.implementationsOf(rootPlugin).get(0); // TODO get(0)!
 
         // step 3: get the config schema for the root (this will construct the schema for the whole tree)
         var schema = root.configSchema(plugins);

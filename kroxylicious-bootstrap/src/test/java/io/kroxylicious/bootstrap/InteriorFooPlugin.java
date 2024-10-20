@@ -29,7 +29,7 @@ public class InteriorFooPlugin implements FooPlugin {
 
     @Override
     public ConfigSchema configSchema(Plugins plugins) {
-        ConfigSchemaTemplate configSchema = plugins.schemaTemplateFromString("""
+        ConfigSchema.Builder configSchema = plugins.schemaBuilderFromString("""
                 type: object
                 properties:
                   klunk: null

@@ -14,11 +14,9 @@ import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.networknt.schema.InputFormat;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaId;
@@ -27,12 +25,20 @@ import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 
+/**
+ * An immutable and valid schema for a configuration.
+ * The validity rules are the same as for Kubernetes.
+ * Instances can be created from classpath resources, or from string literals,
+ * or by dynamically constructed via the {@link ConfigSchema#builder(String)}.
+ */
 public class ConfigSchema {
 
-    static final YAMLMapper mapper = new YAMLMapper()
+    static final YAMLMapper MAPPER = new YAMLMapper()
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
 
-    final JsonNode rootNode;
+    // Invariant: This is a valid schema
+    // Enforced by: Constructor
+    private final JsonNode rootNode;
 
     ConfigSchema(JsonNode rootNode) {
         Objects.requireNonNull(rootNode);
@@ -62,7 +68,7 @@ public class ConfigSchema {
     }
 
     static ConfigSchema create(InputStream inputStream) throws IOException {
-        var rootNode = mapper.readTree(inputStream);
+        var rootNode = MAPPER.readTree(inputStream);
         // TODO validate that the JSON is a Draft 4 schema
         // TODO validate the other kube restrictions
 
@@ -79,7 +85,7 @@ public class ConfigSchema {
     }
 
     public static ConfigSchema choice(Plugins plugins, Class<? extends Plugin> pluginPoint) {
-        var choiceNode = mapper.getNodeFactory().objectNode();
+        var choiceNode = MAPPER.getNodeFactory().objectNode();
         choiceNode.put("type", "object")
                 .put("minProperties", 1)
                 .put("maxProperties", 1);
@@ -93,20 +99,38 @@ public class ConfigSchema {
         return new ConfigSchema(choiceNode);
     }
 
+    public static Builder builder(ConfigSchema schema) {
+        return new Builder(schema.rootNode.deepCopy());
+    }
 
-    public String toString() {
+    public static Builder builder(String schemaAsString) {
         try {
-            return mapper.writeValueAsString(rootNode);
+            return new Builder(MAPPER.readTree(schemaAsString));
         }
         catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
+    public String toString() {
+        try {
+            return MAPPER.writeValueAsString(rootNode);
+        }
+        catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Validate the given configuration against this schema
+     * @param configContent
+     * @return A config (if this content was valid).
+     * @throws InvalidConfigException If the given config was not valid to this schema.
+     */
     public Config validateConfig(String configContent) {
         JsonNode configInstance = null;
         try {
-            configInstance = mapper.readTree(configContent);
+            configInstance = MAPPER.readTree(configContent);
         }
         catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -130,5 +154,51 @@ public class ConfigSchema {
         }
 
         return new Config(configInstance);
+    }
+
+    /**
+     * A mutable, possibly not valid, schema that can be manipultated before
+     * being turned into an immutable validated {@link ConfigSchema} using {@link #build()}.
+     */
+    public static class Builder {
+
+        private final JsonNode rootNode;
+
+        private Builder(JsonNode rootNode) {
+            this.rootNode = rootNode;
+        }
+
+        public Builder replace(
+                List<String> path,
+                ConfigSchema kImpls) {
+            if (path.isEmpty()) {
+                throw new IllegalArgumentException("Path is empty");
+            }
+            var node = path(rootNode, path.subList(0, path.size() - 1));
+            ((ObjectNode) node).replace(path.get(path.size() - 1), kImpls.rootNode);
+            return this;
+        }
+
+        public ConfigSchema build() {
+            return new ConfigSchema(rootNode);
+        }
+
+    }
+
+    static JsonNode path(
+            JsonNode node,
+            List<String> path
+    ) {
+        for (String pathSegment: path) {
+            if (node.isArray()) {
+                node = node.path(Integer.parseInt(pathSegment));
+            } else if (node.isObject()) {
+                node = node.path(pathSegment);
+            }
+            if (node.isMissingNode()) {
+                throw new RuntimeException("Node did not exist for path segment " + pathSegment);
+            }
+        }
+        return node;
     }
 }

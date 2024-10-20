@@ -11,6 +11,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A validated configuration.
+ * Validation is against some {@link ConfigSchema}.
+ */
 public class Config {
 
     private final JsonNode node;
@@ -29,14 +33,10 @@ public class Config {
     }
 
     public <T> T toInstance(Class<T> cls) {
-        return ConfigSchema.mapper.convertValue(node, cls);
+        return ConfigSchema.MAPPER.convertValue(node, cls);
     }
 
     public Config path(List<String> path) {
-        var node = this.node;
-        for (var segment : path) {
-            node = node.path(segment);
-        }
-        return new Config(node);
+        return new Config(ConfigSchema.path(this.node, path));
     }
 }

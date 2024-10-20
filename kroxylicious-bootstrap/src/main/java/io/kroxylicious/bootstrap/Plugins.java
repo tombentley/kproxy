@@ -16,9 +16,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A collection of plugs to be used together.
+ */
 public class Plugins {
 
-    final List<Plugin> plugins;
+    private final List<Plugin> plugins;
 
     Plugins(List<Plugin> plugins) {
         Objects.requireNonNull(plugins);
@@ -56,11 +59,19 @@ public class Plugins {
         }
     }
 
-    public ConfigSchemaTemplate schemaTemplateFromString(String schemaAsString) {
-        return ConfigSchemaTemplate.create(schemaAsString);
+    public ConfigSchema.Builder schemaBuilderFromString(String schemaAsString) {
+        return ConfigSchema.builder(schemaAsString);
     }
 
+    /**
+     * @param plugin A plugin
+     * @return the id of the given
+     */
     public String choiceId(Plugin plugin) {
+        // TODO is this returning a plugin id, or some name/id of the plugin's type??
+        // Note the concept of plugin id implies some scope of uniqueness
+        // With the hierarchical view given by the YAML, the id can be a path
+        // if the scope of uniqueness of the id is not the whole tree
         return plugin.getClass().getSimpleName();
     }
 
@@ -69,6 +80,9 @@ public class Plugins {
             List<String> pathToChoice,
             Class<T> pluginClass) {
         JsonNode choiceNode = config.path(pathToChoice).toJsonNode();
+        if (choiceNode.isMissingNode()) {
+            return null;
+        }
         Iterator<String> iterator = choiceNode.fieldNames();
         if (!iterator.hasNext()) {
             throw new IllegalStateException();
@@ -87,6 +101,12 @@ public class Plugins {
         return null;
     }
 
+    /**
+     * Return all known plugins that implement the given service.
+     * @param pluginPoint
+     * @return
+     * @param <T>
+     */
     public <T extends Plugin> List<T> implementationsOf(Class<T> pluginPoint) {
         List<T> result = new ArrayList<>();
         for (Plugin plugin : plugins) {

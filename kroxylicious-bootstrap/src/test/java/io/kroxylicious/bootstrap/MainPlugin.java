@@ -13,31 +13,36 @@ public class MainPlugin implements Plugin {
     //public MainPlugin() {}
 
     private FooPlugin chosenFoo;
+    private FooPlugin chosenFoo2;
 
     @Override
     public ConfigSchema configSchema(Plugins plugins) {
-        return plugins.schemaTemplateFromString("""
+        return plugins.schemaBuilderFromString("""
                 type: object
                 properties:
                   num:
                     type: integer
                   foo: null
+                  foo2: null
                 required:
                 - num
                 - foo
                 """)
                 .replace(List.of("properties", "foo"), plugins.schemaForChoice(FooPlugin.class))
+                .replace(List.of("properties", "foo2"), plugins.schemaForChoice(FooPlugin.class))
                 .build();
     }
 
     public void configure(Plugins plugins, Config config) {
         this.chosenFoo = plugins.configureChosen(config, List.of("foo"), FooPlugin.class);
+        this.chosenFoo2 = plugins.configureChosen(config, List.of("foo2"), FooPlugin.class);
     }
 
     @Override
     public String toString() {
         return "MainPlugin{" +
                 "chosenFoo=" + chosenFoo +
+                ", chosenFoo2=" + chosenFoo2 +
                 '}';
     }
 }

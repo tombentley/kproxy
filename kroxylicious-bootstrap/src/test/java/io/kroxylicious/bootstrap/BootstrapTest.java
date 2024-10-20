@@ -57,4 +57,26 @@ class BootstrapTest {
 
     }
 
+    @Test
+    void useSite2() {
+        String configContent = """
+                num: 1
+                foo: 
+                  InteriorFooPlugin: 
+                    klunk:
+                      LeafKlunkPlugin:
+                        name: bob
+                foo2: 
+                  InteriorFooPlugin: 
+                    klunk:
+                      LeafKlunkPlugin:
+                        name: brenda""";
+        Bootstrap bootstrap = new Bootstrap();
+        var mainPlugin = bootstrap.start(MainPlugin.class, configContent);
+
+        assertThat(mainPlugin).hasToString(
+                "MainPlugin{chosenFoo=InteriorFooPlugin{klunk=LeafKlunkPlugin{name='bob'}}, chosenFoo2=InteriorFooPlugin{klunk=LeafKlunkPlugin{name='brenda'}}}");
+
+    }
+
 }
