@@ -16,7 +16,7 @@ import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaObjectBuilder;
 import io.kroxylicious.tools.schema.model.SchemaType;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
-import io.kroxylicious.tools.schema.model.VisitException;
+import io.kroxylicious.tools.schema.model.VisitorException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -35,7 +35,7 @@ class SchemaObjectTest {
     void testVisitor() {
         MySchemaVisitor visitor = new MySchemaVisitor(null);
         URI base = URI.create("test://schema");
-        schema.visitSchemas(base, visitor);
+        schema.visitSchemas(new Diagnostics(), base, visitor);
         assertThat(visitor.contextsPreorder).hasToString(
                 "[Context{base=test://schema, keyword='', fullPath=''}, "
                         + "Context{keyword='properties', fullPath='/properties/foo'}, "
@@ -50,8 +50,8 @@ class SchemaObjectTest {
     void testVisitorThrows() {
         SchemaVisitor throwingVisitor = new MySchemaVisitor("/properties/bar");
         URI base = URI.create("test://schema");
-        assertThatThrownBy(() -> schema.visitSchemas(base, throwingVisitor))
-                .isExactlyInstanceOf(VisitException.class)
+        assertThatThrownBy(() -> schema.visitSchemas(new Diagnostics(), base, throwingVisitor))
+                .isExactlyInstanceOf(VisitorException.class)
                 .hasMessage(
                         "io.kroxylicious.tools.schema.compiler.SchemaObjectTest$MySchemaVisitor#enterSchema() threw exception while visiting schema object at '/properties/bar' from test://schema");
     }

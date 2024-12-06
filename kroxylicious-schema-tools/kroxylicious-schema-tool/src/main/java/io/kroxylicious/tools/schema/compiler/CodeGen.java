@@ -249,7 +249,7 @@ public class CodeGen {
         // subschema of root via property foo = XFoo
         // subschema of root via item of array foos = XFoo
         SchemaObject root = input.rootSchema();
-        root.visitSchemas(input.schemaPath().toUri(), new CodeGenVisitor(input, result));
+        root.visitSchemas(diagnostics, input.schemaPath().toUri(), new CodeGenVisitor(input, result));
         return result;
     }
 

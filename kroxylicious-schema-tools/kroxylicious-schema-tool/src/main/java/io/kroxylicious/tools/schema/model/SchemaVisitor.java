@@ -7,30 +7,41 @@
 package io.kroxylicious.tools.schema.model;
 
 import java.net.URI;
+import java.util.Objects;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class SchemaVisitor {
 
-    public static class Context {
+    public static class Context implements Reporting {
         private final Object parent;
         private final String keyword;
         private final String path;
+        private final Reporting diagnostics;
 
-        Context(
+        private Context(
                 Context parent,
                 String keyword,
                 String path) {
-            this.parent = parent;
-            this.keyword = keyword;
-            this.path = path;
+            this.parent = Objects.requireNonNull(parent);
+            this.diagnostics = parent.diagnostics;
+            this.keyword = Objects.requireNonNull(keyword);
+            this.path = Objects.requireNonNull(path);
         }
 
         Context(
+                Reporting diagnostics,
                 URI base) {
-            this.parent = base;
+            this.diagnostics = Objects.requireNonNull(diagnostics);
+            this.parent = Objects.requireNonNull(base);
             this.keyword = "";
             this.path = "";
+        }
+
+        Context sub(String keyword,
+                    String path) {
+            return new SchemaVisitor.Context(this, keyword, path);
         }
 
         public URI base() {
@@ -42,12 +53,23 @@ public class SchemaVisitor {
             }
         }
 
+        public @Nullable Context parent() {
+            if (parent instanceof URI uri) {
+                return null;
+            }
+            else {
+                return ((Context) parent);
+            }
+        }
+
         public String keyword() {
             return keyword;
         }
 
         public String fullPath() {
+            // TODO rename this method to pointer() and the `path` field to `pointerSegment`???
             if (parent instanceof Context parentContext) {
+                // TODO quoting according to JSON pointer
                 return parentContext.fullPath() + "/" + path;
             }
             else {
@@ -66,6 +88,30 @@ public class SchemaVisitor {
                     "keyword='" + keyword + '\'' +
                     ", fullPath='" + fullPath() + '\'' +
                     '}';
+        }
+
+        @Override
+        public void reportFatal(
+                String message,
+                Object... arguments
+        ) {
+            diagnostics.reportFatal(message, arguments);
+        }
+
+        @Override
+        public void reportError(
+                String message,
+                Object... arguments
+        ) {
+            diagnostics.reportError(message, arguments);
+        }
+
+        @Override
+        public void reportWarning(
+                String message,
+                Object... arguments
+        ) {
+            diagnostics.reportWarning(message, arguments);
         }
     }
 

@@ -31,37 +31,44 @@ public final class SchemaObject {
     private String schema;
 
     @Nullable
-    @JsonProperty("id")
-    private String id;
-
-    @Nullable
     @JsonProperty("$ref")
     private String ref;
 
     @Nullable
-    @JsonProperty("description")
-    private String description;
+    @JsonProperty("id")
+    private String id;
 
     @Nullable
-    @JsonProperty("definitions")
-    private Map<String, SchemaObject> definitions;
+    @JsonProperty("multipleOf")
+    private Double multipleOf;
 
     @Nullable
-    @JsonProperty("type")
-    @JsonDeserialize(using = ListOrSingleSerde.SchemaType.class)
-    private List<SchemaType> type;
+    @JsonProperty("maximum")
+    private Double maximum;
 
     @Nullable
-    @JsonProperty("format")
-    private String format;
+    @JsonProperty("exclusiveMaximum")
+    private Double exclusiveMaximum;
 
     @Nullable
-    @JsonProperty("properties")
-    private Map<String, SchemaObject> properties;
+    @JsonProperty("minimum")
+    private Double minimum;
 
     @Nullable
-    @JsonProperty("required")
-    private Set<String> required;
+    @JsonProperty("exclusiveMinimum")
+    private Double exclusiveMinimum;
+
+    @Nullable
+    @JsonProperty("maxLength")
+    private Long maxLength;
+
+    @Nullable
+    @JsonProperty("minLength")
+    private Long minLength;
+
+    @Nullable
+    @JsonProperty("pattern")
+    private String pattern;
 
     @Nullable
     @JsonProperty("items")
@@ -69,9 +76,55 @@ public final class SchemaObject {
     private List<SchemaObject> items;
 
     @Nullable
-    @JsonProperty("oneOf")
+    @JsonProperty("additionalItems")
     @JsonDeserialize(using = ListOrSingleSerde.SchemaObject.class)
-    private List<SchemaObject> oneOf;
+    private SchemaValue additionalItems;
+
+    @Nullable
+    @JsonProperty("maxItems")
+    private Long maxItems;
+
+    @Nullable
+    @JsonProperty("minItems")
+    private Long minItems;
+
+    @Nullable
+    @JsonProperty("uniqueItems")
+    private Boolean uniqueItems;
+
+    @Nullable
+    @JsonProperty("maxProperties")
+    private Long maxProperties;
+
+    @Nullable
+    @JsonProperty("minProperties")
+    private Long minProperties;
+
+    @Nullable
+    @JsonProperty("required")
+    private Set<String> required;
+
+    @Nullable
+    @JsonProperty("properties")
+    private Map<String, SchemaObject> properties;
+
+    @Nullable
+    @JsonProperty("patternProperties")
+    private Map<String, SchemaObject> patternProperties;
+
+    @Nullable
+    @JsonProperty("additionalProperties")
+    private SchemaValue additionalProperties;
+
+    // TODO dependencies
+    @Nullable
+    @JsonProperty("enum")
+    private List<Object> enum_;
+
+    @Nullable
+    @JsonProperty("type")
+    @JsonDeserialize(using = ListOrSingleSerde.SchemaType.class)
+    private List<SchemaType> type;
 
     @Nullable
     @JsonProperty("allOf")
@@ -84,8 +137,43 @@ public final class SchemaObject {
     private List<SchemaObject> anyOf;
 
     @Nullable
+    @JsonProperty("oneOf")
+    @JsonDeserialize(using = ListOrSingleSerde.SchemaObject.class)
+    private List<SchemaObject> oneOf;
+
+    @Nullable
     @JsonProperty("not")
     private SchemaObject not;
+
+    @Nullable
+    @JsonProperty("definitions")
+    private Map<String, SchemaObject> definitions;
+
+    @Nullable
+    @JsonProperty("title")
+    private String title;
+
+    @Nullable
+    @JsonProperty("description")
+    private String description;
+
+    @Nullable
+    @JsonProperty("default")
+    private Object default_;
+
+    @Nullable
+    @JsonProperty("format")
+    private String format;
+
+    // TODO nullable
+    // TODO descriminator
+    // TODO readOnly
+    // TODO writeOnly
+    // TODO xml
+    // externalDocs
+    // example
+
+    // TODO x-kubernetes-validation
 
     @Nullable
     @JsonProperty("x-kubernetes-list-type")
@@ -99,6 +187,10 @@ public final class SchemaObject {
     @JsonProperty("x-kubernetes-map-type")
     private XKubeMapType xKubernetesMapType;
 
+    // TODO x-kubernetes-int-or-string
+    // TODO x-kubernetes-preserve-unknown-fields
+    // TODO x-kubernetes-embedded-resource
+
     @Nullable
     @JsonProperty("$javaType")
     private String javaType;
@@ -109,69 +201,219 @@ public final class SchemaObject {
     }
 
     @Nullable
-    @JsonProperty("$schema")
     public String getSchema() {
         return schema;
     }
 
-    @Nullable
-    @JsonProperty("id")
-    public String getId() {
-        return id;
+    public void setSchema(@Nullable String schema) {
+        this.schema = schema;
     }
 
     @Nullable
-    @JsonProperty("$ref")
     public String getRef() {
         return ref;
     }
 
-    @Nullable
-    @JsonProperty("description")
-    public String getDescription() {
-        return description;
+    public void setRef(@Nullable String ref) {
+        this.ref = ref;
     }
 
     @Nullable
-    @JsonProperty("definitions")
-    public Map<String, SchemaObject> getDefinitions() {
-        return definitions;
+    public String getId() {
+        return id;
+    }
+
+    public void setId(@Nullable String id) {
+        this.id = id;
     }
 
     @Nullable
-    @JsonProperty("type")
-    @JsonDeserialize(using = ListOrSingleSerde.SchemaType.class)
-    public List<SchemaType> getType() {
-        return type;
+    public Double getMultipleOf() {
+        return multipleOf;
+    }
+
+    public void setMultipleOf(@Nullable Double multipleOf) {
+        this.multipleOf = multipleOf;
     }
 
     @Nullable
-    public String getFormat() {
-        return format;
+    public Double getMaximum() {
+        return maximum;
+    }
+
+    public void setMaximum(@Nullable Double maximum) {
+        this.maximum = maximum;
     }
 
     @Nullable
-    @JsonProperty("properties")
-    public Map<String, SchemaObject> getProperties() {
-        return properties;
+    public Double getExclusiveMaximum() {
+        return exclusiveMaximum;
+    }
+
+    public void setExclusiveMaximum(@Nullable Double exclusiveMaximum) {
+        this.exclusiveMaximum = exclusiveMaximum;
     }
 
     @Nullable
-    @JsonProperty("required")
-    public Set<String> getRequired() {
-        return required;
+    public Double getMinimum() {
+        return minimum;
+    }
+
+    public void setMinimum(@Nullable Double minimum) {
+        this.minimum = minimum;
     }
 
     @Nullable
-    @JsonProperty("items")
-    @JsonDeserialize(using = ListOrSingleSerde.SchemaObject.class)
+    public Double getExclusiveMinimum() {
+        return exclusiveMinimum;
+    }
+
+    public void setExclusiveMinimum(@Nullable Double exclusiveMinimum) {
+        this.exclusiveMinimum = exclusiveMinimum;
+    }
+
+    @Nullable
+    public Long getMaxLength() {
+        return maxLength;
+    }
+
+    public void setMaxLength(@Nullable Long maxLength) {
+        this.maxLength = maxLength;
+    }
+
+    @Nullable
+    public Long getMinLength() {
+        return minLength;
+    }
+
+    public void setMinLength(@Nullable Long minLength) {
+        this.minLength = minLength;
+    }
+
+    @Nullable
+    public String getPattern() {
+        return pattern;
+    }
+
+    public void setPattern(@Nullable String pattern) {
+        this.pattern = pattern;
+    }
+
+    @Nullable
     public List<SchemaObject> getItems() {
         return items;
     }
 
+    public void setItems(@Nullable List<SchemaObject> items) {
+        this.items = items;
+    }
+
     @Nullable
-    public List<SchemaObject> getOneOf() {
-        return oneOf;
+    public SchemaValue getAdditionalItems() {
+        return additionalItems;
+    }
+
+    public void setAdditionalItems(@Nullable SchemaValue additionalItems) {
+        this.additionalItems = additionalItems;
+    }
+
+    @Nullable
+    public Long getMaxItems() {
+        return maxItems;
+    }
+
+    public void setMaxItems(@Nullable Long maxItems) {
+        this.maxItems = maxItems;
+    }
+
+    @Nullable
+    public Long getMinItems() {
+        return minItems;
+    }
+
+    public void setMinItems(@Nullable Long minItems) {
+        this.minItems = minItems;
+    }
+
+    @Nullable
+    public Boolean getUniqueItems() {
+        return uniqueItems;
+    }
+
+    public void setUniqueItems(@Nullable Boolean uniqueItems) {
+        this.uniqueItems = uniqueItems;
+    }
+
+    @Nullable
+    public Long getMaxProperties() {
+        return maxProperties;
+    }
+
+    public void setMaxProperties(@Nullable Long maxProperties) {
+        this.maxProperties = maxProperties;
+    }
+
+    @Nullable
+    public Long getMinProperties() {
+        return minProperties;
+    }
+
+    public void setMinProperties(@Nullable Long minProperties) {
+        this.minProperties = minProperties;
+    }
+
+    @Nullable
+    public Set<String> getRequired() {
+        return required;
+    }
+
+    public void setRequired(@Nullable Set<String> required) {
+        this.required = required;
+    }
+
+    @Nullable
+    public Map<String, SchemaObject> getProperties() {
+        return properties;
+    }
+
+    public void setProperties(@Nullable Map<String, SchemaObject> properties) {
+        this.properties = properties;
+    }
+
+    @Nullable
+    public Map<String, SchemaObject> getPatternProperties() {
+        return patternProperties;
+    }
+
+    public void setPatternProperties(@Nullable Map<String, SchemaObject> patternProperties) {
+        this.patternProperties = patternProperties;
+    }
+
+    @Nullable
+    public SchemaValue getAdditionalProperties() {
+        return additionalProperties;
+    }
+
+    public void setAdditionalProperties(@Nullable SchemaValue additionalProperties) {
+        this.additionalProperties = additionalProperties;
+    }
+
+    @Nullable
+    public List<SchemaType> getType() {
+        return type;
+    }
+
+    public void setType(@Nullable List<SchemaType> type) {
+        this.type = type;
+    }
+
+    @Nullable
+    public List<Object> getEnum() {
+        return enum_;
+    }
+
+    public void setEnum(@Nullable List<Object> enum_) {
+        this.enum_ = enum_;
     }
 
     @Nullable
@@ -179,9 +421,26 @@ public final class SchemaObject {
         return allOf;
     }
 
+    public void setAllOf(@Nullable List<SchemaObject> allOf) {
+        this.allOf = allOf;
+    }
+
     @Nullable
     public List<SchemaObject> getAnyOf() {
         return anyOf;
+    }
+
+    public void setAnyOf(@Nullable List<SchemaObject> anyOf) {
+        this.anyOf = anyOf;
+    }
+
+    @Nullable
+    public List<SchemaObject> getOneOf() {
+        return oneOf;
+    }
+
+    public void setOneOf(@Nullable List<SchemaObject> oneOf) {
+        this.oneOf = oneOf;
     }
 
     @Nullable
@@ -189,88 +448,77 @@ public final class SchemaObject {
         return not;
     }
 
-    @Nullable
-    @JsonProperty("x-kubernetes-list-type")
-    public XKubeListType getXKubernetesListType() {
-        return xKubernetesListType;
+    public void setNot(@Nullable SchemaObject not) {
+        this.not = not;
     }
 
     @Nullable
-    @JsonProperty("x-kubernetes-list-map-keys")
-    public List<String> getXKubernetesListMapKeys() {
-        return xKubernetesListMapKeys;
-    }
-
-    @Nullable
-    @JsonProperty("x-kubernetes-map-type")
-    public XKubeMapType getXKubernetesMapType() {
-        return xKubernetesMapType;
-    }
-
-    @Nullable
-    @JsonProperty("$javaType")
-    public String getJavaType() {
-        return javaType;
-    }
-
-    public void setFormat(@Nullable String format) {
-        this.format = format;
+    public Map<String, SchemaObject> getDefinitions() {
+        return definitions;
     }
 
     public void setDefinitions(@Nullable Map<String, SchemaObject> definitions) {
         this.definitions = definitions;
     }
 
+    @Nullable
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(@Nullable String title) {
+        this.title = title;
+    }
+
+    @Nullable
+    public String getDescription() {
+        return description;
+    }
+
     public void setDescription(@Nullable String description) {
         this.description = description;
     }
 
-    public void setId(@Nullable String id) {
-        this.id = id;
+    @Nullable
+    public Object getDefault() {
+        return default_;
     }
 
-    public void setItems(@Nullable List<SchemaObject> items) {
-        this.items = items;
+    public void setDefault(@Nullable Object default_) {
+        this.default_ = default_;
     }
 
-    public void setOneOf(@Nullable List<SchemaObject> oneOf) {
-        this.oneOf = oneOf;
+    @Nullable
+    public String getFormat() {
+        return format;
     }
 
-    public void setAllOf(@Nullable List<SchemaObject> allOf) {
-        this.allOf = allOf;
+    public void setFormat(@Nullable String format) {
+        this.format = format;
     }
 
-    public void setAnyOf(@Nullable List<SchemaObject> anyOf) {
-        this.anyOf = anyOf;
+    @Nullable
+    public XKubeListType getXKubernetesListType() {
+        return xKubernetesListType;
     }
 
-    public void setNot(@Nullable SchemaObject not) {
-        this.not = not;
+    @Nullable
+    public List<String> getXKubernetesListMapKeys() {
+        return xKubernetesListMapKeys;
+    }
+
+    @Nullable
+    public XKubeMapType getXKubernetesMapType() {
+        return xKubernetesMapType;
+    }
+
+    @Nullable
+    public String getJavaType() {
+        return javaType;
     }
 
     public void setJavaType(@Nullable String javaType) {
         this.javaType = javaType;
-    }
-
-    public void setProperties(@Nullable Map<String, SchemaObject> properties) {
-        this.properties = properties;
-    }
-
-    public void setRef(@Nullable String ref) {
-        this.ref = ref;
-    }
-
-    public void setRequired(@Nullable Set<String> required) {
-        this.required = required;
-    }
-
-    public void setSchema(@Nullable String schema) {
-        this.schema = schema;
-    }
-
-    public void setType(@Nullable List<SchemaType> type) {
-        this.type = type;
     }
 
     public void setXKubernetesListMapKeys(@Nullable List<String> xKubernetesListMapKeys) {
@@ -285,19 +533,19 @@ public final class SchemaObject {
         this.xKubernetesMapType = xKubernetesMapType;
     }
 
-    private Map<String, Object> additionalProperties;
+    private Map<String, Object> unknownProperties;
 
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties != null ? this.additionalProperties : Map.of();
+    public Map<String, Object> getUnknownProperties() {
+        return this.unknownProperties != null ? this.unknownProperties : Map.of();
     }
 
     @JsonAnySetter
-    public void setAdditionalProperty(String name, Object value) {
-        if (this.additionalProperties == null) {
-            this.additionalProperties = new HashMap<>(2);
+    public void setUnknownProperty(String name, Object value) {
+        if (this.unknownProperties == null) {
+            this.unknownProperties = new HashMap<>(2);
         }
-        this.additionalProperties.put(name, value);
+        this.unknownProperties.put(name, value);
     }
 
     @Override
@@ -350,20 +598,20 @@ public final class SchemaObject {
                 '}';
     }
 
-    public void visitSchemas(URI base, @NonNull SchemaVisitor visitor) throws VisitException {
-        var context = new SchemaVisitor.Context(base);
+    public void visitSchemas(Reporting diagnostics, URI base, @NonNull SchemaVisitor visitor) throws VisitorException {
+        var context = new SchemaVisitor.Context(diagnostics, base);
         visitSchemas(context, this, visitor);
     }
 
     private static void visitSchemas(SchemaVisitor.Context context,
                                      SchemaObject schemaObject,
                                      @NonNull SchemaVisitor visitor)
-            throws VisitException {
+            throws VisitorException {
         try {
             visitor.enterSchema(context, schemaObject);
         }
         catch (Exception e) {
-            throw new VisitException(
+            throw new VisitorException(
                     visitor.getClass().getName() + "#enterSchema() threw exception while visiting schema object at '" + context.fullPath() + "' from " + context.base(),
                     e);
         }
@@ -375,13 +623,13 @@ public final class SchemaObject {
         visitSchemaArray(context, visitor, schemaObject.anyOf, "anyOf");
         if (schemaObject.not != null) {
             String path1 = "not";
-            visitSchemas(new SchemaVisitor.Context(context, "not", path1), schemaObject.not, visitor);
+            visitSchemas(context.sub("not", path1), schemaObject.not, visitor);
         }
         try {
             visitor.exitSchema(context, schemaObject);
         }
         catch (Exception e) {
-            throw new VisitException(
+            throw new VisitorException(
                     visitor.getClass().getName() + "#exitSchema() threw exception while visiting schema object at '" + context.fullPath() + "' from " + context.base(),
                     e);
         }
@@ -396,7 +644,7 @@ public final class SchemaObject {
                 String definitionName = entry.getKey();
                 SchemaObject definitionSchema = entry.getValue();
                 String path1 = keyword + "/" + definitionName;
-                visitSchemas(new SchemaVisitor.Context(context, keyword, path1), definitionSchema, visitor);
+                visitSchemas(context.sub(keyword, path1), definitionSchema, visitor);
             }
         }
     }
@@ -409,7 +657,7 @@ public final class SchemaObject {
             for (int i = 0; i < array.size(); i++) {
                 SchemaObject itemSchema = array.get(i);
                 String path1 = keyword + "/" + i;
-                visitSchemas(new SchemaVisitor.Context(context, keyword, path1), itemSchema, visitor);
+                visitSchemas(context.sub(keyword, path1), itemSchema, visitor);
             }
         }
     }

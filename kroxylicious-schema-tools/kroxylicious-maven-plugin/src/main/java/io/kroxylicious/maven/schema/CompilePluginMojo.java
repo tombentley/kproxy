@@ -4,8 +4,9 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious;
+package io.kroxylicious.maven.schema;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +50,7 @@ public class CompilePluginMojo extends AbstractCompileSchemaMojo {
 
                                 if (List.of(SchemaType.STRING).equals(propertySchema.getType())
                                         && "plugin-impl-name".equals(propertySchema.getFormat())) {
-                                    Object o = propertySchema.getAdditionalProperties().get("plugin-interface-name");
+                                    Object o = propertySchema.getUnknownProperties().get("plugin-interface-name");
                                     if (o instanceof String interfaceName) {
                                         return List.of(new SingleMemberAnnotationExpr(
                                                 new Name("io.kroxylicious.proxy.plugin.PluginImplName"),
@@ -60,7 +61,7 @@ public class CompilePluginMojo extends AbstractCompileSchemaMojo {
                                 }
                                 else if (List.of(SchemaType.OBJECT).equals(propertySchema.getType())
                                         && "plugin-impl-config".equals(propertySchema.getFormat())) {
-                                    Object o = propertySchema.getAdditionalProperties().get("impl-name-property");
+                                    Object o = propertySchema.getUnknownProperties().get("impl-name-property");
                                     if (o instanceof String implName) {
                                         return List.of(new NormalAnnotationExpr(
                                                 new Name("io.kroxylicious.proxy.plugin.PluginImplConfig"),
@@ -75,5 +76,10 @@ public class CompilePluginMojo extends AbstractCompileSchemaMojo {
                                 return List.of();
                             }
                         }));
+    }
+
+    @Override
+    protected void validate(Diagnostics diagnostics, URI base, SchemaObject schemaObject) {
+        schemaObject.visitSchemas(diagnostics, base, new PluginValidatorVisitor());
     }
 }

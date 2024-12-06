@@ -31,7 +31,7 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
-import io.kroxylicious.tools.schema.model.VisitException;
+import io.kroxylicious.tools.schema.model.VisitorException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -50,7 +50,7 @@ public class SchemaCompiler {
     private final YAMLMapper mapper;
     private final IdVisitor idVisitor;
     private final @Nullable String header;
-    final Diagnostics diagnostics;
+    public final Diagnostics diagnostics;
     private final List<String> packages;
 
     public SchemaCompiler(List<Path> srcPaths,
@@ -68,7 +68,7 @@ public class SchemaCompiler {
 
         this.diagnostics = new Diagnostics();
         this.mapper = new YAMLMapper();
-        this.idVisitor = new IdVisitor(diagnostics);
+        this.idVisitor = new IdVisitor();
         this.codeGen = new CodeGen(diagnostics,
                 idVisitor,
                 existingClasses,
@@ -140,12 +140,12 @@ public class SchemaCompiler {
             var rootSchema = mapper.convertValue(tree, SchemaObject.class);
 
             // Build the map of absolute URI identifiers to schema
-            rootSchema.visitSchemas(schemaFile.toUri(), idVisitor);
+            rootSchema.visitSchemas(diagnostics, schemaFile.toUri(), idVisitor);
 
             // We should now be able to resolve local $ref
             String rootClass = schemaFile.getFileName().toString().replaceAll("\\.yaml$", "");
             var typeNameVisitor = new TypeNameVisitor(diagnostics, idVisitor, rootClass);
-            rootSchema.visitSchemas(schemaFile.toUri(), typeNameVisitor);
+            rootSchema.visitSchemas(diagnostics, schemaFile.toUri(), typeNameVisitor);
 
             String pkg = StreamSupport.stream(relPath.getParent().spliterator(), false)
                     .map(Path::toString)
@@ -153,7 +153,7 @@ public class SchemaCompiler {
 
             return Stream.of(new SchemaInput(schemaFile, pkg, rootSchema));
         }
-        catch (IOException | IllegalArgumentException | VisitException e) {
+        catch (IOException | IllegalArgumentException | VisitorException e) {
             diagnostics.reportError("Unable to read source file {}: {}", schemaFile, e.getMessage());
             return Stream.empty();
         }
@@ -166,7 +166,7 @@ public class SchemaCompiler {
                     try {
                         return codeGen.genDecls(input).stream();
                     }
-                    catch (VisitException e) {
+                    catch (VisitorException e) {
                         diagnostics.reportFatal("Error: {}", e.getMessage(), e);
                         return Stream.empty();
                     }

@@ -26,8 +26,6 @@ public class IdVisitor extends SchemaVisitor {
 
     private static final Pattern SUBSCHEMA_ID_PATTERN = Pattern.compile("^#[A-Za-z][A-Za-z0-9_:.-]*$");
 
-    private final Diagnostics diagnostics;
-
     // The "id" keyword defines a URI for the schema, and the base URI that
     // other URI references within the schema are resolved against.
     // The "id" keyword itself is resolved against the base URI that the object
@@ -35,8 +33,7 @@ public class IdVisitor extends SchemaVisitor {
 
     private final Map<String, SchemaObject> idIndex = new TreeMap<>();
 
-    public IdVisitor(Diagnostics diagnostics) {
-        this.diagnostics = Objects.requireNonNull(diagnostics);
+    public IdVisitor() {
     }
 
     public @Nullable SchemaObject resolve(URI uri) {
@@ -52,7 +49,7 @@ public class IdVisitor extends SchemaVisitor {
                             SchemaVisitor.Context context,
                             @NonNull SchemaObject schema) {
         if (context.isRootSchema()) {
-            index(context.base(), schema);
+            index(context, context.base(), schema);
         }
 
         // Explicit id
@@ -64,11 +61,11 @@ public class IdVisitor extends SchemaVisitor {
                 // keyword with an absolute-URI (containing a scheme, but no fragment).
                 URI uri = URI.create(id);
                 if (!uri.isAbsolute()) {
-                    diagnostics.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is not absolute: {}",
+                    context.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is not absolute: {}",
                             context.base());
                 }
                 else if (!uri.equals(context.base())) {
-                    index(uri, schema);
+                    index(context, uri, schema);
                 }
             }
             else {
@@ -80,13 +77,13 @@ public class IdVisitor extends SchemaVisitor {
                 // letters, digits ([0-9]), hyphens ("-"), underscores ("_"), colons
                 // (":"), or periods (".").
                 if (!SUBSCHEMA_ID_PATTERN.matcher(id).matches()) {
-                    diagnostics.reportError("Invalid schema 'id', must match " + SUBSCHEMA_ID_PATTERN.pattern() + ": " + id);
+                    context.reportError("Invalid schema 'id', must match " + SUBSCHEMA_ID_PATTERN.pattern() + ": " + id);
                 }
-                index(resolve(context.base(), id), schema);
+                index(context, resolve(context.base(), id), schema);
             }
         }
         else if (context.isRootSchema()) {
-            diagnostics.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is absent: {}",
+            context.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is absent: {}",
                     context.base());
         }
 
@@ -98,14 +95,14 @@ public class IdVisitor extends SchemaVisitor {
         }
         String pathId = "#" + context.fullPath();
 
-        index(resolve(context.base(), pathId), schema);
+        index(context, resolve(context.base(), pathId), schema);
 
     }
 
-    private void index(URI base, @NonNull SchemaObject schema) {
+    private void index(SchemaVisitor.Context context, URI base, @NonNull SchemaObject schema) {
         SchemaObject old = idIndex.put(base.toString(), schema);
         if (old != null) {
-            diagnostics.reportError("Attempt to identify two schemas from same URI {}", base);
+            context.reportError("Attempt to identify two schemas from same URI {}", base);
         }
     }
 

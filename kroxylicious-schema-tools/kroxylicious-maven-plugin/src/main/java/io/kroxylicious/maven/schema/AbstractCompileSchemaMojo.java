@@ -4,14 +4,18 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious;
+package io.kroxylicious.maven.schema;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+
+import io.kroxylicious.tools.schema.compiler.Diagnostics;
+import io.kroxylicious.tools.schema.model.SchemaObject;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -51,6 +55,7 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
         try {
             SchemaCompiler schemaCompiler = schemaCompiler();
             var inputs = schemaCompiler.parse();
+            inputs.stream().forEach(input -> validate(schemaCompiler.diagnostics, input.schemaPath().toUri(), input.rootSchema()));
             var units = schemaCompiler.gen(inputs);
             schemaCompiler.write(target.toPath(), units);
             if (schemaCompiler.numFatals() > 0) {
@@ -73,6 +78,8 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
         getLog().info("Adding source root " + target.getAbsolutePath());
         project.addCompileSourceRoot(target.getAbsolutePath());
     }
+
+    protected abstract void validate(Diagnostics diagnostics, URI uri, SchemaObject schemaObject);
 
     protected SchemaCompiler schemaCompiler() throws MojoExecutionException {
         SchemaCompiler schemaCompiler = new SchemaCompiler(List.of(source.toPath()),

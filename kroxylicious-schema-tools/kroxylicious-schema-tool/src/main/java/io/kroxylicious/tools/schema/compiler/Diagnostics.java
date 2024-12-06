@@ -6,20 +6,21 @@
 
 package io.kroxylicious.tools.schema.compiler;
 
+import io.kroxylicious.tools.schema.model.Reporting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Used to track errors and warnings emitted by the tool, to avoid fail fast behaviour.
  */
-public class Diagnostics {
+public class Diagnostics implements Reporting {
     private static final Logger LOGGER = LoggerFactory.getLogger(Diagnostics.class);
 
     private int numFatals = 0;
     private int numErrors = 0;
     private int numWarnings = 0;
 
-    Diagnostics() {
+    public Diagnostics() {
 
     }
 

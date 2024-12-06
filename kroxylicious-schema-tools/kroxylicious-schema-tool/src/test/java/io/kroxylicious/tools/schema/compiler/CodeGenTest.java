@@ -50,7 +50,7 @@ class CodeGenTest {
     {
         Diagnostics diagnostics = new Diagnostics();
         codeGen = new CodeGen(diagnostics,
-                new IdVisitor(diagnostics),
+                new IdVisitor(),
                 Map.of(),
                 "edu.umd.cs.findbugs.annotations.Nullable",
                 "edu.umd.cs.findbugs.annotations.NonNull",
