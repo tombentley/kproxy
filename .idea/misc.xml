@@ -6,6 +6,7 @@
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/kroxylicious-systemtests/pom.xml" />
+        <option value="$PROJECT_DIR$/kroxylicious-schema-tools/kroxylicious-crd-tool/pom.xml" />
       </list>
     </option>
   </component>
