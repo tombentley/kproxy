@@ -8,9 +8,11 @@ $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Maps.yaml
 description: An class with properties mapped from the array type.
 type: object
+additionalProperties: false
 definitions:
   FooBarBaz:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: string
@@ -19,6 +21,8 @@ definitions:
       baz:
         type: integer
 properties:
+  # We can convert `array`s` in the json to java.util.Map in the java
+  # using `x-kubernetes-list-type` and `x-kubernetes-list-map-keys`
   keyedOnFoo:
     description: An array of FooBars
     type: array
@@ -33,3 +37,19 @@ properties:
 #    x-kubernetes-list-map-keys: [ "foo", "baz" ]
 #    items:
 #      $ref: "#/definitions/FooBarBaz"
+
+  # Using `additionalProperties` without a `properties` maps the `object` to a `Map<String, FooBarBaz>`
+  objectAsMap:
+    type: object
+    additionalProperties:
+      $ref: "#/definitions/FooBarBaz"
+
+  # Using both `properties` and `additionalProperties` maps to a class with accessor/mutators for the properties
+  # and a map for the additional properties
+  mixed:
+    type: object
+    properties:
+      quux:
+        type: string
+    additionalProperties:
+      $ref: "#/definitions/FooBarBaz"

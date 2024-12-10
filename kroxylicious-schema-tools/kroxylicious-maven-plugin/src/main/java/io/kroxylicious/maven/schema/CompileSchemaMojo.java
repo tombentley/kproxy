@@ -10,14 +10,14 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import io.kroxylicious.tools.schema.compiler.Diagnostics;
-import io.kroxylicious.tools.schema.model.SchemaObject;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 
+import io.kroxylicious.tools.schema.compiler.Diagnostics;
+import io.kroxylicious.tools.schema.compiler.RecordPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.SchemaCompiler;
+import io.kroxylicious.tools.schema.model.SchemaObject;
 
 @Mojo(name = "compile-schema", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class CompileSchemaMojo extends AbstractCompileSchemaMojo {
@@ -29,6 +29,8 @@ public class CompileSchemaMojo extends AbstractCompileSchemaMojo {
                 readHeaderFile(),
                 existingClasses != null ? existingClasses : Map.of(),
                 List.of(),
+                new RecordPropertyStrategy(),
+                false,
                 List.of());
         return schemaCompiler;
     }

@@ -8,6 +8,7 @@ $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Object.yaml
 description: A class with scalar properties
 type: object
+additionalProperties: false
 $javaType: MyObject
 properties:
   foo:

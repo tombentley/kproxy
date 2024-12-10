@@ -9,6 +9,8 @@ package io.kroxylicious.tools.schema.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,17 +19,26 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 
 import org.assertj.core.api.Condition;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Name;
@@ -55,6 +66,8 @@ class CodeGenTest {
                 "edu.umd.cs.findbugs.annotations.Nullable",
                 "edu.umd.cs.findbugs.annotations.NonNull",
                 List.of(),
+                new BeanPropertyStrategy(),
+                false,
                 List.of());
     }
 
@@ -93,16 +106,59 @@ class CodeGenTest {
 
             """;
 
-    private void assertGeneratedCode(String dir,
+    private void assertGeneratedCode(Path srcdir,
                                      List<TypeAnnotator> typeAnnotators,
                                      List<PropertyAnnotator> propertyAnnotators)
             throws IOException {
         // First assert that the generate code matches the expected files
-        assertGeneratedCodeMatches(dir, typeAnnotators, propertyAnnotators);
+        assertGeneratedCodeMatches(srcdir, typeAnnotators, propertyAnnotators);
         // Then assert that the expected files can be compiled with a java compiler
         // Because `generated == expected` this means the generated must be legal java source code
-        compileJavaFilesBeneath(Path.of(dir).getParent());
-        javadocJavaFilesBeneath(Path.of(dir).getParent());
+        compileJavaFilesBeneath(srcdir.getParent());
+        javadocJavaFilesBeneath(srcdir.getParent());
+
+    }
+
+    private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+
+    private void f(Path classdir, Path instanceYaml, String className) throws IOException {
+        // TODO read instance as JsonNode
+        // TODO check JsonNode instance against schema (i.e. check that the instance we're testing with is actually valid)
+
+        var cl = new URLClassLoader(new URL[]{ classdir.toUri().toURL() }, getClass().getClassLoader());
+        try {
+            var c = Class.forName(className, true, cl);
+            // deserialize into POJOs (testing the Jackson annotations)
+            var o = YAML_MAPPER.readValue(instanceYaml.toFile(), c);
+
+            // serialize POJOs as JSONNode (testing the Jackson annotations)
+            String s = YAML_MAPPER.writeValueAsString(o);
+            // compare == (annotations provide roundtrip fidelity)
+            var roundtripped = YAML_MAPPER.readTree(s);
+
+            var instanceNodes = YAML_MAPPER.readTree(instanceYaml.toFile());
+
+            assertThat(roundtripped)
+                    .describedAs("Expect JSON roundtripped via POJO to be same as original instance")
+                    .isEqualTo(instanceNodes);
+//            assertThat(roundtripped.equals((x, y) -> {
+//                if (x.equals(y)) {
+//                    return 0;
+//                }
+//                else {
+//                    return 1;
+//                }
+//            }, instanceNodes)).isTrue();
+
+            // deserialize into POJOs 2nd time, compare .equals, .hashCode and .toString (testing those methods)
+            var o2 = YAML_MAPPER.readValue(instanceYaml.toFile(), c);
+            assertThat(o).isEqualTo(o2);
+            assertThat(o).hasSameHashCodeAs(o2);
+            assertThat(o).hasToString(o2.toString());
+        }
+        catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static SchemaCompiler parseDiagnostics(String dir) {
@@ -114,6 +170,8 @@ class CodeGenTest {
                 null,
                 Map.of(),
                 List.of(),
+                new RecordPropertyStrategy(),
+                false,
                 List.of());
         schemaCompiler.parse();
         return schemaCompiler;
@@ -128,6 +186,8 @@ class CodeGenTest {
                 null,
                 Map.of(),
                 List.of(),
+                new RecordPropertyStrategy(),
+                false,
                 List.of());
         List<SchemaInput> parse = schemaCompiler.parse();
         assertThat(schemaCompiler.diagnostics.getNumFatals()).isZero();
@@ -142,25 +202,16 @@ class CodeGenTest {
         return schemaCompiler;
     }
 
-    private static void assertGeneratedCodeMatches(String dir,
+    private static void assertGeneratedCodeMatches(Path src,
                                                    List<TypeAnnotator> typeAnnotators,
                                                    List<PropertyAnnotator> propertyAnnotators) {
-        Path src = Path.of(dir);
-        Path path = new File("src/test/resources").toPath();
-        SchemaCompiler schemaCompiler = new SchemaCompiler(
-                List.of(path),
-                List.of(path.relativize(src).toString().replace("/", ".")),
-                null,
-                Map.of(),
-                typeAnnotators,
-                propertyAnnotators);
-        List<SchemaInput> parse = schemaCompiler.parse();
-        var units = schemaCompiler.gen(parse).toList();
+        var units = generate(src, typeAnnotators, propertyAnnotators);
 
-        assertThat(schemaCompiler.diagnostics.getNumFatals()).describedAs("Expect 0 fatal errors").isZero();
-        assertThat(schemaCompiler.diagnostics.getNumErrors()).describedAs("Expect 0 errors").isZero();
-        // TODO assertThat(schemaCompiler.diagnostics.getNumWarnings()).describedAs("Expect 0 warnings").isZero();
+        compare(src, units);
 
+    }
+
+    private static void compare(Path src, List<CompilationUnit> units) {
         Map<String, List<CompilationUnit>> collect = units.stream().collect(Collectors.groupingBy(SchemaCompiler::javaFileName));
         assertThat(collect).hasKeySatisfying(new Condition<>(
                 filename -> filename.matches("[A-Z][a-zA-Z0-9_$]*\\.java"),
@@ -189,7 +240,27 @@ class CodeGenTest {
                 throw new UncheckedIOException(e);
             }
         });
+    }
 
+    @NonNull
+    private static List<CompilationUnit> generate(Path src, List<TypeAnnotator> typeAnnotators, List<PropertyAnnotator> propertyAnnotators) {
+        Path path = new File("src/test/resources").toPath();
+        SchemaCompiler schemaCompiler = new SchemaCompiler(
+                List.of(path),
+                List.of(path.relativize(src).toString().replace("/", ".")),
+                null,
+                Map.of(),
+                typeAnnotators,
+                new RecordPropertyStrategy(),
+                false,
+                propertyAnnotators);
+        List<SchemaInput> parse = schemaCompiler.parse();
+        var units = schemaCompiler.gen(parse).toList();
+
+        assertThat(schemaCompiler.diagnostics.getNumFatals()).describedAs("Expect 0 fatal errors").isZero();
+        assertThat(schemaCompiler.diagnostics.getNumErrors()).describedAs("Expect 0 errors").isZero();
+        // TODO assertThat(schemaCompiler.diagnostics.getNumWarnings()).describedAs("Expect 0 warnings").isZero();
+        return units;
     }
 
     /**
@@ -198,15 +269,26 @@ class CodeGenTest {
      * @param path
      * @throws IOException
      */
-    private static void compileJavaFilesBeneath(Path path) throws IOException {
+    private static Path compileJavaFilesBeneath(Path path) throws IOException {
         var outputDir = Files.createTempDirectory(CodeGenTest.class.getSimpleName());
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        try (var fileManager = compiler.getStandardFileManager(null, null, null)) {
+        DiagnosticCollector<JavaFileObject> diagnosticListener = new DiagnosticCollector<>();
+        try (var fileManager = compiler.getStandardFileManager(diagnosticListener, null, null)) {
             Iterable<? extends JavaFileObject> compilationUnits1 = fileManager.getJavaFileObjectsFromPaths(javaFilesBeneath(path));
-            assertThat(compiler.getTask(null, fileManager, null, List.of("-d", outputDir.toString()), null, compilationUnits1).call())
+            Boolean call = compiler.getTask(null,
+                    fileManager,
+                    diagnosticListener,
+                    List.of("-d", outputDir.toString(), "-proc:none", "-Werror", "-Xlint:all"),
+                    null,
+                    compilationUnits1).call();
+            assertThat(diagnosticListener.getDiagnostics())
                     .describedAs("The java source code should compile without errors")
+                    .isEmpty();
+            assertThat(call)
+                    .describedAs("The compile task should return true")
                     .isTrue();
         }
+        return outputDir;
     }
 
     /**
@@ -245,24 +327,127 @@ class CodeGenTest {
         return result;
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "src/test/resources/empty",
-            "src/test/resources/scalars",
-            "src/test/resources/arrays",
-            "src/test/resources/maps",
-            "src/test/resources/anonymous",
-            "src/test/resources/trickynaming",
-            "src/test/resources/xref",
-            "src/test/resources/junctor"
-    })
-    void compiles(String dir) throws IOException {
-        assertGeneratedCode(dir, List.of(), List.of());
+    @TestFactory
+    Stream<DynamicNode> valid() {
+        return Stream.of("src/test/resources/empty",
+                "src/test/resources/scalars",
+                "src/test/resources/arrays",
+                "src/test/resources/maps",
+                "src/test/resources/anonymous",
+                "src/test/resources/trickynaming",
+                "src/test/resources/xref",
+                "src/test/resources/junctor",
+                "src/test/resources/open").map(Path::of).map(srcdir -> {
+
+                    var result = Stream.<DynamicNode> builder();
+
+                    List<CompilationUnit> compilationUnits = null;
+
+                    try {
+                        compilationUnits = generate(srcdir, List.of(), List.of());
+                        // TODO DynamicTest.dynamicTest("generated code compiles with javac", () -> {}),
+                        // DynamicTest.dynamicTest("generated code doc compiles with javadoc", () -> {}),
+                        // // for each instance YAML
+                        // DynamicTest.dynamicTest("generated code equals(), hashCode() and toString", () -> {}),
+                        // DynamicTest.dynamicTest("generated code (de)serialization", () -> {})
+                    }
+                    catch (Exception | AssertionError e) {
+                        result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
+                            throw e;
+                        }));
+                    }
+
+                    if (compilationUnits != null) {
+                        var finalCu = compilationUnits;
+                        result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
+                        }));
+
+                        result.add(DynamicTest.dynamicTest("compare(generate(" + srcdir + "))", () -> {
+                            compare(srcdir, finalCu);
+                        }));
+
+                        Path tmpSrcDir = null;
+                        try {
+                            var dir = Files.createTempDirectory(CodeGenTest.class.getName());
+                            for (var cu : finalCu) {
+                                var srcFile = Files.createDirectories(dir.resolve(cu.getPackageDeclaration().get().getNameAsString().replace(".", "/")));
+                                Path resolve = srcFile.resolve(cu.getTypes().get(0).getNameAsString() + ".java");
+                                Files.writeString(resolve, cu.toString());
+                            }
+                            tmpSrcDir = dir;
+                        }
+                        catch (Exception | AssertionError e) {
+                            result.add(DynamicTest.dynamicTest("write generated source", () -> {
+                                throw e;
+                            }));
+                        }
+                        final Path finalGeneratedSrcDir = tmpSrcDir;
+
+                        if (tmpSrcDir != null) {
+                            result.add(DynamicTest.dynamicTest("javadoc(generate(" + srcdir + "))", () -> {
+                                javadocJavaFilesBeneath(finalGeneratedSrcDir);
+                            }));
+
+                            Path classdir = null;
+                            try {
+                                classdir = compileJavaFilesBeneath(finalGeneratedSrcDir);
+                                result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
+                                }));
+                            }
+                            catch (Exception | AssertionError e) {
+                                result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
+                                    throw e;
+                                }));
+                            }
+
+                            if (classdir != null) {
+                                var finalClassdir = classdir;
+                                var pattern = Pattern.compile("instance-(.*)\\.yaml");
+                                // TODO walk srcdir parsing .yamls finding ones without a $schema that's Draft 4
+                                try {
+                                    Files.walkFileTree(srcdir,
+                                            new SimpleFileVisitor<Path>() {
+                                                @Override
+                                                public FileVisitResult visitFile(
+                                                        Path file,
+                                                        BasicFileAttributes attrs)
+                                                        throws IOException {
+                                                    Matcher matcher = pattern.matcher(file.getFileName().toString());
+                                                    if (matcher.matches()) {
+                                                        try {
+                                                            // TODO read as JsonNode and validate against the "root schema"
+                                                            f(finalClassdir, file,
+                                                                    finalCu.get(0).getPackageDeclaration().get().getName().asString() + "." + matcher.group(1));
+                                                            result.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
+                                                            }));
+                                                        }
+                                                        catch (Exception | AssertionError e) {
+                                                            result.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
+                                                                throw e;
+                                                            }));
+                                                        }
+                                                    }
+                                                    return FileVisitResult.CONTINUE;
+                                                }
+                                            });
+                                }
+                                catch (Exception | AssertionError e) {
+                                    result.add(DynamicTest.dynamicTest("walk " + srcdir, () -> {
+                                        throw e;
+                                    }));
+                                }
+
+                            }
+                        }
+                    }
+                    return DynamicContainer.dynamicContainer(srcdir.toString(), result.build());
+                });
+
     }
 
     @Test
     void customAnnotations() throws IOException {
-        assertGeneratedCode("src/test/resources/customannotations",
+        assertGeneratedCode(Path.of("src/test/resources/customannotations"),
                 List.of(new TypeAnnotator() {
                     @Override
                     public List<AnnotationExpr> annotateClass(Diagnostics diagnostics, SchemaObject typeSchema) {

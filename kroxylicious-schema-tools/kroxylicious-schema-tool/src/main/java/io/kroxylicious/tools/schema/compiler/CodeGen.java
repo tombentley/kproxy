@@ -8,8 +8,10 @@ package io.kroxylicious.tools.schema.compiler;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -34,7 +36,9 @@ import com.github.javaparser.ast.expr.ArrayInitializerExpr;
 import com.github.javaparser.ast.expr.AssignExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.BooleanLiteralExpr;
+import com.github.javaparser.ast.expr.CastExpr;
 import com.github.javaparser.ast.expr.ClassExpr;
+import com.github.javaparser.ast.expr.ConditionalExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.InstanceOfExpr;
@@ -44,19 +48,24 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.Name;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.NullLiteralExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
 import com.github.javaparser.ast.expr.TypeExpr;
 import com.github.javaparser.ast.expr.TypePatternExpr;
+import com.github.javaparser.ast.expr.VariableDeclarationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
+import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.ast.type.VarType;
 import com.github.javaparser.ast.type.VoidType;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
@@ -67,18 +76,23 @@ import io.kroxylicious.tools.schema.model.XKubeListType;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+import static com.github.javaparser.ast.Modifier.createModifierList;
+
 /**
  * Java code generation from a SchemaObject.
  */
 public class CodeGen {
 
+    public static final String UNKNOWN_PROPERTIES_FIELD_NAME = "unknownProperties";
     private final IdVisitor idVisitor;
     private final Diagnostics diagnostics;
     private final Map<String, String> existingClasses;
+    private final PropertyStrategy propertyStrategy;
     private final String nullableAnnotation;
     private final String nonNullAnnotation;
     private final List<TypeAnnotator> typeAnnotators;
     private final List<PropertyAnnotator> propertyAnnotators;
+    private final boolean optAccessor;
 
     public CodeGen(Diagnostics diagnostics,
                    IdVisitor idVisitor,
@@ -86,10 +100,14 @@ public class CodeGen {
                    String nullableAnnotation,
                    String nonNullAnnotation,
                    List<TypeAnnotator> typeAnnotators,
+                   PropertyStrategy propertyStrategy,
+                   boolean optAccessor,
                    List<PropertyAnnotator> propertyAnnotators) {
         this.diagnostics = Objects.requireNonNull(diagnostics);
         this.idVisitor = Objects.requireNonNull(idVisitor);
         this.existingClasses = existingClasses;
+        this.propertyStrategy = propertyStrategy;
+        this.optAccessor = optAccessor;
         this.nullableAnnotation = nullableAnnotation;
         this.nonNullAnnotation = nonNullAnnotation;
         this.typeAnnotators = typeAnnotators;
@@ -147,7 +165,7 @@ public class CodeGen {
     }
 
     @SuppressWarnings("java:S1192")
-    Type genTypeName(String pkg, SchemaObject root, SchemaObject schema) {
+    ClassOrInterfaceType genTypeName(String pkg, SchemaObject root, SchemaObject schema) {
         Objects.requireNonNull(schema);
         List<SchemaType> type = schema.getType();
         if (type == null || type.isEmpty()) {
@@ -159,32 +177,35 @@ public class CodeGen {
         }
         if (type.size() == 1) {
             return switch (type.get(0)) {
-                case NULL -> new ClassOrInterfaceType(null, "java.lang.Object");
-                case BOOLEAN -> new ClassOrInterfaceType(null, "java.lang.Boolean");
-                case INTEGER -> new ClassOrInterfaceType(null, "java.lang.Long");
-                case NUMBER -> new ClassOrInterfaceType(null, "java.lang.Double");
+                case NULL -> mkType( "java.lang.Object");
+                case BOOLEAN -> mkType("java.lang.Boolean");
+                case INTEGER -> mkType("java.lang.Long");
+                case NUMBER -> mkType("java.lang.Double");
                 case STRING -> {
                     if (schema.getFormat() != null) {
-                        yield new ClassOrInterfaceType(null, switch (schema.getFormat()) {
+                        yield mkType(switch (schema.getFormat()) {
                             case "uri" -> "java.net.URI";
                             default -> "java.lang.String";
                         });
                     }
                     else {
-                        yield new ClassOrInterfaceType(null, "java.lang.String");
+                        yield mkType("java.lang.String");
                     }
                 }
                 case ARRAY -> genCollectionOrMapType(pkg, root, schema);
                 case OBJECT -> {
+                    if (mapObjectAsMap(schema)) {
+                        yield mkGenericType("java.util.Map", mkType("java.lang.String"), genTypeName(pkg, root, resolveRef(root, schema.getAdditionalProperties().getSchemaObject())));
+                    }
                     // TODO or Map or ObjectNode if x-kubernetes-preserve-unknown-keys
                     String fqName = pkg + "." + className(schema);
                     String orDefault = existingClasses.getOrDefault(fqName, fqName);
-                    yield new ClassOrInterfaceType(null, orDefault);
+                    yield mkType( orDefault);
                 }
             };
         }
         else {
-            return new ClassOrInterfaceType(null, "java.lang.Object");
+            return mkType("java.lang.Object");
         }
     }
 
@@ -195,34 +216,15 @@ public class CodeGen {
         XKubeListType xKubeListType = schema.getXKubernetesListType();
         if (xKubeListType == null
                 || xKubeListType == XKubeListType.ATOMIC) {
-            return new ClassOrInterfaceType(null, new SimpleName("java.util.List"),
-                    new NodeList<>(itemType));
+            return mkGenericType("java.util.List", itemType);
         }
         else if (xKubeListType == XKubeListType.SET) {
-            return new ClassOrInterfaceType(null, new SimpleName("java.util.Set"),
-                    new NodeList<>(itemType));
+            return mkGenericType("java.util.Set", itemType);
         }
         else if (xKubeListType == XKubeListType.MAP) {
-            List<String> keyPropertyNames = schema.getXKubernetesListMapKeys();
-            Type keyType;
-            if (keyPropertyNames == null
-                    || keyPropertyNames.isEmpty()) {
-                diagnostics.reportError("'x-kubernetes-list-map-keys' property is required when 'x-kubernetes-list-type: map'");
-                // Use some type so we can keep going, even though the Java won't compile
-                keyType = genErrorType();
-            }
-            else if (keyPropertyNames.size() > 1) {
-                // x-kubernetes-list-map-keys=['foo', 'bar'] should result in an inner class to represent the compound key
-                diagnostics.reportError("'x-kubernetes-list-map-keys' property with multiple values is not yet supported");
-                // Use some type so we can keep going, even though the Java won't compile
-                keyType = genErrorType();
-            }
-            else {
-                SchemaObject keySchema = itemSchema.getProperties().get(keyPropertyNames.get(0));
-                keyType = genTypeName(pkg, root, keySchema);
-            }
-            return new ClassOrInterfaceType(null, new SimpleName("java.util.Map"),
-                    new NodeList<>(keyType, itemType));
+            return mkGenericType("java.util.Map",
+                    genMapKeyType(pkg, root, schema, itemSchema),
+                    itemType);
         }
         else {
             diagnostics.reportError("Unsupported 'x-kubernetes-list-type': " + xKubeListType);
@@ -230,14 +232,46 @@ public class CodeGen {
         }
     }
 
+    @NonNull
+    private Type genMapKeyType(String pkg, SchemaObject root, SchemaObject schema, SchemaObject itemSchema) {
+        List<String> keyPropertyNames = schema.getXKubernetesListMapKeys();
+        Type keyType;
+        if (keyPropertyNames == null
+                || keyPropertyNames.isEmpty()) {
+            diagnostics.reportError("'x-kubernetes-list-map-keys' property is required when 'x-kubernetes-list-type: map'");
+            // Use some type so we can keep going, even though the Java won't compile
+            keyType = genErrorType();
+        }
+        else if (keyPropertyNames.size() > 1) {
+            // x-kubernetes-list-map-keys=['foo', 'bar'] should result in an inner class to represent the compound key
+            diagnostics.reportError("'x-kubernetes-list-map-keys' property with multiple values is not yet supported");
+            // Use some type so we can keep going, even though the Java won't compile
+            keyType = genErrorType();
+        }
+        else {
+            SchemaObject keySchema = itemSchema.getProperties().get(keyPropertyNames.get(0));
+            keyType = genTypeName(pkg, root, keySchema);
+        }
+        return keyType;
+    }
+
+    @NonNull
+    private String genMapKeyAccessor(String pkg, SchemaObject root, SchemaObject schema, SchemaObject itemSchema) {
+        List<String> keyPropertyNames = schema.getXKubernetesListMapKeys();
+        if (keyPropertyNames.size() == 1) {
+            return propertyStrategy.accessorName(keyPropertyNames.get(0));
+        }
+        return "???"; // error should have been reported when generating the type
+    }
+
     /**
      * Sometimes it's better to generate a type, even in the presence of an invalid schema,
      * so we can at least generate some java code and report more errors to the user.
-     * @return
+     * @return An "error type"
      */
     @NonNull
     private static ClassOrInterfaceType genErrorType() {
-        return new ClassOrInterfaceType(null, "code.generation.Error");
+        return mkType("code.generation.Error");
     }
 
     List<CompilationUnit> genDecls(SchemaInput input) {
@@ -266,13 +300,27 @@ public class CodeGen {
         }
         if (type.size() == 1) {
             return switch (type.get(0)) {
-                case OBJECT -> genClass(pkg, idVisitor.resolve(base), schema, path);
+                case OBJECT -> {
+                    if (mapObjectAsMap(schema)) {
+                        yield null;
+                    }
+                    else {
+                        yield genClass(pkg, idVisitor.resolve(base), schema, path);
+                    }
+                }
                 case ARRAY, STRING, INTEGER, NUMBER, BOOLEAN, NULL -> null;
             };
         }
         else {
             throw new UnsupportedOperationException("Can't handle union types yet");
         }
+    }
+
+    private static boolean mapObjectAsMap(SchemaObject schema) {
+        return (schema.getProperties() == null
+                || schema.getProperties().isEmpty())
+                && schema.getAdditionalProperties() != null
+                && schema.getAdditionalProperties().getSchemaObject() != null;
     }
 
     public static boolean isTypeGenerated(SchemaObject schemaObject) {
@@ -296,7 +344,7 @@ public class CodeGen {
                     oldPath,
                     path);
         }
-        Map<String, SchemaObject> properties = schema.getProperties() == null ? Map.of() : schema.getProperties();
+        Map<String, SchemaObject> properties = properties(schema);
 
         Set<String> required = schema.getRequired() == null ? Set.of() : schema.getRequired();
         CompilationUnit cu = new CompilationUnit();
@@ -317,7 +365,7 @@ public class CodeGen {
         // @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
         clz.addAnnotation(new SingleMemberAnnotationExpr(
                 new Name("com.fasterxml.jackson.annotation.JsonInclude"),
-                new FieldAccessExpr(new TypeExpr(new ClassOrInterfaceType(null, "com.fasterxml.jackson.annotation.JsonInclude.Include")), "NON_NULL")));
+                new FieldAccessExpr(new TypeExpr(mkType("com.fasterxml.jackson.annotation.JsonInclude.Include")), "NON_NULL")));
 
         // @com.fasterxml.jackson.annotation.JsonPropertyOrder({...properties...})
         if (!properties.isEmpty()) {
@@ -327,50 +375,294 @@ public class CodeGen {
         }
         // @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
         clz.addAnnotation(new NormalAnnotationExpr(new Name("com.fasterxml.jackson.databind.annotation.JsonDeserialize"),
-                new NodeList<>(new MemberValuePair("using", new ClassExpr(new ClassOrInterfaceType(null, "com.fasterxml.jackson.databind.JsonDeserializer.None"))))));
+                new NodeList<>(new MemberValuePair("using", new ClassExpr(mkType("com.fasterxml.jackson.databind.JsonDeserializer.None"))))));
 
         typeAnnotators.stream().flatMap(ta -> ta.annotateClass(diagnostics, schema).stream()).forEach(clz::addAnnotation);
+
+        // Deserializer static inner classes
+        for (var entry : properties.entrySet()) {
+            String propName = entry.getKey();
+            var propSchema = resolveRef(root, entry.getValue());
+            if (useMapDeserializer(propSchema)) {
+                clz.addMember(mkMapDeserializer(pkg, root, propName, propSchema));
+                clz.addMember(mkMapSerializer(pkg, root, propName, propSchema));
+            }
+        }
 
         // fields
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
             var propSchema = resolveRef(root, entry.getValue());
             var propType = genTypeName(pkg, root, propSchema);
-            FieldDeclaration fieldDeclaration = mkPropertyField(propName, required.contains(propName), propType);
+            FieldDeclaration fieldDeclaration = mkPropertyField(schema, propName, propType);
             propertyAnnotators.stream().flatMap(ta -> ta.annotateField(diagnostics, propName, propSchema).stream()).forEach(fieldDeclaration::addAnnotation);
             clz.addMember(fieldDeclaration);
         }
+        if (additionalPropertiesNotFalse(schema)) {
+            clz.addMember(mkUnknownPropertiesField());
+        }
 
         // constructors
-        mkConstructors(pkg, root, properties, required, clz);
+        mkConstructors(pkg, root, schema, properties, required, clz);
 
         // accessors and mutators
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
             var propSchema = resolveRef(root, entry.getValue());
             var propType = genTypeName(pkg, root, propSchema);
-            clz.addMember(mkPropertyGetterMethod(propSchema, propName, propType, required.contains(propName)));
-            clz.addMember(mkPropertySetterMethod(propSchema, propName, propType, required.contains(propName)));
+            clz.addMember(mkPropertyGetterMethod(pkg, root, schema, propSchema, propName, propType));
+            if (optAccessor) {
+                clz.addMember(mkPropertyOptMethod(propSchema, propName, propType, required.contains(propName)));
+            }
+            clz.addMember(mkPropertySetterMethod(schema, propSchema, propName, propType));
+        }
+
+        if (additionalPropertiesNotFalse(schema)) {
+            clz.addMember(mkUnknownPropertiesGetterMethod());
+            clz.addMember(mkUnknownPropertiesSetterMethod());
         }
 
         // toString
-        addToStringMethod(clz, properties);
+        clz.addMember(mkToStringMethod(schema));
         // hashCode
-        addHashCodeMethod(clz, properties);
+        clz.addMember(mkHashCodeMethod(schema));
         // equals
-        addEqualsMethod(pkg, clz, properties);
+        clz.addMember(mkEqualsMethod(pkg, schema));
 
         return cu;
     }
 
+    /**
+     * When a JSON Schema `array` type has x-kubernetes-list-type=map we generate
+     * a Deserializer and Serializer static class on the owning class according to the map keys.
+     * We don't generate the annotations of the array item type because the same type
+     * could be referenced as the `items` type of multiple properties
+     * (i.e. the properties which make up the key are defined on the "owner type",
+     * not the array item type)
+     * @param propSchema A property type schema
+     * @return true if the {@code propSchema} has type==array and x-kubernetes-list-type=map.
+     * @see #mkMapDeserializer(String, SchemaObject, String, SchemaObject)
+     * @see #mkMapSerializer(String, SchemaObject, String, SchemaObject)
+     */
+    private static boolean useMapDeserializer(SchemaObject propSchema) {
+        return List.of(SchemaType.ARRAY).equals(propSchema.getType())
+                && propSchema.getXKubernetesListType() == XKubeListType.MAP;
+    }
+
+    /**
+     * Generate a Deserializer class for a Map-typed property.
+     * We generate a complete class, without relying on a runtime library.
+     * This means we only depend on {@code java.base} and Jackson.
+     *
+     * @see #useMapDeserializer(SchemaObject)
+     * @see #mkMapSerializer(String, SchemaObject, String, SchemaObject)
+     */
+    @NonNull
+    private ClassOrInterfaceDeclaration mkMapSerializer(String pkg,
+                                                        SchemaObject root,
+                                                        String propName,
+                                                        SchemaObject propSchema) {
+        SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
+        var mapValueType = genTypeName(pkg, root, arrayItemType);
+        var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
+        ClassOrInterfaceDeclaration serializerClass =
+                new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, serializerClassName(propName));
+        ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
+        serializerClass.addExtendedType(mkGenericType("com.fasterxml.jackson.databind.JsonSerializer",
+                mapType));
+
+        var serializeMethod = new MethodDeclaration();
+        serializeMethod.addAnnotation(mkAtOverride());
+        serializeMethod.setModifiers(Modifier.Keyword.PUBLIC);
+        serializeMethod.setType(new VoidType());
+        serializeMethod.setName("serialize");
+        serializeMethod.addParameter(new Parameter(mapType, "map"));
+        serializeMethod.addParameter(new Parameter(mkType("com.fasterxml.jackson.core.JsonGenerator"), "generator"));
+        serializeMethod.addParameter(new Parameter(mkType("com.fasterxml.jackson.databind.SerializerProvider"), "provider"));
+        serializeMethod.addThrownException(mkType("java.io.IOException"));
+        serializeMethod.setBody(new BlockStmt(NodeList.nodeList(
+               new ExpressionStmt(new MethodCallExpr("generator.writeStartArray")),
+               new ForEachStmt(new VariableDeclarationExpr(new VarType(), "item"),
+                       new MethodCallExpr("map.values"),
+                       new ExpressionStmt(new MethodCallExpr("generator.writeObject", new NameExpr("item")))),
+               new ExpressionStmt(new MethodCallExpr("generator.writeEndArray"))
+        )));
+
+        serializerClass.addMember(serializeMethod);
+        return serializerClass;
+    }
+
+    @NonNull
+    private ClassOrInterfaceDeclaration mkMapDeserializer(String pkg,
+                                                          SchemaObject root,
+                                                          String propName,
+                                                          SchemaObject propSchema) {
+        SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
+        var mapValueType = genTypeName(pkg, root, arrayItemType);
+        var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
+        ClassOrInterfaceDeclaration deserializerClass =
+                new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, deserializerClassName(propName));
+        ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
+        deserializerClass.addExtendedType(mkGenericType("com.fasterxml.jackson.databind.JsonDeserializer",
+                mapType));
+
+        var deserializeMethod = new MethodDeclaration();
+        deserializeMethod.addAnnotation(mkAtOverride());
+        deserializeMethod.setModifiers(Modifier.Keyword.PUBLIC);
+        deserializeMethod.setType(mapType);
+        deserializeMethod.setName("deserialize");
+        deserializeMethod.addParameter(new Parameter(mkType("com.fasterxml.jackson.core.JsonParser"), "parser"));
+        deserializeMethod.addParameter(new Parameter(mkType("com.fasterxml.jackson.databind.DeserializationContext"), "context"));
+        deserializeMethod.addThrownException(mkType("java.io.IOException"));
+        deserializeMethod.setBody(new BlockStmt(NodeList.nodeList(
+                new ExpressionStmt(new VariableDeclarationExpr(
+                        new VariableDeclarator(
+                                mkType("com.fasterxml.jackson.databind.ObjectMapper"),
+                                "mapper",
+                                new CastExpr(
+                                        mkType("com.fasterxml.jackson.databind.ObjectMapper"),
+                                        new MethodCallExpr("parser.getCodec"))))),
+                new ExpressionStmt(new VariableDeclarationExpr(
+                        new VariableDeclarator(
+                                mkGenericType("java.util.List", mapValueType),
+                                "list",
+                                new MethodCallExpr("mapper.readValue",
+                                        new NameExpr("parser"),
+                                        new ObjectCreationExpr(
+                                                null,
+                                                mkGenericType("com.fasterxml.jackson.core.type.TypeReference",
+                                                        mkGenericType("java.util.List", mapValueType)),
+                                                NodeList.nodeList(),
+                                                NodeList.nodeList(), // args
+                                                new NodeList<>(/* anonymous class body */)))))),
+                new ExpressionStmt(new VariableDeclarationExpr(
+                        new VariableDeclarator(
+                                mkGenericType("java.util.Map", mapKeyType, mapValueType),
+                                "result",
+                                new ObjectCreationExpr(null, mkGenericType("java.util.LinkedHashMap", new String[0]), NodeList.nodeList())))), // TODO mapper.readValue
+                new ForEachStmt(new VariableDeclarationExpr(new VarType(), "item"), new NameExpr("list"),
+                        new ExpressionStmt(new MethodCallExpr("result.put",
+                                new MethodCallExpr("item." + genMapKeyAccessor(pkg, root, propSchema, arrayItemType)),
+                                new NameExpr("item")))),
+                new ReturnStmt(new NameExpr("result"))
+        )));
+
+        deserializerClass.addMember(deserializeMethod);
+        return deserializerClass;
+    }
+
+    @NonNull
+    private static String deserializerClassName(String propName) {
+        return deriveClassNameForProperty(propName, "Deserializer");
+    }
+
+    @NonNull
+    private static String serializerClassName(String propName) {
+        return deriveClassNameForProperty(propName, "Serializer");
+    }
+
+    @NonNull
+    private static String deriveClassNameForProperty(String propName, String suffix) {
+        String s = fieldName(propName);
+        int codepoint = s.codePointAt(0);
+        int count = Character.charCount(codepoint);
+        return s.substring(0, count).toUpperCase(Locale.ROOT) + s.substring(count) + suffix;
+    }
+
+    @NonNull
+    private static Map<String, SchemaObject> properties(SchemaObject schema) {
+        return schema.getProperties() == null ? Map.of() : schema.getProperties();
+    }
+
+    private static boolean additionalPropertiesNotFalse(SchemaObject schema) {
+        return schema.getAdditionalProperties() == null
+                || !Boolean.FALSE.equals(schema.getAdditionalProperties().getBooleanValue());
+    }
+
+    private MethodDeclaration mkUnknownPropertiesGetterMethod() {
+        // TODO require jackson annotation
+        String description = """
+                Get any additional properties not declared in the schema.
+                @return value The properties.
+                """;
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.setJavadocComment(description);
+        // propertyAnnotators.stream().flatMap(ta -> ta.annotateMutator(diagnostics, propName, propSchema).stream()).forEach(methodDeclaration::addAnnotation);
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.setType(mkGenericType("java.util.Map", "java.lang.String", "java.lang.Object"));
+        methodDeclaration.addAnnotation(mkNullableAnnotation(true));
+        methodDeclaration.addAnnotation(mkAtJsonAnyGetter());
+        methodDeclaration.setName("getAdditionalProperties");
+        // propertyAnnotators.stream().flatMap(ta -> ta.annotateMutatorParameter(diagnostics, propName, propSchema).stream()).forEach(parameter::addAnnotation);
+        methodDeclaration
+                .setBody(new BlockStmt(new NodeList<>(
+                        new ReturnStmt(new ConditionalExpr(
+                                new BinaryExpr(new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME), new NullLiteralExpr(), BinaryExpr.Operator.EQUALS),
+                                new MethodCallExpr(new NameExpr("java.util.Map"), "of", NodeList.nodeList()),
+                                new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME))))));
+        return methodDeclaration;
+    }
+
+    private static ClassOrInterfaceType mkType(String base) {
+        return new ClassOrInterfaceType(null, base);
+    }
+
+    @NonNull
+    private static ClassOrInterfaceType mkGenericType(String base, String... typeArgs) {
+        var typeArgsTypes = Arrays.stream(typeArgs).<Type>map(n -> new ClassOrInterfaceType(null, n)).toList();
+        return mkGenericType(base, typeArgsTypes);
+    }
+
+    private static ClassOrInterfaceType mkGenericType(String base, Type... typeArgs) {
+        return mkGenericType(base, Arrays.asList(typeArgs));
+    }
+
+    private static ClassOrInterfaceType mkGenericType(String base, List<Type> typeArgs) {
+        return new ClassOrInterfaceType(null, new SimpleName(base), NodeList.nodeList(typeArgs));
+    }
+
+    private MethodDeclaration mkUnknownPropertiesSetterMethod() {
+        // TODO require jackson annotation
+        String description = """
+                Add an additional property not declared in the schema.
+                @param name The name of the property.
+                @param value The value of the property.
+                """;
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.setJavadocComment(description);
+        // propertyAnnotators.stream().flatMap(ta -> ta.annotateMutator(diagnostics, propName, propSchema).stream()).forEach(methodDeclaration::addAnnotation);
+        methodDeclaration.addAnnotation(mkAtJsonAnySetter());
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.setType(new VoidType());
+        methodDeclaration.setName("setAdditionalProperty");
+        Parameter nameParameter = new Parameter(mkType("java.lang.String"), "name").addAnnotation(mkNullableAnnotation(true));
+        Parameter valueParameter = new Parameter(mkType("java.lang.Object"), "value").addAnnotation(mkNullableAnnotation(true));
+        // propertyAnnotators.stream().flatMap(ta -> ta.annotateMutatorParameter(diagnostics, propName, propSchema).stream()).forEach(parameter::addAnnotation);
+        methodDeclaration
+                .setParameters(new NodeList<>(nameParameter, valueParameter))
+                .setBody(new BlockStmt(new NodeList<>(
+                        new ExpressionStmt(new MethodCallExpr("java.util.Objects.requireNonNull", new NameExpr("name"))),
+                        new IfStmt(new BinaryExpr(new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME), new NullLiteralExpr(), BinaryExpr.Operator.EQUALS),
+                                new ExpressionStmt(new AssignExpr(new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME),
+                                        new ObjectCreationExpr(null, mkGenericType("java.util.HashMap", new String[0]), // diamond
+                                                NodeList.nodeList()),
+                                        AssignExpr.Operator.ASSIGN)),
+                                null),
+                        new ExpressionStmt(new MethodCallExpr(new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME), "put",
+                                NodeList.nodeList(new NameExpr("name"), new NameExpr("value")))))));
+
+        return methodDeclaration;
+    }
+
     private void mkConstructors(String pkg,
                                 SchemaObject root,
+                                SchemaObject object,
                                 Map<String, SchemaObject> properties,
                                 Set<String> required,
                                 ClassOrInterfaceDeclaration clz) {
 
         // Add the all properties ctor
-        ConstructorDeclaration decl = mkConstructor(pkg, root, clz,
+        ConstructorDeclaration decl = mkConstructor(pkg, root, object, clz,
                 "All properties constructor.", properties, required,
                 (propName, schemaObject) -> Stream.concat(
                         Stream.of(mkAtJsonProperty(propName, required.contains(propName))),
@@ -385,6 +677,7 @@ public class CodeGen {
     @NonNull
     private ConstructorDeclaration mkConstructor(String pkg,
                                                  SchemaObject root,
+                                                 SchemaObject schema,
                                                  ClassOrInterfaceDeclaration clz,
                                                  String javadoc,
                                                  Map<String, SchemaObject> properties,
@@ -412,23 +705,40 @@ public class CodeGen {
                     var propSchema = resolveRef(root, entry.getValue());
                     var propType = genTypeName(pkg, root, propSchema);
                     Parameter parameter = new Parameter(propType, fieldName(entry.getKey()));
-                    parameter.addAnnotation(mkNullableAnnotation(required.contains(entry.getKey())));
+                    boolean notNull = isNotNull(schema, entry.getKey());
+                    parameter.addAnnotation(mkNullableAnnotation(notNull));
                     annotator.apply(entry.getKey(), entry.getValue()).forEach(parameter::addAnnotation);
                     return parameter;
                 }).toList();
         ctor.setParameters(NodeList.nodeList(pl));
 
-        var assignments = properties.keySet().stream()
-                .map(propName -> {
+        var assignments = properties.entrySet().stream()
+                .map(entry -> {
+                    var propName = entry.getKey();
+                    var propSchema = entry.getValue();
                     String fieldName = fieldName(propName);
+                    boolean notNull = isNotNull(schema, entry.getKey());
                     return (Statement) new ExpressionStmt(new AssignExpr(new FieldAccessExpr(
                             new ThisExpr(), fieldName),
-                            required.contains(propName) ? new MethodCallExpr("java.util.Objects.requireNonNull", new NameExpr(fieldName)) : new NameExpr(fieldName),
+                            notNull ? new MethodCallExpr("java.util.Objects.requireNonNull", new NameExpr(fieldName)) : new NameExpr(fieldName),
                             AssignExpr.Operator.ASSIGN));
                 })
                 .toList();
         ctor.setBody(new BlockStmt(NodeList.nodeList(assignments)));
         return ctor;
+    }
+
+    private static boolean isNotNull(SchemaObject objectSchema,
+                                     String propertyName) {
+        return required(objectSchema, propertyName)
+                && objectSchema.getProperties() != null
+                && objectSchema.getProperties().containsKey(propertyName)
+                && !List.of(SchemaType.NULL).equals(objectSchema.getProperties().get(propertyName).getType());
+    }
+
+    private static boolean required(SchemaObject objectSchema, String propertyName) {
+        return objectSchema.getRequired() != null
+                && objectSchema.getRequired().contains(propertyName);
     }
 
     @NonNull
@@ -441,8 +751,10 @@ public class CodeGen {
         }
     }
 
-    private static void addToStringMethod(ClassOrInterfaceDeclaration clz, Map<String, SchemaObject> properties) {
-        Expression expr = new StringLiteralExpr(clz.getNameAsString() + "[");
+    private static MethodDeclaration mkToStringMethod(SchemaObject schema) {
+        String name = className(schema);
+        Map<String, SchemaObject> properties = properties(schema);
+        Expression expr = new StringLiteralExpr(name + "[");
         boolean first = true;
 
         for (var entry : properties.entrySet()) {
@@ -461,47 +773,70 @@ public class CodeGen {
                     new FieldAccessExpr(new ThisExpr(), fieldName(propName)),
                     BinaryExpr.Operator.PLUS);
         }
+        if (additionalPropertiesNotFalse(schema)) {
+            expr = new BinaryExpr(
+                    expr,
+                    new FieldAccessExpr(new ThisExpr(), fieldName(UNKNOWN_PROPERTIES_FIELD_NAME)),
+                    BinaryExpr.Operator.PLUS);
+        }
         expr = new BinaryExpr(expr, new StringLiteralExpr("]"), BinaryExpr.Operator.PLUS);
 
-        clz.addMethod("toString", Modifier.Keyword.PUBLIC)
-                .setType("java.lang.String")
-                .addAnnotation(mkAtOverride())
-                .setBody(new BlockStmt(new NodeList<>(new ReturnStmt(expr))));
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.addAnnotation(mkAtOverride());
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.setType("java.lang.String");
+        methodDeclaration.setName("toString");
+        methodDeclaration.setBody(new BlockStmt(new NodeList<>(new ReturnStmt(expr))));
+        return methodDeclaration;
     }
 
-    private static void addHashCodeMethod(ClassOrInterfaceDeclaration clz, Map<String, SchemaObject> properties) {
+    private static MethodDeclaration mkHashCodeMethod(SchemaObject schema) {
+        String name = className(schema);
+        Map<String, SchemaObject> properties = properties(schema);
         NodeList<Expression> args = new NodeList<>();
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
             args.add(new FieldAccessExpr(new ThisExpr(), fieldName(propName)));
         }
+        if (additionalPropertiesNotFalse(schema)) {
+            args.add(new FieldAccessExpr(new ThisExpr(), UNKNOWN_PROPERTIES_FIELD_NAME));
+        }
 
-        clz.addMethod("hashCode", Modifier.Keyword.PUBLIC)
-                .setType("int")
-                .addAnnotation(mkAtOverride())
-                .setBody(new BlockStmt(new NodeList<>(new ReturnStmt(new MethodCallExpr("java.util.Objects.hash")
-                        .setArguments(args)))));
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.addAnnotation(mkAtOverride());
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.setType("int");
+        methodDeclaration.setName("hashCode");
+        methodDeclaration.setBody(new BlockStmt(new NodeList<>(new ReturnStmt(new MethodCallExpr("java.util.Objects.hash")
+                .setArguments(args)))));
+
+        return methodDeclaration;
     }
 
-    private static void addEqualsMethod(
-                                        String pkg,
-                                        ClassOrInterfaceDeclaration clz,
-                                        Map<String, SchemaObject> properties) {
-        String className = clz.getNameAsString();
-        Expression expr;
+    private static MethodDeclaration mkEqualsMethod(
+                                                    String pkg,
+                                                    SchemaObject schema) {
+        String className = className(schema);
+        var properties = properties(schema).entrySet().stream().map(entry -> Map.entry(fieldName(entry.getKey()), entry.getValue()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (additionalPropertiesNotFalse(schema)) {
+            properties.add(Map.entry(UNKNOWN_PROPERTIES_FIELD_NAME, new SchemaObject()));
+        }
+
         String otherParamName = "other";
         String narrowedOtherName = otherParamName + className;
+        Expression expr;
         if (properties.isEmpty()) {
             expr = new BooleanLiteralExpr(true);
         }
         else {
             Expression operand = null;
-            for (var entry : properties.entrySet()) {
-                String propName = entry.getKey();
+            for (var entry : properties) {
+                String fieldName = entry.getKey();
                 MethodCallExpr call = new MethodCallExpr("java.util.Objects.equals")
                         .setArguments(new NodeList<>(
-                                new FieldAccessExpr(new ThisExpr(), fieldName(propName)),
-                                new FieldAccessExpr(new NameExpr(narrowedOtherName), fieldName(propName))));
+                                new FieldAccessExpr(new ThisExpr(), fieldName),
+                                new FieldAccessExpr(new NameExpr(narrowedOtherName), fieldName)));
                 if (operand == null) {
                     operand = call;
                 }
@@ -522,16 +857,20 @@ public class CodeGen {
                 new ReturnStmt(new BooleanLiteralExpr(true)),
                 new IfStmt(new InstanceOfExpr(
                         new NameExpr(otherParamName),
-                        new ClassOrInterfaceType(null, className),
-                        new TypePatternExpr(new NodeList<>(), new ClassOrInterfaceType(null, pkg + "." + className), new SimpleName(narrowedOtherName))),
+                        mkType(className),
+                        new TypePatternExpr(new NodeList<>(), mkType(pkg + "." + className), new SimpleName(narrowedOtherName))),
                         new ReturnStmt(expr),
                         new ReturnStmt(new BooleanLiteralExpr(false))));
 
-        clz.addMethod("equals", Modifier.Keyword.PUBLIC)
-                .setType("boolean")
-                .addAnnotation(mkAtOverride())
-                .setParameters(new NodeList<>(new Parameter(new ClassOrInterfaceType(null, "java.lang.Object"), otherParamName)))
-                .setBody(new BlockStmt(new NodeList<>(stmt)));
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.addAnnotation(mkAtOverride());
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.setType("boolean");
+        methodDeclaration.setName("equals");
+        methodDeclaration.setParameters(new NodeList<>(new Parameter(mkType("java.lang.Object"), otherParamName)));
+        methodDeclaration.setBody(new BlockStmt(new NodeList<>(stmt)));
+        return methodDeclaration;
+
     }
 
     @NonNull
@@ -539,13 +878,24 @@ public class CodeGen {
         return new MarkerAnnotationExpr("java.lang.Override");
     }
 
-    private FieldDeclaration mkPropertyField(String propName,
-                                             boolean required,
+    private FieldDeclaration mkPropertyField(SchemaObject object,
+                                             String propName,
                                              Type propType) {
         var fieldName = fieldName(propName);
         FieldDeclaration fieldDeclaration = new FieldDeclaration();
-        fieldDeclaration.addAnnotation(mkNullableAnnotation(required));
+        fieldDeclaration.addAnnotation(mkNullableAnnotation(isNotNull(object, propName)));
         VariableDeclarator variable = new VariableDeclarator(propType, fieldName);
+        fieldDeclaration.getVariables().add(variable);
+        fieldDeclaration.setModifiers(Modifier.Keyword.PRIVATE);
+        return fieldDeclaration;
+    }
+
+    private FieldDeclaration mkUnknownPropertiesField() {
+        FieldDeclaration fieldDeclaration = new FieldDeclaration();
+        fieldDeclaration.addAnnotation(mkNullableAnnotation(false));
+        VariableDeclarator variable = new VariableDeclarator(mkGenericType("java.util.Map", "java.lang.String", "java.lang.Object"),
+                UNKNOWN_PROPERTIES_FIELD_NAME);
+        variable.setInitializer(new NullLiteralExpr());
         fieldDeclaration.getVariables().add(variable);
         fieldDeclaration.setModifiers(Modifier.Keyword.PRIVATE);
         return fieldDeclaration;
@@ -556,7 +906,17 @@ public class CodeGen {
     private static NormalAnnotationExpr mkAtJsonSetter() {
         return new NormalAnnotationExpr(new Name("com.fasterxml.jackson.annotation.JsonSetter"),
                 NodeList.nodeList(new MemberValuePair("nulls", new FieldAccessExpr(new TypeExpr(
-                        new ClassOrInterfaceType(null, "com.fasterxml.jackson.annotation.Nulls")), "SKIP"))));
+                        mkType( "com.fasterxml.jackson.annotation.Nulls")), "SKIP"))));
+    }
+
+    @NonNull
+    private static MarkerAnnotationExpr mkAtJsonAnySetter() {
+        return new MarkerAnnotationExpr(new Name("com.fasterxml.jackson.annotation.JsonAnySetter"));
+    }
+
+    @NonNull
+    private static MarkerAnnotationExpr mkAtJsonAnyGetter() {
+        return new MarkerAnnotationExpr(new Name("com.fasterxml.jackson.annotation.JsonAnyGetter"));
     }
 
     // @com.fasterxml.jackson.annotation.JsonProperty(value = "name", required = )
@@ -571,17 +931,35 @@ public class CodeGen {
                 jsonPropertyMembers);
     }
 
+    private static NormalAnnotationExpr mkAtJsonDeserialize(Type using) {
+        NodeList<MemberValuePair> jsonPropertyMembers = NodeList.nodeList(
+                new MemberValuePair("using", new ClassExpr(using)));
+        return new NormalAnnotationExpr(
+                new Name("com.fasterxml.jackson.databind.annotation.JsonDeserialize"),
+                jsonPropertyMembers);
+    }
+
+    private static NormalAnnotationExpr mkAtJsonSerialize(Type using) {
+        NodeList<MemberValuePair> jsonPropertyMembers = NodeList.nodeList(
+                new MemberValuePair("using", new ClassExpr(using)));
+        return new NormalAnnotationExpr(
+                new Name("com.fasterxml.jackson.databind.annotation.JsonSerialize"),
+                jsonPropertyMembers);
+    }
+
     @NonNull
-    private AnnotationExpr mkNullableAnnotation(boolean required) {
-        return new MarkerAnnotationExpr(required ? nonNullAnnotation : nullableAnnotation);
+    private AnnotationExpr mkNullableAnnotation(boolean notNull) {
+        return new MarkerAnnotationExpr(notNull ? nonNullAnnotation : nullableAnnotation);
     }
 
     private MethodDeclaration mkPropertyGetterMethod(
+                                                     String pkg,
+                                                     SchemaObject root,
+                                                     SchemaObject object,
                                                      SchemaObject propSchema,
                                                      String propName,
-                                                     Type propType,
-                                                     boolean required) {
-        String getterName = getterName(propName);
+                                                     Type propType) {
+        String getterName = propertyStrategy.accessorName(propName);
         String fieldName = fieldName(propName);
 
         String description = propSchema.getDescription();
@@ -593,8 +971,12 @@ public class CodeGen {
         MethodDeclaration methodDeclaration = new MethodDeclaration();
         methodDeclaration.setJavadocComment(description);
         methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
-        methodDeclaration.addAnnotation(mkNullableAnnotation(required));
-        methodDeclaration.addAnnotation(mkAtJsonProperty(propName, required));
+        methodDeclaration.addAnnotation(mkNullableAnnotation(isNotNull(object, propName)));
+        methodDeclaration.addAnnotation(mkAtJsonProperty(propName, required(object, propName)));
+        if (useMapDeserializer(propSchema)) {
+            methodDeclaration.addAnnotation(mkAtJsonDeserialize(new ClassOrInterfaceType(genTypeName(pkg, root, object), deserializerClassName(propName))));
+            methodDeclaration.addAnnotation(mkAtJsonSerialize(new ClassOrInterfaceType(genTypeName(pkg, root, object), serializerClassName(propName))));
+        }
         propertyAnnotators.stream().flatMap(ta -> ta.annotateAccessor(diagnostics, propName, propSchema).stream()).forEach(methodDeclaration::addAnnotation);
         methodDeclaration.setType(propType);
         methodDeclaration.setName(getterName);
@@ -602,15 +984,43 @@ public class CodeGen {
         return methodDeclaration;
     }
 
-    @NonNull
-    private static String fieldName(String propName) {
-        return quoteMember(propName);
+    private MethodDeclaration mkPropertyOptMethod(
+                                                  SchemaObject propSchema,
+                                                  String propName,
+                                                  Type propType,
+                                                  boolean required) {
+        String getterName = propertyStrategy.optionalAccessorName(propName);
+        String fieldName = fieldName(propName);
+
+        String description = propSchema.getDescription();
+        if (description == null) {
+            description = "Return the " + propName + " as an Optional.\n";
+        }
+        description += "\n@return The value of this object's " + propName + " as an Optional.\n";
+
+        MethodDeclaration methodDeclaration = new MethodDeclaration();
+        methodDeclaration.setJavadocComment(description);
+        methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
+        methodDeclaration.addAnnotation(mkNullableAnnotation(true));
+        methodDeclaration.addAnnotation(new MarkerAnnotationExpr("com.fasterxml.jackson.annotation.JsonIgnore"));
+        // propertyAnnotators.stream().flatMap(ta -> ta.annotateAccessor(diagnostics, propName, propSchema).stream()).forEach(methodDeclaration::addAnnotation);
+        methodDeclaration.setType(mkGenericType("java.util.Optional", propType));
+        methodDeclaration.setName(getterName);
+        methodDeclaration.setBody(new BlockStmt(new NodeList<>(new ReturnStmt(
+                new MethodCallExpr(required ? "java.util.Optional.of" : "java.util.Optional.ofNullable",
+                        new FieldAccessExpr(new ThisExpr(), fieldName))))));
+        return methodDeclaration;
     }
 
-    private MethodDeclaration mkPropertySetterMethod(
+    @NonNull
+    static String fieldName(String propName) {
+        return quoteJavaKeyword(quoteNonIdentifierCharacters(propName));
+    }
+
+    private MethodDeclaration mkPropertySetterMethod(SchemaObject object,
                                                      SchemaObject propSchema,
                                                      String propName,
-                                                     Type propType, boolean required) {
+                                                     Type propType) {
         var fieldName = fieldName(propName);
 
         String description = propSchema.getDescription();
@@ -624,30 +1034,21 @@ public class CodeGen {
         propertyAnnotators.stream().flatMap(ta -> ta.annotateMutator(diagnostics, propName, propSchema).stream()).forEach(methodDeclaration::addAnnotation);
         methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
         methodDeclaration.setType(new VoidType());
-        methodDeclaration.setName(setterName(propName));
-        Parameter parameter = new Parameter(propType, fieldName).addAnnotation(mkNullableAnnotation(required));
+        methodDeclaration.setName(propertyStrategy.mutatorName(propName));
+        Parameter parameter = new Parameter(propType, fieldName).addAnnotation(mkNullableAnnotation(isNotNull(object, propName)));
         propertyAnnotators.stream().flatMap(ta -> ta.annotateMutatorParameter(diagnostics, propName, propSchema).stream()).forEach(parameter::addAnnotation);
         methodDeclaration
                 .setParameters(new NodeList<>(parameter))
                 .setBody(new BlockStmt(new NodeList<>(new ExpressionStmt(new AssignExpr(
                         new FieldAccessExpr(new ThisExpr(), fieldName),
-                        required ? new MethodCallExpr("java.util.Objects.requireNonNull", new NameExpr(fieldName)) : new NameExpr(fieldName),
+                        isNotNull(object, propName) ? new MethodCallExpr("java.util.Objects.requireNonNull", new NameExpr(fieldName)) : new NameExpr(fieldName),
                         AssignExpr.Operator.ASSIGN)))));
 
         return methodDeclaration;
     }
 
     @NonNull
-    private static String setterName(String propName) {
-        return fieldName(propName);
-    }
-
-    @NonNull
-    private static String getterName(String propName) {
-        return fieldName(propName);
-    }
-
-    private static String quoteMember(String memberName) {
+    static String quoteNonIdentifierCharacters(String memberName) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < memberName.length(); i++) {
             int codePoint = memberName.codePointAt(i);
@@ -659,12 +1060,18 @@ public class CodeGen {
                 builder.append("_");
             }
         }
-        String ident = builder.toString();
+        return builder.toString();
+    }
+
+    @NonNull
+    static String quoteJavaKeyword(String ident) {
         return switch (ident) {
             // TODO check we got them all
-            case "null", "boolean", "int", "byte", "short", "long", "float", "double", "char" -> ident + "_";
-            case "class", "interface", "enum", "public", "private", "protected", "final", "transient", "package", "module" -> ident + "_";
-            case "return", "break", "continue", "for", "while", "switch", "case", "default", "if", "else" -> ident + "_";
+            case "null", "boolean", "int", "byte", "short", "long", "float", "double", "char", "void" -> ident + "_";
+            case "public", "private", "protected" -> ident + "_";
+            case "class", "interface", "enum", "package", "module", "implements", "extends" -> ident + "_";
+            case "static", "abstract", "final", "transient", "super", "this" -> ident + "_";
+            case "return", "break", "continue", "for", "while", "switch", "case", "default", "if", "else", "goto" -> ident + "_";
             default -> ident;
         };
     }

@@ -21,9 +21,9 @@ public class SchemaVisitor {
         private final Reporting diagnostics;
 
         private Context(
-                Context parent,
-                String keyword,
-                String path) {
+                        Context parent,
+                        String keyword,
+                        String path) {
             this.parent = Objects.requireNonNull(parent);
             this.diagnostics = parent.diagnostics;
             this.keyword = Objects.requireNonNull(keyword);
@@ -92,25 +92,22 @@ public class SchemaVisitor {
 
         @Override
         public void reportFatal(
-                String message,
-                Object... arguments
-        ) {
+                                String message,
+                                Object... arguments) {
             diagnostics.reportFatal(message, arguments);
         }
 
         @Override
         public void reportError(
-                String message,
-                Object... arguments
-        ) {
+                                String message,
+                                Object... arguments) {
             diagnostics.reportError(message, arguments);
         }
 
         @Override
         public void reportWarning(
-                String message,
-                Object... arguments
-        ) {
+                                  String message,
+                                  Object... arguments) {
             diagnostics.reportWarning(message, arguments);
         }
     }

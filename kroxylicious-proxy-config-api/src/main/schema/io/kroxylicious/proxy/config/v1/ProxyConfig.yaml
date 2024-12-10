@@ -1,0 +1,230 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+$schema: http://json-schema.org/draft-04/schema#
+id: https://schema.kroxylicious.io/proxy/config/v1.yaml
+description: A proxy configuration
+type: object
+required:
+  - self
+  - backends
+  - exposedServices
+properties:
+  self:
+    $ref: "#/definitions/Self"
+  backends:
+    description: The backend Kafka clusters which can be exposed through a proxy instance
+    type: array
+    items:
+      $ref: "#/definitions/Backend"
+    x-kubernetes-list-type: map
+    x-kubernetes-list-map-keys:
+      - name
+  exposedServices:
+    description: The virtual Kafka clusters exposed by a proxy instance
+    type: array
+    items:
+      $ref: "#/definitions/ExposedService"
+  filterChains:
+    description: Named filter chains which can be referrenced from an exposed service.
+    type: array
+    items:
+      $ref: "#/definitions/FilterChain"
+definitions:
+  Self:
+    type: object
+    properties:
+      id:
+        type:
+          integer
+        minimum: 0
+      controlPlane:
+        type: object
+        properties:
+          port:
+            type: integer
+            minimum: 1024
+            maximum: 9000
+            default: 8080
+          bindAddress:
+            type: string
+            default: 0.0.0.0
+          http:
+            type: object
+            properties:
+              metricsEndpointEnabled:
+                type: boolean
+              readyEndpointEnabled:
+                type: boolean
+              healthyEndpointEnabled:
+                type: boolean
+  Backend:
+    description: A backend represents a Kafka cluster to be proxied.
+    type: object
+    required:
+      - name
+      - bootstrapAddresses
+      - transport
+    properties:
+      name:
+        type: string
+        # constrain to dns label
+      bootstrapAddresses:
+        type: array
+        items:
+          type: string
+      transport:
+        type: object
+        properties:
+          tls:
+            type: object
+            properties:
+              trustedCertificates:
+                type: object
+                properties:
+                  fromFile:
+                    $ref: "#/definitions/FromFile"
+          authentication:
+            type: object
+            properties:
+              mtls:
+                type: object
+                properties:
+                  clientCertificates:
+                    description: configure PEM encoded x.509 key, client certificate and possibly intermediate CA certificates
+                    type: object
+                    properties:
+                      fromFile:
+                        $ref: "#/definitions/FromFile"
+              sasl:
+                type: object
+                properties:
+                  originate:
+                    type: object
+                    properties:
+                      scramSha256:
+                        $ref: "#/definitions/ScramShaClient"
+                      scramSha512:
+                        $ref: "#/definitions/ScramShaClient"
+                    maxProperties: 1
+                    minProperties: 1
+                  propagate:
+                    type: object
+                    maxProperties: 0
+  ScramShaClient:
+    type: object
+    properties:
+      username:
+        type: object
+        properties:
+          value:
+            type: string
+          fromFile:
+            $ref: "#/definitions/FromFile"
+        minProperties: 1
+        maxProperties: 1
+        additionalProperties: false
+      password:
+        type: object
+        properties:
+          fromFile:
+            $ref: "#/definitions/FromFile"
+  FromFile:
+    description: |
+      Reference to a file on the local filesystem.
+      Relative to the file which makes the reference.
+    type: string
+    # Disallow .. or . special files
+    pattern: "^[a-zA-Z0-9][a-zA-Z0-9_.-]*(/[a-zA-Z0-9][a-zA-Z0-9_.-]*)+$"
+  ExposedService:
+    description: A virtual Kafka cluster exposed by a proxy instance
+    type: object
+    properties:
+      name:
+        type: string
+      listeners:
+        description: The listeners through which thhis Kafka services is exposed to the network
+        type: array
+        items:
+          type: object
+          properties:
+            tcp:
+              description: A TCP listener
+              type: object
+              properties:
+                port:
+                  type: object
+                  properties:
+                    value:
+                      type: integer
+                    fromBackend:
+                      type: object
+                      properties:
+                        startPort:
+                          type: integer
+                bindAddress:
+                  type: string
+                  default: 0.0.0.0
+            tls:
+              description: A TLS listener
+              type: object
+              properties:
+                serverCertificate:
+                  type: object
+                  properties:
+                    fromFile:
+                      $ref: "#/definitions/FromFile"
+      backend:
+        type: string
+      authentication:
+        type: object
+        properties:
+          mtls:
+            type: object
+          sasl:
+            type: object
+            properties:
+              propagate:
+                type: object
+            terminate:
+              type: object
+      advertisedBrokers:
+        type: object
+        properties:
+          advertisedBrokerId:
+            type: object
+            properties:
+              celExpr:
+                $ref: "#/definitions/CelExpr"
+          advertisedBrokerPort:
+            type: object
+            properties:
+              celExpr:
+                $ref: "#/definitions/CelExpr"
+          advertisedBrokerAddresses:
+            type: object
+            properties:
+              celExpr:
+                $ref: "#/definitions/CelExpr"
+      filters:
+        type: object
+        properties:
+          fromChain:
+            type: string
+  FilterChain:
+    type: object
+    properties:
+      name:
+        type: string
+      filters:
+        type: array
+        items:
+          type: object
+          properties:
+            fromFile:
+              $ref: "#/definitions/FromFile"
+  CelExpr:
+    type: string

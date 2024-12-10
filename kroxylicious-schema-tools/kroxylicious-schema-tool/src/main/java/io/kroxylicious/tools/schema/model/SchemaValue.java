@@ -6,6 +6,9 @@
 
 package io.kroxylicious.tools.schema.model;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -18,9 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.Objects;
-
 /**
  * A SchemaObject or a boolean (not both).
  *
@@ -30,12 +30,13 @@ import java.util.Objects;
 public class SchemaValue {
 
     // Invariant: exactly one of the fields is not null.
-    @Nullable Boolean booleanValue;
-    @Nullable SchemaObject schemaObject;
+    @Nullable
+    Boolean booleanValue;
+    @Nullable
+    SchemaObject schemaObject;
 
     public SchemaValue(
-            boolean booleanValue
-    ) {
+                       boolean booleanValue) {
         this.booleanValue = booleanValue;
         this.schemaObject = null;
     }
@@ -104,7 +105,8 @@ public class SchemaValue {
         @Override
         public void serialize(SchemaValue jsonSchemaPropsOrBool,
                               JsonGenerator jsonGenerator,
-                              SerializerProvider serializerProvider) throws IOException {
+                              SerializerProvider serializerProvider)
+                throws IOException {
             if (jsonSchemaPropsOrBool.getSchemaObject() != null) {
                 jsonGenerator.writeObject(jsonSchemaPropsOrBool.getSchemaObject());
             }

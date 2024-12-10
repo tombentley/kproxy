@@ -8,6 +8,7 @@ $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/CustomAnnotations.yaml
 description: A class with custom annotations
 type: object
+additionalProperties: false
 properties:
   foo:
     type: string

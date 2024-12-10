@@ -58,6 +58,8 @@ public class SchemaCompiler {
                           @Nullable String header,
                           Map<String, String> existingClasses,
                           List<TypeAnnotator> typeAnnotators,
+                          PropertyStrategy propertyStrategy,
+                          boolean optAccessor,
                           List<PropertyAnnotator> propertyAnnotators) {
         this.srcPaths = Objects.requireNonNull(srcPaths);
         this.packages = packages;
@@ -75,6 +77,8 @@ public class SchemaCompiler {
                 "edu.umd.cs.findbugs.annotations.Nullable",
                 "edu.umd.cs.findbugs.annotations.NonNull",
                 typeAnnotators,
+                propertyStrategy,
+                optAccessor,
                 propertyAnnotators);
     }
 
@@ -146,6 +150,11 @@ public class SchemaCompiler {
             String rootClass = schemaFile.getFileName().toString().replaceAll("\\.yaml$", "");
             var typeNameVisitor = new TypeNameVisitor(diagnostics, idVisitor, rootClass);
             rootSchema.visitSchemas(diagnostics, schemaFile.toUri(), typeNameVisitor);
+
+            if (relPath.getParent() == null) {
+                diagnostics.reportError("Schema file '{}' would be in the root package, move it to a subdirectory", schemaFile);
+                return Stream.of();
+            }
 
             String pkg = StreamSupport.stream(relPath.getParent().spliterator(), false)
                     .map(Path::toString)

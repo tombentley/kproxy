@@ -1,0 +1,24 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+#$schema: Maps.yaml
+
+keyedOnFoo:
+  - foo: a
+    bar: A
+    baz: 42
+  - foo: b
+    bar: B
+    baz: 43
+objectAsMap:
+  hello:
+    foo: a
+    bar: A
+    baz: 42
+  goodbye:
+    foo: a
+    bar: A
+    baz: 42

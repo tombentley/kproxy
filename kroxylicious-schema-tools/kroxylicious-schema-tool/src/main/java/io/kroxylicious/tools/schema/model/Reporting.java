@@ -9,6 +9,8 @@ package io.kroxylicious.tools.schema.model;
 public interface Reporting {
 
     void reportFatal(String message, Object... arguments);
+
     void reportError(String message, Object... arguments);
+
     void reportWarning(String message, Object... arguments);
 }

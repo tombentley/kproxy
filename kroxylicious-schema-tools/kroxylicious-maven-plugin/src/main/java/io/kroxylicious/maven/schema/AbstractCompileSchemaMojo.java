@@ -14,16 +14,16 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 
-import io.kroxylicious.tools.schema.compiler.Diagnostics;
-import io.kroxylicious.tools.schema.model.SchemaObject;
-
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
+import io.kroxylicious.tools.schema.compiler.Diagnostics;
 import io.kroxylicious.tools.schema.compiler.FatalException;
+import io.kroxylicious.tools.schema.compiler.RecordPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.SchemaCompiler;
+import io.kroxylicious.tools.schema.model.SchemaObject;
 
 public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
 
@@ -87,6 +87,8 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
                 readHeaderFile(),
                 existingClasses != null ? existingClasses : Map.of(),
                 List.of(),
+                new RecordPropertyStrategy(),
+                false,
                 List.of());
         return schemaCompiler;
     }

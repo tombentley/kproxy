@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.kroxylicious.tools.schema.compiler.BeanPropertyStrategy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +80,8 @@ public class CrdTool {
     private void generateJava(InputCrd inputCrd) {
 
         // TODO Generate classes according to the CRD schemas
-        var schemaCompiler = new SchemaCompiler(List.of(), null, header, Map.of());
+        var schemaCompiler = new SchemaCompiler(List.of(), null, header, Map.of(), List.of(), new BeanPropertyStrategy(),
+                true, List.of());
         // schemaCompiler.gen()
         // schemaCompiler.write();
         inputCrd.src();

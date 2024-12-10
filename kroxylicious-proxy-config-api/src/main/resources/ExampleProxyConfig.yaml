@@ -1,0 +1,37 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+$schema: https://schema.kroxylicious.io/proxy/config/v1.yaml
+self:
+  controlPlane:
+    port: 8080
+    bindAddress: 0.0.0.0
+    http:
+      healthyEndpointEnabled: true
+      readyEndpointEnabled: true
+      metricsEndpointEnabled: true
+backends:
+  - name: my-kafka-cluster
+    bootstrapAddresses:
+      - broker-1.kafka.example.com:9092
+      - broker-2.kafka.example.com:9092
+    transport:
+      tls:
+        trustedCertificates:
+          fromFile: path/to/my/trusted/ca.crt
+      authentication:
+        mtls:
+          clientCertificates:
+            fromFile: path/to/my/client/tls.crt
+        sasl:
+          originate:
+            scramSha512:
+              username:
+                value: tom
+              password:
+                fromFile: path/to/my/password/file.txt
+exposedServices:
+  -

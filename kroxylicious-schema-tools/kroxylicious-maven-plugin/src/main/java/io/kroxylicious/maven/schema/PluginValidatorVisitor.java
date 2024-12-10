@@ -6,16 +6,15 @@
 
 package io.kroxylicious.maven.schema;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
+import java.util.List;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaType;
 import io.kroxylicious.tools.schema.model.SchemaValue;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
 
-import java.util.List;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * Visitor which {@linkplain SchemaVisitor.Context#reportWarning(String, Object...) warns} about invalid input schemas.
@@ -23,11 +22,16 @@ import java.util.List;
  */
 public class PluginValidatorVisitor extends SchemaVisitor {
 
+    PluginValidatorVisitor() {
+
+    }
+
     /**
      * @param context The context for a schema
      * @return the containing junctor keyword if the schema for this context is within a junctor, else returns null
      */
-    @Nullable String withinJunctor(Context context) {
+    @Nullable
+    String withinJunctor(Context context) {
         return switch (context.keyword()) {
             case "allOf", "anyOf", "oneOf", "none" -> context.keyword();
             default -> null;
@@ -36,9 +40,8 @@ public class PluginValidatorVisitor extends SchemaVisitor {
 
     @Override
     public void enterSchema(
-            Context context,
-            @NonNull SchemaObject schema
-    ) {
+                            Context context,
+                            @NonNull SchemaObject schema) {
         if (schema.getItems() != null && schema.getItems().size() > 1) {
             context.reportError("`items` at path '{}' must not be an array", context.fullPath());
         }
@@ -61,7 +64,7 @@ public class PluginValidatorVisitor extends SchemaVisitor {
 
         if (additionalProperties != null
                 && (additionalProperties.getBooleanValue() != null
-                || additionalProperties.getSchemaObject() != null)
+                        || additionalProperties.getSchemaObject() != null)
                 && schema.getProperties() != null
                 && !schema.getProperties().isEmpty()) {
             context.reportError("`additionalProperties` at path '{}' is mutually exclusive with `properties`", context.fullPath());
@@ -84,7 +87,6 @@ public class PluginValidatorVisitor extends SchemaVisitor {
 
         // TODO additionalProperties cannot be false, mutually exclusive with properties, not in a junctor
         // TODO dependencies is not allowed
-
 
         // TODO type not in a junctor
         // TODO type not required if x-kube-int-or-string
@@ -111,8 +113,7 @@ public class PluginValidatorVisitor extends SchemaVisitor {
 
         if (additionalProperties != null
                 && (additionalProperties.getBooleanValue() != null
-                || additionalProperties.getSchemaObject() != null)
-        ) {
+                        || additionalProperties.getSchemaObject() != null)) {
             context.reportError("`additionalProperties` at path '{}' must not be used within {}", context.fullPath(), containingJunctor);
         }
 

@@ -1,0 +1,16 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+#$schema: Open.yaml
+
+unconstrained:
+  unexpected2: 1
+  unexpected3: two
+  unexpected4: trois
+constrainedToString:
+  unexpected1: bar
+closed: {}
+unexpected5: true

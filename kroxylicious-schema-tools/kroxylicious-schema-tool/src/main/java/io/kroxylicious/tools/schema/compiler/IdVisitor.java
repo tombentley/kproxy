@@ -8,7 +8,6 @@ package io.kroxylicious.tools.schema.compiler;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 

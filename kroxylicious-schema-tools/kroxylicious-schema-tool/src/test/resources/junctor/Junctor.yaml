@@ -8,9 +8,11 @@ $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Junctor.yaml
 description: A class with scalar properties
 type: object
+additionalProperties: false
 properties:
   oneOf:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: boolean
@@ -23,6 +25,7 @@ properties:
           - bar
   anyOf:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: boolean
@@ -35,6 +38,7 @@ properties:
           - bar
   allOf:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: boolean
@@ -47,6 +51,7 @@ properties:
           - bar
   not:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: boolean

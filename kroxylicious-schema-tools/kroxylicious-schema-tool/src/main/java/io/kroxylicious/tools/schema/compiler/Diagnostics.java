@@ -6,9 +6,10 @@
 
 package io.kroxylicious.tools.schema.compiler;
 
-import io.kroxylicious.tools.schema.model.Reporting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kroxylicious.tools.schema.model.Reporting;
 
 /**
  * Used to track errors and warnings emitted by the tool, to avoid fail fast behaviour.

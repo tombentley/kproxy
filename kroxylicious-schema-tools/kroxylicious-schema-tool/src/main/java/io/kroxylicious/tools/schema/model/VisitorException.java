@@ -8,8 +8,8 @@ package io.kroxylicious.tools.schema.model;
 
 public class VisitorException extends RuntimeException {
     public VisitorException(
-                          String message,
-                          Throwable cause) {
+                            String message,
+                            Throwable cause) {
         super(message, cause);
     }
 }

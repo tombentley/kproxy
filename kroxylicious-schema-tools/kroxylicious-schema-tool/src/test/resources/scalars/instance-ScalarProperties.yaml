@@ -1,0 +1,18 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+#$schema: ScalarProperties.yaml
+
+null: null
+boolean: false
+integer: 1
+number: 3.141
+string: hello, world
+requiredNull: null
+requiredBoolean: true
+requiredInteger: 42
+requiredNumber: 2.73
+requiredString: hello, world!

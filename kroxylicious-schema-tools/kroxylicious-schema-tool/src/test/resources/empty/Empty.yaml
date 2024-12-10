@@ -7,3 +7,4 @@
 $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Empty.yaml
 type: object
+additionalProperties: false

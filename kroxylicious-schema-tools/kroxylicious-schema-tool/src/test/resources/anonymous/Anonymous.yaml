@@ -10,13 +10,16 @@ description: An object with anonymous typed properties
 definitions:
   ViaRef:
     type: object
+    additionalProperties: false
     properties:
       bar:
         type: string
 type: object
+additionalProperties: false
 properties:
   obj:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: string
@@ -24,6 +27,7 @@ properties:
     type: array
     items:
       type: object
+      additionalProperties: false
       properties:
         baz:
           type: string

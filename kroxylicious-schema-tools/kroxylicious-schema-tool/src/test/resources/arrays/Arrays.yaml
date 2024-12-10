@@ -8,9 +8,11 @@ $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Arrays.yaml
 description: An class with properties mapped from the array type.
 type: object
+additionalProperties: false
 definitions:
   FooBar:
     type: object
+    additionalProperties: false
     properties:
       foo:
         type: string
@@ -38,6 +40,7 @@ properties:
     type: array
     items:
       type: object
+      additionalProperties: false
       properties:
         name:
           type: string
