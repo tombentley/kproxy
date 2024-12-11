@@ -177,7 +177,7 @@ public class CodeGen {
         }
         if (type.size() == 1) {
             return switch (type.get(0)) {
-                case NULL -> mkType( "java.lang.Object");
+                case NULL -> mkType("java.lang.Object");
                 case BOOLEAN -> mkType("java.lang.Boolean");
                 case INTEGER -> mkType("java.lang.Long");
                 case NUMBER -> mkType("java.lang.Double");
@@ -195,12 +195,13 @@ public class CodeGen {
                 case ARRAY -> genCollectionOrMapType(pkg, root, schema);
                 case OBJECT -> {
                     if (mapObjectAsMap(schema)) {
-                        yield mkGenericType("java.util.Map", mkType("java.lang.String"), genTypeName(pkg, root, resolveRef(root, schema.getAdditionalProperties().getSchemaObject())));
+                        yield mkGenericType("java.util.Map", mkType("java.lang.String"),
+                                genTypeName(pkg, root, resolveRef(root, schema.getAdditionalProperties().getSchemaObject())));
                     }
                     // TODO or Map or ObjectNode if x-kubernetes-preserve-unknown-keys
                     String fqName = pkg + "." + className(schema);
                     String orDefault = existingClasses.getOrDefault(fqName, fqName);
-                    yield mkType( orDefault);
+                    yield mkType(orDefault);
                 }
             };
         }
@@ -465,8 +466,7 @@ public class CodeGen {
         SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
         var mapValueType = genTypeName(pkg, root, arrayItemType);
         var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
-        ClassOrInterfaceDeclaration serializerClass =
-                new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, serializerClassName(propName));
+        ClassOrInterfaceDeclaration serializerClass = new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, serializerClassName(propName));
         ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
         serializerClass.addExtendedType(mkGenericType("com.fasterxml.jackson.databind.JsonSerializer",
                 mapType));
@@ -481,12 +481,11 @@ public class CodeGen {
         serializeMethod.addParameter(new Parameter(mkType("com.fasterxml.jackson.databind.SerializerProvider"), "provider"));
         serializeMethod.addThrownException(mkType("java.io.IOException"));
         serializeMethod.setBody(new BlockStmt(NodeList.nodeList(
-               new ExpressionStmt(new MethodCallExpr("generator.writeStartArray")),
-               new ForEachStmt(new VariableDeclarationExpr(new VarType(), "item"),
-                       new MethodCallExpr("map.values"),
-                       new ExpressionStmt(new MethodCallExpr("generator.writeObject", new NameExpr("item")))),
-               new ExpressionStmt(new MethodCallExpr("generator.writeEndArray"))
-        )));
+                new ExpressionStmt(new MethodCallExpr("generator.writeStartArray")),
+                new ForEachStmt(new VariableDeclarationExpr(new VarType(), "item"),
+                        new MethodCallExpr("map.values"),
+                        new ExpressionStmt(new MethodCallExpr("generator.writeObject", new NameExpr("item")))),
+                new ExpressionStmt(new MethodCallExpr("generator.writeEndArray")))));
 
         serializerClass.addMember(serializeMethod);
         return serializerClass;
@@ -500,8 +499,8 @@ public class CodeGen {
         SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
         var mapValueType = genTypeName(pkg, root, arrayItemType);
         var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
-        ClassOrInterfaceDeclaration deserializerClass =
-                new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, deserializerClassName(propName));
+        ClassOrInterfaceDeclaration deserializerClass = new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false,
+                deserializerClassName(propName));
         ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
         deserializerClass.addExtendedType(mkGenericType("com.fasterxml.jackson.databind.JsonDeserializer",
                 mapType));
@@ -544,8 +543,7 @@ public class CodeGen {
                         new ExpressionStmt(new MethodCallExpr("result.put",
                                 new MethodCallExpr("item." + genMapKeyAccessor(pkg, root, propSchema, arrayItemType)),
                                 new NameExpr("item")))),
-                new ReturnStmt(new NameExpr("result"))
-        )));
+                new ReturnStmt(new NameExpr("result")))));
 
         deserializerClass.addMember(deserializeMethod);
         return deserializerClass;
@@ -609,7 +607,7 @@ public class CodeGen {
 
     @NonNull
     private static ClassOrInterfaceType mkGenericType(String base, String... typeArgs) {
-        var typeArgsTypes = Arrays.stream(typeArgs).<Type>map(n -> new ClassOrInterfaceType(null, n)).toList();
+        var typeArgsTypes = Arrays.stream(typeArgs).<Type> map(n -> new ClassOrInterfaceType(null, n)).toList();
         return mkGenericType(base, typeArgsTypes);
     }
 
@@ -906,7 +904,7 @@ public class CodeGen {
     private static NormalAnnotationExpr mkAtJsonSetter() {
         return new NormalAnnotationExpr(new Name("com.fasterxml.jackson.annotation.JsonSetter"),
                 NodeList.nodeList(new MemberValuePair("nulls", new FieldAccessExpr(new TypeExpr(
-                        mkType( "com.fasterxml.jackson.annotation.Nulls")), "SKIP"))));
+                        mkType("com.fasterxml.jackson.annotation.Nulls")), "SKIP"))));
     }
 
     @NonNull

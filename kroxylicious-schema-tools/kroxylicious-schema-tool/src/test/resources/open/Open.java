@@ -19,7 +19,7 @@ public class Open {
     private open.OpenUnconstrained unconstrained;
 
     @edu.umd.cs.findbugs.annotations.Nullable
-    private open.OpenConstrainedToString constrainedToString;
+    private java.util.Map<java.lang.String, java.lang.String> constrainedToString;
 
     @edu.umd.cs.findbugs.annotations.Nullable
     private open.OpenClosed closed;
@@ -34,7 +34,7 @@ public class Open {
      * @param closed The value of the {@code closed} property. This is an optional property.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public Open(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "unconstrained") open.OpenUnconstrained unconstrained, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "constrainedToString") open.OpenConstrainedToString constrainedToString, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "closed") open.OpenClosed closed) {
+    public Open(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "unconstrained") open.OpenUnconstrained unconstrained, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "constrainedToString") java.util.Map<java.lang.String, java.lang.String> constrainedToString, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "closed") open.OpenClosed closed) {
         this.unconstrained = unconstrained;
         this.constrainedToString = constrainedToString;
         this.closed = closed;
@@ -67,7 +67,7 @@ public class Open {
      */
     @edu.umd.cs.findbugs.annotations.Nullable
     @com.fasterxml.jackson.annotation.JsonProperty(value = "constrainedToString")
-    public open.OpenConstrainedToString constrainedToString() {
+    public java.util.Map<java.lang.String, java.lang.String> constrainedToString() {
         return this.constrainedToString;
     }
 
@@ -76,7 +76,7 @@ public class Open {
      *
      *  @param constrainedToString The new value for this object's constrainedToString.
      */
-    public void constrainedToString(@edu.umd.cs.findbugs.annotations.Nullable open.OpenConstrainedToString constrainedToString) {
+    public void constrainedToString(@edu.umd.cs.findbugs.annotations.Nullable java.util.Map<java.lang.String, java.lang.String> constrainedToString) {
         this.constrainedToString = constrainedToString;
     }
 

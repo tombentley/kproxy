@@ -26,9 +26,9 @@ import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
-import io.kroxylicious.tools.schema.compiler.BeanPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.Diagnostics;
 import io.kroxylicious.tools.schema.compiler.PropertyAnnotator;
+import io.kroxylicious.tools.schema.compiler.RecordPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.SchemaCompiler;
 import io.kroxylicious.tools.schema.compiler.TypeAnnotator;
 import io.kroxylicious.tools.schema.model.SchemaObject;
@@ -59,7 +59,7 @@ public class CompilePluginMojo extends AbstractCompileSchemaMojo {
                                                 new MemberValuePair("builderPackage", new StringLiteralExpr("io.fabric8.kubernetes.api.builder")))));
                     }
                 }),
-                new BeanPropertyStrategy(),
+                new RecordPropertyStrategy(),
                 true,
                 List.of(new PluginAnnotator()));
     }

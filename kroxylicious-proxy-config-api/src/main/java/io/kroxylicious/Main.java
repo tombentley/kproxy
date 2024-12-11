@@ -1,14 +1,9 @@
 package io.kroxylicious;
 
-import io.kroxylicious.proxy.config.v1.Backend;
-import io.kroxylicious.proxy.config.v1.ProxyConfig;
-import io.kroxylicious.proxy.config.v1.ProxyConfigTransport;
-import io.kroxylicious.proxy.config.v1.ProxyConfigTransportTls;
-import io.kroxylicious.proxy.config.v1.ProxyConfigTransportTlsTrustedCertificates;
-
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Stream;
+
+import io.kroxylicious.proxy.config.v1.ProxyConfig;
 
 public class Main {
 

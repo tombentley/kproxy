@@ -141,14 +141,14 @@ class CodeGenTest {
             assertThat(roundtripped)
                     .describedAs("Expect JSON roundtripped via POJO to be same as original instance")
                     .isEqualTo(instanceNodes);
-//            assertThat(roundtripped.equals((x, y) -> {
-//                if (x.equals(y)) {
-//                    return 0;
-//                }
-//                else {
-//                    return 1;
-//                }
-//            }, instanceNodes)).isTrue();
+            // assertThat(roundtripped.equals((x, y) -> {
+            // if (x.equals(y)) {
+            // return 0;
+            // }
+            // else {
+            // return 1;
+            // }
+            // }, instanceNodes)).isTrue();
 
             // deserialize into POJOs 2nd time, compare .equals, .hashCode and .toString (testing those methods)
             var o2 = YAML_MAPPER.readValue(instanceYaml.toFile(), c);
@@ -402,15 +402,15 @@ class CodeGenTest {
 
                             if (classdir != null) {
                                 var finalClassdir = classdir;
-                                var pattern = Pattern.compile("instance-(.*)\\.yaml");
+                                var pattern = Pattern.compile("instance-([A-Za-z0-9]*)\\.yaml");
                                 // TODO walk srcdir parsing .yamls finding ones without a $schema that's Draft 4
                                 try {
                                     Files.walkFileTree(srcdir,
                                             new SimpleFileVisitor<Path>() {
                                                 @Override
                                                 public FileVisitResult visitFile(
-                                                        Path file,
-                                                        BasicFileAttributes attrs)
+                                                                                 Path file,
+                                                                                 BasicFileAttributes attrs)
                                                         throws IOException {
                                                     Matcher matcher = pattern.matcher(file.getFileName().toString());
                                                     if (matcher.matches()) {

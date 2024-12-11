@@ -51,6 +51,7 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+
         getLog().info("" + this);
         try {
             SchemaCompiler schemaCompiler = schemaCompiler();
