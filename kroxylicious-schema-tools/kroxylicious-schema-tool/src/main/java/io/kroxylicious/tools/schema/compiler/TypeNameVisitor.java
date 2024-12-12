@@ -7,7 +7,10 @@
 package io.kroxylicious.tools.schema.compiler;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
@@ -26,74 +29,65 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 public class TypeNameVisitor extends SchemaVisitor {
 
     private final Diagnostics diagnostics;
-    private final IdVisitor idVisitor;
-    private String rootClass;
+    private final String rootClass;
 
     public TypeNameVisitor(Diagnostics diagnostics,
-                           IdVisitor idVisitor,
                            String rootClass) {
         this.diagnostics = diagnostics;
-        this.idVisitor = idVisitor;
         this.rootClass = rootClass;
     }
 
     @Override
     public void enterSchema(
-                            SchemaVisitor.Context context,
-                            @NonNull SchemaObject schema) {
-        String ref = schema.getRef();
-        if (ref != null) {
-            // TODO validate that the other fields are not set
-
-            // resolve
-            SchemaObject schemaObject = idVisitor.resolve(context.base().resolve(ref));
-            if (schemaObject == null) {
-                // TODO cope with not-yet-loaded refs
-                diagnostics.reportWarning("{}: Unable to resolve $ref:{}", context.base(), ref);
-            }
-
-            // TODO check for infinite recursion, both direct and indirect
-        }
-    }
-
-    @Override
-    public void exitSchema(
                            SchemaVisitor.Context context,
                            @NonNull SchemaObject schema) {
-        if (CodeGen.isTypeGenerated(schema) && schema.getJavaType() == null) {
-            if (context.isRootSchema()) {
-                schema.setJavaType(rootClass);
+        if (CodeGen.isTypeGenerated(schema)) {
+            TypeModel model = null;
+            if (schema.getJavaType() != null) {
+                model = new TypeModel(context.fullPath(), schema.getJavaType(), List.of());
+            }
+            else if (context.isRootSchema()) {
+                model = new TypeModel(context.fullPath(), rootClass, List.of());
             }
             else {
-                final String name = generateTypeName(context.fullPath(), context.keyword());
-                schema.setJavaType(name);
+                final String name = generateTypeName(context);
+                model = new TypeModel(context.fullPath(), name, List.of());
             }
+            schema.setUnknownProperty("$$model", model);
         }
     }
 
-    private String generateTypeName(String path, String keyword) {
+    private String generateTypeName(SchemaVisitor.Context context) {
+        var path = context.fullPath();
         final String name;
-        if ("definitions".equals(keyword)) {
-            name = generateTypeNameForDefinition(path);
+        if ("definitions".equals(context.keyword())) {
+            name = generateTypeNameForDefinition(context);
         }
         else {
-            var propsMatcher = PROPS_PATH.matcher(path);
             var nameParts = new ArrayList<String>();
-            var singularize = new ArrayList<Integer>();
-            nameParts.add(rootClass);
-            while (propsMatcher.find()) {
-                String keyword2 = propsMatcher.group("keyword");
-                if ("items".equals(keyword2)) {
-                    singularize.add(nameParts.size() - 1);
-                    continue;
+            var c= context;
+            boolean singularize = false;
+            while (c != null && c.parentSchema() != null) {
+                String keyword = c.keyword();
+                if ("properties".equals(keyword)) {
+                    var d = initialCaps(c.fullPath().substring(c.fullPath().lastIndexOf("/") + 1));
+                    if (singularize) {
+                        d = singularize(d);
+                    }
+                    nameParts.add(d);
+                    var s = c.parentSchema();
+                    var ancestorModel = (TypeModel) s.getUnknownProperties().get("$$model");
+                    if (ancestorModel != null) {
+                        nameParts.add(ancestorModel.classname());
+                        break;
+                    }
                 }
-                String propertyName = propsMatcher.group("nameOrIndex");
-                propertyName = initialCaps(propertyName);
-                nameParts.add(propertyName);
+                else if ("items".equals(keyword)) {
+                    singularize = true;
+                }
+                c = c.parent();
             }
-            for (int index : singularize) {
-                nameParts.add(index, singularize(nameParts.remove(index)));
-            }
+            Collections.reverse(nameParts);
             String computedName = String.join("", nameParts);
             assert (!computedName.isEmpty());
             if (!computedName.equals(rootClass)) {
@@ -107,11 +101,12 @@ public class TypeNameVisitor extends SchemaVisitor {
         return name;
     }
 
-    private String generateTypeNameForDefinition(String path) {
+    private String generateTypeNameForDefinition(SchemaVisitor.Context context) {
+        var path = context.fullPath();
         final String name;
         var definitionsMatcher = DEFINITIONS_PATTERN.matcher(path);
         if (definitionsMatcher.matches()) {
-            name = definitionsMatcher.group("defName");
+            name = Objects.requireNonNull(definitionsMatcher.group("defName"));
         }
         else {
             diagnostics.reportError("Could not compute a java class name for the schema at " + path);

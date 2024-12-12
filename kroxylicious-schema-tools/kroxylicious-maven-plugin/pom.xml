@@ -21,12 +21,6 @@
     <description>A maven plugin to expose the schema compiler to a maven build</description>
     <packaging>maven-plugin</packaging>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.github.spotbugs</groupId>

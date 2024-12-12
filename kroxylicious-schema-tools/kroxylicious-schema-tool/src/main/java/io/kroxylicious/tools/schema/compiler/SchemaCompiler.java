@@ -46,14 +46,19 @@ public class SchemaCompiler {
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaCompiler.class);
 
     private final List<Path> srcPaths;
+    private final Path dst;
     private final CodeGen codeGen;
     private final YAMLMapper mapper;
     private final IdVisitor idVisitor;
     private final @Nullable String header;
     public final Diagnostics diagnostics;
     private final List<String> packages;
+    private final Catalog catalog;
+
 
     public SchemaCompiler(List<Path> srcPaths,
+                          Path dst,
+                          List<Path> classpath,
                           @Nullable List<String> packages,
                           @Nullable String header,
                           Map<String, String> existingClasses,
@@ -61,15 +66,17 @@ public class SchemaCompiler {
                           PropertyStrategy propertyStrategy,
                           boolean optAccessor,
                           List<PropertyAnnotator> propertyAnnotators) {
+        this.diagnostics = new Diagnostics();
         this.srcPaths = Objects.requireNonNull(srcPaths);
+        this.dst = Objects.requireNonNull(dst);
+        this.mapper = new YAMLMapper();
+        this.catalog = new Catalog(this.mapper, Objects.requireNonNull(classpath));
         this.packages = packages;
         if (header != null) {
             header = maybeWrapInComment(header);
         }
         this.header = header;
 
-        this.diagnostics = new Diagnostics();
-        this.mapper = new YAMLMapper();
         this.idVisitor = new IdVisitor();
         this.codeGen = new CodeGen(diagnostics,
                 idVisitor,
@@ -123,12 +130,19 @@ public class SchemaCompiler {
             catch (IOException e) {
                 throw new UncheckedIOException("Unable to walk source directory " + srcPath, e);
             }
-        }).toList();
+        })
+                .flatMap(this::resolve)
+                .map(input -> {
+                    System.out.println(idVisitor.toString());
+                    return input;
+                })
+                .flatMap(this::resolve2)
+                .toList();
     }
 
     private Stream<SchemaInput> parseSchema(Path srcPath, Path schemaFile) {
         try {
-            var relPath = srcPath.relativize(schemaFile);
+
             LOGGER.debug("Parsing {}", schemaFile);
             var tree = mapper.readTree(schemaFile.toFile());
 
@@ -141,31 +155,46 @@ public class SchemaCompiler {
                 diagnostics.reportWarning("Ignoring non-schema file: {}", schemaFile);
                 return Stream.empty();
             }
-            var rootSchema = mapper.convertValue(tree, SchemaObject.class);
 
-            // Build the map of absolute URI identifiers to schema
-            rootSchema.visitSchemas(diagnostics, schemaFile.toUri(), idVisitor);
-
-            // We should now be able to resolve local $ref
-            String rootClass = schemaFile.getFileName().toString().replaceAll("\\.yaml$", "");
-            var typeNameVisitor = new TypeNameVisitor(diagnostics, idVisitor, rootClass);
-            rootSchema.visitSchemas(diagnostics, schemaFile.toUri(), typeNameVisitor);
-
-            if (relPath.getParent() == null) {
-                diagnostics.reportError("Schema file '{}' would be in the root package, move it to a subdirectory", schemaFile);
-                return Stream.of();
-            }
+            var relPath = srcPath.relativize(schemaFile);
 
             String pkg = StreamSupport.stream(relPath.getParent().spliterator(), false)
                     .map(Path::toString)
                     .collect(Collectors.joining("."));
 
-            return Stream.of(new SchemaInput(schemaFile, pkg, rootSchema));
+            var rootSchema = mapper.convertValue(tree, SchemaObject.class);
+
+            SchemaInput t = new SchemaInput(schemaFile, pkg, rootSchema);
+
+            // Build the map of absolute URI identifiers to schema
+            t.visitSchemas(diagnostics, idVisitor);
+
+
+            return Stream.of(t);
         }
         catch (IOException | IllegalArgumentException | VisitorException e) {
             diagnostics.reportError("Unable to read source file {}: {}", schemaFile, e.getMessage());
             return Stream.empty();
         }
+    }
+
+    private Stream<SchemaInput> resolve(SchemaInput  input) {
+        var resolveVisitor = new ResolveVisitor(diagnostics, idVisitor, catalog);
+        input.visitSchemas(diagnostics, resolveVisitor);
+        return Stream.of(input);
+    }
+
+    private Stream<SchemaInput> resolve2(SchemaInput  input) {
+        // We should now be able to resolve local $ref
+        String rootClass = input.schemaPath().getFileName().toString().replaceAll("\\.yaml$", "");
+        var typeNameVisitor = new TypeNameVisitor(diagnostics, rootClass);
+        input.visitSchemas(diagnostics, typeNameVisitor);
+
+        if (input.pkg().isEmpty()) {
+            diagnostics.reportError("Schema file '{}' would be in the root package: move it to a subdirectory", input.schemaPath());
+            return Stream.of();
+        }
+        return Stream.of(input);
     }
 
     public Stream<CompilationUnit> gen(List<SchemaInput> inputs) {
@@ -176,7 +205,7 @@ public class SchemaCompiler {
                         return codeGen.genDecls(input).stream();
                     }
                     catch (VisitorException e) {
-                        diagnostics.reportFatal("Error: {}", e.getMessage(), e);
+                        diagnostics.reportError("Error: {}", e.getMessage(), e);
                         return Stream.empty();
                     }
                 });
@@ -195,7 +224,7 @@ public class SchemaCompiler {
         return diagnostics.getNumWarnings();
     }
 
-    public void write(Path dst, Stream<CompilationUnit> units) {
+    public void write(Stream<CompilationUnit> units) {
 
         units.forEach(compilationUnit -> {
             String pkg = packageName(compilationUnit);

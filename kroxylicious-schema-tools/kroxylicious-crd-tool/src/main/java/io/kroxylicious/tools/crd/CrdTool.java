@@ -80,8 +80,16 @@ public class CrdTool {
     private void generateJava(InputCrd inputCrd) {
 
         // TODO Generate classes according to the CRD schemas
-        var schemaCompiler = new SchemaCompiler(List.of(), null, header, Map.of(), List.of(), new BeanPropertyStrategy(),
-                true, List.of());
+        var schemaCompiler = new SchemaCompiler(List.of(),
+                null,
+                null,
+                null,
+                header,
+                Map.of(),
+                List.of(),
+                new BeanPropertyStrategy(),
+                true,
+                List.of());
         // schemaCompiler.gen()
         // schemaCompiler.write();
         inputCrd.src();

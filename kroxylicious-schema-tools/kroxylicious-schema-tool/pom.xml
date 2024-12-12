@@ -22,12 +22,6 @@
     <description>A "compiler" to transform JSON Schema into Java classes which can be used
         with Jackson Databind to serialize and deserialize JSON instance documents to/from Java objects.</description>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.github.javaparser</groupId>

@@ -39,6 +39,8 @@ public class CompilePluginMojo extends AbstractCompileSchemaMojo {
     @Override
     protected SchemaCompiler schemaCompiler() throws MojoExecutionException {
         return new SchemaCompiler(List.of(source.toPath()),
+                target.toPath(),
+                getClasspath(),
                 null,
                 readHeaderFile(),
                 existingClasses != null ? existingClasses : Map.of(),

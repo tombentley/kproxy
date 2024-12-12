@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -24,6 +27,8 @@ import io.kroxylicious.tools.schema.compiler.FatalException;
 import io.kroxylicious.tools.schema.compiler.RecordPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.SchemaCompiler;
 import io.kroxylicious.tools.schema.model.SchemaObject;
+
+import javax.annotation.Nullable;
 
 public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
 
@@ -56,9 +61,9 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
         try {
             SchemaCompiler schemaCompiler = schemaCompiler();
             var inputs = schemaCompiler.parse();
-            inputs.stream().forEach(input -> validate(schemaCompiler.diagnostics, input.schemaPath().toUri(), input.rootSchema()));
+            inputs.forEach(input -> validate(schemaCompiler.diagnostics, input.schemaPath().toUri(), input.rootSchema()));
             var units = schemaCompiler.gen(inputs);
-            schemaCompiler.write(target.toPath(), units);
+            schemaCompiler.write(units);
             if (schemaCompiler.numFatals() > 0) {
                 throw new MojoExecutionException("Schema compilation failed with " + schemaCompiler.numFatals() + " fatal errors.");
             }
@@ -83,7 +88,10 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
     protected abstract void validate(Diagnostics diagnostics, URI uri, SchemaObject schemaObject);
 
     protected SchemaCompiler schemaCompiler() throws MojoExecutionException {
-        SchemaCompiler schemaCompiler = new SchemaCompiler(List.of(source.toPath()),
+        // TODO build the classpath from the dependencies
+        return new SchemaCompiler(List.of(source.toPath()),
+                target.toPath(),
+                getClasspath(),
                 null,
                 readHeaderFile(),
                 existingClasses != null ? existingClasses : Map.of(),
@@ -91,10 +99,14 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
                 new RecordPropertyStrategy(),
                 false,
                 List.of());
-        return schemaCompiler;
     }
 
-    protected String readHeaderFile() throws MojoExecutionException {
+    @NonNull
+    protected List<Path> getClasspath() {
+        return List.<Path> of();
+    }
+
+    protected @Nullable String readHeaderFile() throws MojoExecutionException {
         String header = null;
         if (headerFile != null) {
             try {

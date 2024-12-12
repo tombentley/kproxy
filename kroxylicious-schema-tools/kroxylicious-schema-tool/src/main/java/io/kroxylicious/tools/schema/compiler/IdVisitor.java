@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
@@ -19,7 +20,10 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * A {@link SchemaVisitor} which tracks the URIs (multiple!) which can be used
- * to refer to a schema.
+ * to refer to an input schema.
+ *
+ * The same IdVisitor instance is used for all the input schemas, which allows them to cross-reference each other.
+ * This is the first phase of complication, and the index built is used by later phases when resolving {@code $ref}s.
  */
 public class IdVisitor extends SchemaVisitor {
 
@@ -30,13 +34,14 @@ public class IdVisitor extends SchemaVisitor {
     // The "id" keyword itself is resolved against the base URI that the object
     // as a whole appears in.
 
-    private final Map<String, SchemaObject> idIndex = new TreeMap<>();
+    private final Map<URI, SchemaObject> idIndex = new TreeMap<>();
+    private @Nullable URI rootId;
 
     public IdVisitor() {
     }
 
     public @Nullable SchemaObject resolve(URI uri) {
-        return idIndex.get(uri.toString());
+        return idIndex.get(uri);
     }
 
     // The value of the $ref is a URI
@@ -48,58 +53,96 @@ public class IdVisitor extends SchemaVisitor {
                             SchemaVisitor.Context context,
                             @NonNull SchemaObject schema) {
         if (context.isRootSchema()) {
-            index(context, context.base(), schema);
+            indexRootSchema(context, schema);
         }
+        else {
+            // a subschema
+            indexSubschema(context, schema);
+        }
+    }
 
-        // Explicit id
-        String id = schema.getId();
+    @Override
+    public void exitSchema(
+            Context context,
+            @NonNull SchemaObject schema
+    ) {
+        if (context.isRootSchema()) {
+            this.rootId = null;
+        }
+    }
+
+    private void indexRootSchema(Context context, SchemaObject rootSchema) {
+        final URI base = context.base();
+        index(context, base, rootSchema);
+        index(context, resolve(base, "#"), rootSchema);
+        // Wright 00:
+        // The root schema of a JSON Schema document SHOULD contain an "id"
+        // keyword with an absolute-URI (containing a scheme, but no fragment).
+        var rootId = rootSchema.getId() != null ? URI.create(rootSchema.getId()) : null;
+        if (rootId == null) {
+            context.reportWarning(
+                    "Root schema of a document should contain an 'id' with an absolute URI, but 'id' is absent: {}",
+                    base);
+        }
+        else {
+            if (rootId.getFragment() != null) {
+                context.reportError(
+                        "Root schema of a document loaded from {} should contain an 'id' with an absolute URI without a fragment, but 'id' ({}) has a fragment",
+                        base,
+                        rootId);
+            }
+            else if (!rootId.isAbsolute()) {
+                context.reportError(
+                        "Root schema of a document loaded from {} should contain an 'id' with an absolute URI without a fragment, but 'id' ({}) is not absolute.",
+                        base,
+                        rootId);
+            }
+            else if (!rootId.equals(base)) {
+                index(context, rootId, rootSchema);
+                index(context, rootId.resolve("#"), rootSchema);
+                this.rootId = rootId;
+            }
+        }
+    }
+
+    private void indexSubschema(Context context, SchemaObject subSchema) {
+        final URI base = context.base();
+        // the subschema's explicit id
+        String id = subSchema.getId();
         if (id != null) {
-            if (context.isRootSchema()) {
-                // Wright 00:
-                // The root schema of a JSON Schema document SHOULD contain an "id"
-                // keyword with an absolute-URI (containing a scheme, but no fragment).
-                URI uri = URI.create(id);
-                if (!uri.isAbsolute()) {
-                    context.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is not absolute: {}",
-                            context.base());
-                }
-                else if (!uri.equals(context.base())) {
-                    index(context, uri, schema);
-                }
+            // Wright 00:
+            // To name subschemas in a JSON Schema document, subschemas can use "id"
+            // to give themselves a document-local identifier. This form of "id"
+            // keyword MUST begin with a hash ("#") to identify it as a fragment URI
+            // reference, followed by a letter ([A-Za-z]), followed by any number of
+            // letters, digits ([0-9]), hyphens ("-"), underscores ("_"), colons
+            // (":"), or periods (".").
+            if (!SUBSCHEMA_ID_PATTERN.matcher(id).matches()) {
+                context.reportError("Invalid subschema 'id', must match " + SUBSCHEMA_ID_PATTERN.pattern() + ": " + id);
             }
             else {
-                // Wright 00:
-                // To name subschemas in a JSON Schema document, subschemas can use "id"
-                // to give themselves a document-local identifier. This form of "id"
-                // keyword MUST begin with a hash ("#") to identify it as a fragment URI
-                // reference, followed by a letter ([A-Za-z]), followed by any number of
-                // letters, digits ([0-9]), hyphens ("-"), underscores ("_"), colons
-                // (":"), or periods (".").
-                if (!SUBSCHEMA_ID_PATTERN.matcher(id).matches()) {
-                    context.reportError("Invalid schema 'id', must match " + SUBSCHEMA_ID_PATTERN.pattern() + ": " + id);
+                index(context, resolve(base, id), subSchema);
+                if (this.rootId != null) {
+                    index(context, resolve(this.rootId, id), subSchema);
                 }
-                index(context, resolve(context.base(), id), schema);
             }
         }
-        else if (context.isRootSchema()) {
-            context.reportWarning("Root schema of a document should contain an 'id' with an absolute URI, but 'id' is absent: {}",
-                    context.base());
-        }
 
+        // the subschema's #pointer
         // Pointer id. This cannot collide with the 'id' property because it always begins with /
         // which id is not allowed to contain
-        if (!context.fullPath().isEmpty() && context.fullPath().indexOf('/') == -1) {
+        if (context.fullPath().indexOf('/') == -1) {
             // Should never happen
             throw new IllegalStateException();
         }
-        String pathId = "#" + context.fullPath();
-
-        index(context, resolve(context.base(), pathId), schema);
-
+        index(context, resolve(base, "#" + context.fullPath()), subSchema);
+        if (this.rootId != null) {
+            index(context, resolve(this.rootId, "#" + context.fullPath()), subSchema);
+            }
     }
 
     private void index(SchemaVisitor.Context context, URI base, @NonNull SchemaObject schema) {
-        SchemaObject old = idIndex.put(base.toString(), schema);
+        SchemaObject old = idIndex.put(base, schema);
         if (old != null) {
             context.reportError("Attempt to identify two schemas from same URI {}", base);
         }
@@ -109,4 +152,10 @@ public class IdVisitor extends SchemaVisitor {
         return base.resolve(pathId);
     }
 
+    @Override
+    public String toString() {
+        return "IdVisitor{" + System.lineSeparator() + "  " +
+                idIndex.entrySet().stream().map(entry -> entry.getKey() + " --> " + entry.getValue()).collect(Collectors.joining(System.lineSeparator() + "  ", "", System.lineSeparator())) +
+                '}';
+    }
 }

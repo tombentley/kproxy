@@ -9,6 +9,7 @@ package io.kroxylicious.tools.schema.compiler;
 import java.nio.file.Path;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
+import io.kroxylicious.tools.schema.model.SchemaVisitor;
 
 /**
  * An input to the {@link SchemaCompiler}.
@@ -19,4 +20,9 @@ import io.kroxylicious.tools.schema.model.SchemaObject;
 public record SchemaInput(
                           Path schemaPath,
                           String pkg,
-                          SchemaObject rootSchema) {}
+                          SchemaObject rootSchema) {
+    void visitSchemas(Diagnostics diagnostics, SchemaVisitor visitor) {
+    rootSchema.visitSchemas(diagnostics, schemaPath().toUri(), visitor);
+    }
+
+}

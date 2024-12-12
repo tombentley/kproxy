@@ -12,18 +12,18 @@ package xref;
 @javax.annotation.processing.Generated("io.kroxylicious.tools.schema.compiler.CodeGen")
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
-public class ConfigTrust {
+public class TlsTrust {
 
     /**
      * All properties constructor.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public ConfigTrust() {
+    public TlsTrust() {
     }
 
     @java.lang.Override
     public java.lang.String toString() {
-        return "ConfigTrust[" + "]";
+        return "TlsTrust[" + "]";
     }
 
     @java.lang.Override
@@ -35,7 +35,7 @@ public class ConfigTrust {
     public boolean equals(java.lang.Object other) {
         if (this == other)
             return true;
-        else if (other instanceof xref.ConfigTrust otherConfigTrust)
+        else if (other instanceof xref.TlsTrust otherTlsTrust)
             return true;
         else
             return false;

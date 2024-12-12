@@ -16,10 +16,10 @@ package xref;
 public class Tls {
 
     @edu.umd.cs.findbugs.annotations.Nullable
-    private xref.ConfigKey key;
+    private xref.TlsKey key;
 
     @edu.umd.cs.findbugs.annotations.Nullable
-    private xref.ConfigTrust trust;
+    private xref.TlsTrust trust;
 
     /**
      * All properties constructor.
@@ -27,7 +27,7 @@ public class Tls {
      * @param trust The value of the {@code trust} property. This is an optional property.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public Tls(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "key") xref.ConfigKey key, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "trust") xref.ConfigTrust trust) {
+    public Tls(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "key") xref.TlsKey key, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "trust") xref.TlsTrust trust) {
         this.key = key;
         this.trust = trust;
     }
@@ -39,7 +39,7 @@ public class Tls {
      */
     @edu.umd.cs.findbugs.annotations.Nullable
     @com.fasterxml.jackson.annotation.JsonProperty(value = "key")
-    public xref.ConfigKey key() {
+    public xref.TlsKey key() {
         return this.key;
     }
 
@@ -48,7 +48,7 @@ public class Tls {
      *
      *  @param key The new value for this object's key.
      */
-    public void key(@edu.umd.cs.findbugs.annotations.Nullable xref.ConfigKey key) {
+    public void key(@edu.umd.cs.findbugs.annotations.Nullable xref.TlsKey key) {
         this.key = key;
     }
 
@@ -59,7 +59,7 @@ public class Tls {
      */
     @edu.umd.cs.findbugs.annotations.Nullable
     @com.fasterxml.jackson.annotation.JsonProperty(value = "trust")
-    public xref.ConfigTrust trust() {
+    public xref.TlsTrust trust() {
         return this.trust;
     }
 
@@ -68,7 +68,7 @@ public class Tls {
      *
      *  @param trust The new value for this object's trust.
      */
-    public void trust(@edu.umd.cs.findbugs.annotations.Nullable xref.ConfigTrust trust) {
+    public void trust(@edu.umd.cs.findbugs.annotations.Nullable xref.TlsTrust trust) {
         this.trust = trust;
     }
 

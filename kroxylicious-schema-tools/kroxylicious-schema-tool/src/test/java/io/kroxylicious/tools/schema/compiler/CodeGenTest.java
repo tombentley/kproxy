@@ -8,6 +8,7 @@ package io.kroxylicious.tools.schema.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -19,6 +20,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 
+import org.assertj.core.api.Assumptions;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
@@ -53,6 +56,7 @@ import io.kroxylicious.tools.schema.model.XKubeListType;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 class CodeGenTest {
 
@@ -161,11 +165,13 @@ class CodeGenTest {
         }
     }
 
-    private static SchemaCompiler parseDiagnostics(String dir) {
+    private static SchemaCompiler parseDiagnostics(String dir) throws IOException {
         File src = new File(dir);
         Path path = new File("src/test/resources").toPath();
         SchemaCompiler schemaCompiler = new SchemaCompiler(
                 List.of(path),
+                Files.createTempDirectory(CodeGenTest.class.getName()),
+                List.of(),
                 List.of(path.relativize(src.toPath()).toString().replace("/", ".")),
                 null,
                 Map.of(),
@@ -177,11 +183,13 @@ class CodeGenTest {
         return schemaCompiler;
     }
 
-    private static SchemaCompiler genDiagnostics(String dir) {
+    private static SchemaCompiler genDiagnostics(String dir) throws IOException {
         File src = new File(dir);
         Path path = new File("src/test/resources").toPath();
         SchemaCompiler schemaCompiler = new SchemaCompiler(
                 List.of(path),
+                Files.createTempDirectory(CodeGenTest.class.getName()),
+                List.of(),
                 List.of(path.relativize(src.toPath()).toString().replace("/", ".")),
                 null,
                 Map.of(),
@@ -204,7 +212,7 @@ class CodeGenTest {
 
     private static void assertGeneratedCodeMatches(Path src,
                                                    List<TypeAnnotator> typeAnnotators,
-                                                   List<PropertyAnnotator> propertyAnnotators) {
+                                                   List<PropertyAnnotator> propertyAnnotators) throws IOException {
         var units = generate(src, typeAnnotators, propertyAnnotators);
 
         compare(src, units);
@@ -243,10 +251,12 @@ class CodeGenTest {
     }
 
     @NonNull
-    private static List<CompilationUnit> generate(Path src, List<TypeAnnotator> typeAnnotators, List<PropertyAnnotator> propertyAnnotators) {
+    private static List<CompilationUnit> generate(Path src, List<TypeAnnotator> typeAnnotators, List<PropertyAnnotator> propertyAnnotators) throws IOException {
         Path path = new File("src/test/resources").toPath();
         SchemaCompiler schemaCompiler = new SchemaCompiler(
                 List.of(path),
+                Files.createTempDirectory(CodeGenTest.class.getName()),
+                List.of(),
                 List.of(path.relativize(src).toString().replace("/", ".")),
                 null,
                 Map.of(),
@@ -302,8 +312,14 @@ class CodeGenTest {
         var docTool = ToolProvider.getSystemDocumentationTool();
         try (var fileManager = docTool.getStandardFileManager(null, null, null)) {
             Iterable<? extends JavaFileObject> compilationUnits1 = fileManager.getJavaFileObjectsFromPaths(javaFilesBeneath(path));
+            var out = new StringWriter();
+            Boolean call = docTool.getTask(out, fileManager, null, null, List.of("-Xdoclint:all", "-Werror", "-public", "-d", outputDir.toString()), compilationUnits1)
+                    .call();
+            if (Boolean.FALSE.equals(call)) {
+                System.err.println(out);
+            }
             assertThat(
-                    docTool.getTask(null, fileManager, null, null, List.of("-Xdoclint:all", "-Werror", "-public", "-d", outputDir.toString()), compilationUnits1).call())
+                    call)
                     .describedAs("The javadoc should be processed without errors")
                     .isTrue();
         }
@@ -341,105 +357,76 @@ class CodeGenTest {
 
                     var result = Stream.<DynamicNode> builder();
 
-                    List<CompilationUnit> compilationUnits = null;
+                    List<CompilationUnit> compilationUnits = new ArrayList();
+                    AtomicReference<Path> srcDirRef = new AtomicReference<>();
+                    AtomicReference<Path> classDirRef = new AtomicReference<>();
 
-                    try {
-                        compilationUnits = generate(srcdir, List.of(), List.of());
-                        // TODO DynamicTest.dynamicTest("generated code compiles with javac", () -> {}),
-                        // DynamicTest.dynamicTest("generated code doc compiles with javadoc", () -> {}),
-                        // // for each instance YAML
-                        // DynamicTest.dynamicTest("generated code equals(), hashCode() and toString", () -> {}),
-                        // DynamicTest.dynamicTest("generated code (de)serialization", () -> {})
-                    }
-                    catch (Exception | AssertionError e) {
-                        result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
-                            throw e;
-                        }));
-                    }
+                    result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
+                        List<CompilationUnit> generate = generate(srcdir, List.of(), List.of());
+                        assertThat(generate).describedAs("Expected generate step to return some CUs").isNotEmpty();
+                        compilationUnits.addAll(generate);
+                    }));
 
-                    if (compilationUnits != null) {
-                        var finalCu = compilationUnits;
-                        result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
-                        }));
+                    result.add(DynamicTest.dynamicTest("compare(generate(" + srcdir + "))", () -> {
+                        assumeThat(compilationUnits).isNotEmpty();
+                        compare(srcdir, compilationUnits);
+                    }));
 
-                        result.add(DynamicTest.dynamicTest("compare(generate(" + srcdir + "))", () -> {
-                            compare(srcdir, finalCu);
-                        }));
-
+                    result.add(DynamicTest.dynamicTest("write generated source", () -> {
+                        assumeThat(compilationUnits).isNotEmpty();
                         Path tmpSrcDir = null;
+
+                        var dir = Files.createTempDirectory(CodeGenTest.class.getName());
+                        for (var cu : compilationUnits) {
+                            var srcFile = Files.createDirectories(dir.resolve(cu.getPackageDeclaration().get().getNameAsString().replace(".", "/")));
+                            Path resolve = srcFile.resolve(cu.getTypes().get(0).getNameAsString() + ".java");
+                            Files.writeString(resolve, cu.toString());
+                        }
+                        srcDirRef.set(dir);
+                    }));
+
+                    result.add(DynamicTest.dynamicTest("javadoc(generate(" + srcdir + "))", () -> {
+                        assumeThat(srcDirRef.get()).isNotNull();
+                        javadocJavaFilesBeneath(srcDirRef.get());
+                    }));
+
+                    result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
+                        assumeThat(srcDirRef.get()).isNotNull();
+                        classDirRef.set(compileJavaFilesBeneath(srcDirRef.get()));
+                    }));
+
+
+                    result.add(DynamicContainer.dynamicContainer("generatedCode(" + srcdir + "))", () -> {
+                        var pattern = Pattern.compile("instance-([A-Za-z0-9]*)\\.yaml");
+                        // TODO walk srcdir parsing .yamls finding ones without a $schema that's Draft 4
+                        List<DynamicNode> tests = new ArrayList<>();
                         try {
-                            var dir = Files.createTempDirectory(CodeGenTest.class.getName());
-                            for (var cu : finalCu) {
-                                var srcFile = Files.createDirectories(dir.resolve(cu.getPackageDeclaration().get().getNameAsString().replace(".", "/")));
-                                Path resolve = srcFile.resolve(cu.getTypes().get(0).getNameAsString() + ".java");
-                                Files.writeString(resolve, cu.toString());
-                            }
-                            tmpSrcDir = dir;
+                            Files.walkFileTree(srcdir,
+                                    new SimpleFileVisitor<Path>() {
+                                        @Override
+                                        public FileVisitResult visitFile(
+                                                Path file,
+                                                BasicFileAttributes attrs)
+                                                throws IOException {
+                                            Matcher matcher = pattern.matcher(file.getFileName().toString());
+                                            if (matcher.matches()) {
+                                                // TODO read as JsonNode and validate against the "root schema"
+                                                tests.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
+                                                    assumeThat(classDirRef.get()).isNotNull();
+                                                    f(classDirRef.get(), file,
+                                                            compilationUnits.get(0).getPackageDeclaration().get().getName().asString() + "." + matcher.group(1));
+                                                }));
+                                            }
+                                            return FileVisitResult.CONTINUE;
+                                        }
+                                    });
                         }
-                        catch (Exception | AssertionError e) {
-                            result.add(DynamicTest.dynamicTest("write generated source", () -> {
-                                throw e;
-                            }));
+                        catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                        final Path finalGeneratedSrcDir = tmpSrcDir;
+                        return tests.iterator();
+                    }));
 
-                        if (tmpSrcDir != null) {
-                            result.add(DynamicTest.dynamicTest("javadoc(generate(" + srcdir + "))", () -> {
-                                javadocJavaFilesBeneath(finalGeneratedSrcDir);
-                            }));
-
-                            Path classdir = null;
-                            try {
-                                classdir = compileJavaFilesBeneath(finalGeneratedSrcDir);
-                                result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
-                                }));
-                            }
-                            catch (Exception | AssertionError e) {
-                                result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
-                                    throw e;
-                                }));
-                            }
-
-                            if (classdir != null) {
-                                var finalClassdir = classdir;
-                                var pattern = Pattern.compile("instance-([A-Za-z0-9]*)\\.yaml");
-                                // TODO walk srcdir parsing .yamls finding ones without a $schema that's Draft 4
-                                try {
-                                    Files.walkFileTree(srcdir,
-                                            new SimpleFileVisitor<Path>() {
-                                                @Override
-                                                public FileVisitResult visitFile(
-                                                                                 Path file,
-                                                                                 BasicFileAttributes attrs)
-                                                        throws IOException {
-                                                    Matcher matcher = pattern.matcher(file.getFileName().toString());
-                                                    if (matcher.matches()) {
-                                                        try {
-                                                            // TODO read as JsonNode and validate against the "root schema"
-                                                            f(finalClassdir, file,
-                                                                    finalCu.get(0).getPackageDeclaration().get().getName().asString() + "." + matcher.group(1));
-                                                            result.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
-                                                            }));
-                                                        }
-                                                        catch (Exception | AssertionError e) {
-                                                            result.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
-                                                                throw e;
-                                                            }));
-                                                        }
-                                                    }
-                                                    return FileVisitResult.CONTINUE;
-                                                }
-                                            });
-                                }
-                                catch (Exception | AssertionError e) {
-                                    result.add(DynamicTest.dynamicTest("walk " + srcdir, () -> {
-                                        throw e;
-                                    }));
-                                }
-
-                            }
-                        }
-                    }
                     return DynamicContainer.dynamicContainer(srcdir.toString(), result.build());
                 });
 
@@ -503,7 +490,7 @@ class CodeGenTest {
             "src/test/resources/nonschemafile",
             "src/test/resources/badschemaversion"
     })
-    void warnings(String pathname) {
+    void warnings(String pathname) throws IOException {
         assertThat(parseDiagnostics(pathname))
                 .satisfies(schemaCompiler -> {
                     assertThat(schemaCompiler.numFatals()).isZero();
@@ -513,7 +500,7 @@ class CodeGenTest {
     }
 
     @Test
-    void unionTypeIsFatal() {
+    void unionTypeIsFatal() throws IOException {
         String pathname = "src/test/resources/uniontype";
         assertThat(genDiagnostics(pathname))
                 .satisfies(schemaCompiler -> {

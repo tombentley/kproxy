@@ -13,7 +13,7 @@ package xref;
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
 @com.fasterxml.jackson.annotation.JsonPropertyOrder({ "privateKeyFile", "certificateFile", "storeFile", "storePassword", "keyPassword", "storeType" })
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
-public class ConfigKey {
+public class TlsKey {
 
     @edu.umd.cs.findbugs.annotations.Nullable
     private java.lang.String privateKeyFile;
@@ -43,7 +43,7 @@ public class ConfigKey {
      * @param storeType The value of the {@code storeType} property. This is an optional property.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public ConfigKey(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "privateKeyFile") java.lang.String privateKeyFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "certificateFile") java.lang.String certificateFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storeFile") java.lang.String storeFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storePassword") xref.PasswordProvider storePassword, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "keyPassword") xref.PasswordProvider keyPassword, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storeType") java.lang.String storeType) {
+    public TlsKey(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "privateKeyFile") java.lang.String privateKeyFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "certificateFile") java.lang.String certificateFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storeFile") java.lang.String storeFile, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storePassword") xref.PasswordProvider storePassword, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "keyPassword") xref.PasswordProvider keyPassword, @edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "storeType") java.lang.String storeType) {
         this.privateKeyFile = privateKeyFile;
         this.certificateFile = certificateFile;
         this.storeFile = storeFile;
@@ -168,7 +168,7 @@ public class ConfigKey {
 
     @java.lang.Override
     public java.lang.String toString() {
-        return "ConfigKey[" + "privateKeyFile: " + this.privateKeyFile + ", certificateFile: " + this.certificateFile + ", storeFile: " + this.storeFile + ", storePassword: " + this.storePassword + ", keyPassword: " + this.keyPassword + ", storeType: " + this.storeType + "]";
+        return "TlsKey[" + "privateKeyFile: " + this.privateKeyFile + ", certificateFile: " + this.certificateFile + ", storeFile: " + this.storeFile + ", storePassword: " + this.storePassword + ", keyPassword: " + this.keyPassword + ", storeType: " + this.storeType + "]";
     }
 
     @java.lang.Override
@@ -180,8 +180,8 @@ public class ConfigKey {
     public boolean equals(java.lang.Object other) {
         if (this == other)
             return true;
-        else if (other instanceof xref.ConfigKey otherConfigKey)
-            return java.util.Objects.equals(this.privateKeyFile, otherConfigKey.privateKeyFile) && java.util.Objects.equals(this.certificateFile, otherConfigKey.certificateFile) && java.util.Objects.equals(this.storeFile, otherConfigKey.storeFile) && java.util.Objects.equals(this.storePassword, otherConfigKey.storePassword) && java.util.Objects.equals(this.keyPassword, otherConfigKey.keyPassword) && java.util.Objects.equals(this.storeType, otherConfigKey.storeType);
+        else if (other instanceof xref.TlsKey otherTlsKey)
+            return java.util.Objects.equals(this.privateKeyFile, otherTlsKey.privateKeyFile) && java.util.Objects.equals(this.certificateFile, otherTlsKey.certificateFile) && java.util.Objects.equals(this.storeFile, otherTlsKey.storeFile) && java.util.Objects.equals(this.storePassword, otherTlsKey.storePassword) && java.util.Objects.equals(this.keyPassword, otherTlsKey.keyPassword) && java.util.Objects.equals(this.storeType, otherTlsKey.storeType);
         else
             return false;
     }

@@ -69,7 +69,6 @@ import com.github.javaparser.ast.type.VarType;
 import com.github.javaparser.ast.type.VoidType;
 
 import io.kroxylicious.tools.schema.model.SchemaObject;
-import io.kroxylicious.tools.schema.model.SchemaObjectBuilder;
 import io.kroxylicious.tools.schema.model.SchemaType;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
 import io.kroxylicious.tools.schema.model.XKubeListType;
@@ -154,7 +153,7 @@ public class CodeGen {
                 String name = ref.getFragment().substring("/definitions/".length());
                 SchemaObject object = defs.get(name);
                 if (object != null) {
-                    return new SchemaObjectBuilder(object).withJavaType(name).build();
+                    return object;
                 }
             }
             diagnostics.reportFatal("Couldn't resolve $ref " + ref);
@@ -283,8 +282,7 @@ public class CodeGen {
         // definions = the name
         // subschema of root via property foo = XFoo
         // subschema of root via item of array foos = XFoo
-        SchemaObject root = input.rootSchema();
-        root.visitSchemas(diagnostics, input.schemaPath().toUri(), new CodeGenVisitor(input, result));
+        input.visitSchemas(diagnostics, new CodeGenVisitor(input, result));
         return result;
     }
 
@@ -313,7 +311,7 @@ public class CodeGen {
             };
         }
         else {
-            throw new UnsupportedOperationException("Can't handle union types yet");
+            throw new UnsupportedOperationException("Can't handle `type`: " + type);
         }
     }
 
@@ -435,8 +433,9 @@ public class CodeGen {
 
     /**
      * When a JSON Schema `array` type has x-kubernetes-list-type=map we generate
-     * a Deserializer and Serializer static class on the owning class according to the map keys.
-     * We don't generate the annotations of the array item type because the same type
+     * a Deserializer and Serializer static member class on the owning class according to the map keys.
+     * We don't generate the @JsonDeserializer and @JsonSerializer annotations of the array item type
+     * because in general the same type
      * could be referenced as the `items` type of multiple properties
      * (i.e. the properties which make up the key are defined on the "owner type",
      * not the array item type)
@@ -462,7 +461,8 @@ public class CodeGen {
     private ClassOrInterfaceDeclaration mkMapSerializer(String pkg,
                                                         SchemaObject root,
                                                         String propName,
-                                                        SchemaObject propSchema) {
+                                                        SchemaObject propSchema
+    ) {
         SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
         var mapValueType = genTypeName(pkg, root, arrayItemType);
         var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
@@ -741,11 +741,11 @@ public class CodeGen {
 
     @NonNull
     private static String className(SchemaObject schema) {
-        if (schema.getJavaType() != null) {
-            return schema.getJavaType();
+        if (schema.getUnknownProperties().get("$$model") != null) {
+            return ((TypeModel) schema.getUnknownProperties().get("$$model")).classname();
         }
         else {
-            throw new IllegalStateException("Schema lacks explicit or generated $javaType");
+            throw new IllegalStateException("Schema lacks a $$model");
         }
     }
 
@@ -789,7 +789,6 @@ public class CodeGen {
     }
 
     private static MethodDeclaration mkHashCodeMethod(SchemaObject schema) {
-        String name = className(schema);
         Map<String, SchemaObject> properties = properties(schema);
         NodeList<Expression> args = new NodeList<>();
         for (var entry : properties.entrySet()) {

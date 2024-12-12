@@ -12,18 +12,18 @@ package trickynaming;
 @javax.annotation.processing.Generated("io.kroxylicious.tools.schema.compiler.CodeGen")
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
-public class TrickySpecVersionSchemaOpenAPIV3Schema {
+public class CrdSchemaOpenAPIV3Schema {
 
     /**
      * All properties constructor.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public TrickySpecVersionSchemaOpenAPIV3Schema() {
+    public CrdSchemaOpenAPIV3Schema() {
     }
 
     @java.lang.Override
     public java.lang.String toString() {
-        return "TrickySpecVersionSchemaOpenAPIV3Schema[" + "]";
+        return "CrdSchemaOpenAPIV3Schema[" + "]";
     }
 
     @java.lang.Override
@@ -35,7 +35,7 @@ public class TrickySpecVersionSchemaOpenAPIV3Schema {
     public boolean equals(java.lang.Object other) {
         if (this == other)
             return true;
-        else if (other instanceof trickynaming.TrickySpecVersionSchemaOpenAPIV3Schema otherTrickySpecVersionSchemaOpenAPIV3Schema)
+        else if (other instanceof trickynaming.CrdSchemaOpenAPIV3Schema otherCrdSchemaOpenAPIV3Schema)
             return true;
         else
             return false;

@@ -615,15 +615,15 @@ public final class SchemaObject {
                     visitor.getClass().getName() + "#enterSchema() threw exception while visiting schema object at '" + context.fullPath() + "' from " + context.base(),
                     e);
         }
-        visitSchemaMap(context, visitor, schemaObject.definitions, "definitions");
-        visitSchemaMap(context, visitor, schemaObject.properties, "properties");
-        visitSchemaArray(context, visitor, schemaObject.items, "items");
-        visitSchemaArray(context, visitor, schemaObject.oneOf, "oneOf");
-        visitSchemaArray(context, visitor, schemaObject.allOf, "allOf");
-        visitSchemaArray(context, visitor, schemaObject.anyOf, "anyOf");
+        visitSchemaMap(context, visitor, schemaObject, schemaObject.definitions, "definitions");
+        visitSchemaMap(context, visitor, schemaObject, schemaObject.properties, "properties");
+        visitSchemaArray(context, visitor, schemaObject, schemaObject.items, "items");
+        visitSchemaArray(context, visitor, schemaObject, schemaObject.oneOf, "oneOf");
+        visitSchemaArray(context, visitor, schemaObject, schemaObject.allOf, "allOf");
+        visitSchemaArray(context, visitor, schemaObject, schemaObject.anyOf, "anyOf");
         if (schemaObject.not != null) {
             String path1 = "not";
-            visitSchemas(context.sub("not", path1), schemaObject.not, visitor);
+            visitSchemas(context.sub("not", path1, schemaObject), schemaObject.not, visitor);
         }
         try {
             visitor.exitSchema(context, schemaObject);
@@ -637,6 +637,7 @@ public final class SchemaObject {
 
     private static void visitSchemaMap(SchemaVisitor.Context context,
                                        SchemaVisitor visitor,
+                                       SchemaObject parent,
                                        @Nullable Map<String, SchemaObject> map,
                                        String keyword) {
         if (map != null) {
@@ -644,20 +645,21 @@ public final class SchemaObject {
                 String definitionName = entry.getKey();
                 SchemaObject definitionSchema = entry.getValue();
                 String path1 = keyword + "/" + definitionName;
-                visitSchemas(context.sub(keyword, path1), definitionSchema, visitor);
+                visitSchemas(context.sub(keyword, path1, parent), definitionSchema, visitor);
             }
         }
     }
 
     private static void visitSchemaArray(SchemaVisitor.Context context,
                                          SchemaVisitor visitor,
+                                         SchemaObject parent,
                                          @Nullable List<SchemaObject> array,
                                          String keyword) {
         if (array != null) {
             for (int i = 0; i < array.size(); i++) {
                 SchemaObject itemSchema = array.get(i);
                 String path1 = keyword + "/" + i;
-                visitSchemas(context.sub(keyword, path1), itemSchema, visitor);
+                visitSchemas(context.sub(keyword, path1, parent), itemSchema, visitor);
             }
         }
     }

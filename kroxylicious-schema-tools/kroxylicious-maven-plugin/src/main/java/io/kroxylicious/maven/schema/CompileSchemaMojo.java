@@ -24,7 +24,9 @@ public class CompileSchemaMojo extends AbstractCompileSchemaMojo {
 
     @Override
     protected SchemaCompiler schemaCompiler() throws MojoExecutionException {
-        SchemaCompiler schemaCompiler = new SchemaCompiler(List.of(source.toPath()),
+        return new SchemaCompiler(List.of(source.toPath()),
+                target.toPath(),
+                getClasspath(),
                 null,
                 readHeaderFile(),
                 existingClasses != null ? existingClasses : Map.of(),
@@ -32,7 +34,6 @@ public class CompileSchemaMojo extends AbstractCompileSchemaMojo {
                 new RecordPropertyStrategy(),
                 false,
                 List.of());
-        return schemaCompiler;
     }
 
     @Override
