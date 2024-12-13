@@ -31,7 +31,6 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 
-import org.assertj.core.api.Assumptions;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
@@ -447,7 +446,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateField(
                                                                       Diagnostics diagnostics,
                                                                       String property,
-                                                                      SchemaObject propertySchema) {
+                                                                      TypeModel propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("field")));
                             }
 
@@ -455,7 +454,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateConstructorParameter(
                                                                                      Diagnostics diagnostics,
                                                                                      String property,
-                                                                                     SchemaObject propertySchema) {
+                                                                                     TypeModel propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("ctorParameter")));
                             }
 
@@ -463,7 +462,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateAccessor(
                                                                          Diagnostics diagnostics,
                                                                          String property,
-                                                                         SchemaObject propertySchema) {
+                                                                         TypeModel propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("accessor")));
                             }
 
@@ -471,7 +470,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateMutator(
                                                                         Diagnostics diagnostics,
                                                                         String property,
-                                                                        SchemaObject propertySchema) {
+                                                                        TypeModel propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("mutator")));
                             }
 
@@ -479,7 +478,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateMutatorParameter(
                                                                                  Diagnostics diagnostics,
                                                                                  String property,
-                                                                                 SchemaObject propertySchema) {
+                                                                                 TypeModel propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("mutatorParameter")));
                             }
                         }));

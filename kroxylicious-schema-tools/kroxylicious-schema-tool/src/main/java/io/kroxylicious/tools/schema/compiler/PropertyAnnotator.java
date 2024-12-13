@@ -21,7 +21,9 @@ public interface PropertyAnnotator {
      * @param propertySchema The schema of the property.
      * @return The annotations to add.
      */
-    default List<AnnotationExpr> annotateField(Diagnostics diagnostics, String property, SchemaObject propertySchema) {
+    default List<AnnotationExpr> annotateField(Diagnostics diagnostics,
+                                               String property,
+                                               TypeModel propertySchema) {
         return List.of();
     }
 
@@ -32,7 +34,7 @@ public interface PropertyAnnotator {
      * @param propertySchema The schema of the property.
      * @return The annotations to add.
      */
-    default List<AnnotationExpr> annotateConstructorParameter(Diagnostics diagnostics, String property, SchemaObject propertySchema) {
+    default List<AnnotationExpr> annotateConstructorParameter(Diagnostics diagnostics, String property, TypeModel propertySchema) {
         return List.of();
     }
 
@@ -43,7 +45,7 @@ public interface PropertyAnnotator {
      * @param propertySchema The schema of the property.
      * @return The annotations to add.
      */
-    default List<AnnotationExpr> annotateAccessor(Diagnostics diagnostics, String property, SchemaObject propertySchema) {
+    default List<AnnotationExpr> annotateAccessor(Diagnostics diagnostics, String property, TypeModel propertySchema) {
         return List.of();
     }
 
@@ -54,7 +56,7 @@ public interface PropertyAnnotator {
      * @param propertySchema The schema of the property.
      * @return The annotations to add.
      */
-    default List<AnnotationExpr> annotateMutator(Diagnostics diagnostics, String property, SchemaObject propertySchema) {
+    default List<AnnotationExpr> annotateMutator(Diagnostics diagnostics, String property, TypeModel propertySchema) {
         return List.of();
     }
 
@@ -65,7 +67,7 @@ public interface PropertyAnnotator {
      * @param propertySchema The schema of the property.
      * @return The annotations to add.
      */
-    default List<AnnotationExpr> annotateMutatorParameter(Diagnostics diagnostics, String property, SchemaObject propertySchema) {
+    default List<AnnotationExpr> annotateMutatorParameter(Diagnostics diagnostics, String property, TypeModel propertySchema) {
         return List.of();
     }
 }

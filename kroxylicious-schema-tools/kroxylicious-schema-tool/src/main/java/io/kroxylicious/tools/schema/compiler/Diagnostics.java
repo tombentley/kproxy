@@ -59,6 +59,10 @@ public class Diagnostics implements Reporting {
         numWarnings++;
     }
 
+    public void debug(String message, Object... arguments) {
+        LOGGER.debug(message, arguments);
+    }
+
     public int getNumErrors() {
         return numErrors;
     }

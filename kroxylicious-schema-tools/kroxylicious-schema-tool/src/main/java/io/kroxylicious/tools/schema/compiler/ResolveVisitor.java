@@ -19,6 +19,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * External schemas are {@code $ref}ed to using an absolute URI, but this is not treated
  * as a URL (nothing is loaded over the network).
  * Instead, these schemas are located via the classpath.
+ *
+ * Postcondition: After this phase is complete all external $ref nodes will have a type model
  */
 public class ResolveVisitor extends SchemaVisitor {
 
@@ -44,23 +46,22 @@ public class ResolveVisitor extends SchemaVisitor {
 
             // resolve
             URI resolvedRef = context.base().resolve(ref);
-            SchemaObject resolveSchemaObject = idVisitor.resolve(resolvedRef);
-            if (resolveSchemaObject == null) {
+            // Try looking it up internally
+            SchemaObject resolvedSchemaObject = idVisitor.resolve(resolvedRef);
+            if (resolvedSchemaObject == null) {
                 // TODO cope with not-yet-loaded refs
 
                 var typeModel= catalog.lookup(resolvedRef);
                 if (typeModel == null) {
-                    diagnostics.reportError("{}: Unable to resolve $ref:{}", context.base(), ref);
+                    diagnostics.reportError("{}: Unable to resolve $ref: {}", context.base(), ref);
+                    schema.setUnknownProperty("$$model", TypeModel.UNKNOWN);
                 }
                 else {
-                    // get the type model on the $ref schema object
+                    // set the type model on the $ref schema object
                     schema.setUnknownProperty("$$model", typeModel);
-                    diagnostics.reportWarning("Setting model {} on {}", typeModel, context.fullPath());
+                    diagnostics.debug("Setting model {} on {}", typeModel, context.fullPath());
                 }
             }
-
-
-
             // TODO check for infinite recursion, both direct and indirect
         }
     }

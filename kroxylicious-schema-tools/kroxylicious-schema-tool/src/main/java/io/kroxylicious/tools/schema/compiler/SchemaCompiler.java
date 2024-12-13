@@ -54,7 +54,7 @@ public class SchemaCompiler {
     public final Diagnostics diagnostics;
     private final List<String> packages;
     private final Catalog catalog;
-
+    private final Map<String, String> existingClasses;
 
     public SchemaCompiler(List<Path> srcPaths,
                           Path dst,
@@ -76,6 +76,7 @@ public class SchemaCompiler {
             header = maybeWrapInComment(header);
         }
         this.header = header;
+        this.existingClasses = existingClasses;
 
         this.idVisitor = new IdVisitor();
         this.codeGen = new CodeGen(diagnostics,
@@ -133,10 +134,10 @@ public class SchemaCompiler {
         })
                 .flatMap(this::resolve)
                 .map(input -> {
-                    System.out.println(idVisitor.toString());
+                    diagnostics.debug("ID index {}", idVisitor.toString());
                     return input;
                 })
-                .flatMap(this::resolve2)
+                .flatMap(this::type)
                 .toList();
     }
 
@@ -164,13 +165,13 @@ public class SchemaCompiler {
 
             var rootSchema = mapper.convertValue(tree, SchemaObject.class);
 
-            SchemaInput t = new SchemaInput(schemaFile, pkg, rootSchema);
+            SchemaInput schemaInput = new SchemaInput(schemaFile, pkg, rootSchema);
 
             // Build the map of absolute URI identifiers to schema
-            t.visitSchemas(diagnostics, idVisitor);
+            schemaInput.visitSchemas(diagnostics, idVisitor);
 
 
-            return Stream.of(t);
+            return Stream.of(schemaInput);
         }
         catch (IOException | IllegalArgumentException | VisitorException e) {
             diagnostics.reportError("Unable to read source file {}: {}", schemaFile, e.getMessage());
@@ -178,16 +179,29 @@ public class SchemaCompiler {
         }
     }
 
+    /**
+     * Execute the resolve phase.
+     *
+     * <p>Precondition: the id phase has executed on all the inputs</p>
+     * <p>Postcondition: After this phase is complete all external $ref nodes will have a type model</p>
+     */
     private Stream<SchemaInput> resolve(SchemaInput  input) {
         var resolveVisitor = new ResolveVisitor(diagnostics, idVisitor, catalog);
         input.visitSchemas(diagnostics, resolveVisitor);
         return Stream.of(input);
     }
 
-    private Stream<SchemaInput> resolve2(SchemaInput  input) {
+    /**
+     * Execute the typing phase
+     *
+     * <p>Precondition: the resolve phase has executed on all the inputs</p>
+     * <p>Postcondition: After this phase is complete all non-$ref nodes that will have a class declaration generated
+     * will have a type model</p>
+     */
+    private Stream<SchemaInput> type(SchemaInput  input) {
         // We should now be able to resolve local $ref
         String rootClass = input.schemaPath().getFileName().toString().replaceAll("\\.yaml$", "");
-        var typeNameVisitor = new TypeNameVisitor(diagnostics, rootClass);
+        var typeNameVisitor = new TypeNameVisitor1(diagnostics, rootClass, existingClasses, catalog);
         input.visitSchemas(diagnostics, typeNameVisitor);
 
         if (input.pkg().isEmpty()) {
@@ -197,6 +211,11 @@ public class SchemaCompiler {
         return Stream.of(input);
     }
 
+    /**
+     * Execute the code generation phase.
+     *
+     * <p>Precondition: the typing has executed on all the inputs</p>
+     */
     public Stream<CompilationUnit> gen(List<SchemaInput> inputs) {
 
         return inputs.stream()
@@ -212,18 +231,9 @@ public class SchemaCompiler {
 
     }
 
-    public int numFatals() {
-        return diagnostics.getNumFatals();
-    }
-
-    public int numErrors() {
-        return diagnostics.getNumErrors();
-    }
-
-    public int numWarnings() {
-        return diagnostics.getNumWarnings();
-    }
-
+    /**
+     * Write the generated code to files, assuming the gen phase has executed
+     */
     public void write(Stream<CompilationUnit> units) {
 
         units.forEach(compilationUnit -> {
@@ -253,6 +263,18 @@ public class SchemaCompiler {
                 diagnostics.reportFatal("Unable to write output java file {}", javaFile, e);
             }
         });
+    }
+
+    public int numFatals() {
+        return diagnostics.getNumFatals();
+    }
+
+    public int numErrors() {
+        return diagnostics.getNumErrors();
+    }
+
+    public int numWarnings() {
+        return diagnostics.getNumWarnings();
     }
 
     @NonNull

@@ -7,6 +7,8 @@
 package io.kroxylicious.tools.schema.compiler;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
 import java.util.List;
 
@@ -28,6 +30,15 @@ public record TypeModel(
         @JsonProperty("class") String classname,
         List<PropertyModel> properties
 ) {
+
+    public static final TypeModel UNKNOWN = new TypeModel(null, null, null);
+
+    public String getDescription() {
+    }
+
+    public ClassOrInterfaceType type() {
+        return (ClassOrInterfaceType) StaticJavaParser.parseType(classname);
+    }
 
     record PropertyModel(
                          String propertyName,
