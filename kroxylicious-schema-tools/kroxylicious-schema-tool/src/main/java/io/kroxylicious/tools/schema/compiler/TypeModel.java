@@ -34,6 +34,7 @@ public record TypeModel(
     public static final TypeModel UNKNOWN = new TypeModel(null, null, null);
 
     public String getDescription() {
+        return "";
     }
 
     public ClassOrInterfaceType type() {

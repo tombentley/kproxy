@@ -351,6 +351,8 @@ class CodeGenTest {
                 "src/test/resources/anonymous",
                 "src/test/resources/trickynaming",
                 "src/test/resources/xref",
+                "src/test/resources/recursiveref",
+                "src/test/resources/rootisref",
                 "src/test/resources/junctor",
                 "src/test/resources/open").map(Path::of).map(srcdir -> {
 
@@ -446,7 +448,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateField(
                                                                       Diagnostics diagnostics,
                                                                       String property,
-                                                                      TypeModel propertySchema) {
+                                                                      SchemaObject propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("field")));
                             }
 
@@ -454,7 +456,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateConstructorParameter(
                                                                                      Diagnostics diagnostics,
                                                                                      String property,
-                                                                                     TypeModel propertySchema) {
+                                                                                     SchemaObject propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("ctorParameter")));
                             }
 
@@ -462,7 +464,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateAccessor(
                                                                          Diagnostics diagnostics,
                                                                          String property,
-                                                                         TypeModel propertySchema) {
+                                                                         SchemaObject propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("accessor")));
                             }
 
@@ -470,7 +472,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateMutator(
                                                                         Diagnostics diagnostics,
                                                                         String property,
-                                                                        TypeModel propertySchema) {
+                                                                        SchemaObject propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("mutator")));
                             }
 
@@ -478,7 +480,7 @@ class CodeGenTest {
                             public List<AnnotationExpr> annotateMutatorParameter(
                                                                                  Diagnostics diagnostics,
                                                                                  String property,
-                                                                                 TypeModel propertySchema) {
+                                                                                 SchemaObject propertySchema) {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("mutatorParameter")));
                             }
                         }));

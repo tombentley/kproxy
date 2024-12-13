@@ -164,8 +164,9 @@ public class CodeGen {
     }
 
     @SuppressWarnings("java:S1192")
-    ClassOrInterfaceType genTypeName(String pkg, SchemaObject root, SchemaObject schema) {
-        Objects.requireNonNull(schema);
+    ClassOrInterfaceType genTypeName(String pkg, SchemaObject root, SchemaObject schemaOrRef) {
+        Objects.requireNonNull(schemaOrRef);
+        var schema = resolveRef(root, schemaOrRef);
         List<SchemaType> type = schema.getType();
         if (type == null || type.isEmpty()) {
             // unconstrained => union of all types
@@ -195,7 +196,7 @@ public class CodeGen {
                 case OBJECT -> {
                     if (mapObjectAsMap(schema)) {
                         yield mkGenericType("java.util.Map", mkType("java.lang.String"),
-                                genTypeName(pkg, root, resolveRef(root, schema.getAdditionalProperties().getSchemaObject())));
+                                genTypeName(pkg, root, schema.getAdditionalProperties().getSchemaObject()));
                     }
                     // TODO or Map or ObjectNode if x-kubernetes-preserve-unknown-keys
                     String fqName = pkg + "." + className(schema);
@@ -211,8 +212,7 @@ public class CodeGen {
 
     @NonNull
     private ClassOrInterfaceType genCollectionOrMapType(String pkg, SchemaObject root, SchemaObject schema) {
-        SchemaObject itemSchema = resolveRef(root, schema.getItems().get(0));
-        var itemType = genTypeName(pkg, root, itemSchema);
+        var itemType = genTypeName(pkg, root, schema.getItems().get(0));
         XKubeListType xKubeListType = schema.getXKubernetesListType();
         if (xKubeListType == null
                 || xKubeListType == XKubeListType.ATOMIC) {
@@ -223,7 +223,7 @@ public class CodeGen {
         }
         else if (xKubeListType == XKubeListType.MAP) {
             return mkGenericType("java.util.Map",
-                    genMapKeyType(pkg, root, schema, itemSchema),
+                    genMapKeyType(pkg, root, schema, schema.getItems().get(0)),
                     itemType);
         }
         else {
@@ -233,7 +233,7 @@ public class CodeGen {
     }
 
     @NonNull
-    private Type genMapKeyType(String pkg, SchemaObject root, SchemaObject schema, SchemaObject itemSchema) {
+    private Type genMapKeyType(String pkg, SchemaObject root, SchemaObject schema, SchemaObject itemSchemaOrRef) {
         List<String> keyPropertyNames = schema.getXKubernetesListMapKeys();
         Type keyType;
         if (keyPropertyNames == null
@@ -249,7 +249,7 @@ public class CodeGen {
             keyType = genErrorType();
         }
         else {
-            SchemaObject keySchema = itemSchema.getProperties().get(keyPropertyNames.get(0));
+            SchemaObject keySchema = resolveRef(root, itemSchemaOrRef).getProperties().get(keyPropertyNames.get(0));
             keyType = genTypeName(pkg, root, keySchema);
         }
         return keyType;
@@ -381,20 +381,19 @@ public class CodeGen {
         // Deserializer static inner classes
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
-            var propSchema = resolveRef(root, entry.getValue());
-            if (useMapDeserializer(propSchema)) {
-                clz.addMember(mkMapDeserializer(pkg, root, propName, propSchema));
-                clz.addMember(mkMapSerializer(pkg, root, propName, propSchema));
+            if (useMapDeserializer(root, entry.getValue())) {
+                clz.addMember(mkMapDeserializer(pkg, root, propName, entry.getValue()));
+                clz.addMember(mkMapSerializer(pkg, root, propName, entry.getValue()));
             }
         }
 
         // fields
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
-            var propSchema = resolveRef(root, entry.getValue());
-            var propType = genTypeName(pkg, root, propSchema);
+            var propType = genTypeName(pkg, root, entry.getValue());
             FieldDeclaration fieldDeclaration = mkPropertyField(schema, propName, propType);
-            propertyAnnotators.stream().flatMap(ta -> ta.annotateField(diagnostics, propName, propSchema).stream()).forEach(fieldDeclaration::addAnnotation);
+            var propSchemaXX = resolveRef(root, entry.getValue());
+            propertyAnnotators.stream().flatMap(ta -> ta.annotateField(diagnostics, propName, propSchemaXX).stream()).forEach(fieldDeclaration::addAnnotation);
             clz.addMember(fieldDeclaration);
         }
         if (additionalPropertiesNotFalse(schema)) {
@@ -407,13 +406,13 @@ public class CodeGen {
         // accessors and mutators
         for (var entry : properties.entrySet()) {
             String propName = entry.getKey();
-            var propSchema = resolveRef(root, entry.getValue());
-            var propType = genTypeName(pkg, root, propSchema);
-            clz.addMember(mkPropertyGetterMethod(pkg, root, schema, propSchema, propName, propType));
+            var propType = genTypeName(pkg, root, entry.getValue());
+            clz.addMember(mkPropertyGetterMethod(pkg, root, schema, entry.getValue(), propName, propType));
             if (optAccessor) {
-                clz.addMember(mkPropertyOptMethod(propSchema, propName, propType, required.contains(propName)));
+
+                clz.addMember(mkPropertyOptMethod(root, entry.getValue(), propName, propType, required.contains(propName)));
             }
-            clz.addMember(mkPropertySetterMethod(schema, propSchema, propName, propType));
+            clz.addMember(mkPropertySetterMethod(root, schema, entry.getValue(), propName, propType));
         }
 
         if (additionalPropertiesNotFalse(schema)) {
@@ -439,14 +438,15 @@ public class CodeGen {
      * could be referenced as the `items` type of multiple properties
      * (i.e. the properties which make up the key are defined on the "owner type",
      * not the array item type)
-     * @param propSchema A property type schema
+     * @param propSchemaOrRef A property type schema
      * @return true if the {@code propSchema} has type==array and x-kubernetes-list-type=map.
      * @see #mkMapDeserializer(String, SchemaObject, String, SchemaObject)
      * @see #mkMapSerializer(String, SchemaObject, String, SchemaObject)
      */
-    private static boolean useMapDeserializer(SchemaObject propSchema) {
-        return List.of(SchemaType.ARRAY).equals(propSchema.getType())
-                && propSchema.getXKubernetesListType() == XKubeListType.MAP;
+    private boolean useMapDeserializer(SchemaObject root, SchemaObject propSchemaOrRef) {
+        var schema = resolveRef(root, propSchemaOrRef);
+        return List.of(SchemaType.ARRAY).equals(schema.getType())
+                && schema.getXKubernetesListType() == XKubeListType.MAP;
     }
 
     /**
@@ -454,7 +454,7 @@ public class CodeGen {
      * We generate a complete class, without relying on a runtime library.
      * This means we only depend on {@code java.base} and Jackson.
      *
-     * @see #useMapDeserializer(SchemaObject)
+     * @see #useMapDeserializer(SchemaObject, SchemaObject)
      * @see #mkMapSerializer(String, SchemaObject, String, SchemaObject)
      */
     @NonNull
@@ -463,9 +463,9 @@ public class CodeGen {
                                                         String propName,
                                                         SchemaObject propSchema
     ) {
-        SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
-        var mapValueType = genTypeName(pkg, root, arrayItemType);
-        var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
+
+        var mapValueType = genTypeName(pkg, root, propSchema.getItems().get(0));
+        var mapKeyType = genMapKeyType(pkg, root, propSchema, propSchema.getItems().get(0));
         ClassOrInterfaceDeclaration serializerClass = new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false, serializerClassName(propName));
         ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
         serializerClass.addExtendedType(mkGenericType("com.fasterxml.jackson.databind.JsonSerializer",
@@ -496,9 +496,9 @@ public class CodeGen {
                                                           SchemaObject root,
                                                           String propName,
                                                           SchemaObject propSchema) {
-        SchemaObject arrayItemType = resolveRef(root, propSchema.getItems().get(0));
-        var mapValueType = genTypeName(pkg, root, arrayItemType);
-        var mapKeyType = genMapKeyType(pkg, root, propSchema, arrayItemType);
+        var mapValueType = genTypeName(pkg, root, propSchema.getItems().get(0));
+
+        var mapKeyType = genMapKeyType(pkg, root, propSchema, propSchema.getItems().get(0));
         ClassOrInterfaceDeclaration deserializerClass = new ClassOrInterfaceDeclaration(createModifierList(Modifier.Keyword.STATIC), false,
                 deserializerClassName(propName));
         ClassOrInterfaceType mapType = mkGenericType("java.util.Map", mapKeyType, mapValueType);
@@ -541,7 +541,7 @@ public class CodeGen {
                                 new ObjectCreationExpr(null, mkGenericType("java.util.LinkedHashMap", new String[0]), NodeList.nodeList())))), // TODO mapper.readValue
                 new ForEachStmt(new VariableDeclarationExpr(new VarType(), "item"), new NameExpr("list"),
                         new ExpressionStmt(new MethodCallExpr("result.put",
-                                new MethodCallExpr("item." + genMapKeyAccessor(pkg, root, propSchema, arrayItemType)),
+                                new MethodCallExpr("item." + genMapKeyAccessor(pkg, root, propSchema, propSchema.getItems().get(0))),
                                 new NameExpr("item")))),
                 new ReturnStmt(new NameExpr("result")))));
 
@@ -700,8 +700,7 @@ public class CodeGen {
 
         var pl = properties.entrySet().stream()
                 .map(entry -> {
-                    var propSchema = resolveRef(root, entry.getValue());
-                    var propType = genTypeName(pkg, root, propSchema);
+                    var propType = genTypeName(pkg, root, entry.getValue());
                     Parameter parameter = new Parameter(propType, fieldName(entry.getKey()));
                     boolean notNull = isNotNull(schema, entry.getKey());
                     parameter.addAnnotation(mkNullableAnnotation(notNull));
@@ -970,7 +969,7 @@ public class CodeGen {
         methodDeclaration.setModifiers(Modifier.Keyword.PUBLIC);
         methodDeclaration.addAnnotation(mkNullableAnnotation(isNotNull(object, propName)));
         methodDeclaration.addAnnotation(mkAtJsonProperty(propName, required(object, propName)));
-        if (useMapDeserializer(propSchema)) {
+        if (useMapDeserializer(root, propSchema)) {
             methodDeclaration.addAnnotation(mkAtJsonDeserialize(new ClassOrInterfaceType(genTypeName(pkg, root, object), deserializerClassName(propName))));
             methodDeclaration.addAnnotation(mkAtJsonSerialize(new ClassOrInterfaceType(genTypeName(pkg, root, object), serializerClassName(propName))));
         }
@@ -981,14 +980,15 @@ public class CodeGen {
         return methodDeclaration;
     }
 
-    private MethodDeclaration mkPropertyOptMethod(
-                                                  SchemaObject propSchema,
+    private MethodDeclaration mkPropertyOptMethod(SchemaObject root,
+                                                  SchemaObject propSchemaOrRef,
                                                   String propName,
                                                   Type propType,
                                                   boolean required) {
         String getterName = propertyStrategy.optionalAccessorName(propName);
         String fieldName = fieldName(propName);
 
+        var propSchema = resolveRef(root, propSchemaOrRef);
         String description = propSchema.getDescription();
         if (description == null) {
             description = "Return the " + propName + " as an Optional.\n";
@@ -1014,12 +1014,13 @@ public class CodeGen {
         return quoteJavaKeyword(quoteNonIdentifierCharacters(propName));
     }
 
-    private MethodDeclaration mkPropertySetterMethod(SchemaObject object,
-                                                     SchemaObject propSchema,
+    private MethodDeclaration mkPropertySetterMethod(SchemaObject root,
+                                                     SchemaObject object,
+                                                     SchemaObject propSchemaOrRef,
                                                      String propName,
                                                      Type propType) {
         var fieldName = fieldName(propName);
-
+        var propSchema = resolveRef(root, propSchemaOrRef);
         String description = propSchema.getDescription();
         if (description == null) {
             description = "Set the " + propName + ".\n";
@@ -1088,6 +1089,15 @@ public class CodeGen {
         public void enterSchema(SchemaVisitor.Context context, SchemaObject schema) {
             if (schema.getRef() == null) {
                 if (isJunctorChild(context.keyword())) {
+                    return;
+                }
+                if (schema.getType() == null
+                        && schema.getProperties() == null
+                        && schema.getItems() == null
+                        && schema.getAdditionalProperties() == null
+                        && schema.getPatternProperties() == null
+                        && schema.getRequired() == null) {
+                    // It's OK to have a schema just for its definitions, for example
                     return;
                 }
                 // We don't generate code for a ref, on the basis that we've already generated code for it
