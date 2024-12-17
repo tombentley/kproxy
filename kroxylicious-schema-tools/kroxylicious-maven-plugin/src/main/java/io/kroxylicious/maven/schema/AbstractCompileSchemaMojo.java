@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nullable;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -28,7 +28,7 @@ import io.kroxylicious.tools.schema.compiler.RecordPropertyStrategy;
 import io.kroxylicious.tools.schema.compiler.SchemaCompiler;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
 
@@ -62,7 +62,7 @@ public abstract class AbstractCompileSchemaMojo extends AbstractMojo {
             SchemaCompiler schemaCompiler = schemaCompiler();
             var inputs = schemaCompiler.parse();
             inputs.forEach(input -> validate(schemaCompiler.diagnostics, input.schemaPath().toUri(), input.rootSchema()));
-            var units = schemaCompiler.gen(inputs);
+            var units = schemaCompiler.gen(inputs).toList();
             schemaCompiler.write(units);
             if (schemaCompiler.numFatals() > 0) {
                 throw new MojoExecutionException("Schema compilation failed with " + schemaCompiler.numFatals() + " fatal errors.");

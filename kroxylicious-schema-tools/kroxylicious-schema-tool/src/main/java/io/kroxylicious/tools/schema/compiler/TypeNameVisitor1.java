@@ -35,12 +35,15 @@ public class TypeNameVisitor1 extends SchemaVisitor {
     private final String rootClass;
     private final Map<String, String> existingClasses;
     private final Catalog catalog;
+    private final String pkg;
 
     public TypeNameVisitor1(Diagnostics diagnostics,
-                           String rootClass,
-                           Map<String, String> existingClasses,
-                           Catalog catalog) {
+                            String pkg,
+                            String rootClass,
+                            Map<String, String> existingClasses,
+                            Catalog catalog) {
         this.diagnostics = diagnostics;
+        this.pkg = pkg;
         this.rootClass = rootClass;
         this.existingClasses = existingClasses;
         this.catalog = catalog;
@@ -48,14 +51,14 @@ public class TypeNameVisitor1 extends SchemaVisitor {
 
     @Override
     public void enterSchema(
-                           Context context,
-                           @NonNull SchemaObject schema) {
+                            Context context,
+                            @NonNull SchemaObject schema) {
 
         if (schema.getRef() == null) {
             if (generateClassDeclaration(schema)) {
                 // Generate a type model for this schema
                 String name = className(context, schema);
-                TypeModel model = new TypeModel(context.fullPath(), name, List.of());
+                TypeModel model = new TypeModel(context.fullPath(), pkg, name, List.of());
                 schema.setUnknownProperty("$$model", model);
             }
         }
@@ -83,7 +86,7 @@ public class TypeNameVisitor1 extends SchemaVisitor {
         }
         else {
             var nameParts = new ArrayList<String>();
-            var c= context;
+            var c = context;
             boolean singularize = false;
             while (c != null && c.parentSchema() != null) {
                 String keyword = c.keyword();
@@ -156,7 +159,6 @@ public class TypeNameVisitor1 extends SchemaVisitor {
     private static final Pattern PROPS_PATH = Pattern.compile("/(?<keyword>properties|items)/(?<nameOrIndex>[a-zA-Z0-9_-]+)");
     @SuppressWarnings("java:S5860") // sonar fails to detect use of the group name
     private static final Pattern DEFINITIONS_PATTERN = Pattern.compile(".*/definitions/(?<defName>[a-zA-Z0-9_-]+)");
-
 
     public static boolean generateClassDeclaration(SchemaObject schemaObject) {
         return List.of(SchemaType.OBJECT).equals(schemaObject.getType());

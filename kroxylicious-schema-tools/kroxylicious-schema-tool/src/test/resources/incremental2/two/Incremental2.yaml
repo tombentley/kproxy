@@ -1,0 +1,15 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+$schema: http://json-schema.org/draft-04/schema#
+id: https://schema.kroxylicious.io/test/Incremental2.yaml
+description: This schema will later be referenced by another schema in a second run of the compiler
+type: object
+properties:
+  refToRoot:
+    $ref: https://schema.kroxylicious.io/test/Incremental1.yaml#
+  refToDefinition:
+    $ref: https://schema.kroxylicious.io/test/Incremental1.yaml#/definitions/Defn

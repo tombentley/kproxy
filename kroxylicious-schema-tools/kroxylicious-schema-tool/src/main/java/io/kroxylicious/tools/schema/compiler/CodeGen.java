@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -92,9 +93,11 @@ public class CodeGen {
     private final List<TypeAnnotator> typeAnnotators;
     private final List<PropertyAnnotator> propertyAnnotators;
     private final boolean optAccessor;
+    private final Catalog catalog;
 
     public CodeGen(Diagnostics diagnostics,
                    IdVisitor idVisitor,
+                   Catalog catalog,
                    Map<String, String> existingClasses,
                    String nullableAnnotation,
                    String nonNullAnnotation,
@@ -104,6 +107,7 @@ public class CodeGen {
                    List<PropertyAnnotator> propertyAnnotators) {
         this.diagnostics = Objects.requireNonNull(diagnostics);
         this.idVisitor = Objects.requireNonNull(idVisitor);
+        this.catalog = Objects.requireNonNull(catalog);
         this.existingClasses = existingClasses;
         this.propertyStrategy = propertyStrategy;
         this.optAccessor = optAccessor;
@@ -116,11 +120,8 @@ public class CodeGen {
     SchemaObject resolveRef(SchemaObject root, SchemaObject schema) {
         var ref = schema.getRef() == null ? null : URI.create(schema.getRef());
         if (ref != null) {
-            if (ref.isAbsolute()) {
-                diagnostics.reportFatal("Use of an absolute URI in $ref is not supported");
-                return new SchemaObject();
-            }
-            else if ((ref.getPath() == null
+
+            if ((ref.getPath() == null
                     || ref.getPath().isEmpty())
                     && ref.getFragment() != null) {
                 return resolveInternalFragmentRef(root, ref);
@@ -135,10 +136,21 @@ public class CodeGen {
             if (resolved != null) {
                 return resolved;
             }
-            else {
-                diagnostics.reportError("Canot resolve $ref (but $ref not fully supported) {}", ref);
-                return new SchemaObject();
+            var resolved2 = catalog.lookup(sought);
+            if (resolved2 != null) {
+                // TODO this is such a hack! We're constructing a minimal SchemaObject
+                //  from the type model. What we should do is change this method to return a type model
+                //  that would avoid needing to instantiate any SchemaObject and make more explicit the idea
+                //  that refs are models
+                SchemaObject schemaObject = new SchemaObject();
+                schemaObject.setType(List.of(SchemaType.OBJECT));
+                schemaObject.setUnknownProperty("$$model", resolved2);
+                return schemaObject;
             }
+
+            diagnostics.reportError("Cannot resolve $ref (but $ref not fully supported) {}", ref);
+            return new SchemaObject();
+
         }
         else {
             return schema;
@@ -198,10 +210,16 @@ public class CodeGen {
                         yield mkGenericType("java.util.Map", mkType("java.lang.String"),
                                 genTypeName(pkg, root, schema.getAdditionalProperties().getSchemaObject()));
                     }
-                    // TODO or Map or ObjectNode if x-kubernetes-preserve-unknown-keys
-                    String fqName = pkg + "." + className(schema);
-                    String orDefault = existingClasses.getOrDefault(fqName, fqName);
-                    yield mkType(orDefault);
+                    TypeModel typeModel = (TypeModel) schema.getUnknownProperties().get("$$model");
+                    if (typeModel != null) {
+                        yield mkType(typeModel.pkg() + "." + typeModel.classname());
+                    }
+                    else {
+                        // TODO or Map or ObjectNode if x-kubernetes-preserve-unknown-keys
+                        String fqName = pkg + "." + className(schema);
+                        String orDefault = existingClasses.getOrDefault(fqName, fqName);
+                        yield mkType(orDefault);
+                    }
                 }
             };
         }
@@ -274,8 +292,8 @@ public class CodeGen {
         return mkType("code.generation.Error");
     }
 
-    List<CompilationUnit> genDecls(SchemaInput input) {
-        var result = new ArrayList<CompilationUnit>();
+    List<Unit> genDecls(SchemaInput input) {
+        var result = new ArrayList<Unit>();
         // TODO visit the subschemas given them javaType names if they don't have them already.
         // If loaded from URI ending /x or /x.yaml or /X or /X.yaml
         // root schema = X
@@ -292,7 +310,7 @@ public class CodeGen {
      * @param pkg
      * @param schema
      */
-    private @Nullable CompilationUnit genDecl(String pkg, SchemaObject schema, String path, URI base) {
+    private @Nullable Unit genDecl(String pkg, SchemaObject schema, String path, URI base) {
         List<SchemaType> type = schema.getType();
         if (type == null) {
             type = SchemaType.all();
@@ -329,17 +347,18 @@ public class CodeGen {
     Map<String, String> seen = new HashMap<>();
 
     @Nullable
-    private CompilationUnit genClass(String pkg, SchemaObject root, SchemaObject schema, String path) {
+    private Unit genClass(String pkg, SchemaObject root, SchemaObject schema, String path) {
         assert (isTypeGenerated(schema));
-        String name = className(schema);
-        if (existingClasses.containsKey(pkg + "." + name)) {
+        final var model = model(schema);
+        final String className = model.classname();
+        if (existingClasses.containsKey(pkg + "." + className)) {
             return null;
         }
-        String oldPath = seen.put(name, path);
+        String oldPath = seen.put(className, path);
         if (oldPath != null) {
             diagnostics.reportFatal(
                     "Already generated {} when visited {}, now trying to generate it again when visiting {}",
-                    name,
+                    className,
                     oldPath,
                     path);
         }
@@ -349,7 +368,7 @@ public class CodeGen {
         CompilationUnit cu = new CompilationUnit();
         cu.setPackageDeclaration(new PackageDeclaration(new Name(pkg)));
 
-        ClassOrInterfaceDeclaration clz = cu.addClass(name,
+        ClassOrInterfaceDeclaration clz = cu.addClass(className,
                 Modifier.Keyword.PUBLIC);
         String classDescription = schema.getDescription();
         if (classDescription == null) {
@@ -421,13 +440,13 @@ public class CodeGen {
         }
 
         // toString
-        clz.addMember(mkToStringMethod(schema));
+        clz.addMember(mkToStringMethod(className, schema));
         // hashCode
         clz.addMember(mkHashCodeMethod(schema));
         // equals
-        clz.addMember(mkEqualsMethod(pkg, schema));
+        clz.addMember(mkEqualsMethod(pkg, className, schema));
 
-        return cu;
+        return new Unit(URI.create(root.getId()), cu, model);
     }
 
     /**
@@ -461,8 +480,7 @@ public class CodeGen {
     private ClassOrInterfaceDeclaration mkMapSerializer(String pkg,
                                                         SchemaObject root,
                                                         String propName,
-                                                        SchemaObject propSchema
-    ) {
+                                                        SchemaObject propSchema) {
 
         var mapValueType = genTypeName(pkg, root, propSchema.getItems().get(0));
         var mapKeyType = genMapKeyType(pkg, root, propSchema, propSchema.getItems().get(0));
@@ -739,23 +757,25 @@ public class CodeGen {
     }
 
     @NonNull
-    private static String className(SchemaObject schema) {
+    private static TypeModel model(SchemaObject schema) {
         if (schema.getUnknownProperties().get("$$model") != null) {
-            return ((TypeModel) schema.getUnknownProperties().get("$$model")).classname();
+            return ((TypeModel) schema.getUnknownProperties().get("$$model"));
         }
         else {
             throw new IllegalStateException("Schema lacks a $$model");
         }
     }
 
-    private static MethodDeclaration mkToStringMethod(SchemaObject schema) {
-        String name = className(schema);
-        Map<String, SchemaObject> properties = properties(schema);
+    @NonNull
+    private static String className(SchemaObject schema) {
+        return model(schema).classname();
+    }
+
+    private static MethodDeclaration mkToStringMethod(String name, SchemaObject schema) {
         Expression expr = new StringLiteralExpr(name + "[");
         boolean first = true;
 
-        for (var entry : properties.entrySet()) {
-            String propName = entry.getKey();
+        for (String propName : Optional.ofNullable(schema.getProperties()).orElse(Map.of()).keySet()) {
             StringLiteralExpr x;
             if (first) {
                 x = new StringLiteralExpr(propName + ": ");
@@ -788,10 +808,8 @@ public class CodeGen {
     }
 
     private static MethodDeclaration mkHashCodeMethod(SchemaObject schema) {
-        Map<String, SchemaObject> properties = properties(schema);
         NodeList<Expression> args = new NodeList<>();
-        for (var entry : properties.entrySet()) {
-            String propName = entry.getKey();
+        for (String propName : Optional.ofNullable(schema.getProperties()).orElse(Map.of()).keySet()) {
             args.add(new FieldAccessExpr(new ThisExpr(), fieldName(propName)));
         }
         if (additionalPropertiesNotFalse(schema)) {
@@ -811,39 +829,29 @@ public class CodeGen {
 
     private static MethodDeclaration mkEqualsMethod(
                                                     String pkg,
+                                                    String className,
                                                     SchemaObject schema) {
-        String className = className(schema);
-        var properties = properties(schema).entrySet().stream().map(entry -> Map.entry(fieldName(entry.getKey()), entry.getValue()))
-                .collect(Collectors.toCollection(ArrayList::new));
-        if (additionalPropertiesNotFalse(schema)) {
-            properties.add(Map.entry(UNKNOWN_PROPERTIES_FIELD_NAME, new SchemaObject()));
-        }
+        var fieldNames = properties(schema).keySet().stream()
+                .map(CodeGen::fieldName)
+                .toList();
 
         String otherParamName = "other";
         String narrowedOtherName = otherParamName + className;
-        Expression expr;
-        if (properties.isEmpty()) {
-            expr = new BooleanLiteralExpr(true);
-        }
-        else {
+        Expression expr = null;
+        if (!fieldNames.isEmpty()) {
             Expression operand = null;
-            for (var entry : properties) {
-                String fieldName = entry.getKey();
-                MethodCallExpr call = new MethodCallExpr("java.util.Objects.equals")
-                        .setArguments(new NodeList<>(
-                                new FieldAccessExpr(new ThisExpr(), fieldName),
-                                new FieldAccessExpr(new NameExpr(narrowedOtherName), fieldName)));
-                if (operand == null) {
-                    operand = call;
-                }
-                else {
-                    operand = new BinaryExpr(
-                            operand,
-                            call,
-                            BinaryExpr.Operator.AND);
-                }
+            for (String fieldName : fieldNames) {
+                operand = getExpression(fieldName, narrowedOtherName, operand);
             }
             expr = operand;
+        }
+
+        if (additionalPropertiesNotFalse(schema)) {
+            expr = getExpression(UNKNOWN_PROPERTIES_FIELD_NAME, narrowedOtherName, expr);
+        }
+
+        if (expr == null) {
+            expr = new BooleanLiteralExpr(true);
         }
 
         var stmt = new IfStmt(new BinaryExpr(
@@ -867,6 +875,24 @@ public class CodeGen {
         methodDeclaration.setBody(new BlockStmt(new NodeList<>(stmt)));
         return methodDeclaration;
 
+    }
+
+    @NonNull
+    private static Expression getExpression(String fieldName, String narrowedOtherName, Expression operand) {
+        MethodCallExpr call = new MethodCallExpr("java.util.Objects.equals")
+                .setArguments(new NodeList<>(
+                        new FieldAccessExpr(new ThisExpr(), fieldName),
+                        new FieldAccessExpr(new NameExpr(narrowedOtherName), fieldName)));
+        if (operand == null) {
+            operand = call;
+        }
+        else {
+            operand = new BinaryExpr(
+                    operand,
+                    call,
+                    BinaryExpr.Operator.AND);
+        }
+        return operand;
     }
 
     @NonNull
@@ -988,7 +1014,7 @@ public class CodeGen {
         String getterName = propertyStrategy.optionalAccessorName(propName);
         String fieldName = fieldName(propName);
 
-        var propSchema = resolveRef(root, propSchemaOrRef);
+        SchemaObject propSchema = resolveRef(root, propSchemaOrRef);
         String description = propSchema.getDescription();
         if (description == null) {
             description = "Return the " + propName + " as an Optional.\n";
@@ -1020,7 +1046,7 @@ public class CodeGen {
                                                      String propName,
                                                      Type propType) {
         var fieldName = fieldName(propName);
-        var propSchema = resolveRef(root, propSchemaOrRef);
+        SchemaObject propSchema = resolveRef(root, propSchemaOrRef);
         String description = propSchema.getDescription();
         if (description == null) {
             description = "Set the " + propName + ".\n";
@@ -1074,15 +1100,22 @@ public class CodeGen {
         };
     }
 
+    record Unit(
+                URI schemaUri,
+                CompilationUnit compilationUnit,
+                TypeModel typeModel) {
+
+    }
+
     private class CodeGenVisitor extends SchemaVisitor {
         private final SchemaInput input;
-        private final ArrayList<CompilationUnit> result;
+        private final List<Unit> units;
 
         CodeGenVisitor(
                        SchemaInput input,
-                       ArrayList<CompilationUnit> result) {
+                       List<Unit> units) {
             this.input = input;
-            this.result = result;
+            this.units = units;
         }
 
         @Override
@@ -1103,9 +1136,9 @@ public class CodeGen {
                 // We don't generate code for a ref, on the basis that we've already generated code for it
                 // (e.g. when we visited the schemas in /definitions).
                 // This means even if multiple refs point to the same thing, that thing should only get code gen'd once.
-                CompilationUnit value = genDecl(input.pkg(), schema, context.fullPath(), context.base());
-                if (value != null) {
-                    result.add(value);
+                Unit unit = genDecl(input.pkg(), schema, context.fullPath(), context.base());
+                if (unit != null) {
+                    units.add(unit);
                 }
             }
         }

@@ -6,11 +6,12 @@
 
 package io.kroxylicious.tools.schema.compiler;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
-
-import java.util.List;
 
 /**
  * Persistent record mapping a subschema (identified by pointer) to its corresponding Java class name
@@ -26,13 +27,14 @@ import java.util.List;
  * @param properties Mapping from schema property name to Java accessor method name.
  */
 public record TypeModel(
-        String pointer,
-        @JsonProperty("class") String classname,
-        List<PropertyModel> properties
-) {
+                        String pointer,
+                        @JsonProperty("package") String pkg,
+                        @JsonProperty("class") String classname,
+                        List<PropertyModel> properties) {
 
-    public static final TypeModel UNKNOWN = new TypeModel(null, null, null);
+    public static final TypeModel UNKNOWN = new TypeModel(null, null, null, null);
 
+    @JsonIgnore
     public String getDescription() {
         return "";
     }
@@ -44,8 +46,7 @@ public record TypeModel(
     record PropertyModel(
                          String propertyName,
                          String type,
-                         String accessorName
-                         ) {
+                         String accessorName) {
 
     }
 }

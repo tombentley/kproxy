@@ -22,7 +22,7 @@ public record SchemaInput(
                           String pkg,
                           SchemaObject rootSchema) {
     void visitSchemas(Diagnostics diagnostics, SchemaVisitor visitor) {
-    rootSchema.visitSchemas(diagnostics, schemaPath().toUri(), visitor);
+        rootSchema.visitSchemas(diagnostics, schemaPath().toUri(), visitor);
     }
 
 }

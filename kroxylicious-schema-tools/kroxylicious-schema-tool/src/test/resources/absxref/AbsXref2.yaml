@@ -1,0 +1,13 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+$schema: http://json-schema.org/draft-04/schema#
+id: https://schema.kroxylicious.io/test/AbsXref2.yaml
+description: Xref via absolution URIs between resources in the same run of the compiler
+type: object
+properties:
+  one:
+    $ref: https://schema.kroxylicious.io/test/AbsXref.yaml#

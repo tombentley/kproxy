@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,10 +26,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
 import org.assertj.core.api.Condition;
@@ -40,6 +43,7 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.expr.AnnotationExpr;
@@ -65,6 +69,7 @@ class CodeGenTest {
         Diagnostics diagnostics = new Diagnostics();
         codeGen = new CodeGen(diagnostics,
                 new IdVisitor(),
+                new Catalog(new JsonMapper(), null),
                 Map.of(),
                 "edu.umd.cs.findbugs.annotations.Nullable",
                 "edu.umd.cs.findbugs.annotations.NonNull",
@@ -117,7 +122,7 @@ class CodeGenTest {
         assertGeneratedCodeMatches(srcdir, typeAnnotators, propertyAnnotators);
         // Then assert that the expected files can be compiled with a java compiler
         // Because `generated == expected` this means the generated must be legal java source code
-        compileJavaFilesBeneath(srcdir.getParent());
+        compileJavaFilesBeneath(srcdir.getParent(), List.of());
         javadocJavaFilesBeneath(srcdir.getParent());
 
     }
@@ -166,36 +171,18 @@ class CodeGenTest {
 
     private static SchemaCompiler parseDiagnostics(String dir) throws IOException {
         File src = new File(dir);
-        Path path = new File("src/test/resources").toPath();
-        SchemaCompiler schemaCompiler = new SchemaCompiler(
-                List.of(path),
-                Files.createTempDirectory(CodeGenTest.class.getName()),
-                List.of(),
-                List.of(path.relativize(src.toPath()).toString().replace("/", ".")),
-                null,
-                Map.of(),
-                List.of(),
-                new RecordPropertyStrategy(),
-                false,
-                List.of());
+        SchemaCompiler schemaCompiler = makeCompiler(
+                Path.of("src/test/resources"),
+                src.toPath(), List.of(), List.of(), List.of());
         schemaCompiler.parse();
         return schemaCompiler;
     }
 
     private static SchemaCompiler genDiagnostics(String dir) throws IOException {
         File src = new File(dir);
-        Path path = new File("src/test/resources").toPath();
-        SchemaCompiler schemaCompiler = new SchemaCompiler(
-                List.of(path),
-                Files.createTempDirectory(CodeGenTest.class.getName()),
-                List.of(),
-                List.of(path.relativize(src.toPath()).toString().replace("/", ".")),
-                null,
-                Map.of(),
-                List.of(),
-                new RecordPropertyStrategy(),
-                false,
-                List.of());
+        SchemaCompiler schemaCompiler = makeCompiler(
+                Path.of("src/test/resources"),
+                src.toPath(), List.of(), List.of(), List.of());
         List<SchemaInput> parse = schemaCompiler.parse();
         assertThat(schemaCompiler.diagnostics.getNumFatals()).isZero();
         assertThat(schemaCompiler.diagnostics.getNumErrors()).isZero();
@@ -211,15 +198,16 @@ class CodeGenTest {
 
     private static void assertGeneratedCodeMatches(Path src,
                                                    List<TypeAnnotator> typeAnnotators,
-                                                   List<PropertyAnnotator> propertyAnnotators) throws IOException {
-        var units = generate(src, typeAnnotators, propertyAnnotators);
+                                                   List<PropertyAnnotator> propertyAnnotators)
+            throws IOException {
+        var units = generate(src, List.of(), typeAnnotators, propertyAnnotators);
 
         compare(src, units);
 
     }
 
-    private static void compare(Path src, List<CompilationUnit> units) {
-        Map<String, List<CompilationUnit>> collect = units.stream().collect(Collectors.groupingBy(SchemaCompiler::javaFileName));
+    private static void compare(Path src, List<CodeGen.Unit> units) {
+        Map<String, List<CompilationUnit>> collect = units.stream().map(CodeGen.Unit::compilationUnit).collect(Collectors.groupingBy(SchemaCompiler::javaFileName));
         assertThat(collect).hasKeySatisfying(new Condition<>(
                 filename -> filename.matches("[A-Z][a-zA-Z0-9_$]*\\.java"),
                 "Valid .java filename"));
@@ -250,19 +238,13 @@ class CodeGenTest {
     }
 
     @NonNull
-    private static List<CompilationUnit> generate(Path src, List<TypeAnnotator> typeAnnotators, List<PropertyAnnotator> propertyAnnotators) throws IOException {
-        Path path = new File("src/test/resources").toPath();
-        SchemaCompiler schemaCompiler = new SchemaCompiler(
-                List.of(path),
-                Files.createTempDirectory(CodeGenTest.class.getName()),
-                List.of(),
-                List.of(path.relativize(src).toString().replace("/", ".")),
-                null,
-                Map.of(),
-                typeAnnotators,
-                new RecordPropertyStrategy(),
-                false,
-                propertyAnnotators);
+    private static List<CodeGen.Unit> generate(Path src,
+                                               List<Path> classpath,
+                                               List<TypeAnnotator> typeAnnotators,
+                                               List<PropertyAnnotator> propertyAnnotators) throws IOException {
+
+        SchemaCompiler schemaCompiler = makeCompiler(Path.of("src/test/resources"),
+                src, classpath, typeAnnotators, propertyAnnotators);
         List<SchemaInput> parse = schemaCompiler.parse();
         var units = schemaCompiler.gen(parse).toList();
 
@@ -272,22 +254,51 @@ class CodeGenTest {
         return units;
     }
 
+    @NonNull
+    private static SchemaCompiler makeCompiler(Path srcDir,
+                                               Path src,
+                                               List<Path> classpath,
+                                               List<TypeAnnotator> typeAnnotators,
+                                               List<PropertyAnnotator> propertyAnnotators)
+            throws IOException {
+        SchemaCompiler schemaCompiler = new SchemaCompiler(
+                List.of(srcDir),
+                Files.createTempDirectory(CodeGenTest.class.getName()),
+                classpath,
+                List.of(srcDir.relativize(src).toString().replace("/", ".")),
+                null,
+                Map.of(),
+                typeAnnotators,
+                new RecordPropertyStrategy(),
+                false,
+                propertyAnnotators);
+        return schemaCompiler;
+    }
+
     /**
      * Compile the *.java files found beneath the given path.
      * Throw away the generated .class files
      * @param path
      * @throws IOException
      */
-    private static Path compileJavaFilesBeneath(Path path) throws IOException {
+    private static Path compileJavaFilesBeneath(Path path, List<? extends Path> classpath) throws IOException {
         var outputDir = Files.createTempDirectory(CodeGenTest.class.getSimpleName());
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         DiagnosticCollector<JavaFileObject> diagnosticListener = new DiagnosticCollector<>();
         try (var fileManager = compiler.getStandardFileManager(diagnosticListener, null, null)) {
+            // _Add_ to the existing classpath (which is based on the JVM's classpath), rather than
+            // constructing a classpath from scratch
+            var cp = Stream.concat(StreamSupport.stream(fileManager.getLocationAsPaths(StandardLocation.CLASS_PATH).spliterator(), false), classpath.stream())
+                    .toList();
+            fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, cp);
+
             Iterable<? extends JavaFileObject> compilationUnits1 = fileManager.getJavaFileObjectsFromPaths(javaFilesBeneath(path));
             Boolean call = compiler.getTask(null,
                     fileManager,
                     diagnosticListener,
-                    List.of("-d", outputDir.toString(), "-proc:none", "-Werror", "-Xlint:all"),
+                    List.of(
+                            "-d", outputDir.toString(),
+                            "-proc:none", "-Werror", "-Xlint:all"),
                     null,
                     compilationUnits1).call();
             assertThat(diagnosticListener.getDiagnostics())
@@ -314,9 +325,9 @@ class CodeGenTest {
             var out = new StringWriter();
             Boolean call = docTool.getTask(out, fileManager, null, null, List.of("-Xdoclint:all", "-Werror", "-public", "-d", outputDir.toString()), compilationUnits1)
                     .call();
-            if (Boolean.FALSE.equals(call)) {
-                System.err.println(out);
-            }
+            // if (Boolean.FALSE.equals(call)) {
+            // System.err.println(out);
+            // }
             assertThat(
                     call)
                     .describedAs("The javadoc should be processed without errors")
@@ -351,6 +362,7 @@ class CodeGenTest {
                 "src/test/resources/anonymous",
                 "src/test/resources/trickynaming",
                 "src/test/resources/xref",
+                "src/test/resources/absxref",
                 "src/test/resources/recursiveref",
                 "src/test/resources/rootisref",
                 "src/test/resources/junctor",
@@ -358,27 +370,56 @@ class CodeGenTest {
 
                     var result = Stream.<DynamicNode> builder();
 
-                    List<CompilationUnit> compilationUnits = new ArrayList();
+                    List<CodeGen.Unit> units = new ArrayList();
                     AtomicReference<Path> srcDirRef = new AtomicReference<>();
                     AtomicReference<Path> classDirRef = new AtomicReference<>();
 
                     result.add(DynamicTest.dynamicTest("generate(" + srcdir + ")", () -> {
-                        List<CompilationUnit> generate = generate(srcdir, List.of(), List.of());
+                        List<CodeGen.Unit> generate = generate(srcdir, List.of(), List.of(), List.of());
                         assertThat(generate).describedAs("Expected generate step to return some CUs").isNotEmpty();
-                        compilationUnits.addAll(generate);
+                        units.addAll(generate);
                     }));
 
                     result.add(DynamicTest.dynamicTest("compare(generate(" + srcdir + "))", () -> {
-                        assumeThat(compilationUnits).isNotEmpty();
-                        compare(srcdir, compilationUnits);
+                        assumeThat(units).isNotEmpty();
+                        compare(srcdir, units);
+                    }));
+
+                    result.add(DynamicTest.dynamicTest("compare(model(" + srcdir + "))", () -> {
+                        assumeThat(units).isNotEmpty();
+                        var c = new Catalog(new JsonMapper(), null);
+                        // Write the models of the units
+                        Path tempDirectory = Files.createTempDirectory(CodeGenTest.class.getName());
+                        units.stream().collect(Collectors.groupingBy(CodeGen.Unit::schemaUri))
+                                .forEach((uri, models) -> {
+                                    try {
+                                        c.writeTypeDecls(uri,
+                                                models.stream().map(CodeGen.Unit::typeModel).toList(),
+                                                tempDirectory);
+                                    }
+                                    catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                });
+                        // Compare them
+                        // Files.walk(tempDirectory).forEach(path -> {
+                        // if (Files.isRegularFile(path)) {
+                        // try {
+                        // System.out.println(Files.readString(path));
+                        // }
+                        // catch (IOException e) {
+                        // throw new RuntimeException(e);
+                        // }
+                        // }
+                        // });
                     }));
 
                     result.add(DynamicTest.dynamicTest("write generated source", () -> {
-                        assumeThat(compilationUnits).isNotEmpty();
+                        assumeThat(units).isNotEmpty();
                         Path tmpSrcDir = null;
 
                         var dir = Files.createTempDirectory(CodeGenTest.class.getName());
-                        for (var cu : compilationUnits) {
+                        for (var cu : units.stream().map(CodeGen.Unit::compilationUnit).toList()) {
                             var srcFile = Files.createDirectories(dir.resolve(cu.getPackageDeclaration().get().getNameAsString().replace(".", "/")));
                             Path resolve = srcFile.resolve(cu.getTypes().get(0).getNameAsString() + ".java");
                             Files.writeString(resolve, cu.toString());
@@ -393,9 +434,8 @@ class CodeGenTest {
 
                     result.add(DynamicTest.dynamicTest("javac(generate(" + srcdir + "))", () -> {
                         assumeThat(srcDirRef.get()).isNotNull();
-                        classDirRef.set(compileJavaFilesBeneath(srcDirRef.get()));
+                        classDirRef.set(compileJavaFilesBeneath(srcDirRef.get(), List.of()));
                     }));
-
 
                     result.add(DynamicContainer.dynamicContainer("generatedCode(" + srcdir + "))", () -> {
                         var pattern = Pattern.compile("instance-([A-Za-z0-9]*)\\.yaml");
@@ -406,8 +446,8 @@ class CodeGenTest {
                                     new SimpleFileVisitor<Path>() {
                                         @Override
                                         public FileVisitResult visitFile(
-                                                Path file,
-                                                BasicFileAttributes attrs)
+                                                                         Path file,
+                                                                         BasicFileAttributes attrs)
                                                 throws IOException {
                                             Matcher matcher = pattern.matcher(file.getFileName().toString());
                                             if (matcher.matches()) {
@@ -415,7 +455,7 @@ class CodeGenTest {
                                                 tests.add(DynamicTest.dynamicTest("generated code works for instance " + file, () -> {
                                                     assumeThat(classDirRef.get()).isNotNull();
                                                     f(classDirRef.get(), file,
-                                                            compilationUnits.get(0).getPackageDeclaration().get().getName().asString() + "." + matcher.group(1));
+                                                            units.get(0).compilationUnit().getPackageDeclaration().get().getName().asString() + "." + matcher.group(1));
                                                 }));
                                             }
                                             return FileVisitResult.CONTINUE;
@@ -484,6 +524,47 @@ class CodeGenTest {
                                 return List.of(new SingleMemberAnnotationExpr(new Name("customannotations.Custom"), new StringLiteralExpr("mutatorParameter")));
                             }
                         }));
+    }
+
+    @Test
+    void incremental() throws IOException {
+
+        // Compile incremental1
+        SchemaCompiler schemaCompiler = makeCompiler(Path.of("src/test/resources/incremental1"),
+                Path.of("src/test/resources/incremental1/one"),
+                List.of(),
+                List.of(),
+                List.of());
+        List<SchemaInput> parse = schemaCompiler.parse();
+        var units = schemaCompiler.gen(parse).toList();
+        schemaCompiler.write(units);
+
+        assertThat(schemaCompiler.diagnostics.getNumFatals()).describedAs("Expect 0 fatal errors").isZero();
+        assertThat(schemaCompiler.diagnostics.getNumErrors()).describedAs("Expect 0 errors").isZero();
+        assertThat(schemaCompiler.diagnostics.getNumWarnings()).describedAs("Expect 0 warnings").isZero();
+
+        var classes1 = compileJavaFilesBeneath(schemaCompiler.dst(), List.of());
+
+        // Then compile incremental2, which references incremental2
+        var schemaCompiler2 = makeCompiler(Path.of("src/test/resources/incremental2"),
+                Path.of("src/test/resources/incremental2/two"),
+                List.of(schemaCompiler.dst()),
+                List.of(),
+                List.of());
+        List<SchemaInput> parse2 = schemaCompiler2.parse();
+        var units2 = schemaCompiler2.gen(parse2).toList();
+        schemaCompiler2.write(units2);
+
+        assertThat(schemaCompiler2.diagnostics.getNumFatals()).describedAs("Expect 0 fatal errors").isZero();
+        assertThat(schemaCompiler2.diagnostics.getNumErrors()).describedAs("Expect 0 errors").isZero();
+        assertThat(schemaCompiler2.diagnostics.getNumWarnings()).describedAs("Expect 0 warnings").isZero();
+
+        compileJavaFilesBeneath(schemaCompiler2.dst(), List.of(classes1));
+
+        // TODO We need to test multiple $ref:
+        //  1: compile a schema (which might be ea type: string, rather than a type: object)
+        //  2: compile a schema that is just a $ref to 1
+        //  3: compile a schema that includes a $ref to 2.
     }
 
     @ParameterizedTest

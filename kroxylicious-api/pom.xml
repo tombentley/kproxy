@@ -77,6 +77,24 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>io.kroxylicious</groupId>
+                <artifactId>kroxylicious-schema-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-config-model</id>
+                        <goals>
+                            <goal>compile-schema</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <failOnWarnings>true</failOnWarnings>
+                            <headerFile>../etc/license.txt</headerFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>

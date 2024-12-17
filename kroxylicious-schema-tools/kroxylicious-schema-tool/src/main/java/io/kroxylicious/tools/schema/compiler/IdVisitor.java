@@ -63,9 +63,8 @@ public class IdVisitor extends SchemaVisitor {
 
     @Override
     public void exitSchema(
-            Context context,
-            @NonNull SchemaObject schema
-    ) {
+                           Context context,
+                           @NonNull SchemaObject schema) {
         if (context.isRootSchema()) {
             this.rootId = null;
         }
@@ -138,7 +137,7 @@ public class IdVisitor extends SchemaVisitor {
         index(context, resolve(base, "#" + context.fullPath()), subSchema);
         if (this.rootId != null) {
             index(context, resolve(this.rootId, "#" + context.fullPath()), subSchema);
-            }
+        }
     }
 
     private void index(SchemaVisitor.Context context, URI base, @NonNull SchemaObject schema) {
@@ -155,7 +154,9 @@ public class IdVisitor extends SchemaVisitor {
     @Override
     public String toString() {
         return "IdVisitor{" + System.lineSeparator() + "  " +
-                idIndex.entrySet().stream().map(entry -> entry.getKey() + " --> " + entry.getValue()).collect(Collectors.joining(System.lineSeparator() + "  ", "", System.lineSeparator())) +
+                idIndex.entrySet().stream().map(entry -> entry.getKey() + " --> " + entry.getValue())
+                        .collect(Collectors.joining(System.lineSeparator() + "  ", "", System.lineSeparator()))
+                +
                 '}';
     }
 }

@@ -51,7 +51,7 @@ public class ResolveVisitor extends SchemaVisitor {
             if (resolvedSchemaObject == null) {
                 // TODO cope with not-yet-loaded refs
 
-                var typeModel= catalog.lookup(resolvedRef);
+                var typeModel = catalog.lookup(resolvedRef);
                 if (typeModel == null) {
                     diagnostics.reportError("{}: Unable to resolve $ref: {}", context.base(), ref);
                     schema.setUnknownProperty("$$model", TypeModel.UNKNOWN);

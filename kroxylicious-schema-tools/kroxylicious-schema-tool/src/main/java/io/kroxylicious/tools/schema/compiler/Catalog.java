@@ -42,9 +42,8 @@ public class Catalog {
     private final List<Path> classpath;
 
     public Catalog(
-            ObjectMapper mapper,
-            List<Path> classpath
-    ) {
+                   ObjectMapper mapper,
+                   List<Path> classpath) {
         // We want to guarantee that we write JSON (not YAML)
         this.mapper = new JsonMapper(mapper.getFactory());
         this.classpath = classpath;
@@ -163,8 +162,6 @@ public class Catalog {
      * @param typeModels The decls
      */
     record CompilerInfo(
-            int version,
-            List<TypeModel> typeModels
-    ) {
-    }
+                        int version,
+                        List<TypeModel> typeModels) {}
 }

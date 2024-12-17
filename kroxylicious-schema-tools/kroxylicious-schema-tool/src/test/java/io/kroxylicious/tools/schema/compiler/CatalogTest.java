@@ -6,14 +6,14 @@
 
 package io.kroxylicious.tools.schema.compiler;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
-
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,34 +37,47 @@ class CatalogTest {
 
         // When
         catalog.writeTypeDecls(exampleCom,
-                List.of(new TypeModel("", "com.example.pkg.Root", List.of()),
-                        new TypeModel("/definitions/Foo", "com.example.pkg.Foo", List.of()),
-                        new TypeModel("/definitions/Bar", "com.example.pkg.Bar", List.of())),
+                List.of(new TypeModel("", "com.example.pkg", "Root", List.of()),
+                        new TypeModel("/definitions/Foo", "com.example.pkg", "Foo", List.of()),
+                        new TypeModel("/definitions/Bar", "com.example.pkg", "Bar", List.of())),
                 classpath);
         catalog.writeTypeDecls(exampleOrg,
-                List.of(new TypeModel("", "org.example.whatever.Root", List.of()),
-                        new TypeModel("/definitions/Foo", "org.example.whatever.Foo", List.of()),
-                        new TypeModel("/definitions/Bar", "org.example.whatever.Bar", List.of())),
+                List.of(new TypeModel("", "org.example.whatever", "Root", List.of()),
+                        new TypeModel("/definitions/Foo", "org.example.whatever", "Foo", List.of()),
+                        new TypeModel("/definitions/Bar", "org.example.whatever", "Bar", List.of())),
                 classpath);
 
         // Then
         var readCatalog = new Catalog(mapper, List.of(classpath));
         assertThat(readCatalog.lookup(exampleComRoot).classname())
-                .isEqualTo("com.example.pkg.Root");
+                .isEqualTo("Root");
+        assertThat(readCatalog.lookup(exampleComRoot).pkg())
+                .isEqualTo("com.example.pkg");
         assertThat(readCatalog.lookup(exampleComFoo).classname())
-                .isEqualTo("com.example.pkg.Foo");
+                .isEqualTo("Foo");
+        assertThat(readCatalog.lookup(exampleComFoo).pkg())
+                .isEqualTo("com.example.pkg");
         assertThat(readCatalog.lookup(exampleComBar).classname())
-                .isEqualTo("com.example.pkg.Bar");
+                .isEqualTo("Bar");
+        assertThat(readCatalog.lookup(exampleComBar).pkg())
+                .isEqualTo("com.example.pkg");
 
         assertThat(readCatalog.lookup(exampleOrgRoot).classname())
-                .isEqualTo("org.example.whatever.Root");
+                .isEqualTo("Root");
+        assertThat(readCatalog.lookup(exampleOrgRoot).pkg())
+                .isEqualTo("org.example.whatever");
         assertThat(readCatalog.lookup(exampleOrgFoo).classname())
-                .isEqualTo("org.example.whatever.Foo");
+                .isEqualTo("Foo");
+        assertThat(readCatalog.lookup(exampleOrgFoo).pkg())
+                .isEqualTo("org.example.whatever");
         assertThat(readCatalog.lookup(exampleOrgBar).classname())
-                .isEqualTo("org.example.whatever.Bar");
+                .isEqualTo("Bar");
+        assertThat(readCatalog.lookup(exampleOrgBar).pkg())
+                .isEqualTo("org.example.whatever");
     }
 
-    @Test void shouldRejectRelativeUri() throws IOException {
+    @Test
+    void shouldRejectRelativeUri() throws IOException {
         // Given
         var mapper = new JsonMapper();
         var classpath = Files.createTempDirectory(CatalogTest.class.getName());
@@ -72,10 +85,9 @@ class CatalogTest {
         URI exampleCom = URI.create("schema");
 
         // When
-        assertThatThrownBy(() ->
-                catalog.writeTypeDecls(exampleCom,
-                        List.of(),
-                        classpath))
+        assertThatThrownBy(() -> catalog.writeTypeDecls(exampleCom,
+                List.of(),
+                classpath))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

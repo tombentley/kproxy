@@ -9,6 +9,7 @@ package io.kroxylicious.tools.schema.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -81,6 +82,7 @@ public class SchemaCompiler {
         this.idVisitor = new IdVisitor();
         this.codeGen = new CodeGen(diagnostics,
                 idVisitor,
+                catalog,
                 existingClasses,
                 "edu.umd.cs.findbugs.annotations.Nullable",
                 "edu.umd.cs.findbugs.annotations.NonNull",
@@ -88,6 +90,10 @@ public class SchemaCompiler {
                 propertyStrategy,
                 optAccessor,
                 propertyAnnotators);
+    }
+
+    public Path dst() {
+        return dst;
     }
 
     @NonNull
@@ -170,7 +176,6 @@ public class SchemaCompiler {
             // Build the map of absolute URI identifiers to schema
             schemaInput.visitSchemas(diagnostics, idVisitor);
 
-
             return Stream.of(schemaInput);
         }
         catch (IOException | IllegalArgumentException | VisitorException e) {
@@ -185,7 +190,7 @@ public class SchemaCompiler {
      * <p>Precondition: the id phase has executed on all the inputs</p>
      * <p>Postcondition: After this phase is complete all external $ref nodes will have a type model</p>
      */
-    private Stream<SchemaInput> resolve(SchemaInput  input) {
+    private Stream<SchemaInput> resolve(SchemaInput input) {
         var resolveVisitor = new ResolveVisitor(diagnostics, idVisitor, catalog);
         input.visitSchemas(diagnostics, resolveVisitor);
         return Stream.of(input);
@@ -198,10 +203,10 @@ public class SchemaCompiler {
      * <p>Postcondition: After this phase is complete all non-$ref nodes that will have a class declaration generated
      * will have a type model</p>
      */
-    private Stream<SchemaInput> type(SchemaInput  input) {
+    private Stream<SchemaInput> type(SchemaInput input) {
         // We should now be able to resolve local $ref
         String rootClass = input.schemaPath().getFileName().toString().replaceAll("\\.yaml$", "");
-        var typeNameVisitor = new TypeNameVisitor1(diagnostics, rootClass, existingClasses, catalog);
+        var typeNameVisitor = new TypeNameVisitor1(diagnostics, input.pkg(), rootClass, existingClasses, catalog);
         input.visitSchemas(diagnostics, typeNameVisitor);
 
         if (input.pkg().isEmpty()) {
@@ -216,7 +221,7 @@ public class SchemaCompiler {
      *
      * <p>Precondition: the typing has executed on all the inputs</p>
      */
-    public Stream<CompilationUnit> gen(List<SchemaInput> inputs) {
+    public Stream<CodeGen.Unit> gen(List<SchemaInput> inputs) {
 
         return inputs.stream()
                 .flatMap(input -> {
@@ -234,35 +239,53 @@ public class SchemaCompiler {
     /**
      * Write the generated code to files, assuming the gen phase has executed
      */
-    public void write(Stream<CompilationUnit> units) {
+    public void write(List<CodeGen.Unit> units) {
 
-        units.forEach(compilationUnit -> {
-            String pkg = packageName(compilationUnit);
-            String dirname = pkg.replace(".", File.separator);
-            Path parent = dst.resolve(dirname);
-            String javaFileName = javaFileName(compilationUnit);
-            Path javaFile = parent.resolve(javaFileName);
+        units.forEach(unit -> {
+            writeCompilationUnit(unit.compilationUnit());
 
+        });
+        Map<URI, List<CodeGen.Unit>> collect = units.stream().collect(Collectors.groupingBy(CodeGen.Unit::schemaUri));
+        collect.forEach((schemaUri, typeModels) -> {
             try {
-                Files.createDirectories(parent);
+                diagnostics.debug("Writing schema models for {} to {}", schemaUri, dst);
+                catalog.writeTypeDecls(schemaUri,
+                        typeModels.stream().map(CodeGen.Unit::typeModel).toList(),
+                        dst);
             }
             catch (IOException e) {
-                diagnostics.reportFatal("Unable to create dst directory {}", parent, e);
-            }
-
-            try {
-                if (header != null) {
-                    Files.writeString(javaFile, header);
-                    Files.writeString(javaFile, compilationUnit.toString(), StandardOpenOption.APPEND);
-                }
-                else {
-                    Files.writeString(javaFile, compilationUnit.toString());
-                }
-            }
-            catch (IOException e) {
-                diagnostics.reportFatal("Unable to write output java file {}", javaFile, e);
+                diagnostics.reportError("Error writing models", e);
             }
         });
+
+    }
+
+    private void writeCompilationUnit(CompilationUnit compilationUnit) {
+        String pkg = packageName(compilationUnit);
+        String dirname = pkg.replace(".", File.separator);
+        Path parent = dst.resolve(dirname);
+        String javaFileName = javaFileName(compilationUnit);
+        Path javaFile = parent.resolve(javaFileName);
+
+        try {
+            Files.createDirectories(parent);
+        }
+        catch (IOException e) {
+            diagnostics.reportFatal("Unable to create dst directory {}", parent, e);
+        }
+
+        try {
+            if (header != null) {
+                Files.writeString(javaFile, header);
+                Files.writeString(javaFile, compilationUnit.toString(), StandardOpenOption.APPEND);
+            }
+            else {
+                Files.writeString(javaFile, compilationUnit.toString());
+            }
+        }
+        catch (IOException e) {
+            diagnostics.reportFatal("Unable to write output java file {}", javaFile, e);
+        }
     }
 
     public int numFatals() {
