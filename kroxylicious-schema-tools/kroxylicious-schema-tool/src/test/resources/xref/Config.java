@@ -68,7 +68,8 @@ public class Config {
     }
 
     /**
-     * Specification of a password
+     * Return the accessKey.
+     *
      * @return The value of this object's accessKey.
      */
     @edu.umd.cs.findbugs.annotations.Nullable
@@ -86,7 +87,8 @@ public class Config {
     }
 
     /**
-     * Specification of a password
+     * Return the secretKey.
+     *
      * @return The value of this object's secretKey.
      */
     @edu.umd.cs.findbugs.annotations.Nullable

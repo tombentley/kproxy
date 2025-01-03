@@ -31,6 +31,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 
+import io.kroxylicious.tools.schema.model.SchemaKeyword;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.VisitorException;
 
@@ -153,7 +154,7 @@ public class SchemaCompiler {
             LOGGER.debug("Parsing {}", schemaFile);
             var tree = mapper.readTree(schemaFile.toFile());
 
-            JsonNode schemaKeywordNode = tree.path("$schema");
+            JsonNode schemaKeywordNode = tree.path(SchemaKeyword.SCHEMA);
             if (schemaKeywordNode.isMissingNode()) {
                 diagnostics.reportWarning("Ignoring non-schema file: {}", schemaFile);
                 return Stream.empty();

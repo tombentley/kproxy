@@ -39,9 +39,9 @@ public class PluginValidatorVisitor extends SchemaVisitor {
     }
 
     @Override
-    public void enterSchema(
-                            Context context,
-                            @NonNull SchemaObject schema) {
+    public VisitAction enterSchema(
+                                   Context context,
+                                   @NonNull SchemaObject schema) {
         if (schema.getItems() != null && schema.getItems().size() > 1) {
             context.reportError("`items` at path '{}' must not be an array", context.fullPath());
         }
@@ -97,6 +97,7 @@ public class PluginValidatorVisitor extends SchemaVisitor {
         // TODO default
         // TODO format
         // TODO nullable
+        return VisitAction.CONTINUE;
     }
 
     private static void checkWithinJunctor(Context context,

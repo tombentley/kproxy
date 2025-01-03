@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kroxylicious.tools.schema.model.SchemaKeyword;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
 
@@ -49,9 +50,9 @@ public class IdVisitor extends SchemaVisitor {
     // URI of a schema to use.
 
     @Override
-    public void enterSchema(
-                            SchemaVisitor.Context context,
-                            @NonNull SchemaObject schema) {
+    public VisitAction enterSchema(
+                                   Context context,
+                                   @NonNull SchemaObject schema) {
         if (context.isRootSchema()) {
             indexRootSchema(context, schema);
         }
@@ -59,6 +60,7 @@ public class IdVisitor extends SchemaVisitor {
             // a subschema
             indexSubschema(context, schema);
         }
+        return VisitAction.CONTINUE;
     }
 
     @Override
@@ -80,20 +82,24 @@ public class IdVisitor extends SchemaVisitor {
         var rootId = rootSchema.getId() != null ? URI.create(rootSchema.getId()) : null;
         if (rootId == null) {
             context.reportWarning(
-                    "Root schema of a document should contain an 'id' with an absolute URI, but 'id' is absent: {}",
+                    "Root schema of a document should contain an '{}' with an absolute URI, but '{}' is absent: {}",
+                    SchemaKeyword.ID,
+                    SchemaKeyword.ID,
                     base);
         }
         else {
             if (rootId.getFragment() != null) {
                 context.reportError(
-                        "Root schema of a document loaded from {} should contain an 'id' with an absolute URI without a fragment, but 'id' ({}) has a fragment",
+                        "Root schema of a document loaded from {} should contain an '{}' with an absolute URI without a fragment, but '{}' has a fragment",
                         base,
+                        SchemaKeyword.ID,
                         rootId);
             }
             else if (!rootId.isAbsolute()) {
                 context.reportError(
-                        "Root schema of a document loaded from {} should contain an 'id' with an absolute URI without a fragment, but 'id' ({}) is not absolute.",
+                        "Root schema of a document loaded from {} should contain an '{}' with an absolute URI without a fragment, but '{}' is not absolute.",
                         base,
+                        SchemaKeyword.ID,
                         rootId);
             }
             else if (!rootId.equals(base)) {
@@ -117,7 +123,10 @@ public class IdVisitor extends SchemaVisitor {
             // letters, digits ([0-9]), hyphens ("-"), underscores ("_"), colons
             // (":"), or periods (".").
             if (!SUBSCHEMA_ID_PATTERN.matcher(id).matches()) {
-                context.reportError("Invalid subschema 'id', must match " + SUBSCHEMA_ID_PATTERN.pattern() + ": " + id);
+                context.reportError("Invalid subschema '{}', must match {}: {}",
+                        SchemaKeyword.ID,
+                        SUBSCHEMA_ID_PATTERN.pattern(),
+                        id);
             }
             else {
                 index(context, resolve(base, id), subSchema);

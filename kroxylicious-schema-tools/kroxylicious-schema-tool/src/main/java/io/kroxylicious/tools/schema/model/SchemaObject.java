@@ -607,23 +607,27 @@ public final class SchemaObject {
                                      SchemaObject schemaObject,
                                      @NonNull SchemaVisitor visitor)
             throws VisitorException {
+
+        SchemaVisitor.VisitAction action;
         try {
-            visitor.enterSchema(context, schemaObject);
+            action = visitor.enterSchema(context, schemaObject);
         }
         catch (Exception e) {
             throw new VisitorException(
                     visitor.getClass().getName() + "#enterSchema() threw exception while visiting schema object at '" + context.fullPath() + "' from " + context.base(),
                     e);
         }
-        visitSchemaMap(context, visitor, schemaObject, schemaObject.definitions, "definitions");
-        visitSchemaMap(context, visitor, schemaObject, schemaObject.properties, "properties");
-        visitSchemaArray(context, visitor, schemaObject, schemaObject.items, "items");
-        visitSchemaArray(context, visitor, schemaObject, schemaObject.oneOf, "oneOf");
-        visitSchemaArray(context, visitor, schemaObject, schemaObject.allOf, "allOf");
-        visitSchemaArray(context, visitor, schemaObject, schemaObject.anyOf, "anyOf");
-        if (schemaObject.not != null) {
-            String path1 = "not";
-            visitSchemas(context.sub("not", path1, schemaObject), schemaObject.not, visitor);
+        if (action == SchemaVisitor.VisitAction.CONTINUE) {
+            visitSchemaMap(context, visitor, schemaObject, schemaObject.definitions, "definitions");
+            visitSchemaMap(context, visitor, schemaObject, schemaObject.properties, "properties");
+            visitSchemaArray(context, visitor, schemaObject, schemaObject.items, "items");
+            visitSchemaArray(context, visitor, schemaObject, schemaObject.oneOf, "oneOf");
+            visitSchemaArray(context, visitor, schemaObject, schemaObject.allOf, "allOf");
+            visitSchemaArray(context, visitor, schemaObject, schemaObject.anyOf, "anyOf");
+            if (schemaObject.not != null) {
+                String path1 = "not";
+                visitSchemas(context.sub("not", path1, schemaObject), schemaObject.not, visitor);
+            }
         }
         try {
             visitor.exitSchema(context, schemaObject);

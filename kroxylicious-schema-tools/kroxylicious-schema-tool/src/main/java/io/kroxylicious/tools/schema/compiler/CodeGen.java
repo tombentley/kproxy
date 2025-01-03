@@ -69,6 +69,7 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.type.VarType;
 import com.github.javaparser.ast.type.VoidType;
 
+import io.kroxylicious.tools.schema.model.SchemaKeyword;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaType;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
@@ -139,16 +140,16 @@ public class CodeGen {
             var resolved2 = catalog.lookup(sought);
             if (resolved2 != null) {
                 // TODO this is such a hack! We're constructing a minimal SchemaObject
-                //  from the type model. What we should do is change this method to return a type model
-                //  that would avoid needing to instantiate any SchemaObject and make more explicit the idea
-                //  that refs are models
+                // from the type model. What we should do is change this method to return a type model
+                // that would avoid needing to instantiate any SchemaObject and make more explicit the idea
+                // that refs are models
                 SchemaObject schemaObject = new SchemaObject();
                 schemaObject.setType(List.of(SchemaType.OBJECT));
                 schemaObject.setUnknownProperty("$$model", resolved2);
                 return schemaObject;
             }
 
-            diagnostics.reportError("Cannot resolve $ref (but $ref not fully supported) {}", ref);
+            diagnostics.reportError("Cannot resolve " + SchemaKeyword.REF + " (but " + SchemaKeyword.REF + " not fully supported) {}", ref);
             return new SchemaObject();
 
         }
@@ -159,19 +160,20 @@ public class CodeGen {
 
     @NonNull
     private SchemaObject resolveInternalFragmentRef(SchemaObject root, URI ref) {
-        if (ref.getFragment().startsWith("/definitions/")) {
+        String defsPath = "/" + SchemaKeyword.DEFINITIONS + "/";
+        if (ref.getFragment().startsWith(defsPath)) {
             Map<String, SchemaObject> defs = root.getDefinitions();
             if (defs != null) {
-                String name = ref.getFragment().substring("/definitions/".length());
+                String name = ref.getFragment().substring(defsPath.length());
                 SchemaObject object = defs.get(name);
                 if (object != null) {
                     return object;
                 }
             }
-            diagnostics.reportFatal("Couldn't resolve $ref " + ref);
+            diagnostics.reportFatal("Couldn't resolve " + SchemaKeyword.REF + ": " + ref);
             return new SchemaObject();
         }
-        diagnostics.reportFatal("$ref not fully supported");
+        diagnostics.reportFatal(SchemaKeyword.REF + "not fully supported");
         return new SchemaObject();
     }
 
@@ -245,7 +247,7 @@ public class CodeGen {
                     itemType);
         }
         else {
-            diagnostics.reportError("Unsupported 'x-kubernetes-list-type': " + xKubeListType);
+            diagnostics.reportError("Unsupported '" + SchemaKeyword.LIST_TYPE + "': " + xKubeListType);
             return genErrorType();
         }
     }
@@ -256,13 +258,13 @@ public class CodeGen {
         Type keyType;
         if (keyPropertyNames == null
                 || keyPropertyNames.isEmpty()) {
-            diagnostics.reportError("'x-kubernetes-list-map-keys' property is required when 'x-kubernetes-list-type: map'");
+            diagnostics.reportError("'" + SchemaKeyword.LIST_MAP_KEYS + "' property is required when '" + SchemaKeyword.LIST_TYPE + " : map'");
             // Use some type so we can keep going, even though the Java won't compile
             keyType = genErrorType();
         }
         else if (keyPropertyNames.size() > 1) {
             // x-kubernetes-list-map-keys=['foo', 'bar'] should result in an inner class to represent the compound key
-            diagnostics.reportError("'x-kubernetes-list-map-keys' property with multiple values is not yet supported");
+            diagnostics.reportError("'" + SchemaKeyword.LIST_MAP_KEYS + "' property with multiple values is not yet supported");
             // Use some type so we can keep going, even though the Java won't compile
             keyType = genErrorType();
         }
@@ -1119,10 +1121,10 @@ public class CodeGen {
         }
 
         @Override
-        public void enterSchema(SchemaVisitor.Context context, SchemaObject schema) {
+        public VisitAction enterSchema(Context context, SchemaObject schema) {
             if (schema.getRef() == null) {
                 if (isJunctorChild(context.keyword())) {
-                    return;
+                    return VisitAction.SKIP_SUBTREE;
                 }
                 if (schema.getType() == null
                         && schema.getProperties() == null
@@ -1131,7 +1133,7 @@ public class CodeGen {
                         && schema.getPatternProperties() == null
                         && schema.getRequired() == null) {
                     // It's OK to have a schema just for its definitions, for example
-                    return;
+                    return VisitAction.CONTINUE;
                 }
                 // We don't generate code for a ref, on the basis that we've already generated code for it
                 // (e.g. when we visited the schemas in /definitions).
@@ -1141,6 +1143,7 @@ public class CodeGen {
                     units.add(unit);
                 }
             }
+            return VisitAction.CONTINUE;
         }
 
         /**
@@ -1149,10 +1152,10 @@ public class CodeGen {
          * @return true the schema at this path is a child of a logical junctor
          */
         private boolean isJunctorChild(String keyword) {
-            return "oneOf".equals(keyword)
-                    || "allOf".equals(keyword)
-                    || "anyOf".equals(keyword)
-                    || "not".equals(keyword);
+            return SchemaKeyword.ONE_OF.equals(keyword)
+                    || SchemaKeyword.ALL_OF.equals(keyword)
+                    || SchemaKeyword.ANY_OF.equals(keyword)
+                    || SchemaKeyword.NOT.equals(keyword);
 
         }
     }

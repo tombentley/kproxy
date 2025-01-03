@@ -10,6 +10,7 @@ description: Common TLS configuration
 type: object
 properties:
   key:
+    description: a key provider that provides the certificate/key used to identify this peer.
     type: object
     properties:
       privateKeyFile:
@@ -32,20 +33,61 @@ properties:
           and PEM (for X-509 certificates express in PEM format).
         type: string
     oneOf:
-      - required:
+      - $javaType: KeyPair
+        required:
           - privateKeyFile
           - certificateFile
         not:
           properties:
             storeFile:
-              additionalProperties: true
-      - required:
+              type: string
+      - $javaType: KeyStore
+        required:
           - storeFile
         not:
           properties:
             privateKeyFile:
-              additionalProperties: true
+              type: string
             certificateFile:
-              additionalProperties: true
+              type: string
   trust:
+    description: a trust provider used by this peer to determine whether to trust the peer. If omitted platform trust is used instead.
     type: object
+    properties:
+      storeFile:
+        description: |
+          location of a key store, or reference to a PEM file containing both private-key/certificate/intermediates.
+        type: string
+      storePassword:
+        $ref: "https://schema.kroxylicious.io/io.kroxylicious.proxy.config.secret/PasswordProvider#"
+      storeType:
+        description: |
+          specifies the server key type. Legal values are those types supported by the platform {@link java.security.KeyStore},
+          and PEM (for X-509 certificates express in PEM format).
+        type: string
+      insecure:
+        description: |
+          Allows the disabling trust verification.
+          **Not recommended for production use.**
+          When true, trust is disabled.  
+          When false, platform trust is used.
+        type: boolean
+    oneOf:
+      - $javaType: TrustStore
+        required:
+          - storeFile
+        not:
+          properties:
+            insecure:
+              type: boolean
+      - $javaType: InsecureTls
+        required:
+          - insecure
+        not:
+          properties:
+            storeFile:
+              type: string
+            storePassword:
+              $ref: "https://schema.kroxylicious.io/io.kroxylicious.proxy.config.secret/PasswordProvider#"
+            storeType:
+              type: string

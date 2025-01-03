@@ -38,7 +38,8 @@ public class Xref {
     }
 
     /**
-     * A class with scalar properties
+     * Return the myBoolean.
+     *
      * @return The value of this object's myBoolean.
      */
     @edu.umd.cs.findbugs.annotations.Nullable
@@ -56,7 +57,8 @@ public class Xref {
     }
 
     /**
-     * A class with scalar properties
+     * Return the myList.
+     *
      * @return The value of this object's myList.
      */
     @edu.umd.cs.findbugs.annotations.Nullable
@@ -74,7 +76,8 @@ public class Xref {
     }
 
     /**
-     * A class with scalar properties
+     * Return the myObject.
+     *
      * @return The value of this object's myObject.
      */
     @edu.umd.cs.findbugs.annotations.Nullable

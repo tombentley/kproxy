@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import io.kroxylicious.tools.schema.model.SchemaKeyword;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaType;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
@@ -50,9 +51,9 @@ public class TypeNameVisitor1 extends SchemaVisitor {
     }
 
     @Override
-    public void enterSchema(
-                            Context context,
-                            @NonNull SchemaObject schema) {
+    public VisitAction enterSchema(
+                                   Context context,
+                                   @NonNull SchemaObject schema) {
 
         if (schema.getRef() == null) {
             if (generateClassDeclaration(schema)) {
@@ -62,6 +63,7 @@ public class TypeNameVisitor1 extends SchemaVisitor {
                 schema.setUnknownProperty("$$model", model);
             }
         }
+        return VisitAction.CONTINUE;
     }
 
     private String className(Context context, @NonNull SchemaObject schema) {
@@ -81,7 +83,7 @@ public class TypeNameVisitor1 extends SchemaVisitor {
     private String generateTypeName(Context context) {
         var path = context.fullPath();
         final String name;
-        if ("definitions".equals(context.keyword())) {
+        if (SchemaKeyword.DEFINITIONS.equals(context.keyword())) {
             name = generateTypeNameForDefinition(context);
         }
         else {
@@ -90,7 +92,7 @@ public class TypeNameVisitor1 extends SchemaVisitor {
             boolean singularize = false;
             while (c != null && c.parentSchema() != null) {
                 String keyword = c.keyword();
-                if ("properties".equals(keyword)) {
+                if (SchemaKeyword.PROPERTIES.equals(keyword)) {
                     var d = initialCaps(c.fullPath().substring(c.fullPath().lastIndexOf("/") + 1));
                     if (singularize) {
                         d = singularize(d);
@@ -103,7 +105,7 @@ public class TypeNameVisitor1 extends SchemaVisitor {
                         break;
                     }
                 }
-                else if ("items".equals(keyword)) {
+                else if (SchemaKeyword.ITEMS.equals(keyword)) {
                     singularize = true;
                 }
                 c = c.parent();

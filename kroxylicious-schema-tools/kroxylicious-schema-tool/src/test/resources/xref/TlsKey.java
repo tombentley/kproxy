@@ -107,7 +107,8 @@ public class TlsKey {
     }
 
     /**
-     * Specification of a password
+     * Return the storePassword.
+     *
      * @return The value of this object's storePassword.
      */
     @edu.umd.cs.findbugs.annotations.Nullable
@@ -125,7 +126,8 @@ public class TlsKey {
     }
 
     /**
-     * Specification of a password
+     * Return the keyPassword.
+     *
      * @return The value of this object's keyPassword.
      */
     @edu.umd.cs.findbugs.annotations.Nullable

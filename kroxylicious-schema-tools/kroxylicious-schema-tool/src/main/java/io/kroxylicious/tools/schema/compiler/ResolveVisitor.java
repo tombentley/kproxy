@@ -8,6 +8,7 @@ package io.kroxylicious.tools.schema.compiler;
 
 import java.net.URI;
 
+import io.kroxylicious.tools.schema.model.SchemaKeyword;
 import io.kroxylicious.tools.schema.model.SchemaObject;
 import io.kroxylicious.tools.schema.model.SchemaVisitor;
 
@@ -37,9 +38,9 @@ public class ResolveVisitor extends SchemaVisitor {
     }
 
     @Override
-    public void enterSchema(
-                            Context context,
-                            @NonNull SchemaObject schema) {
+    public VisitAction enterSchema(
+                                   Context context,
+                                   @NonNull SchemaObject schema) {
         String ref = schema.getRef();
         if (ref != null) {
             // TODO validate that the other fields are not set
@@ -53,7 +54,7 @@ public class ResolveVisitor extends SchemaVisitor {
 
                 var typeModel = catalog.lookup(resolvedRef);
                 if (typeModel == null) {
-                    diagnostics.reportError("{}: Unable to resolve $ref: {}", context.base(), ref);
+                    diagnostics.reportError("{}: Unable to resolve " + SchemaKeyword.REF + ": {}", context.base(), ref);
                     schema.setUnknownProperty("$$model", TypeModel.UNKNOWN);
                 }
                 else {
@@ -64,6 +65,7 @@ public class ResolveVisitor extends SchemaVisitor {
             }
             // TODO check for infinite recursion, both direct and indirect
         }
+        return VisitAction.CONTINUE;
     }
 
 }

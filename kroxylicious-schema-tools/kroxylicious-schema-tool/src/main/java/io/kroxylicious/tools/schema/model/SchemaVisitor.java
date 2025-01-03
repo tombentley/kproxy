@@ -137,8 +137,14 @@ public class SchemaVisitor {
         }
     }
 
-    public void enterSchema(Context context, @NonNull SchemaObject schema) {
+    public enum VisitAction {
+        CONTINUE,
+        SKIP_SUBTREE
+    }
+
+    public VisitAction enterSchema(Context context, @NonNull SchemaObject schema) {
         // default behaviour is no-op
+        return VisitAction.CONTINUE;
     }
 
     public void exitSchema(Context context, @NonNull SchemaObject schema) {

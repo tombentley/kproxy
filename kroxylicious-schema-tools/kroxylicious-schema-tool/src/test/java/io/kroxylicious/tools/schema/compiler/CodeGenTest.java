@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,21 +88,6 @@ class CodeGenTest {
     SchemaObject stringArrayListSchema = new SchemaObjectBuilder().withType(SchemaType.ARRAY).withItems(stringSchema).build();
     SchemaObject integerArrayListSchema = new SchemaObjectBuilder().withType(SchemaType.ARRAY).withItems(integerSchema).build();
     SchemaObject stringArraySetSchema = new SchemaObjectBuilder(stringArrayListSchema).withXKubernetesListType(XKubeListType.SET).build();
-
-    @Test
-    void genTypeName() {
-        String pkg = "foo";
-        assertThat(codeGen.genTypeName(pkg, null, emptyTypes)).hasToString("java.lang.Object");
-        assertThat(codeGen.genTypeName(pkg, null, nullSchema)).hasToString("java.lang.Object");
-        assertThat(codeGen.genTypeName(pkg, null, booleanSchema)).hasToString("java.lang.Boolean");
-        assertThat(codeGen.genTypeName(pkg, null, stringSchema)).hasToString("java.lang.String");
-        assertThat(codeGen.genTypeName(pkg, null, integerSchema)).hasToString("java.lang.Long");
-        assertThat(codeGen.genTypeName(pkg, null, numberSchema)).hasToString("java.lang.Double");
-        assertThat(codeGen.genTypeName(pkg, null, stringArrayListSchema)).hasToString("java.util.List<java.lang.String>");
-        assertThat(codeGen.genTypeName(pkg, null, integerArrayListSchema)).hasToString("java.util.List<java.lang.Long>");
-        assertThat(codeGen.genTypeName(pkg, null, stringArraySetSchema)).hasToString("java.util.Set<java.lang.String>");
-        assertThat(codeGen.genTypeName(pkg, null, emptyObjectSchema)).hasToString("foo.EmptyObject");
-    }
 
     private static final String HEADER = """
             /*
@@ -241,7 +225,8 @@ class CodeGenTest {
     private static List<CodeGen.Unit> generate(Path src,
                                                List<Path> classpath,
                                                List<TypeAnnotator> typeAnnotators,
-                                               List<PropertyAnnotator> propertyAnnotators) throws IOException {
+                                               List<PropertyAnnotator> propertyAnnotators)
+            throws IOException {
 
         SchemaCompiler schemaCompiler = makeCompiler(Path.of("src/test/resources"),
                 src, classpath, typeAnnotators, propertyAnnotators);
@@ -562,9 +547,9 @@ class CodeGenTest {
         compileJavaFilesBeneath(schemaCompiler2.dst(), List.of(classes1));
 
         // TODO We need to test multiple $ref:
-        //  1: compile a schema (which might be ea type: string, rather than a type: object)
-        //  2: compile a schema that is just a $ref to 1
-        //  3: compile a schema that includes a $ref to 2.
+        // 1: compile a schema (which might be ea type: string, rather than a type: object)
+        // 2: compile a schema that is just a $ref to 1
+        // 3: compile a schema that includes a $ref to 2.
     }
 
     @ParameterizedTest
@@ -586,8 +571,8 @@ class CodeGenTest {
         String pathname = "src/test/resources/uniontype";
         assertThat(genDiagnostics(pathname))
                 .satisfies(schemaCompiler -> {
-                    assertThat(schemaCompiler.numFatals()).isEqualTo(1);
-                    assertThat(schemaCompiler.numErrors()).isZero();
+                    assertThat(schemaCompiler.numFatals()).isZero();
+                    assertThat(schemaCompiler.numErrors()).isEqualTo(1);
                     assertThat(schemaCompiler.numWarnings()).isZero();
                 });
     }

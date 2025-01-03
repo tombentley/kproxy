@@ -11,7 +11,7 @@ package absxref;
  */
 @javax.annotation.processing.Generated("io.kroxylicious.tools.schema.compiler.CodeGen")
 @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-@com.fasterxml.jackson.annotation.JsonPropertyOrder({ "incremental2/two" })
+@com.fasterxml.jackson.annotation.JsonPropertyOrder({ "two" })
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.fasterxml.jackson.databind.JsonDeserializer.None.class)
 public class AbsXref {
 
@@ -26,7 +26,7 @@ public class AbsXref {
      * @param two The value of the {@code two} property. This is an optional property.
      */
     @com.fasterxml.jackson.annotation.JsonCreator
-    public AbsXref(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "incremental2/two") absxref.AbsXref2 two) {
+    public AbsXref(@edu.umd.cs.findbugs.annotations.Nullable @com.fasterxml.jackson.annotation.JsonProperty(value = "two") absxref.AbsXref2 two) {
         this.two = two;
     }
 
@@ -36,7 +36,7 @@ public class AbsXref {
      * @return The value of this object's two.
      */
     @edu.umd.cs.findbugs.annotations.Nullable
-    @com.fasterxml.jackson.annotation.JsonProperty(value = "incremental2/two")
+    @com.fasterxml.jackson.annotation.JsonProperty(value = "two")
     public absxref.AbsXref2 two() {
         return this.two;
     }

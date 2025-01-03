@@ -129,14 +129,15 @@ class SchemaObjectTest {
         }
 
         @Override
-        public void enterSchema(
-                                Context context,
-                                @NonNull SchemaObject schema) {
-            super.enterSchema(context, schema);
+        public VisitAction enterSchema(
+                                       Context context,
+                                       @NonNull SchemaObject schema) {
+            var action = super.enterSchema(context, schema);
             contextsPreorder.add(context);
             if (context.fullPath().equals(pathWhichThrows)) {
                 throw new RuntimeException();
             }
+            return action;
         }
 
         @Override

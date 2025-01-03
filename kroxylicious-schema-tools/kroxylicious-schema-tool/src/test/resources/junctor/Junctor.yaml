@@ -60,4 +60,4 @@ properties:
     not:
       properties:
         baz:
-          type: boolean
+          additionalProperties: false
