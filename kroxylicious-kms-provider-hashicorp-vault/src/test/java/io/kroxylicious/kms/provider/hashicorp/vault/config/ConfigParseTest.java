@@ -12,6 +12,8 @@ import java.nio.file.Files;
 
 import javax.net.ssl.SSLContext;
 
+import io.kroxylicious.proxy.config.secret.SecretUtils;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +40,7 @@ class ConfigParseTest {
                 }
                 """;
         Config config = readConfig(json);
-        assertThat(config.vaultToken().getProvidedPassword()).isEqualTo("token");
+        assertThat(SecretUtils.getProvidedPassword(config.vaultToken())).isEqualTo("token");
         assertThat(config.vaultTransitEngineUrl()).isEqualTo(URI.create("http://vault"));
     }
 
@@ -56,7 +58,7 @@ class ConfigParseTest {
                     }
                     """.formatted(tmp);
             Config config = readConfig(json);
-            assertThat(config.vaultToken().getProvidedPassword()).isEqualTo("token");
+            assertThat(SecretUtils.getProvidedPassword(config.vaultToken())).isEqualTo("token");
             assertThat(config.vaultTransitEngineUrl()).isEqualTo(URI.create("http://vault"));
         }
         finally {

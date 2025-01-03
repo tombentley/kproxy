@@ -54,7 +54,7 @@ class FilePasswordTest {
         Files.writeString(file.toPath(), input);
         var provider = providerFunc.apply(file.getAbsolutePath());
         assertThat(provider)
-                .extracting(PasswordProvider::getProvidedPassword)
+                .extracting(SecretUtils::getProvidedPassword)
                 .isEqualTo(expected);
     }
 
@@ -74,7 +74,7 @@ class FilePasswordTest {
 
         String path = file.getAbsolutePath();
         var provider = new FilePassword(file.getAbsolutePath());
-        assertThatThrownBy(provider::getProvidedPassword)
+        assertThatThrownBy(() -> SecretUtils.getProvidedPassword(provider))
                 .hasMessageContaining(path)
                 .hasRootCauseInstanceOf(FileNotFoundException.class);
     }

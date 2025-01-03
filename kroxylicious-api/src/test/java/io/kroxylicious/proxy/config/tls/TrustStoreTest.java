@@ -18,22 +18,22 @@ class TrustStoreTest {
     @Test
     void testTypeDefaultsToPlatformDefault() {
         TrustStore store = new TrustStore("/tmp/store", null, null);
-        assertThat(store.getType()).isEqualTo(KeyStore.getDefaultType().toUpperCase(Locale.ROOT));
-        assertThat(store.isPemType()).isFalse();
+        assertThat(TlsUtils.getType(store)).isEqualTo(KeyStore.getDefaultType().toUpperCase(Locale.ROOT));
+        assertThat(TlsUtils.isPemType(store)).isFalse();
     }
 
     @Test
     void testSpecifyingStoreType() {
         TrustStore store = new TrustStore("/tmp/store", null, "PKCS12");
-        assertThat(store.getType()).isEqualTo("PKCS12");
-        assertThat(store.isPemType()).isFalse();
+        assertThat(TlsUtils.getType(store)).isEqualTo("PKCS12");
+        assertThat(TlsUtils.isPemType(store)).isFalse();
     }
 
     @Test
     void testPemType() {
         TrustStore store = new TrustStore("/tmp/store", null, "PEM");
-        assertThat(store.getType()).isEqualTo("PEM");
-        assertThat(store.isPemType()).isTrue();
+        assertThat(TlsUtils.getType(store)).isEqualTo("PEM");
+        assertThat(TlsUtils.isPemType(store)).isTrue();
     }
 
     @Test

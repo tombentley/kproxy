@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import io.kroxylicious.proxy.config.secret.SecretUtils;
+
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -459,7 +461,7 @@ class ConfigParserTest {
                 .isInstanceOf(KeyStore.class)
                 .asInstanceOf(InstanceOfAssertFactories.type(KeyStore.class))
                 .extracting(KeyStore::storePasswordProvider)
-                .extracting(PasswordProvider::getProvidedPassword)
+                .extracting(SecretUtils::getProvidedPassword)
                 .isEqualTo(password);
 
     }

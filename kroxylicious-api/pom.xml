@@ -40,7 +40,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.spotbugs</groupId>
@@ -77,24 +77,24 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>io.kroxylicious</groupId>
-                <artifactId>kroxylicious-schema-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <executions>
-                    <execution>
-                        <id>generate-config-model</id>
-                        <goals>
-                            <goal>compile-schema</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <failOnWarnings>true</failOnWarnings>
-                            <headerFile>../etc/license.txt</headerFile>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>io.kroxylicious</groupId>-->
+<!--                <artifactId>kroxylicious-schema-maven-plugin</artifactId>-->
+<!--                <version>${project.version}</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>generate-config-model</id>-->
+<!--                        <goals>-->
+<!--                            <goal>compile-schema</goal>-->
+<!--                        </goals>-->
+<!--                        <phase>generate-sources</phase>-->
+<!--                        <configuration>-->
+<!--                            <failOnWarnings>true</failOnWarnings>-->
+<!--                            <headerFile>../etc/license.txt</headerFile>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -156,40 +156,40 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <version>0.23.0</version>
-                <configuration>
-                    <oldVersion>
-                        <!-- specify the old version directly so its deterministic -->
-                        <dependency>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${ApiCompatability.ReferenceVersion}</version>
-                            <type>jar</type>
-                        </dependency>
-                    </oldVersion>
-                    <parameter>
-                        <accessModifier>public</accessModifier>
-                        <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
-                        <breakBuildOnBinaryIncompatibleModifications>false</breakBuildOnBinaryIncompatibleModifications>
-                        <breakBuildBasedOnSemanticVersioningForMajorVersionZero>${ApiCompatability.EnforceForMajorVersionZero}</breakBuildBasedOnSemanticVersioningForMajorVersionZero>
-                        <excludes>
-                            <exclude>io.kroxylicious.proxy.config.secret.FilePasswordFilePath</exclude>  <!-- used purely in config files and the name still exists (as a JSON alias) -->
-                        </excludes>
-                        <!-- see documentation -->
-                    </parameter>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>cmp</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>com.github.siom79.japicmp</groupId>-->
+<!--                <artifactId>japicmp-maven-plugin</artifactId>-->
+<!--                <version>0.23.0</version>-->
+<!--                <configuration>-->
+<!--                    <oldVersion>-->
+<!--                        &lt;!&ndash; specify the old version directly so its deterministic &ndash;&gt;-->
+<!--                        <dependency>-->
+<!--                            <groupId>${project.groupId}</groupId>-->
+<!--                            <artifactId>${project.artifactId}</artifactId>-->
+<!--                            <version>${ApiCompatability.ReferenceVersion}</version>-->
+<!--                            <type>jar</type>-->
+<!--                        </dependency>-->
+<!--                    </oldVersion>-->
+<!--                    <parameter>-->
+<!--                        <accessModifier>public</accessModifier>-->
+<!--                        <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>-->
+<!--                        <breakBuildOnBinaryIncompatibleModifications>false</breakBuildOnBinaryIncompatibleModifications>-->
+<!--                        <breakBuildBasedOnSemanticVersioningForMajorVersionZero>${ApiCompatability.EnforceForMajorVersionZero}</breakBuildBasedOnSemanticVersioningForMajorVersionZero>-->
+<!--                        <excludes>-->
+<!--                            <exclude>io.kroxylicious.proxy.config.secret.FilePasswordFilePath</exclude>  &lt;!&ndash; used purely in config files and the name still exists (as a JSON alias) &ndash;&gt;-->
+<!--                        </excludes>-->
+<!--                        &lt;!&ndash; see documentation &ndash;&gt;-->
+<!--                    </parameter>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>cmp</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>

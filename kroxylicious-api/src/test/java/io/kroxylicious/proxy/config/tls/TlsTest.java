@@ -27,13 +27,13 @@ class TlsTest {
     @Test
     void testKeyDefined() {
         Tls tls = new Tls(new KeyPair("/tmp/key", "/tmp/cert", null), null);
-        assertThat(tls.definesKey()).isTrue();
+        assertThat(Tls.definesKey(tls)).isTrue();
     }
 
     @Test
     void testKeyNotDefined() {
         Tls tls = new Tls(null, null);
-        assertThat(tls.definesKey()).isFalse();
+        assertThat(Tls.definesKey(tls)).isFalse();
     }
 
 }

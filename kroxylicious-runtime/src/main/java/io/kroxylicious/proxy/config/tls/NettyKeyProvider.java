@@ -14,6 +14,8 @@ import java.util.Optional;
 
 import javax.net.ssl.KeyManagerFactory;
 
+import io.kroxylicious.proxy.config.secret.SecretUtils;
+
 import io.netty.handler.ssl.SslContextBuilder;
 
 import io.kroxylicious.proxy.config.secret.PasswordProvider;
@@ -49,7 +51,7 @@ public class NettyKeyProvider {
             public SslContextBuilder visit(KeyPair keyPair) {
                 try {
                     return a.keyManager(new File(keyPair.certificateFile()), new File(keyPair.privateKeyFile()),
-                            Optional.ofNullable(keyPair.keyPasswordProvider()).map(PasswordProvider::getProvidedPassword).orElse(null));
+                            Optional.ofNullable(keyPair.keyPasswordProvider()).map(SecretUtils::getProvidedPassword).orElse(null));
                 }
                 catch (Exception e) {
                     throw new SslContextBuildException("Error building SSLContext for KeyPair: " + keyPair, e);
@@ -61,9 +63,9 @@ public class NettyKeyProvider {
                 try {
                     var keyStoreFile = new File(keyStore.storeFile());
 
-                    if (keyStore.isPemType()) {
+                    if (TlsUtils.isPemType(keyStore)) {
                         return a.keyManager(keyStoreFile, keyStoreFile,
-                                Optional.ofNullable(keyStore.keyPasswordProvider()).map(PasswordProvider::getProvidedPassword).orElse(null));
+                                Optional.ofNullable(keyStore.keyPasswordProvider()).map(SecretUtils::getProvidedPassword).orElse(null));
                     }
                     else {
                         return b.keyManager(keyManagerFactory(keyStore));
@@ -78,12 +80,12 @@ public class NettyKeyProvider {
 
     private KeyManagerFactory keyManagerFactory(KeyStore store) {
         try (var is = new FileInputStream(store.storeFile())) {
-            var password = Optional.ofNullable(store.storePasswordProvider()).map(PasswordProvider::getProvidedPassword).map(String::toCharArray).orElse(null);
-            var keyStore = java.security.KeyStore.getInstance(store.getType());
+            var password = Optional.ofNullable(store.storePasswordProvider()).map(SecretUtils::getProvidedPassword).map(String::toCharArray).orElse(null);
+            var keyStore = java.security.KeyStore.getInstance(TlsUtils.getType(store));
             keyStore.load(is, password);
             var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             keyManagerFactory.init(keyStore,
-                    Optional.ofNullable(store.keyPasswordProvider()).map(PasswordProvider::getProvidedPassword).map(String::toCharArray).orElse(password));
+                    Optional.ofNullable(store.keyPasswordProvider()).map(SecretUtils::getProvidedPassword).map(String::toCharArray).orElse(password));
             return keyManagerFactory;
         }
         catch (GeneralSecurityException | IOException e) {

@@ -16,7 +16,7 @@ class InlinePasswordTest {
     @Test
     void inlinePassword() {
         InlinePassword inline = new InlinePassword("pazz");
-        assertThat(inline.getProvidedPassword()).isEqualTo("pazz");
+        assertThat(SecretUtils.getProvidedPassword(inline)).isEqualTo("pazz");
     }
 
     @Test

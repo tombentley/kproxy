@@ -19,6 +19,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import io.kroxylicious.proxy.config.secret.SecretUtils;
+import io.kroxylicious.proxy.config.tls.TlsUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,10 +113,10 @@ public record JdkTls(Tls tls) {
             @Override
             public KeyManager[] visit(io.kroxylicious.proxy.config.tls.KeyStore keyStore) {
                 try {
-                    if (keyStore.isPemType()) {
+                    if (TlsUtils.isPemType(keyStore)) {
                         throw new SslConfigurationException("PEM is not supported by vault KMS yet");
                     }
-                    KeyStore store = KeyStore.getInstance(keyStore.getType());
+                    KeyStore store = KeyStore.getInstance(TlsUtils.getType(keyStore));
                     char[] storePassword = passwordOrNull(keyStore.storePasswordProvider());
                     try (FileInputStream fileInputStream = new FileInputStream(keyStore.storeFile())) {
                         store.load(fileInputStream, storePassword);
@@ -131,7 +134,7 @@ public record JdkTls(Tls tls) {
 
             @Nullable
             private static char[] passwordOrNull(PasswordProvider value) {
-                return Optional.ofNullable(value).map(PasswordProvider::getProvidedPassword).map(String::toCharArray).orElse(null);
+                return Optional.ofNullable(value).map(SecretUtils::getProvidedPassword).map(String::toCharArray).orElse(null);
             }
         });
     }
@@ -157,12 +160,12 @@ public record JdkTls(Tls tls) {
         return trust.accept(new TrustProviderVisitor<>() {
             @Override
             public TrustManager[] visit(TrustStore trustStore) {
-                if (trustStore.isPemType()) {
+                if (TlsUtils.isPemType(trustStore)) {
                     throw new SslConfigurationException("PEM trust not supported by vault yet");
                 }
                 try {
-                    KeyStore instance = KeyStore.getInstance(trustStore.getType());
-                    char[] charArray = trustStore.storePasswordProvider() != null ? trustStore.storePasswordProvider().getProvidedPassword().toCharArray() : null;
+                    KeyStore instance = KeyStore.getInstance(TlsUtils.getType(trustStore));
+                    char[] charArray = trustStore.storePasswordProvider() != null ? SecretUtils.getProvidedPassword(trustStore.storePasswordProvider()).toCharArray() : null;
                     instance.load(new FileInputStream(trustStore.storeFile()), charArray);
                     TrustManagerFactory managerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     managerFactory.init(instance);

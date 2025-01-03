@@ -33,14 +33,6 @@ public record TrustStore(@JsonProperty(required = true) String storeFile,
         Objects.requireNonNull(storeFile);
     }
 
-    public String getType() {
-        return Tls.getStoreTypeOrPlatformDefault(storeType);
-    }
-
-    public boolean isPemType() {
-        return Objects.equals(getType(), Tls.PEM);
-    }
-
     @Override
     public <T> T accept(TrustProviderVisitor<T> visitor) {
         return visitor.visit(this);

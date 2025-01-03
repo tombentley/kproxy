@@ -14,6 +14,8 @@ import java.util.Optional;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.kroxylicious.proxy.config.secret.SecretUtils;
+
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
@@ -36,14 +38,14 @@ public class NettyTrustProvider {
             public SslContextBuilder visit(TrustStore trustStore) {
                 try {
                     enableHostnameVerification();
-                    if (trustStore.isPemType()) {
+                    if (TlsUtils.isPemType(trustStore)) {
                         return builder.trustManager(new File(trustStore.storeFile()));
                     }
                     else {
                         try (var is = new FileInputStream(trustStore.storeFile())) {
-                            var password = Optional.ofNullable(trustStore.storePasswordProvider()).map(PasswordProvider::getProvidedPassword).map(String::toCharArray)
+                            var password = Optional.ofNullable(trustStore.storePasswordProvider()).map(SecretUtils::getProvidedPassword).map(String::toCharArray)
                                     .orElse(null);
-                            var keyStore = KeyStore.getInstance(trustStore.getType());
+                            var keyStore = KeyStore.getInstance(TlsUtils.getType(trustStore));
                             keyStore.load(is, password);
 
                             var trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());

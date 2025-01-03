@@ -26,7 +26,7 @@ public record Tls(KeyProvider key,
         return storeType == null ? KeyStore.getDefaultType().toUpperCase(Locale.ROOT) : storeType.toUpperCase(Locale.ROOT);
     }
 
-    public boolean definesKey() {
-        return key != null;
+    public static boolean definesKey(Tls tls) {
+        return tls.key() != null;
     }
 }

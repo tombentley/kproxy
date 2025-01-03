@@ -17,26 +17,26 @@ class KeyStoreTest {
     @Test
     void testGetTypeDefaultsToPlatformDefault() {
         KeyStore keyStore = new KeyStore("/tmp/store", null, null, null);
-        assertThat(keyStore.getType()).isEqualTo(java.security.KeyStore.getDefaultType().toUpperCase(Locale.ROOT));
-        assertThat(keyStore.isPemType()).isFalse();
+        assertThat(TlsUtils.getType(keyStore)).isEqualTo(java.security.KeyStore.getDefaultType().toUpperCase(Locale.ROOT));
+        assertThat(TlsUtils.isPemType(keyStore)).isFalse();
     }
 
     @Test
     void testDefinedTypeIsUsed() {
         KeyStore keyStore = new KeyStore("/tmp/store", null, null, "PEM");
-        assertThat(keyStore.getType()).isEqualTo("PEM");
+        assertThat(TlsUtils.getType(keyStore)).isEqualTo("PEM");
     }
 
     @Test
     void testIsPem() {
         KeyStore keyStore = new KeyStore("/tmp/store", null, null, "PEM");
-        assertThat(keyStore.isPemType()).isTrue();
+        assertThat(TlsUtils.isPemType(keyStore)).isTrue();
     }
 
     @Test
     void testIsNotPem() {
         KeyStore keyStore = new KeyStore("/tmp/store", null, null, "JKS");
-        assertThat(keyStore.isPemType()).isFalse();
+        assertThat(TlsUtils.isPemType(keyStore)).isFalse();
     }
 
     @Test

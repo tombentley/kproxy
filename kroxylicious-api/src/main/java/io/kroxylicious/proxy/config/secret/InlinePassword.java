@@ -21,11 +21,6 @@ public record InlinePassword(@JsonProperty(required = true) String password) imp
         Objects.requireNonNull(password);
     }
 
-    @Override
-    public String getProvidedPassword() {
-        return password;
-    }
-
     @SuppressWarnings("java:S2068") // we aren't hard-coding a password here
     @Override
     public String toString() {

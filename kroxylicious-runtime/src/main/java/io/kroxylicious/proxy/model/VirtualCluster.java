@@ -215,7 +215,7 @@ public class VirtualCluster implements ClusterNetworkAddressConfigProvider {
     }
 
     private static void validateTLsSettings(ClusterNetworkAddressConfigProvider clusterNetworkAddressConfigProvider, Optional<Tls> tls) {
-        if (clusterNetworkAddressConfigProvider.requiresTls() && (tls.isEmpty() || !tls.get().definesKey())) {
+        if (clusterNetworkAddressConfigProvider.requiresTls() && (tls.isEmpty() || !Tls.definesKey(tls.get()))) {
             throw new IllegalStateException("Cluster endpoint provider requires server TLS, but this virtual cluster does not define it.");
         }
     }
