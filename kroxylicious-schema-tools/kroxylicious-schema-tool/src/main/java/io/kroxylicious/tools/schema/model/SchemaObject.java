@@ -536,7 +536,7 @@ public final class SchemaObject {
     private Map<String, Object> unknownProperties;
 
     @JsonAnyGetter
-    public Map<String, Object> getUnknownProperties() {
+    public @NonNull Map<String, Object> getUnknownProperties() {
         return this.unknownProperties != null ? this.unknownProperties : Map.of();
     }
 

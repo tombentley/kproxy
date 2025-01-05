@@ -1123,6 +1123,10 @@ public class CodeGen {
         @Override
         public VisitAction enterSchema(Context context, SchemaObject schema) {
             if (schema.getRef() == null) {
+                // We don't generate code for a ref, on the basis that we've already generated code for it
+                // (e.g. when we visited the schemas in /definitions).
+                // This means even if multiple refs point to the same thing, that thing should only get code gen'd once.
+
                 if (isJunctorChild(context.keyword())) {
                     return VisitAction.SKIP_SUBTREE;
                 }
@@ -1135,9 +1139,6 @@ public class CodeGen {
                     // It's OK to have a schema just for its definitions, for example
                     return VisitAction.CONTINUE;
                 }
-                // We don't generate code for a ref, on the basis that we've already generated code for it
-                // (e.g. when we visited the schemas in /definitions).
-                // This means even if multiple refs point to the same thing, that thing should only get code gen'd once.
                 Unit unit = genDecl(input.pkg(), schema, context.fullPath(), context.base());
                 if (unit != null) {
                     units.add(unit);

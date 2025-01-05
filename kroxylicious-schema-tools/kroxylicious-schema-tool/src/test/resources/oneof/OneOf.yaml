@@ -1,0 +1,38 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+$schema: http://json-schema.org/draft-04/schema#
+id: https://schema.kroxylicious.io/test/Junctor.yaml
+description: A class which uses oneOf and compiles to a class hierarchy
+type: object
+# The base class must be named
+$javaType: Base
+additionalProperties: false
+properties:
+  # The base class need to declare properties for the union of the properties of each of the oneOf cases
+  # There properties must also define the type
+  foo:
+    type: string
+  bar:
+    type: string
+oneOf:
+  - # Each of the case classes must be named
+    $javaType: Foo
+    required:
+      - foo
+    properties:
+      foo:
+        type: string
+  - $javaType: Bar
+    required:
+      - bar
+    properties:
+      bar:
+        type: string
+  # The cases must be distinguishable from their declared properties.
+  # This means that for case schemas A and B
+  # interaction(union(A.required, powerSet(A.properties), union(B.required, powerSet(B.properties))
+  # is empty

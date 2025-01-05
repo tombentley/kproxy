@@ -6,7 +6,7 @@
 
 $schema: http://json-schema.org/draft-04/schema#
 id: https://schema.kroxylicious.io/test/Junctor.yaml
-description: A class with scalar properties
+description: A class which uses junctors
 type: object
 additionalProperties: false
 properties:
