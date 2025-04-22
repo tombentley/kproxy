@@ -42,6 +42,8 @@ spec:
           jsonPath: ".status.conditions[?(@.type==\"ResolvedRefs\")].status"
           type: string
           priority: 0
+      selectableFields:
+        - jsonPath: ".spec.proxyRef.name"
       schema:
         openAPIV3Schema:
           type: object

@@ -32,11 +32,18 @@ spec:
       subresources:
         status: {}
       additionalPrinterColumns:
+        - name: Type
+          description: The type of this filter.
+          jsonPath: ".spec.type"
+          type: string
+          priority: 0
         - name: ResolvedRefs
           description: Whether the other resources referenced by this protocol filter can be found.
           jsonPath: ".status.conditions[?(@.type==\"ResolvedRefs\")].status"
           type: string
           priority: 0
+      selectableFields:
+        - jsonPath: ".spec.type"
       schema:
         openAPIV3Schema:
           type: object

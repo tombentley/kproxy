@@ -52,6 +52,9 @@ spec:
           jsonPath: ".status.conditions[?(@.type==\"Accepted\")].status"
           type: string
           priority: 0
+      selectableFields:
+        - jsonPath: ".spec.proxyRef.name"
+        - jsonPath: ".spec.targetKafkaServiceRef.name"
       schema:
         openAPIV3Schema:
           type: object
