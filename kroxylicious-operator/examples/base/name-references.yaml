@@ -1,0 +1,56 @@
+# This file tells kustomize about the references between resources
+# so that if an overlay changes resource names the references to
+# that resource get updated as well
+nameReference:
+  - kind: KafkaProxy
+    group: kroxylicious.io
+    version: v1alpha1
+    fieldSpecs:
+      - group: kroxylicious.io
+        kind: KafkaProxyIngress
+        version: v1alpha1
+        path: spec/proxyRef/name
+      - group: kroxylicious.io
+        kind: VirtualKafkaCluster
+        version: v1alpha1
+        path: spec/proxyRef/name
+  - kind: KafkaProxyIngress
+    group: kroxylicious.io
+    version: v1alpha1
+    fieldSpecs:
+      - group: kroxylicious.io
+        kind: VirtualKafkaCluster
+        version: v1alpha1
+        path: spec.ingressRefs.name
+  - kind: KafkaProtocolFilter
+    group: filter.kroxylicious.io
+    version: v1alpha1
+    fieldSpecs:
+      - group: kroxylicious.io
+        kind: VirtualKafkaCluster
+        version: v1alpha1
+        path: spec/filterRefs/name
+  - kind: KafkaService
+    group: kroxylicious.io
+    version: v1alpha1
+    fieldSpecs:
+      - group: kroxylicious.io
+        kind: VirtualKafkaCluster
+        version: v1alpha1
+        path: spec/targetKafkaServiceRef/name
+
+# not clear what syntax the `path` supports, so how do we support the reference model?
+#  - kind: Secret
+#    version: v1
+#    fieldSpecs:
+#      - group: kroxylicious.io
+#        kind: KafkaService
+#        version: v1alpha1
+#        path: spec/tls/certificateRef[kind=Secret && group=""]/name
+#  - kind: ConfigMap
+#    version: v1
+#    fieldSpecs:
+#      - group: kroxylicious.io
+#        kind: KafkaService
+#        version: v1alpha1
+#        path: spec/tls/trustAnchorRef[kind=ConfigMap && group=""]/name

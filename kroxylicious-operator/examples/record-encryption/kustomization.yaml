@@ -1,0 +1,19 @@
+nameSuffix: -with-encryption
+namespace: my-proxy-2
+resources:
+  - ../base
+  - 03.Filter.encryption.yaml
+  - 04.VirtualKafkaCluster.my-cluster.yaml
+
+
+#patches:
+#  - #path: 04.VirtualKafkaCluster.my-cluster.yaml
+#    target:
+#      name: my-cluster
+#      group: kroxylicious.io
+#      kind: VirtualKafkaCluster
+#      version: v1alpha1
+#    patch: |
+#      - op: add
+#        path: /spec/filterRefs
+#        value: { name: encryptionzz }

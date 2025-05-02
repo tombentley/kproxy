@@ -5,13 +5,11 @@
 #
 
 ---
-kind: KafkaProxyIngress
+kind: VirtualKafkaCluster
 apiVersion: kroxylicious.io/v1alpha1
 metadata:
-  name: cluster-ip
+  name: my-cluster
   namespace: my-proxy
 spec:
-  proxyRef:
-    name: simple
-  clusterIP:
-    protocol: TCP
+  filterRefs:
+    name: encryption
