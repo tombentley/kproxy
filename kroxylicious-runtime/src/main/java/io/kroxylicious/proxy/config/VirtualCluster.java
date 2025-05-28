@@ -22,6 +22,133 @@ import io.kroxylicious.proxy.config.tls.Tls;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
+
+/*
+# This is the existing model
+filterDefinitions:
+  - name: my-filter
+    type: MyFilter
+    config:
+      ...
+virtualClusters:
+  - name: my-cluster
+    gateways:
+      - name: my-gw
+        portIdentifiesNode:
+          bootstrapAddress: 0.0.0.0:9092
+          advertisedBrokerAddressPattern: broker-$(nodeId).kafka.example.com
+          nodeStartPort: 9092
+          nodeIdRanges:
+            name: brokers
+            start: 9092
+            end: 9094
+    targetCluster:
+      bootstrapServers: ...
+      tls: ...
+    filters:
+      - my-filter
+ */
+
+/*
+# This is a new model
+filterDefinitions:
+  - name: my-filter
+    type: MyFilter
+    config:
+      ...
+clusters:
+  # A cluster is the same as a `virtualCluster.targetCluster`.
+  # It gives a name to a combination of a Kafka cluster and the info needed to connect to it.
+  - name: my-cluster
+    bootstrapServers: ...
+    tls: ...
+  - name: my-old-cluster
+    bootstrapServers: ...
+    tls: ...
+
+routers:
+  # A router has a name, a type a config and a mapping of named outlets. The
+  # type of the router defines the required and optional outlet names
+  - name: disconnect
+    type: Disconnector
+  - name: my-authenticator
+    type: Authenticator
+    config: ...
+    outlets: # routes?
+      - name: on_success
+        filters:
+          - my-filter
+        router: my-splicer
+      - name: on_failure
+        router: disconnect
+      - name: on_timeout
+        router: disconnect
+  - name: my-splicer
+    type: Splicer
+    config: ...
+    outlets:
+      - name: old_cluster
+        cluster: my-old_cluster
+      - name: new_cluster
+        cluster: my-cluster
+virtualClusters:
+  - name: my-ingress
+    gateways:
+      - name: my-gw
+        portIdentifiesNode:
+          bootstrapAddress: 0.0.0.0:9092
+          advertisedBrokerAddressPattern: broker-$(nodeId).kafka.example.com
+          nodeStartPort: 9092
+          nodeIdRanges:
+            name: brokers
+            start: 9092
+            end: 9094
+    router: my-authenticator
+    # no filters, no targetCluster
+ */
+/*
+interface Router {
+  // tell the router about the routes available to it
+
+  void init(Set<String> routes)
+    throws RouterInitializationException;
+
+  CompletionStage<RoutingResult> onClientRequest(short apiVersion,
+                                                 RequestHeader header,
+                                                 RequestFrame requestBody,
+                                                 RoutingContext context);
+
+  // TODO routing responses???
+  onResponse(String fromRoute)
+
+}
+interface RoutingContext {
+  // TODO expose info about the client and server
+
+  RoutingResultBuilder routingResultBuilder();
+}
+interface RoutingResultBuilder {
+  // Forward the request on the given route (that was previously configured via init())
+  CompletionStage<RoutingResult> forwardTo(String route);
+
+  // Send a response to the client
+  CompletionStage<RoutingResult> respondWith(ResponseFrame responseBody);
+
+  // Disconnect from the client, tearing down any connection to a broker
+  RoutingResultTerminal disconnect();
+
+  // Make an out-of-band request
+  CompletionStage<RoutingResult> makeRequest(String route,
+                                             short apiVersion,
+                                             RequestHeader header,
+                                             RequestFrame requestBody,
+                                             RoutingContext context);
+}
+interface RoutingResultTerminal {
+  CompletionStage<RoutingResult> build();
+}
+ */
+
 /**
  * A virtual cluster.
  *
@@ -43,11 +170,24 @@ public record VirtualCluster(@NonNull @JsonProperty(required = true) String name
                              @JsonProperty(required = false) List<VirtualClusterGateway> gateways,
                              boolean logNetwork,
                              boolean logFrames,
-                             @Nullable List<String> filters) {
+                             @Nullable List<String> filters,
+                             @Nullable String router) {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VirtualCluster.class);
 
     private static final Pattern DNS_LABEL_PATTERN = Pattern.compile("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", Pattern.CASE_INSENSITIVE);
+
+    public VirtualCluster(@NonNull @JsonProperty(required = true) String name,
+                   @JsonProperty TargetCluster targetCluster,
+                   @Deprecated(forRemoval = true, since = "0.11.0") ClusterNetworkAddressConfigProviderDefinition clusterNetworkAddressConfigProvider,
+                   @Deprecated(forRemoval = true, since = "0.11.0") @JsonProperty() Optional<Tls> tls,
+
+                   @JsonProperty(required = false) List<VirtualClusterGateway> gateways,
+                   boolean logNetwork,
+                   boolean logFrames,
+                   @Nullable List<String> filters) {
+        this(name, targetCluster, clusterNetworkAddressConfigProvider, tls, gateways, logNetwork, logFrames, filters, null);
+    }
 
     /**
      * Name given to the gateway defined using the deprecated fields.
@@ -58,7 +198,15 @@ public record VirtualCluster(@NonNull @JsonProperty(required = true) String name
     @SuppressWarnings({ "removal", "java:S2789" }) // S2789 - checking for null tls is the intent
     public VirtualCluster {
         Objects.requireNonNull(name);
-        Objects.requireNonNull(targetCluster);
+        if ((targetCluster == null) == (router == null)) {
+            throw new IllegalConfigurationException("Exactly one of 'targetCluster' or 'router' must be specified");
+        }
+
+        if (filters != null && router != null) {
+            throw new IllegalConfigurationException("'filters' cannot be configured directly on a virtual cluster when 'router' is specified. "
+                    + "Configure `filters` on the route instead.");
+        }
+
         if (!isDnsLabel(name)) {
             throw new IllegalConfigurationException(
                     "Virtual cluster name '" + name + "' is invalid. It must be less than 64 characters long and match pattern " + DNS_LABEL_PATTERN.pattern()

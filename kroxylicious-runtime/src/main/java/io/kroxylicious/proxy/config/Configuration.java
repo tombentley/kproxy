@@ -70,9 +70,38 @@ public record Configuration(
                             @NonNull @JsonProperty(required = true) @JsonDeserialize(using = VirtualClusterContainerDeserializer.class) List<VirtualCluster> virtualClusters,
                             @Nullable List<MicrometerDefinition> micrometer,
                             boolean useIoUring,
-                            @NonNull Optional<Map<String, Object>> development) {
+                            @NonNull Optional<Map<String, Object>> development,
+                            @Nullable List<ClusterDefinition> clusters,
+                            @Nullable List<RouterDefinition> routers) {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Configuration.class);
+
+    static <T> Map<String, T> checkUniqueness(String listProperty,
+                                              List<T> list,
+                                              String nameProperty,
+                                              Function<T, String> nameExtractor) {
+        Map<String, List<T>> groupedByName = list.stream().collect(Collectors.groupingBy(nameExtractor));
+        var duplicatedNames = groupedByName.entrySet().stream().filter(entry -> entry.getValue().size() > 1).map(Map.Entry::getKey).toList();
+        if (!duplicatedNames.isEmpty()) {
+            throw new IllegalConfigurationException("'" + listProperty + "' contains multiple items with the same '" + nameProperty + "': " + duplicatedNames);
+        }
+        return list.stream().collect(Collectors.toMap(nameExtractor, Function.identity()));
+    }
+
+    /**
+     * Deprecated constructor for binary compatibility purposes.
+     */
+    @Deprecated
+    public Configuration(
+            @Nullable @JsonAlias("adminHttp") @JsonDeserialize(using = AdminHttpDeprecationLoggingDeserializer.class) ManagementConfiguration management,
+            @Nullable List<NamedFilterDefinition> filterDefinitions,
+            @Nullable List<String> defaultFilters,
+            @NonNull @JsonProperty(required = true) @JsonDeserialize(using = VirtualClusterContainerDeserializer.class) List<VirtualCluster> virtualClusters,
+            @Nullable List<MicrometerDefinition> micrometer,
+            boolean useIoUring,
+            @NonNull Optional<Map<String, Object>> development) {
+        this(management, filterDefinitions, defaultFilters, virtualClusters, micrometer, useIoUring, development, null, null);
+    }
 
     /**
      * Creates an instance of configuration.
@@ -88,14 +117,10 @@ public record Configuration(
 
         // Enforce post condition: filterDefinitions have a unique name
         if (filterDefinitions != null) {
-            Map<String, List<NamedFilterDefinition>> groupdByName = filterDefinitions.stream().collect(Collectors.groupingBy(NamedFilterDefinition::name));
-            var duplicatedNames = groupdByName.entrySet().stream().filter(entry -> entry.getValue().size() > 1).map(Map.Entry::getKey).toList();
-            if (!duplicatedNames.isEmpty()) {
-                throw new IllegalConfigurationException("'filterDefinitions' contains multiple items with the same names: " + duplicatedNames);
-            }
+            checkUniqueness("filterDefinitions", filterDefinitions, "name", NamedFilterDefinition::name);
 
             // Enforce post condition: Every filter referenced by a name is defined in the filterDefinitions
-            Set<String> filterDefsByName = Optional.ofNullable(filterDefinitions).orElse(List.of()).stream().map(NamedFilterDefinition::name).collect(
+            Set<String> filterDefsByName = Optional.of(filterDefinitions).orElse(List.of()).stream().map(NamedFilterDefinition::name).collect(
                     Collectors.toSet());
             checkNamedFiltersAreDefined(filterDefsByName, defaultFilters, "defaultFilters");
             for (var virtualCluster : virtualClusters) {
@@ -103,6 +128,41 @@ public record Configuration(
             }
 
             checkAllNamedFilterAreUsed(filterDefinitions, virtualClusters, defaultFilters);
+        }
+
+        Map<String, ClusterDefinition> clustersByName;
+        if (clusters != null) {
+            clustersByName = checkUniqueness("clusters", clusters, "name", ClusterDefinition::clusterName);
+        }
+        else {
+            clustersByName = Collections.emptyMap();
+        }
+
+        if (routers != null) {
+            var routerMap = checkUniqueness("routers", routers, "name", RouterDefinition::routerName);
+            // Check referential integrity for router -> route -> router
+            // and router -> route -> cluster
+            var errors = routers.stream()
+                    .filter(router -> router.routes() != null)
+                    .flatMap(router -> router.routes().stream().map(route -> {
+                        if (route.router() != null && !routerMap.containsKey(route.router())) {
+                            return String.format("Router '%s' has route '%s' referencing undefined router '%s",
+                                    router.routerName(), route.routeName(), route.router());
+                        }
+                        else if (route.cluster() != null && !clustersByName.containsKey(route.cluster())) {
+                            return String.format("Router '%s' has route '%s' referencing undefined cluster '%s",
+                                    router.routerName(), route.routeName(), route.cluster());
+                        }
+                        return null;
+                    }).filter(Objects::nonNull))
+                    .limit(5)
+                    .toList();
+            if (!errors.isEmpty()) {
+                throw new IllegalConfigurationException("Multiple problems with `routers`: " + errors);
+            }
+
+            // TODO prohibit router cycles (routerA -> route -> routerB -> route -> routerA)
+
         }
     }
 
