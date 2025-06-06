@@ -17,12 +17,14 @@ import io.kroxylicious.proxy.filter.FilterContext;
 public interface RoutingResultBuilder {
 
     /**
-     * Forward the request on the given route (that was previously configured via {@link RouterFactory#initialize(RouterFactoryContext, Object, Set)}).
+     * Forward the request on the given route
+     * (that was previously configured via {@link RouterFactory#initialize(RouterFactoryContext, Object, Set)}).
+     * @param route The route on which to forward the request
      */
     RoutingResultBuilder forwardTo(String route);
 
     /**
-     * Send a response to the client
+     * Send a response to the client.
      */
     RoutingResultBuilder respondWith(ApiKeys apiKey,
                                      ResponseHeaderData header,
@@ -30,7 +32,7 @@ public interface RoutingResultBuilder {
                                      FilterContext context);
 
     /**
-     * Disconnect from the client, tearing down any connection to a broker
+     * Disconnect from the client, tearing down any connection to a broker.
      */
     TerminalRoutingResultBuilder disconnect();
 }

@@ -10,12 +10,12 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-record RouteDefinition(@JsonProperty(value = "name", required = true) String routeName,
-                       List<String> filters,
-                       String router,
-                       String cluster) {
-    RouteDefinition {
-        if ((router == null) == (cluster == null)) {
+public record RouteDefinition(@JsonProperty(value = "name", required = true) String routeName,
+                              @JsonProperty(value = "filters") List<String> filterNames,
+                              @JsonProperty(value = "router") String routerName,
+                              @JsonProperty(value = "cluster") String clusterName) {
+    public RouteDefinition {
+        if ((routerName == null) == (clusterName == null)) {
             throw new IllegalConfigurationException("Exactly one of 'router' or 'cluster' must be specified");
         }
     }

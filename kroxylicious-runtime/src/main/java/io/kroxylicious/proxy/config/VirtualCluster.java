@@ -171,7 +171,7 @@ public record VirtualCluster(@NonNull @JsonProperty(required = true) String name
                              boolean logNetwork,
                              boolean logFrames,
                              @Nullable List<String> filters,
-                             @Nullable String router) {
+                             @Nullable @JsonProperty("router") String routerName) {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VirtualCluster.class);
 
@@ -198,11 +198,11 @@ public record VirtualCluster(@NonNull @JsonProperty(required = true) String name
     @SuppressWarnings({ "removal", "java:S2789" }) // S2789 - checking for null tls is the intent
     public VirtualCluster {
         Objects.requireNonNull(name);
-        if ((targetCluster == null) == (router == null)) {
+        if ((targetCluster == null) == (routerName == null)) {
             throw new IllegalConfigurationException("Exactly one of 'targetCluster' or 'router' must be specified");
         }
 
-        if (filters != null && router != null) {
+        if (filters != null && routerName != null) {
             throw new IllegalConfigurationException("'filters' cannot be configured directly on a virtual cluster when 'router' is specified. "
                     + "Configure `filters` on the route instead.");
         }

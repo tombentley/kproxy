@@ -145,13 +145,13 @@ public record Configuration(
             var errors = routers.stream()
                     .filter(router -> router.routes() != null)
                     .flatMap(router -> router.routes().stream().map(route -> {
-                        if (route.router() != null && !routerMap.containsKey(route.router())) {
+                        if (route.routerName() != null && !routerMap.containsKey(route.routerName())) {
                             return String.format("Router '%s' has route '%s' referencing undefined router '%s",
-                                    router.routerName(), route.routeName(), route.router());
+                                    router.routerName(), route.routeName(), route.routerName());
                         }
-                        else if (route.cluster() != null && !clustersByName.containsKey(route.cluster())) {
+                        else if (route.clusterName() != null && !clustersByName.containsKey(route.clusterName())) {
                             return String.format("Router '%s' has route '%s' referencing undefined cluster '%s",
-                                    router.routerName(), route.routeName(), route.cluster());
+                                    router.routerName(), route.routeName(), route.clusterName());
                         }
                         return null;
                     }).filter(Objects::nonNull))
