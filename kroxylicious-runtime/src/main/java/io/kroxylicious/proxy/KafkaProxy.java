@@ -193,7 +193,6 @@ public final class KafkaProxy implements AutoCloseable {
     }
 
     private ServerBootstrap buildServerBootstrap(EventGroupConfig virtualHostEventGroup, KafkaProxyInitializer kafkaProxyInitializer) {
-        virtualHostEventGroup.bossGroup().register(
         return new ServerBootstrap().group(virtualHostEventGroup.bossGroup(), virtualHostEventGroup.workerGroup())
                 .channel(virtualHostEventGroup.clazz())
                 .option(ChannelOption.SO_REUSEADDR, true)
