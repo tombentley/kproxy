@@ -12,7 +12,7 @@ public interface ClientAuthenticationContext {
 
     /**
      * The subject that the proxy presented to the client.
-     * This may be null of the authentication mechanism does not support
+     * This may be null if the authentication mechanism does not support
      * mutual authentication.
      */
     Subject proxySubject();
