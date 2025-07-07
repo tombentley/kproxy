@@ -8,6 +8,8 @@ package io.kroxylicious.proxy.filter;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
 
 import org.apache.kafka.common.message.RequestHeaderData;
 import org.apache.kafka.common.message.ResponseHeaderData;
@@ -135,6 +137,19 @@ public interface FilterContext {
      * @return virtual cluster name
      */
     String getVirtualClusterName();
-    // TODO an API to allow a filter to add/remove another filter from the pipeline
+
+    /**
+     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+     * to announce a successful authentication outcome to subsequent plugins.
+     * @param subject The authenticated subject.
+     */
+    void clientAuthenticationSuccess(Subject subject);
+
+    /**
+     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+     * to announce a failed authentication outcome to subsequent plugins.
+     * @param exception An exception describing the authentication failure.
+     */
+    void clientAuthenticationFailure(LoginException exception);
 
 }
