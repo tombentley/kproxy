@@ -44,7 +44,7 @@ public interface FilterFactoryContext {
      * @param intermediateCertificates Intermediate certificates forming the certificate chain up to (but not including)
      * the TLS certificate trusted by the peer.
      * @return The TLS credentials instance.
-     * @see io.kroxylicious.proxy.authentication.ServerCredentialContext#tlsCredentials(Certificate, PrivateKey, Certificate[]) 
+     * @see io.kroxylicious.proxy.authentication.ServerCredentialContext#tlsCredentials(Certificate, PrivateKey, Certificate[])
      */
     TlsCredentials tlsCredentials(Certificate certificate, PrivateKey key, Certificate[] intermediateCertificates);
 }
