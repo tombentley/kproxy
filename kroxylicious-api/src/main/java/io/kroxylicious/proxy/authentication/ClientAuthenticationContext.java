@@ -8,6 +8,9 @@ package io.kroxylicious.proxy.authentication;
 
 import javax.security.auth.Subject;
 
+/**
+ * The context API for {@link ClientSubjectAware}.
+ */
 public interface ClientAuthenticationContext {
 
     /**

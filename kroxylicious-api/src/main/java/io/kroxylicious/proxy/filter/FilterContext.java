@@ -140,14 +140,16 @@ public interface FilterContext {
 
     /**
      * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-     * to announce a successful authentication outcome to subsequent plugins.
+     * to announce a successful authentication outcome to subsequent
+     * {@link io.kroxylicious.proxy.authentication.ClientSubjectAware}-implementing plugins.
      * @param subject The authenticated subject.
      */
     void clientAuthenticationSuccess(Subject subject);
 
     /**
      * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-     * to announce a failed authentication outcome to subsequent plugins.
+     * to announce a failed authentication outcome to subsequent
+     * {@link io.kroxylicious.proxy.authentication.ClientSubjectAware}-implementing plugins.
      * @param exception An exception describing the authentication failure.
      */
     void clientAuthenticationFailure(LoginException exception);

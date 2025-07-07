@@ -14,7 +14,7 @@ import io.kroxylicious.proxy.filter.Filter;
 /**
  * This interface may be implemented by {@link Filter}s to learn about client authentication outcomes.
  */
-interface ClientSubjectAware {
+public interface ClientSubjectAware {
 
     /**
      * Called when a client authenticates, or reauthenticates, with the proxy.
