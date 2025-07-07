@@ -6,6 +6,15 @@
 
 package io.kroxylicious.proxy.authentication;
 
+/**
+ * Implemented by a {@link io.kroxylicious.proxy.filter.Filter} that provides
+ * the credentials for the TLS connection between the proxy and the Kafka server.
+ */
 public interface ServerTlsClientCertificateSupplier {
+    /**
+     * Return the TlsCredentials for the connection.
+     * @param context The context.
+     * @return the TlsCredentials for the connection.
+     */
     TlsCredentials tlsCredentials(ServerCredentialContext context);
 }
