@@ -35,15 +35,15 @@ public interface ClientSaslAware {
      */
     void onClientSaslAuthentication(Context context);
 
-//    /**
-//     * Notification for failed client authentication outcomes.
-//     * Called when a client fails authentication, or reauthentication, with the proxy, for any reason.
-//     * @param exception The cause of the authentication failure.
-//     * @param context The authentication context.
-//     */
-//    default void onClientAuthenticationFailure(Exception exception,
-//                                               ClientSaslContext context) {
-//    }
+    // /**
+    // * Notification for failed client authentication outcomes.
+    // * Called when a client fails authentication, or reauthentication, with the proxy, for any reason.
+    // * @param exception The cause of the authentication failure.
+    // * @param context The authentication context.
+    // */
+    // default void onClientAuthenticationFailure(Exception exception,
+    // ClientSaslContext context) {
+    // }
 
     /**
      * The context API for {@link ClientSaslAware}.
@@ -56,6 +56,7 @@ public interface ClientSaslAware {
          * @return The name of the SASL mechanism used.
          */
         String saslMechanismName();
+        // TODO client version, NAME
 
         /**
          * Returns the client's principal if the client has authenticated using SASL.
@@ -72,6 +73,7 @@ public interface ClientSaslAware {
          * or if the proxy did not use a principal because the SASL mechanism used
          * does not support mutual authentication.
          */
-        @Nullable SaslPrincipal proxyServerPrincipal();
+        @Nullable
+        SaslPrincipal proxyServerPrincipal();
     }
 }

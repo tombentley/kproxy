@@ -9,9 +9,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 
 import org.apache.kafka.common.message.ApiVersionsRequestData;
 import org.apache.kafka.common.message.ApiVersionsResponseData;
@@ -35,6 +40,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SniCompletionEvent;
 import io.netty.handler.ssl.SslHandler;
 
+import io.kroxylicious.proxy.authentication.ClientConnectionAware;
 import io.kroxylicious.proxy.filter.FilterAndInvoker;
 import io.kroxylicious.proxy.filter.NetFilter;
 import io.kroxylicious.proxy.frame.DecodedRequestFrame;
@@ -173,6 +179,64 @@ public class KafkaProxyFrontendHandler
             this.authentication = authenticationEvent;
         }
         super.userEventTriggered(ctx, event);
+    }
+
+    private static ClientConnectionAware.Context clientConnectionContext(Channel ch) {
+        boolean isTls;
+        final X509Certificate proxyCertificate;
+        final X509Certificate clientCertificate;
+        SslHandler sslHandler = ch.pipeline().get(SslHandler.class);
+        if (sslHandler != null) {
+            isTls = true;
+
+            SSLSession session = sslHandler.engine().getSession();
+            Certificate[] localCertificates = session.getLocalCertificates();
+            if (localCertificates != null && localCertificates.length > 0) {
+                proxyCertificate = (X509Certificate) localCertificates[0];
+            }
+            else {
+                proxyCertificate = null;
+            }
+
+            Certificate[] peerCertificates;
+            try {
+                peerCertificates = session.getPeerCertificates();
+            }
+            catch (SSLPeerUnverifiedException e) {
+                peerCertificates = null;
+            }
+            if (peerCertificates != null && peerCertificates.length > 0) {
+                clientCertificate = (X509Certificate) peerCertificates[0];
+            }
+            else {
+                clientCertificate = null;
+            }
+
+        }
+        else {
+            isTls = false;
+            proxyCertificate = null;
+            clientCertificate = null;
+        }
+        ClientConnectionAware.Context result = new ClientConnectionAware.Context() {
+            @Nullable
+            @Override
+            public X509Certificate proxyServerCertificate() {
+                return proxyCertificate;
+            }
+
+            @Override
+            public boolean isClientConnectionTls() {
+                return isTls;
+            }
+
+            @Nullable
+            @Override
+            public X509Certificate clientCertificate() {
+                return clientCertificate;
+            }
+        };
+        return result;
     }
 
     /**
@@ -482,6 +546,13 @@ public class KafkaProxyFrontendHandler
             pipeline.addFirst("frameLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamFrameLogger"));
         }
         addFiltersToPipeline(filters, pipeline, inboundChannel);
+        var ccc = clientConnectionContext(inboundChannel);
+
+        for (FilterAndInvoker filterAndInvoker : filters) {
+            if (filterAndInvoker.filter() instanceof ClientConnectionAware cca) {
+                cca.onClientConnection(ccc);
+            }
+        }
 
         var encoderListener = buildMetricsMessageListenerForEncode();
         var decoderListener = buildMetricsMessageListenerForDecode();

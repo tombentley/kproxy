@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 /**
  * <p>Annotation to be applied to {@link io.kroxylicious.proxy.filter.FilterFactory FilterFactories}
  * that create filters that make use of
- * {@link io.kroxylicious.proxy.filter.FilterContext#clientSaslAuthenticationSuccess(SaslPrincipal)}.
+ * io.kroxylicious.proxy.filter.FilterContext#clientSaslAuthenticationSuccess(SaslPrincipal).</p>
  *
  * <p>Using this annotation allows the runtime to fail at startup if a filter
  * requires authentication information that cannot be provided by a filter chain

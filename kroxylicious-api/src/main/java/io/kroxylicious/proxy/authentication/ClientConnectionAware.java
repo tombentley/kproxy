@@ -22,19 +22,19 @@ public interface ClientConnectionAware {
      */
     void onClientConnection(Context context);
 
-//    /**
-//     * Notification of successful TLS authentication of a client.
-//     * Called with a non-null {@code clientPrincipal} when a client authenticates, or reauthenticates, with the proxy using a client TLS certificate.
-//     * Called with a null {@code clientPrincipal} if:
-//     * <ul>
-//     *     <li>the connection is not configured to require client TLS authentication and the client presented no TLS certificate,</li>
-//     *     <li>if the transport protocol is not TLS</li>
-//     * </ul>
-//     * @param clientCertificate The client's certificate.
-//     * @param context The authentication context.
-//     */
-//    void onClientTlsAuthentication(X509Certificate clientCertificate,
-//                                   ClientTlsContext context);
+    // /**
+    // * Notification of successful TLS authentication of a client.
+    // * Called with a non-null {@code clientPrincipal} when a client authenticates, or reauthenticates, with the proxy using a client TLS certificate.
+    // * Called with a null {@code clientPrincipal} if:
+    // * <ul>
+    // * <li>the connection is not configured to require client TLS authentication and the client presented no TLS certificate,</li>
+    // * <li>if the transport protocol is not TLS</li>
+    // * </ul>
+    // * @param clientCertificate The client's certificate.
+    // * @param context The authentication context.
+    // */
+    // void onClientTlsAuthentication(X509Certificate clientCertificate,
+    // ClientTlsContext context);
 
     /**
      * The context API for {@link ClientConnectionAware}.
@@ -54,11 +54,17 @@ public interface ClientConnectionAware {
          * @return true iff the connection to the client is TLS.
          */
         boolean isClientConnectionTls();
+        // TODO TLS version
+        // TODO Cipher suite
+        // client IP address
+        //
+
 
         /**
          * The TLS server certificate that the proxy presented to the client during TLS handshake, if the connection is TLS.
          * @return The proxy's certificate, or null if the transport protocol is not TLS.
          */
-        @Nullable X509Certificate proxyServerCertificate();
+        @Nullable
+        X509Certificate proxyServerCertificate();
     }
 }

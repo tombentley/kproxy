@@ -33,9 +33,15 @@ import javax.net.ssl.SSLSession;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.errors.SslAuthenticationException;
 import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.message.ApiVersionsRequestData;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
@@ -55,6 +61,8 @@ import io.kroxylicious.proxy.config.secret.InlinePassword;
 import io.kroxylicious.proxy.config.secret.PasswordProvider;
 import io.kroxylicious.proxy.config.tls.AllowDeny;
 import io.kroxylicious.proxy.config.tls.TlsClientAuth;
+import io.kroxylicious.proxy.filter.ClientTlsAwareContract;
+import io.kroxylicious.proxy.filter.ClientTlsAwareContractFactory;
 import io.kroxylicious.proxy.service.HostPort;
 import io.kroxylicious.test.Request;
 import io.kroxylicious.testing.kafka.api.KafkaCluster;
@@ -370,6 +378,66 @@ class TlsIT extends BaseIT {
             // do some work to ensure connection is opened
             final CreateTopicsResult createTopicsResult = createTopic(admin, TOPIC, 1);
             assertThat(createTopicsResult.all()).isDone();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = { InlinePassword.class, FilePassword.class })
+    void connectionAwareFilters(Class<? extends PasswordProvider> providerClazz, @Tls KafkaCluster cluster) {
+        var bootstrapServers = cluster.getBootstrapServers();
+        var brokerTruststore = (String) cluster.getKafkaClientConfiguration().get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+        var brokerTruststorePassword = (String) cluster.getKafkaClientConfiguration().get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+        assertThat(brokerTruststore).isNotEmpty();
+        assertThat(brokerTruststorePassword).isNotEmpty();
+        var proxyKeystoreLocation = downstreamCertificateGenerator.getKeyStoreLocation();
+        var proxyKeystorePassword = downstreamCertificateGenerator.getPassword();
+
+        var brokerTrustPasswordProvider = constructPasswordProvider(providerClazz, brokerTruststorePassword);
+        var proxyKeystorePasswordProvider = constructPasswordProvider(providerClazz, proxyKeystorePassword);
+
+        var builder = new ConfigurationBuilder()
+                .addNewFilterDefinition("clientConnection", ClientTlsAwareContractFactory.class.getName(), null)
+                .addToVirtualClusters(new VirtualClusterBuilder()
+                        .withName("demo")
+                        .addToFilters("clientConnection")
+                        .withNewTargetCluster()
+                        .withBootstrapServers(bootstrapServers)
+                        .withNewTls()
+                        .withNewTrustStoreTrust()
+                        .withStoreFile(brokerTruststore)
+                        .withStorePasswordProvider(brokerTrustPasswordProvider)
+                        .endTrustStoreTrust()
+                        .endTls()
+                        .endTargetCluster()
+                        .addToGateways(defaultPortIdentifiesNodeGatewayBuilder(PROXY_ADDRESS)
+                                .withNewTls()
+                                .withNewKeyStoreKey()
+                                .withStoreFile(proxyKeystoreLocation)
+                                .withStorePasswordProvider(proxyKeystorePasswordProvider)
+                                .endKeyStoreKey()
+                                .endTls()
+                                .build())
+                        .build());
+
+        try (var tester = kroxyliciousTester(builder)) {
+            var topicName = tester.createTopic("demo");
+            Producer<String, String> producer = tester.producer();
+            producer.send(new ProducerRecord<>(topicName, "hello", "world"));
+            producer.flush();
+
+            var consumer = tester.consumer();
+            TopicPartition tp = new TopicPartition(topicName, 0);
+            consumer.assign(Set.of(tp));
+            consumer.seekToBeginning(Set.of(tp));
+            List<ConsumerRecord<String, String>> records;
+            do {
+                ConsumerRecords<String, String> poll = consumer.poll(Duration.ofMillis(100));
+                records = poll.records(tp);
+            } while (records.isEmpty());
+            Headers headers = records.get(0).headers();
+
+            headers.headers(ClientTlsAwareContract.HEADER_KEY_CLIENT_CONNECTION_TLS).iterator().next();
+
         }
     }
 

@@ -14,10 +14,6 @@ import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.protocol.ApiMessage;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
-import io.kroxylicious.proxy.authentication.ClientSaslAware;
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
-import io.kroxylicious.proxy.authentication.ServerConnectionAware;
-
 /**
  * A context to allow filters to interact with other filters and the pipeline.
  */
@@ -140,33 +136,33 @@ public interface FilterContext {
      */
     String getVirtualClusterName();
 
-    /**
-     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-     * to announce a successful authentication outcome with the Kafka client to subsequent
-     * {@link ClientSaslAware}-implementing plugins.
-     * @param saslPrincipal The authenticated principal.
-     */
-    void clientSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
-
-    /**
-     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-     * to announce a failed authentication outcome with the Kafka client.
-     * @param exception An exception describing the authentication failure.
-     */
-    void clientAuthenticationFailure(Exception exception);
-
-    /**
-     * Allows a filter
-     * to announce a successful authentication outcome with the Kafka server to subsequent
-     * {@link ServerConnectionAware}-implementing plugins.
-     * @param saslPrincipal The authenticated principal
-     */
-    void serverAuthenticationSuccess(SaslPrincipal saslPrincipal);
-
-    /**
-     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-     * to announce a failed authentication outcome with the Kafka server.
-     * @param exception An exception describing the authentication failure.
-     */
-    void serverAuthenticationFailure(Exception exception);
+    // /**
+    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+    // * to announce a successful authentication outcome with the Kafka client to subsequent
+    // * {@link ClientSaslAware}-implementing plugins.
+    // * @param saslPrincipal The authenticated principal.
+    // */
+    // void clientSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
+    //
+    // /**
+    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+    // * to announce a failed authentication outcome with the Kafka client.
+    // * @param exception An exception describing the authentication failure.
+    // */
+    // void clientAuthenticationFailure(Exception exception);
+    //
+    // /**
+    // * Allows a filter
+    // * to announce a successful authentication outcome with the Kafka server to subsequent
+    // * {@link ServerConnectionAware}-implementing plugins.
+    // * @param saslPrincipal The authenticated principal
+    // */
+    // void serverAuthenticationSuccess(SaslPrincipal saslPrincipal);
+    //
+    // /**
+    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+    // * to announce a failed authentication outcome with the Kafka server.
+    // * @param exception An exception describing the authentication failure.
+    // */
+    // void serverAuthenticationFailure(Exception exception);
 }

@@ -26,13 +26,13 @@ public interface ServerSaslAware {
      */
     void onServerSaslAuthentication(Context context);
 
-//    /**
-//     * Called when the proxy fails authentication, or reauthentication, with a server
-//     * @param exception The cause of the authentication failure.
-//     * @param context The authentication context.
-//     */
-//    default void onServerAuthenticationFailure(LoginException exception, ServerSaslContext context) {
-//    }
+    // /**
+    // * Called when the proxy fails authentication, or reauthentication, with a server
+    // * @param exception The cause of the authentication failure.
+    // * @param context The authentication context.
+    // */
+    // default void onServerAuthenticationFailure(LoginException exception, ServerSaslContext context) {
+    // }
 
     /**
      * The context API for {@link ServerSaslAware}.
@@ -60,6 +60,7 @@ public interface ServerSaslAware {
          * @return the proxy's principal with the server. This will be null
          * if the proxy has not performed SASL authentication.
          */
-        @Nullable SaslPrincipal proxyServerPrincipal();
+        @Nullable
+        SaslPrincipal proxyServerPrincipal();
     }
 }

@@ -50,7 +50,8 @@ public interface ServerConnectionAware {
          * @return The proxy's TLS client certificate, or null if the proxy
          * did not present a client certificate.
          */
-        @Nullable X509Certificate proxyClientCertificate();
+        @Nullable
+        X509Certificate proxyClientCertificate();
 
     }
 }

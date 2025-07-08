@@ -6,11 +6,6 @@
 
 package io.kroxylicious.proxy.filter;
 
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
-
-import io.kroxylicious.proxy.authentication.ServerTlsCredentialSupplier;
-import io.kroxylicious.proxy.authentication.TlsCredentials;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 
 /**
@@ -38,14 +33,14 @@ public interface FilterFactoryContext {
      */
     <P> P pluginInstance(Class<P> pluginClass, String instanceName);
 
-    /**
-     * Creates some TLS credentials for the given parameters.
-     * @param certificate The TLS certificate
-     * @param key The key corresponding to the given {@code certificate}.
-     * @param intermediateCertificates Intermediate certificates forming the certificate chain up to (but not including)
-     * the TLS certificate trusted by the peer.
-     * @return The TLS credentials instance.
-     * @see ServerTlsCredentialSupplier.Context#tlsCredentials(Certificate, PrivateKey, Certificate[])
-     */
-    TlsCredentials tlsCredentials(Certificate certificate, PrivateKey key, Certificate[] intermediateCertificates);
+    // /**
+    // * Creates some TLS credentials for the given parameters.
+    // * @param certificate The TLS certificate
+    // * @param key The key corresponding to the given {@code certificate}.
+    // * @param intermediateCertificates Intermediate certificates forming the certificate chain up to (but not including)
+    // * the TLS certificate trusted by the peer.
+    // * @return The TLS credentials instance.
+    // * @see ServerTlsCredentialSupplier.Context#tlsCredentials(Certificate, PrivateKey, Certificate[])
+    // */
+    // TlsCredentials tlsCredentials(Certificate certificate, PrivateKey key, Certificate[] intermediateCertificates);
 }
