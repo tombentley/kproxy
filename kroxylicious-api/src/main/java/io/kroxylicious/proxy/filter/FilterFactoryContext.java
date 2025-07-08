@@ -9,14 +9,7 @@ package io.kroxylicious.proxy.filter;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-import javax.security.auth.x500.X500Principal;
-
-import io.kroxylicious.proxy.authentication.ClientSaslContext;
-import io.kroxylicious.proxy.authentication.ClientSaslAware;
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
-import io.kroxylicious.proxy.authentication.ServerTlsCredentialContext;
+import io.kroxylicious.proxy.authentication.ServerTlsCredentialSupplier;
 import io.kroxylicious.proxy.authentication.TlsCredentials;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 
@@ -52,7 +45,7 @@ public interface FilterFactoryContext {
      * @param intermediateCertificates Intermediate certificates forming the certificate chain up to (but not including)
      * the TLS certificate trusted by the peer.
      * @return The TLS credentials instance.
-     * @see ServerTlsCredentialContext#tlsCredentials(Certificate, PrivateKey, Certificate[])
+     * @see ServerTlsCredentialSupplier.Context#tlsCredentials(Certificate, PrivateKey, Certificate[])
      */
     TlsCredentials tlsCredentials(Certificate certificate, PrivateKey key, Certificate[] intermediateCertificates);
 }

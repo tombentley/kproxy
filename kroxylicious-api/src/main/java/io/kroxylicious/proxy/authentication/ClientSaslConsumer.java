@@ -11,11 +11,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.kroxylicious.proxy.filter.FilterFactory;
-
 /**
- * <p>Annotation to be applied to {@link FilterFactory FilterFactories} that
- * create filters that are {@link io.kroxylicious.proxy.authentication.ClientSaslAware}.</p>
+ * <p>Annotation to be applied to {@link io.kroxylicious.proxy.filter.FilterFactory FilterFactories}
+ * that create filters that are
+ * {@link ClientSaslAware}.</p>
  *
  * <p>Using this annotation allows the runtime to fail at startup if a filter
  * requires authentication information that cannot be provided by a filter chain

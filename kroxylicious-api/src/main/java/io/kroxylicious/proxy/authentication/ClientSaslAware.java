@@ -6,6 +6,8 @@
 
 package io.kroxylicious.proxy.authentication;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 /**
  * <p>This interface may be implemented by
  * {@link io.kroxylicious.proxy.filter.Filter}s to learn
@@ -31,7 +33,7 @@ public interface ClientSaslAware {
      *
      * @param context The authentication context.
      */
-    void onClientSaslAuthentication(ClientSaslContext context);
+    void onClientSaslAuthentication(Context context);
 
 //    /**
 //     * Notification for failed client authentication outcomes.
@@ -42,4 +44,34 @@ public interface ClientSaslAware {
 //    default void onClientAuthenticationFailure(Exception exception,
 //                                               ClientSaslContext context) {
 //    }
+
+    /**
+     * The context API for {@link ClientSaslAware}.
+     * This is implemented by the runtime for use by plugins.
+     */
+    interface Context {
+
+        /**
+         * The name of the SASL mechanism used.
+         * @return The name of the SASL mechanism used.
+         */
+        String saslMechanismName();
+
+        /**
+         * Returns the client's principal if the client has authenticated using SASL.
+         * @return the client's principal,
+         * or null if the client has not attempted authentication.
+         */
+        @Nullable
+        SaslPrincipal clientPrincipal();
+
+        /**
+         * A principal representing the identity that the proxy presented to the client using SASL authentication.
+         * @return the proxy's principal with the client. This will be null
+         * if the client has not attempted authentication,
+         * or if the proxy did not use a principal because the SASL mechanism used
+         * does not support mutual authentication.
+         */
+        @Nullable SaslPrincipal proxyServerPrincipal();
+    }
 }

@@ -6,10 +6,13 @@
 
 package io.kroxylicious.proxy.authentication;
 
-import io.kroxylicious.proxy.filter.Filter;
+import java.security.cert.X509Certificate;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
- * <p>This interface may be implemented by {@link Filter}s to learn about connection details.</p>
+ * <p>This interface may be implemented by {@link io.kroxylicious.proxy.filter.Filter}s
+ * to learn about connection details.</p>
  */
 public interface ClientConnectionAware {
 
@@ -17,7 +20,7 @@ public interface ClientConnectionAware {
      * Notification that the transport is ready for Kafka protocol exchanges.
      * @param context The context.
      */
-    void onClientConnection(ClientConnectionContext context);
+    void onClientConnection(Context context);
 
 //    /**
 //     * Notification of successful TLS authentication of a client.
@@ -32,4 +35,30 @@ public interface ClientConnectionAware {
 //     */
 //    void onClientTlsAuthentication(X509Certificate clientCertificate,
 //                                   ClientTlsContext context);
+
+    /**
+     * The context API for {@link ClientConnectionAware}.
+     * This is implemented by the runtime for use by plugins.
+     */
+    interface Context {
+
+        /**
+         * Return the client's certificate, if a TLS client certificate was presented during TLS handshake.
+         * @return the client's certificate, or null if no TLS client certificate was presented during TLS handshake.
+         */
+        @Nullable
+        X509Certificate clientCertificate();
+
+        /**
+         * Determines whether the connection to the client is secured using TLS
+         * @return true iff the connection to the client is TLS.
+         */
+        boolean isClientConnectionTls();
+
+        /**
+         * The TLS server certificate that the proxy presented to the client during TLS handshake, if the connection is TLS.
+         * @return The proxy's certificate, or null if the transport protocol is not TLS.
+         */
+        @Nullable X509Certificate proxyServerCertificate();
+    }
 }

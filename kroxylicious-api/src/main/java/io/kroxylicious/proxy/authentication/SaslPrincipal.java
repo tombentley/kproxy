@@ -9,7 +9,7 @@ package io.kroxylicious.proxy.authentication;
 import java.security.Principal;
 import java.util.Objects;
 
-public class SaslPrincipal implements Principal {
+public final class SaslPrincipal implements Principal {
 
     private final String type;
     private final String name;
