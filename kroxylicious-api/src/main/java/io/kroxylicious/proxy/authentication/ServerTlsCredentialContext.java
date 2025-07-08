@@ -10,9 +10,10 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
 /**
- * The context API for {@link ServerTlsClientCertificateSupplier}.
+ * The context API for {@link ServerTlsCredentialSupplier}.
+ * This is implemented by the runtime for use by plugins.
  */
-public interface ServerCredentialContext {
+public interface ServerTlsCredentialContext {
     /**
      * Returns the default credentials for this target cluster (e.g. from the proxy configuration file).
      * @return the default credentials.
