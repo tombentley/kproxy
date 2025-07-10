@@ -7,6 +7,7 @@
 package io.kroxylicious.microbenchmarks;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -176,6 +177,11 @@ public class InvokerDispatchBenchmark {
         @Override
         public String getVirtualClusterName() {
             return null;
+        }
+
+        @Override
+        public Optional<ClientTlsContext> clientTlsContext() {
+            return Optional.empty();
         }
 
         @Override

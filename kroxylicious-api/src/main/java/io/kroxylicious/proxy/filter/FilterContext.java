@@ -5,6 +5,9 @@
  */
 package io.kroxylicious.proxy.filter;
 
+import java.security.Principal;
+import java.security.cert.X509Certificate;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -136,20 +139,43 @@ public interface FilterContext {
      */
     String getVirtualClusterName();
 
-    // /**
-    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    // * to announce a successful authentication outcome with the Kafka client to subsequent
-    // * {@link ClientSaslAware}-implementing plugins.
-    // * @param saslPrincipal The authenticated principal.
-    // */
-    // void clientSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
-    //
-    // /**
-    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    // * to announce a failed authentication outcome with the Kafka client.
-    // * @param exception An exception describing the authentication failure.
-    // */
-    // void clientAuthenticationFailure(Exception exception);
+    /**
+     * @return The TLS context for the client connection, or empty if the client connection is not TLS.
+     */
+    Optional<ClientTlsContext> clientTlsContext();
+
+    interface ClientTlsContext {
+        /**
+         * @return The TLS server certificate that the proxy presented to the client during TLS handshake.
+         */
+        X509Certificate proxyServerCertificate();
+
+        // TODO TLS version
+        // TODO Cipher suite
+        // client IP address
+        //
+
+        /**
+         * @return the client's certificate, or empty if no TLS client certificate was presented during TLS handshake.
+         */
+        Optional<X509Certificate> clientCertificate();
+
+    }
+
+    /**
+    * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+    * to announce a successful authentication outcome with the Kafka client to subsequent
+    * {@link io.kroxylicious.proxy.authentication.ClientPrincipalAware}-implementing plugins.
+    * @param saslPrincipal The authenticated principal.
+    */
+    void clientSaslAuthenticationSuccess(Principal saslPrincipal);
+
+    /**
+    * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+    * to announce a failed authentication outcome with the Kafka client.
+    * @param exception An exception describing the authentication failure.
+    */
+    void clientSaslAuthenticationFailure(Exception exception);
     //
     // /**
     // * Allows a filter

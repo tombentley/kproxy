@@ -7,8 +7,6 @@
 package io.kroxylicious.proxy.filter;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,38 +22,27 @@ import org.apache.kafka.common.record.RecordBatch;
 
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.kafka.transform.RecordTransform;
-import io.kroxylicious.proxy.authentication.ClientConnectionAware;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public class ClientTlsAwareContract implements ClientConnectionAware, ProduceRequestFilter  {
+/**
+ * Abstract {@link ProduceRequestFilter} implementation applying the abstract method pattern:
+ * Subclasses implement {@link #headersToAdd(FilterContext)} to return
+ * the headers to be added to the produced records.
+ */
+public abstract class AbstractProduceHeaderInjectionFilter implements ProduceRequestFilter {
 
-    public static final String HEADER_KEY_CLIENT_CONNECTION_TLS = "clientConnectionTls";
-    public static final String HEADER_KEY_CLIENT_PRINCIPAL_NAME = "clientPrincipalName";
-    public static final String HEADER_KEY_PROXY_PRINCIPAL_NAME = "proxyPrincipalName";
-    private long threadId;
-    private @Nullable String clientPrincipalName;
-    private boolean clientConnectionTls;
-    private @Nullable String proxyPrincipalName;
-
-    @Override
-    public void onClientConnection(Context context) {
-        this.threadId = Thread.currentThread().threadId();
-        this.clientConnectionTls = context.isClientConnectionTls();
-        X509Certificate x509Certificate = context.clientCertificate();
-        this.clientPrincipalName = x509Certificate == null ? null : x509Certificate.getSubjectX500Principal().getName();
-        X509Certificate x509Certificate1 = context.proxyServerCertificate();
-        this.proxyPrincipalName = x509Certificate1 == null ? null : x509Certificate1.getSubjectX500Principal().getName();
-    }
+    @NonNull
+    protected abstract List<RecordHeader> headersToAdd(FilterContext context);
 
     @Override
     public CompletionStage<RequestFilterResult> onProduceRequest(short apiVersion,
                                                                  RequestHeaderData header,
                                                                  ProduceRequestData request,
                                                                  FilterContext context) {
-        if (this.threadId != Thread.currentThread().threadId()) {
-            throw new IllegalStateException(this.threadId + " != " + Thread.currentThread().threadId());
-        }
+        List<RecordHeader> headers = headersToAdd(context);
+
         for (ProduceRequestData.TopicProduceData topicDatum : request.topicData()) {
             for (ProduceRequestData.PartitionProduceData partitionDatum : topicDatum.partitionData()) {
                 MemoryRecords records = (MemoryRecords) partitionDatum.records();
@@ -69,41 +56,41 @@ public class ClientTlsAwareContract implements ClientConnectionAware, ProduceReq
                                     }
 
                                     @Override
-                                    public void init(@Nullable Void state, Record record) {
+                                    public void init(@Nullable Void state, org.apache.kafka.common.record.Record record) {
 
                                     }
 
                                     @Override
-                                    public void resetAfterTransform(Void state, Record record) {
+                                    public void resetAfterTransform(Void state, org.apache.kafka.common.record.Record record) {
 
                                     }
 
                                     @Override
-                                    public long transformOffset(Record record) {
+                                    public long transformOffset(org.apache.kafka.common.record.Record record) {
                                         return record.offset();
                                     }
 
                                     @Override
-                                    public long transformTimestamp(Record record) {
+                                    public long transformTimestamp(org.apache.kafka.common.record.Record record) {
                                         return record.timestamp();
                                     }
 
                                     @Nullable
                                     @Override
-                                    public ByteBuffer transformKey(Record record) {
+                                    public ByteBuffer transformKey(org.apache.kafka.common.record.Record record) {
                                         return record.key();
                                     }
 
                                     @Nullable
                                     @Override
-                                    public ByteBuffer transformValue(Record record) {
+                                    public ByteBuffer transformValue(org.apache.kafka.common.record.Record record) {
                                         return record.value();
                                     }
 
                                     @Nullable
                                     @Override
                                     public Header[] transformHeaders(Record record) {
-                                        return getHeaders(record);
+                                        return getHeaders(record, headers);
                                     }
                                 }));
             }
@@ -111,15 +98,11 @@ public class ClientTlsAwareContract implements ClientConnectionAware, ProduceReq
         return context.forwardRequest(header, request);
     }
 
-    private Header[] getHeaders(Record record) {
-        List<Header> headers = new ArrayList<>(Arrays.asList(record.headers()));
-        headers.add(new RecordHeader(HEADER_KEY_CLIENT_CONNECTION_TLS,
-                new byte[]{clientConnectionTls ? (byte) 1 : (byte) 0}));
-        headers.add(new RecordHeader(HEADER_KEY_CLIENT_PRINCIPAL_NAME,
-                clientPrincipalName == null ? null : clientPrincipalName.getBytes(StandardCharsets.UTF_8)));
-        headers.add(new RecordHeader(HEADER_KEY_PROXY_PRINCIPAL_NAME,
-                proxyPrincipalName == null ? null : proxyPrincipalName.getBytes(StandardCharsets.UTF_8)));
-        return headers.toArray(new Header[0]);
+    private Header[] getHeaders(Record record,
+                                List<RecordHeader> headers) {
+        List<Header> result = new ArrayList<>(record.headers().length + headers.size());
+        result.addAll(Arrays.asList(record.headers()));
+        result.addAll(headers);
+        return result.toArray(new Header[0]);
     }
 }
-

@@ -9,14 +9,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 
 import org.apache.kafka.common.message.ApiVersionsRequestData;
 import org.apache.kafka.common.message.ApiVersionsResponseData;
@@ -36,11 +31,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SniCompletionEvent;
 import io.netty.handler.ssl.SslHandler;
 
-import io.kroxylicious.proxy.authentication.ClientConnectionAware;
 import io.kroxylicious.proxy.filter.FilterAndInvoker;
 import io.kroxylicious.proxy.filter.NetFilter;
 import io.kroxylicious.proxy.frame.DecodedRequestFrame;
@@ -179,64 +174,6 @@ public class KafkaProxyFrontendHandler
             this.authentication = authenticationEvent;
         }
         super.userEventTriggered(ctx, event);
-    }
-
-    private static ClientConnectionAware.Context clientConnectionContext(Channel ch) {
-        boolean isTls;
-        final X509Certificate proxyCertificate;
-        final X509Certificate clientCertificate;
-        SslHandler sslHandler = ch.pipeline().get(SslHandler.class);
-        if (sslHandler != null) {
-            isTls = true;
-
-            SSLSession session = sslHandler.engine().getSession();
-            Certificate[] localCertificates = session.getLocalCertificates();
-            if (localCertificates != null && localCertificates.length > 0) {
-                proxyCertificate = (X509Certificate) localCertificates[0];
-            }
-            else {
-                proxyCertificate = null;
-            }
-
-            Certificate[] peerCertificates;
-            try {
-                peerCertificates = session.getPeerCertificates();
-            }
-            catch (SSLPeerUnverifiedException e) {
-                peerCertificates = null;
-            }
-            if (peerCertificates != null && peerCertificates.length > 0) {
-                clientCertificate = (X509Certificate) peerCertificates[0];
-            }
-            else {
-                clientCertificate = null;
-            }
-
-        }
-        else {
-            isTls = false;
-            proxyCertificate = null;
-            clientCertificate = null;
-        }
-        ClientConnectionAware.Context result = new ClientConnectionAware.Context() {
-            @Nullable
-            @Override
-            public X509Certificate proxyServerCertificate() {
-                return proxyCertificate;
-            }
-
-            @Override
-            public boolean isClientConnectionTls() {
-                return isTls;
-            }
-
-            @Nullable
-            @Override
-            public X509Certificate clientCertificate() {
-                return clientCertificate;
-            }
-        };
-        return result;
     }
 
     /**
@@ -543,16 +480,9 @@ public class KafkaProxyFrontendHandler
         // reads Kafka requests, as the message flows are reversed. This is also the opposite of the order that Filters are declared in the Kroxylicious configuration
         // file. The Netty Channel pipeline documentation provides an illustration https://netty.io/4.0/api/io/netty/channel/ChannelPipeline.html
         if (logFrames) {
-            pipeline.addFirst("frameLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamFrameLogger"));
+            pipeline.addFirst("frameLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamFrameLogger", LogLevel.INFO));
         }
         addFiltersToPipeline(filters, pipeline, inboundChannel);
-        var ccc = clientConnectionContext(inboundChannel);
-
-        for (FilterAndInvoker filterAndInvoker : filters) {
-            if (filterAndInvoker.filter() instanceof ClientConnectionAware cca) {
-                cca.onClientConnection(ccc);
-            }
-        }
 
         var encoderListener = buildMetricsMessageListenerForEncode();
         var decoderListener = buildMetricsMessageListenerForDecode();
@@ -560,7 +490,7 @@ public class KafkaProxyFrontendHandler
         pipeline.addFirst("responseDecoder", new KafkaResponseDecoder(correlationManager, virtualClusterModel.socketFrameMaxSizeBytes(), decoderListener));
         pipeline.addFirst("requestEncoder", new KafkaRequestEncoder(correlationManager, encoderListener));
         if (logNetwork) {
-            pipeline.addFirst("networkLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamNetworkLogger"));
+            pipeline.addFirst("networkLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamNetworkLogger", LogLevel.INFO));
         }
         virtualClusterModel.getUpstreamSslContext().ifPresent(sslContext -> {
             final SslHandler handler = sslContext.newHandler(outboundChannel.alloc(), remote.host(), remote.port());
@@ -722,6 +652,7 @@ public class KafkaProxyFrontendHandler
                                       ChannelPipeline pipeline,
                                       Channel inboundChannel) {
         int num = 0;
+        var fcd = new FilterChainDispatch(filters);
         for (var protocolFilter : filters) {
             // TODO configurable timeout
             // Handler name must be unique, but filters are allowed to appear multiple times
@@ -733,7 +664,8 @@ public class KafkaProxyFrontendHandler
                             20000,
                             sniHostname,
                             virtualClusterModel,
-                            inboundChannel));
+                            inboundChannel,
+                            fcd));
         }
     }
 

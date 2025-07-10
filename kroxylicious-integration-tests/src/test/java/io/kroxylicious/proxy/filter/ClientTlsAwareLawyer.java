@@ -6,9 +6,12 @@
 
 package io.kroxylicious.proxy.filter;
 
+import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 
-public class ClientTlsAwareContractFactory implements FilterFactory<Void, Void> {
+@Plugin(configType = Void.class)
+public class ClientTlsAwareLawyer
+        implements FilterFactory<Void, Void> {
 
     @Override
     public Void initialize(FilterFactoryContext context, Void config) throws PluginConfigurationException {
@@ -17,8 +20,7 @@ public class ClientTlsAwareContractFactory implements FilterFactory<Void, Void> 
 
     @Override
     public Filter createFilter(FilterFactoryContext context, Void config) {
-        return new ClientTlsAwareContract();
+        return new ClientTlsAwareLawyerFilter();
     }
-
 
 }

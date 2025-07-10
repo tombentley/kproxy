@@ -5,6 +5,8 @@
  */
 package io.kroxylicious.proxy.frame;
 
+import org.apache.kafka.common.protocol.ApiKeys;
+
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -51,7 +53,10 @@ public class OpaqueRequestFrame extends OpaqueFrame implements RequestFrame {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "(" +
-                "length=" + length +
+                "apiKey=" + ApiKeys.forId(apiKeyId()) +
+                ", apiVersion=" + apiVersion() +
+                ", correlationId=" + correlationId() +
+                ", length=" + length +
                 ", buf=" + buf +
                 ')';
     }

@@ -33,10 +33,11 @@ public interface ServerTlsCredentialSupplier {
         TlsCredentials defaultTlsCredentials();
 
         /**
-         * Creates some TLS credentials for the given parameters.
+         * <p>Creates some TLS credentials for the given parameters.</p>
          *
-         * The equivalent method on {@code FilterFactoryContext} can be used when the credentials
-         * are part of the plugin configuration.
+         * <p>The equivalent method on {@code FilterFactoryContext} can be used when the credentials
+         * are part of the plugin configuration.</p>
+         *
          * @param certificate The TLS certificate
          * @param key The key corresponding to the given {@code certificate}.
          * @param intermediateCertificates Intermediate certificates forming the certificate chain up to (but not including)
@@ -44,6 +45,8 @@ public interface ServerTlsCredentialSupplier {
          * @return The TLS credentials instance.
          * see io.kroxylicious.proxy.filter.FilterFactoryContext#tlsCredentials(Certificate, PrivateKey, Certificate[])
          */
-        TlsCredentials tlsCredentials(Certificate certificate, PrivateKey key, Certificate[] intermediateCertificates);
+        TlsCredentials tlsCredentials(Certificate certificate,
+                                      PrivateKey key,
+                                      Certificate[] intermediateCertificates);
     }
 }

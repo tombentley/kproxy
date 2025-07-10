@@ -5,10 +5,17 @@
  */
 package io.kroxylicious.proxy.internal;
 
+import java.security.Principal;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.message.RequestHeaderData;
@@ -25,6 +32,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.ssl.SslHandler;
 
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterAndInvoker;
@@ -62,17 +70,24 @@ public class FilterHandler extends ChannelDuplexHandler {
     private final VirtualClusterModel virtualClusterModel;
     private final Channel inboundChannel;
     private final FilterAndInvoker filterAndInvoker;
+    private final FilterChainDispatch fcd;
     private CompletableFuture<Void> writeFuture = CompletableFuture.completedFuture(null);
     private CompletableFuture<Void> readFuture = CompletableFuture.completedFuture(null);
     private ChannelHandlerContext ctx;
     private PromiseFactory promiseFactory;
 
-    public FilterHandler(FilterAndInvoker filterAndInvoker, long timeoutMs, String sniHostname, VirtualClusterModel virtualClusterModel, Channel inboundChannel) {
+    public FilterHandler(FilterAndInvoker filterAndInvoker,
+                         long timeoutMs,
+                         String sniHostname,
+                         VirtualClusterModel virtualClusterModel,
+                         Channel inboundChannel,
+                         FilterChainDispatch fcd) {
         this.filterAndInvoker = Objects.requireNonNull(filterAndInvoker);
         this.timeoutMs = Assertions.requireStrictlyPositive(timeoutMs, "timeout");
         this.sniHostname = sniHostname;
         this.virtualClusterModel = virtualClusterModel;
         this.inboundChannel = inboundChannel;
+        this.fcd = fcd;
     }
 
     @Override
@@ -477,6 +492,71 @@ public class FilterHandler extends ChannelDuplexHandler {
 
         public String getVirtualClusterName() {
             return virtualClusterModel.getClusterName();
+        }
+
+        @Override
+        public Optional<ClientTlsContext> clientTlsContext() {
+            final X509Certificate proxyCertificate;
+            final Optional<X509Certificate> clientCertificate;
+            SslHandler sslHandler = inboundChannel.pipeline().get(SslHandler.class);
+            if (sslHandler != null) {
+                SSLSession session = sslHandler.engine().getSession();
+                Certificate[] localCertificates = session.getLocalCertificates();
+                if (localCertificates != null && localCertificates.length > 0) {
+                    proxyCertificate = (X509Certificate) localCertificates[0];
+                }
+                else {
+                    proxyCertificate = null;
+                }
+
+                Certificate[] peerCertificates;
+                try {
+                    peerCertificates = session.getPeerCertificates();
+                }
+                catch (SSLPeerUnverifiedException e) {
+                    peerCertificates = null;
+                }
+                if (peerCertificates != null && peerCertificates.length > 0) {
+                    clientCertificate = Optional.of((X509Certificate) peerCertificates[0]);
+                }
+                else {
+                    clientCertificate = Optional.empty();
+                }
+
+                ClientTlsContext result = new ClientTlsContext() {
+                    @Override
+                    public X509Certificate proxyServerCertificate() {
+                        return proxyCertificate;
+                    }
+
+                    @Override
+                    public Optional<X509Certificate> clientCertificate() {
+                        return clientCertificate;
+                    }
+                };
+                return Optional.of(result);
+            }
+            else {
+                return Optional.empty();
+            }
+        }
+
+        @Override
+        public void clientSaslAuthenticationSuccess(Principal principal) {
+            // dispatch principal injection
+            fcd.clientSaslAuthenticationSuccess(FilterHandler.this.filterAndInvoker.filter(), principal);
+
+            // throw new UnsupportedOperationException("clientSaslAuthenticationSuccess(" + principal + ")");
+            // TODO unlock the rest of the filter chain (state machine?)
+
+        }
+
+        @Override
+        public void clientSaslAuthenticationFailure(Exception exception) {
+            UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException("clientSaslAuthenticationFailure(" + exception + ")");
+            unsupportedOperationException.addSuppressed(exception);
+            throw unsupportedOperationException;
+            // TODO lock the rest of the filter chain
         }
 
         @Override

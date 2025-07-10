@@ -17,11 +17,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.errors.InvalidTopicException;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.message.ApiVersionsRequestData;
 import org.apache.kafka.common.message.ApiVersionsResponseData;
 import org.apache.kafka.common.message.CreateTopicsRequestData;
@@ -34,6 +37,7 @@ import org.apache.kafka.common.message.MetadataResponseData;
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.serialization.Serdes;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,17 +49,23 @@ import io.github.nettyplus.leakdetector.junit.NettyLeakDetectorExtension;
 
 import io.kroxylicious.proxy.config.NamedFilterDefinition;
 import io.kroxylicious.proxy.config.NamedFilterDefinitionBuilder;
+import io.kroxylicious.proxy.filter.AuditLogger;
+import io.kroxylicious.proxy.filter.ClientSaslPrincipalAwareLawyer;
+import io.kroxylicious.proxy.filter.ClientSaslPrincipalAwareLawyerFilter;
 import io.kroxylicious.proxy.filter.ForwardingStyle;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilter;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilterFactory;
 import io.kroxylicious.proxy.filter.RequestResponseMarkingFilter;
 import io.kroxylicious.proxy.filter.RequestResponseMarkingFilterFactory;
+import io.kroxylicious.proxy.filter.SaslInspection;
+import io.kroxylicious.proxy.filter.SaslPlainTermination;
 import io.kroxylicious.proxy.filter.simpletransform.FetchResponseTransformation;
 import io.kroxylicious.proxy.filter.simpletransform.ProduceRequestTransformation;
 import io.kroxylicious.test.Request;
 import io.kroxylicious.test.Response;
 import io.kroxylicious.test.ResponsePayload;
 import io.kroxylicious.testing.kafka.api.KafkaCluster;
+import io.kroxylicious.testing.kafka.common.SaslMechanism;
 import io.kroxylicious.testing.kafka.junit5ext.KafkaClusterExtension;
 import io.kroxylicious.testing.kafka.junit5ext.Topic;
 
@@ -521,6 +531,128 @@ class FilterIT {
             assertThat(records.records(topic2.name()))
                     .hasSize(1)
                     .map(ConsumerRecord::value).containsExactly(PLAINTEXT);
+        }
+    }
+
+    @Test
+    void shouldTerminate(KafkaCluster cluster, Topic topic) throws Exception {
+
+        NamedFilterDefinition saslTermination = new NamedFilterDefinitionBuilder(
+                SaslPlainTermination.class.getName(),
+                SaslPlainTermination.class.getName())
+                .build();
+        NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
+                ClientSaslPrincipalAwareLawyer.class.getName(),
+                ClientSaslPrincipalAwareLawyer.class.getName())
+                .build();
+        var config = proxy(cluster)
+                .addToFilterDefinitions(saslTermination, lawyer)
+                .addToDefaultFilters(saslTermination.name(), lawyer.name());
+
+        try (var tester = kroxyliciousTester(config);
+                var producer = tester.producer(Map.of(
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
+                        SaslConfigs.SASL_MECHANISM, "PLAIN",
+                        SaslConfigs.SASL_JAAS_CONFIG, """
+                                        org.apache.kafka.common.security.plain.PlainLoginModule required
+                                            username="alice"
+                                            password="alice-secret";
+                                """,
+                        CLIENT_ID_CONFIG, "shouldModifyProduceMessage",
+                        DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000));
+                var consumer = tester
+                        .consumer(Serdes.String(), Serdes.ByteArray(), Map.of(GROUP_ID_CONFIG, "my-group-id", AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+            producer.send(new ProducerRecord<>(topic.name(), "my-key", PLAINTEXT)).get();
+
+            producer.flush();
+
+            consumer.subscribe(Set.of(topic.name()));
+            var records = consumer.poll(Duration.ofSeconds(10));
+
+            assertThat(records).hasSize(1);
+            assertThat(records.records(topic.name()))
+                    .as("topic %s records", topic.name())
+                    .singleElement()
+                    .extracting(ConsumerRecord::headers)
+                    .as("record headers")
+                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
+                            InstanceOfAssertFactories.iterable(Header.class))
+                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .singleElement()
+                    .extracting(Header::value)
+                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .isNotNull()
+                    .extracting(String::new)
+                    .isEqualTo("alice");
+        }
+    }
+
+    @Test
+    void shouldInspect(@SaslMechanism(principals = { @SaslMechanism.Principal(user = "alice", password = "alice-secret") }) KafkaCluster cluster,
+                       Topic topic)
+            throws Exception {
+
+        NamedFilterDefinition auditLogger = new NamedFilterDefinitionBuilder(
+                AuditLogger.class.getName(),
+                AuditLogger.class.getName())
+                .build();
+        NamedFilterDefinition saslInspection = new NamedFilterDefinitionBuilder(
+                SaslInspection.class.getName(),
+                SaslInspection.class.getName())
+                .build();
+        NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
+                ClientSaslPrincipalAwareLawyer.class.getName(),
+                ClientSaslPrincipalAwareLawyer.class.getName())
+                .build();
+        var config = proxy(cluster)
+                .addToFilterDefinitions(auditLogger, saslInspection, lawyer)
+                .addToDefaultFilters(auditLogger.name(), saslInspection.name(), lawyer.name());
+
+        try (var tester = kroxyliciousTester(config);
+                var producer = tester.producer(Map.of(
+                        CLIENT_ID_CONFIG, "shouldInspect" + "-producer",
+                        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
+                        SaslConfigs.SASL_MECHANISM, "PLAIN",
+                        SaslConfigs.SASL_JAAS_CONFIG, """
+                                        org.apache.kafka.common.security.plain.PlainLoginModule required
+                                            username="alice"
+                                            password="alice-secret";
+                                """,
+                        DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000));
+                var consumer = tester
+                        .consumer(Serdes.String(), Serdes.ByteArray(), Map.of(
+                                CLIENT_ID_CONFIG, "shouldInspect" + "-consumer",
+                                CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
+                                SaslConfigs.SASL_MECHANISM, "PLAIN",
+                                SaslConfigs.SASL_JAAS_CONFIG, """
+                                        org.apache.kafka.common.security.plain.PlainLoginModule required
+                                            username="alice"
+                                            password="alice-secret";
+                                        """,
+                                GROUP_ID_CONFIG, "my-group-id",
+                                AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+            producer.send(new ProducerRecord<>(topic.name(), "my-key", PLAINTEXT)).get();
+
+            producer.flush();
+
+            consumer.subscribe(Set.of(topic.name()));
+            var records = consumer.poll(Duration.ofSeconds(10));
+
+            assertThat(records).hasSize(1);
+            assertThat(records.records(topic.name()))
+                    .as("topic %s records", topic.name())
+                    .singleElement()
+                    .extracting(ConsumerRecord::headers)
+                    .as("record headers")
+                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
+                            InstanceOfAssertFactories.iterable(Header.class))
+                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .singleElement()
+                    .extracting(Header::value)
+                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .isNotNull()
+                    .extracting(String::new)
+                    .isEqualTo("alice");
         }
     }
 
