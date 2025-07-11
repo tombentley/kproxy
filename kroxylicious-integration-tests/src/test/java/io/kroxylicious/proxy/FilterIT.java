@@ -58,6 +58,8 @@ import io.kroxylicious.proxy.filter.RejectingCreateTopicFilterFactory;
 import io.kroxylicious.proxy.filter.RequestResponseMarkingFilter;
 import io.kroxylicious.proxy.filter.RequestResponseMarkingFilterFactory;
 import io.kroxylicious.proxy.filter.SaslInspection;
+import io.kroxylicious.proxy.filter.SaslPlainInitiation;
+import io.kroxylicious.proxy.filter.SaslPlainInitiationFilter;
 import io.kroxylicious.proxy.filter.SaslPlainTermination;
 import io.kroxylicious.proxy.filter.simpletransform.FetchResponseTransformation;
 import io.kroxylicious.proxy.filter.simpletransform.ProduceRequestTransformation;
@@ -588,9 +590,62 @@ class FilterIT {
     }
 
     @Test
+    void shouldInitiate(@SaslMechanism(principals = { @SaslMechanism.Principal(user = "alice", password = "alice-secret") }) KafkaCluster cluster,
+                       Topic topic)
+            throws Exception {
+        String testName = "shouldInitiate";
+
+        NamedFilterDefinition saslInitiation = new NamedFilterDefinitionBuilder(
+                SaslPlainInitiation.class.getName(),
+                SaslPlainInitiation.class.getName())
+                .build();
+        NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
+                ClientSaslPrincipalAwareLawyer.class.getName(),
+                ClientSaslPrincipalAwareLawyer.class.getName())
+                .build();
+        var config = proxy(cluster)
+                .addToFilterDefinitions(saslInitiation, lawyer)
+                .addToDefaultFilters(saslInitiation.name(), lawyer.name());
+
+        try (var tester = kroxyliciousTester(config);
+                var producer = tester.producer(Map.of(
+                        CLIENT_ID_CONFIG, testName + "-producer",
+                        DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000));
+                var consumer = tester
+                        .consumer(Serdes.String(), Serdes.ByteArray(), Map.of(
+                                CLIENT_ID_CONFIG, testName + "-consumer",
+                                GROUP_ID_CONFIG, "my-group-id",
+                                AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+            producer.send(new ProducerRecord<>(topic.name(), "my-key", PLAINTEXT)).get();
+
+            producer.flush();
+
+            consumer.subscribe(Set.of(topic.name()));
+            var records = consumer.poll(Duration.ofSeconds(10));
+
+            assertThat(records).hasSize(1);
+            assertThat(records.records(topic.name()))
+                    .as("topic %s records", topic.name())
+                    .singleElement()
+                    .extracting(ConsumerRecord::headers)
+                    .as("record headers")
+                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
+                            InstanceOfAssertFactories.iterable(Header.class))
+                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .singleElement()
+                    .extracting(Header::value)
+                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .isNotNull()
+                    .extracting(String::new)
+                    .isEqualTo("alice");
+        }
+    }
+
+    @Test
     void shouldInspect(@SaslMechanism(principals = { @SaslMechanism.Principal(user = "alice", password = "alice-secret") }) KafkaCluster cluster,
                        Topic topic)
             throws Exception {
+        String testName = "shouldInspect";
 
         NamedFilterDefinition auditLogger = new NamedFilterDefinitionBuilder(
                 AuditLogger.class.getName(),
@@ -610,7 +665,7 @@ class FilterIT {
 
         try (var tester = kroxyliciousTester(config);
                 var producer = tester.producer(Map.of(
-                        CLIENT_ID_CONFIG, "shouldInspect" + "-producer",
+                        CLIENT_ID_CONFIG, testName + "-producer",
                         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
                         SaslConfigs.SASL_MECHANISM, "PLAIN",
                         SaslConfigs.SASL_JAAS_CONFIG, """
@@ -621,7 +676,7 @@ class FilterIT {
                         DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000));
                 var consumer = tester
                         .consumer(Serdes.String(), Serdes.ByteArray(), Map.of(
-                                CLIENT_ID_CONFIG, "shouldInspect" + "-consumer",
+                                CLIENT_ID_CONFIG, testName + "-consumer",
                                 CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
                                 SaslConfigs.SASL_MECHANISM, "PLAIN",
                                 SaslConfigs.SASL_JAAS_CONFIG, """
