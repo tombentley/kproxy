@@ -8,6 +8,10 @@ package io.kroxylicious.proxy.authentication;
 
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+
+import io.kroxylicious.proxy.tls.ClientTlsContext;
 
 /**
  * Implemented by a {@link io.kroxylicious.proxy.filter.Filter} that provides
@@ -19,24 +23,30 @@ public interface ServerTlsCredentialSupplier {
      * @param context The context.
      * @return the TlsCredentials for the connection.
      */
-    TlsCredentials tlsCredentials(Context context);
+    CompletionStage<TlsCredentials> tlsCredentials(Context context);
 
     /**
      * The context API for {@link ServerTlsCredentialSupplier}.
      * This is implemented by the runtime for use by plugins.
      */
     interface Context {
+        Optional<ClientTlsContext> clientTlsContext();
+        Optional<ClientSaslContext> clientSaslContext();
+
         /**
          * Returns the default credentials for this target cluster (e.g. from the proxy configuration file).
+         * Implementations of {@link ServerTlsCredentialSupplier} may use this as a fall-back
+         * or default, for example if the apply a certificiate-per-client-principal pattern
+         * but are being used with an anonymous principal.
          * @return the default credentials.
          */
         TlsCredentials defaultTlsCredentials();
 
         /**
-         * <p>Creates some TLS credentials for the given parameters.</p>
+         * <p>Factory methods for creating TLS credentials for the given parameters.</p>
          *
          * <p>The equivalent method on {@code FilterFactoryContext} can be used when the credentials
-         * are part of the plugin configuration.</p>
+         * are known at plugin configuration time.</p>
          *
          * @param certificate The TLS certificate
          * @param key The key corresponding to the given {@code certificate}.

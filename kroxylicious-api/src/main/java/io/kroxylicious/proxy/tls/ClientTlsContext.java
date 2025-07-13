@@ -1,0 +1,28 @@
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.proxy.filter;
+
+import java.security.cert.X509Certificate;
+import java.util.Optional;
+
+public interface ClientTlsContext {
+    /**
+     * @return The TLS server certificate that the proxy presented to the client during TLS handshake.
+     */
+    X509Certificate proxyServerCertificate();
+
+    // TODO TLS version
+    // TODO Cipher suite
+    // client IP address
+    //
+
+    /**
+     * @return the client's certificate, or empty if no TLS client certificate was presented during TLS handshake.
+     */
+    Optional<X509Certificate> clientCertificate();
+
+}
