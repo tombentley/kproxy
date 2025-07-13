@@ -20,7 +20,7 @@ public class ClientTlsAwareLawyer
 
     @Override
     public Filter createFilter(FilterFactoryContext context, Void config) {
-        return new ClientTlsAwareLawyerFilter();
+        return new ClientAuthAwareLawyerFilter();
     }
 
 }

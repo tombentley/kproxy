@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.proxy.filter;
+package io.kroxylicious.proxy.tls;
 
 import java.security.cert.X509Certificate;
 import java.util.Optional;

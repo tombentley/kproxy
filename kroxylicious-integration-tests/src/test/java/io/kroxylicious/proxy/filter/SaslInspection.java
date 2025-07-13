@@ -6,12 +6,10 @@
 
 package io.kroxylicious.proxy.filter;
 
-import io.kroxylicious.proxy.authentication.ClientPrincipalProducer;
 import io.kroxylicious.proxy.authentication.SaslPrincipal;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 
-@ClientPrincipalProducer(SaslPrincipal.class)
 @Plugin(configType = Void.class)
 public class SaslInspection implements FilterFactory<Void, Void> {
     // TODO configuration of enabled mechanisms

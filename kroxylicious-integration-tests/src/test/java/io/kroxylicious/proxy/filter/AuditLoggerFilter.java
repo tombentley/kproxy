@@ -11,7 +11,6 @@ import java.security.cert.X509Certificate;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.kafka.common.message.ApiVersionsRequestData;
@@ -59,11 +58,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.kroxylicious.proxy.authentication.ClientPrincipalAware;
+import io.kroxylicious.proxy.tls.ClientTlsContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public class AuditLoggerFilter implements RequestFilter, ResponseFilter, ClientPrincipalAware<Principal> {
+public class AuditLoggerFilter implements RequestFilter, ResponseFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditLoggerFilter.class);
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -77,8 +76,6 @@ public class AuditLoggerFilter implements RequestFilter, ResponseFilter, ClientP
         }
     }
 
-    private Optional<Principal> clientPrincipal = Optional.empty();
-
     final long initMillis;
     final long initNanos;
     final Map<Integer, Short> requestVersions;
@@ -87,14 +84,6 @@ public class AuditLoggerFilter implements RequestFilter, ResponseFilter, ClientP
         initMillis = System.currentTimeMillis();
         initNanos = System.nanoTime();
         requestVersions = new HashMap<>();
-    }
-
-    @Override
-    public void onClientAuthentication(Principal clientPrincipal) {
-        // TODO Might be good to include a context object here
-        // some filters might want to do something in response to this event
-        // but not have intercepted any previous requests, so lack info available from the filter context
-        this.clientPrincipal = Optional.of(clientPrincipal);
     }
 
     @Override
@@ -111,10 +100,10 @@ public class AuditLoggerFilter implements RequestFilter, ResponseFilter, ClientP
             object.put("channelDescriptor", context.channelDescriptor());
             // TODO ^^ context.channelDescriptor() just contains the info about the connection to server, not the connection from client
             // TODO netty has a ChannelId which we should probably use??
-            object.put("clientCertSig", context.clientTlsContext().flatMap(FilterContext.ClientTlsContext::clientCertificate)
+            object.put("clientCertSig", context.clientTlsContext().flatMap(ClientTlsContext::clientCertificate)
                     .map(X509Certificate::getSignature).orElse(null));
             object.put("clientId", header.clientId());
-            object.put("clientPrincipal", clientPrincipal.map(Principal::getName).orElse(null));
+            object.put("clientPrincipal", context.clientPrincipal().map(Principal::getName).orElse(null));
             object.put("correlationId", header.correlationId());
             object.put("apiKey", apiKey.name);
             if (logRequest) {
@@ -142,7 +131,7 @@ public class AuditLoggerFilter implements RequestFilter, ResponseFilter, ClientP
             object.put("nanosSinceInit", nanosSinceInit);
             object.put("currentTimeMillis", currentTimeMillis(nanosSinceInit));
             // object.put("channelDescriptor", context.channelDescriptor());
-            object.put("clientCertSig", context.clientTlsContext().flatMap(FilterContext.ClientTlsContext::clientCertificate)
+            object.put("clientCertSig", context.clientTlsContext().flatMap(ClientTlsContext::clientCertificate)
                     .map(X509Certificate::getSignature).orElse(null));
             // TODO object.put("serverPrincipal", serverPrincipal.getName());
             object.put("correlationId", header.correlationId());

@@ -63,7 +63,7 @@ import io.kroxylicious.proxy.config.secret.PasswordProvider;
 import io.kroxylicious.proxy.config.tls.AllowDeny;
 import io.kroxylicious.proxy.config.tls.TlsClientAuth;
 import io.kroxylicious.proxy.filter.ClientTlsAwareLawyer;
-import io.kroxylicious.proxy.filter.ClientTlsAwareLawyerFilter;
+import io.kroxylicious.proxy.filter.ClientAuthAwareLawyerFilter;
 import io.kroxylicious.proxy.service.HostPort;
 import io.kroxylicious.test.Request;
 import io.kroxylicious.testing.kafka.api.KafkaCluster;
@@ -468,10 +468,10 @@ class TlsIT extends BaseIT {
                 } while (records.isEmpty());
             }
             ConsumerRecord<String, String> record = records.get(0);
-            assertThat(singleHeader(record, ClientTlsAwareLawyerFilter.HEADER_KEY_CLIENT_CONNECTION_TLS).value()).containsExactly(1);
-            assertThat(new String(singleHeader(record, ClientTlsAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL_NAME).value())).isEqualTo(
+            assertThat(singleHeader(record, ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_TLS).value()).containsExactly(1);
+            assertThat(new String(singleHeader(record, ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_TLS_CLIENT_X500PRINCIPAL_NAME).value())).isEqualTo(
                     "CN=client, OU=Dev, O=kroxylicious.io, L=null, ST=null, C=US, emailAddress=clientTest@kroxylicious.io");
-            assertThat(new String(singleHeader(record, ClientTlsAwareLawyerFilter.HEADER_KEY_PROXY_PRINCIPAL_NAME).value())).isEqualTo(
+            assertThat(new String(singleHeader(record, ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_TLS_PROXY_X500PRINCIPAL_NAME).value())).isEqualTo(
                     "CN=localhost, OU=KI, O=kroxylicious.io, L=null, ST=null, C=US, emailAddress=test@kroxylicious.io");
         }
     }

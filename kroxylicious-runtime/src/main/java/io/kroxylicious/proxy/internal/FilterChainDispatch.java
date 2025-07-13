@@ -6,75 +6,65 @@
 
 package io.kroxylicious.proxy.internal;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.security.Principal;
-import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
-import io.kroxylicious.proxy.authentication.ClientPrincipalAware;
-import io.kroxylicious.proxy.filter.Filter;
-import io.kroxylicious.proxy.filter.FilterAndInvoker;
+import io.kroxylicious.proxy.authentication.ClientSaslContext;
+import io.kroxylicious.proxy.authentication.SaslPrincipal;
 
-public class FilterChainDispatch {
-    private final List<FilterAndInvoker> filters;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
-    public FilterChainDispatch(List<FilterAndInvoker> filters) {
-        this.filters = filters;
+public class FilterChainDispatch implements ClientSaslContext {
+
+    private final boolean useSaslPrincipal;
+    private SaslPrincipal saslPrincipal = null;
+    private String mechanism;
+    private SaslPrincipal proxyPrincipal;
+
+    public FilterChainDispatch(boolean useSaslPrincipal) {
+        this.useSaslPrincipal = useSaslPrincipal;
+        this.saslPrincipal = null;
     }
 
-    void clientSaslAuthenticationSuccess(Filter caller, Principal principal) {
-        boolean seenCaller = true;
-        for (var filterAndInvoker : filters) {
-            Filter filter = filterAndInvoker.filter();
-            if (seenCaller) {
-                if (filter instanceof ClientPrincipalAware<?> clientPrincipalAware) {
-                    Type type = clientPrincipalAware.getClass();
-                    Type reifiedPrincipalType = null;
-                    OUTER: do {
-                        Type[] genericInterfaces;
-                        Type genericSuperclass;
-                        if (type instanceof Class c) {
-                            genericInterfaces = c.getGenericInterfaces();
-                            genericSuperclass = c.getGenericSuperclass();
-                        }
-                        // else if (type instanceof ParameterizedType pt) {
-                        // genericInterfaces = pt.getGenericInterfaces();
-                        // genericSuperclass = pt.getGenericSuperclass();
-                        // }
-                        else {
-                            throw new IllegalStateException();
-                        }
-                        for (Type t : genericInterfaces) {
-                            if (t instanceof ParameterizedType pt) {
-                                if (ClientPrincipalAware.class.equals(pt.getRawType())) {
-                                    reifiedPrincipalType = pt.getActualTypeArguments()[0];
-                                    break OUTER;
-                                }
-                            }
-                        }
-                        type = genericSuperclass;
-                    } while (type != null);
+    boolean isUseSaslPrincipal() {
+        return useSaslPrincipal;
+    }
 
-                    if (reifiedPrincipalType instanceof Class<?> principalClass) {
-                        if (principalClass.isInstance(principal)) {
-                            principalClass.cast(principal);
-                            ((ClientPrincipalAware) clientPrincipalAware).onClientAuthentication(principal);
-                        }
-                    }
-                    else {
-                        throw new RuntimeException();
-                    }
-                }
-            }
-            else {
-                if (caller.equals(filter)) {
-                    seenCaller = true;
-                }
-            }
+    void clientSaslAuthenticationSuccess(String mechanism,
+                                         SaslPrincipal principal,
+                                         @Nullable SaslPrincipal proxyPrincipal) {
+        Objects.requireNonNull(mechanism, "mechanism");
+        Objects.requireNonNull(principal, "principal");
+        if (this.saslPrincipal != null) {
+            throw new IllegalStateException("SaslPrincipal is already set");
+        }
+        this.saslPrincipal = principal;
+        this.mechanism = mechanism;
+        this.proxyPrincipal = proxyPrincipal;
+    }
+
+    public Optional<ClientSaslContext> clientSaslContext() {
+        if (saslPrincipal != null) {
+            return Optional.of(this);
+        }
+        else {
+            return Optional.empty();
         }
     }
 
-    void clientSaslAuthenticationFailure(Filter caller, Exception exception) {
-
+    @Override
+    public String mechanismName() {
+        return this.mechanism;
     }
+
+    @Override
+    public SaslPrincipal clientPrincipal() {
+        return saslPrincipal;
+    }
+
+    @Override
+    public Optional<SaslPrincipal> proxyServerPrincipal() {
+        return Optional.ofNullable(this.proxyPrincipal);
+    }
+
 }

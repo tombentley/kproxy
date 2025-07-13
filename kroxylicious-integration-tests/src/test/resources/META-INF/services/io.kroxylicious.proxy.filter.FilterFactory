@@ -10,4 +10,3 @@ io.kroxylicious.proxy.filter.SaslPlainTermination
 io.kroxylicious.proxy.filter.SaslPlainInitiation
 io.kroxylicious.proxy.filter.SaslInspection
 io.kroxylicious.proxy.filter.ClientTlsAwareLawyer
-io.kroxylicious.proxy.filter.ClientSaslPrincipalAwareLawyer

@@ -4,14 +4,14 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.proxy.authentication;
+package io.kroxylicious.proxy.tls;
 
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.proxy.tls.ClientTlsContext;
+import io.kroxylicious.proxy.authentication.ClientSaslContext;
 
 /**
  * Implemented by a {@link io.kroxylicious.proxy.filter.Filter} that provides

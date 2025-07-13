@@ -6,7 +6,6 @@
 package io.kroxylicious.proxy.filter;
 
 import java.security.Principal;
-import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -16,6 +15,12 @@ import org.apache.kafka.common.message.RequestHeaderData;
 import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.protocol.ApiMessage;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
+
+import io.kroxylicious.proxy.authentication.ClientSaslContext;
+import io.kroxylicious.proxy.authentication.SaslPrincipal;
+import io.kroxylicious.proxy.authentication.ServerSaslContext;
+import io.kroxylicious.proxy.tls.ClientTlsContext;
+import io.kroxylicious.proxy.tls.ServerTlsContext;
 
 /**
  * A context to allow filters to interact with other filters and the pipeline.
@@ -144,38 +149,88 @@ public interface FilterContext {
      */
     Optional<ClientTlsContext> clientTlsContext();
 
-    interface ClientTlsContext {
-        /**
-         * @return The TLS server certificate that the proxy presented to the client during TLS handshake.
-         */
-        X509Certificate proxyServerCertificate();
+    /**
+     * @return The SASL context for the client connection, or empty if the client
+     * has not successfully authenticated using SASL.
+     */
+    Optional<ClientSaslContext> clientSaslContext();
 
-        // TODO TLS version
-        // TODO Cipher suite
-        // client IP address
-        //
-
-        /**
-         * @return the client's certificate, or empty if no TLS client certificate was presented during TLS handshake.
-         */
-        Optional<X509Certificate> clientCertificate();
-
-    }
+    /**
+     * Returns the authenticated principal for the client connection, or empty if the client
+     * has not successfully authenticated.
+     * The concrete type of principal returned depends on the proxy configuration.
+     * For example,
+     * it may be a {@link javax.security.auth.x500.X500Principal} if client identity is TLS-based,
+     * or it may be a {@link SaslPrincipal} is client identity is SASL based.
+     * @return The authenticated principal for the client connection, or empty if the client
+     * has not successfully authenticated.
+     */
+    Optional<? extends Principal> clientPrincipal();
 
     /**
     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    * to announce a successful authentication outcome with the Kafka client to subsequent
-    * {@link io.kroxylicious.proxy.authentication.ClientPrincipalAware}-implementing plugins.
+    * to announce a successful authentication outcome with the Kafka client to other plugins.
+     * After calling this method the result of {@link #clientSaslContext()} will
+     * be non-empty for this and other filters.
+     * This method may be called multiple times over the lifetime of
+     * a session if reauthentication is required.
+     * TODO define the semantics around reauth
     * @param saslPrincipal The authenticated principal.
     */
-    void clientSaslAuthenticationSuccess(Principal saslPrincipal);
+    void clientSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
 
     /**
     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
     * to announce a failed authentication outcome with the Kafka client.
+     * TODO make clear that it's a terminator or inspector's responsilbity to
+     *   return the right error response to a client, and or disconnect.
+     * TODO this also has a role during reauthentation.
     * @param exception An exception describing the authentication failure.
     */
     void clientSaslAuthenticationFailure(Exception exception);
+
+    /**
+     * @return The TLS context for the server connection, or empty if the server connection is not TLS.
+     */
+    Optional<ServerTlsContext> serverTlsContext();
+
+    /**
+     * @return The SASL context for the server connection, or empty if the server
+     * has not successfully authenticated using SASL.
+     */
+    Optional<ServerSaslContext> serverSaslContext();
+
+    /**
+     * Returns the authenticated principal for the server connection, or empty if the server
+     * has not successfully authenticated, or if the server authentication was not mutual.
+     * The concrete type of principal returned depends on the proxy configuration.
+     * For example,
+     * it may be a {@link javax.security.auth.x500.X500Principal} if server identity is TLS-based,
+     * or it may be a {@link SaslPrincipal} is client identity is SASL based.
+     * @return The authenticated principal for the server connection, or empty if the server
+     * has not successfully authenticated.
+     */
+    Optional<? extends Principal> serverPrincipal();
+
+    /**
+     * Allows a filter
+     * to announce a successful authentication outcome with the Kafka server to other plugins.
+     * After calling this method the result of {@link #serverSaslContext()} will
+     * be non-empty for this and other filters.
+     * This method may be called multiple times over the lifetime of
+     * a session if reauthentication is required.
+     * TODO define the semantics around reauth
+     * @param saslPrincipal The authenticated principal.
+     */
+    void serverSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
+
+    /**
+     * Allows a filter
+     * to announce a failed authentication outcome with the Kafka server.
+     * @param exception An exception describing the authentication failure.
+     */
+    void serverSaslAuthenticationFailure(Exception exception);
+
     //
     // /**
     // * Allows a filter

@@ -9,11 +9,12 @@ package io.kroxylicious.proxy.tls;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
 
-public interface ClientTlsContext {
+public interface ServerTlsContext {
     /**
-     * @return The TLS server certificate that the proxy presented to the client during TLS handshake.
+     * @return The TLS server certificate that the proxy presented to the server during TLS handshake,
+     * or empty if no TLS client certificate was presented during TLS handshake.
      */
-    X509Certificate proxyServerCertificate();
+    Optional<X509Certificate> proxyClientCertificate();
 
     // TODO TLS version
     // TODO Cipher suite
@@ -21,8 +22,8 @@ public interface ClientTlsContext {
     //
 
     /**
-     * @return the client's certificate, or empty if no TLS client certificate was presented during TLS handshake.
+     * @return the server's TLS certificate.
      */
-    Optional<X509Certificate> clientCertificate();
+    X509Certificate serverCertificate();
 
 }

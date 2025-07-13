@@ -34,6 +34,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.ssl.SslHandler;
 
+import io.kroxylicious.proxy.authentication.ClientSaslContext;
+import io.kroxylicious.proxy.authentication.SaslPrincipal;
+import io.kroxylicious.proxy.tls.ClientTlsContext;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterAndInvoker;
 import io.kroxylicious.proxy.filter.FilterContext;
@@ -496,55 +499,43 @@ public class FilterHandler extends ChannelDuplexHandler {
 
         @Override
         public Optional<ClientTlsContext> clientTlsContext() {
-            final X509Certificate proxyCertificate;
-            final Optional<X509Certificate> clientCertificate;
-            SslHandler sslHandler = inboundChannel.pipeline().get(SslHandler.class);
-            if (sslHandler != null) {
-                SSLSession session = sslHandler.engine().getSession();
-                Certificate[] localCertificates = session.getLocalCertificates();
-                if (localCertificates != null && localCertificates.length > 0) {
-                    proxyCertificate = (X509Certificate) localCertificates[0];
-                }
-                else {
-                    proxyCertificate = null;
-                }
-
-                Certificate[] peerCertificates;
-                try {
-                    peerCertificates = session.getPeerCertificates();
-                }
-                catch (SSLPeerUnverifiedException e) {
-                    peerCertificates = null;
-                }
-                if (peerCertificates != null && peerCertificates.length > 0) {
-                    clientCertificate = Optional.of((X509Certificate) peerCertificates[0]);
-                }
-                else {
-                    clientCertificate = Optional.empty();
-                }
-
-                ClientTlsContext result = new ClientTlsContext() {
+            return Optional.ofNullable(inboundChannel.pipeline().get(SslHandler.class))
+                    .map(clientFacingSslHandler -> {
+                final X509Certificate proxyCertificate = localTlsCertificate(clientFacingSslHandler).orElseThrow();
+                final Optional<X509Certificate> clientCertificate = getPeerTlsCertificate(clientFacingSslHandler);
+                return new ClientTlsContext() {
                     @Override
+                    @NonNull
                     public X509Certificate proxyServerCertificate() {
                         return proxyCertificate;
                     }
 
                     @Override
+                    @NonNull
                     public Optional<X509Certificate> clientCertificate() {
                         return clientCertificate;
                     }
                 };
-                return Optional.of(result);
-            }
-            else {
-                return Optional.empty();
-            }
+            });
         }
 
         @Override
-        public void clientSaslAuthenticationSuccess(Principal principal) {
+        public Optional<ClientSaslContext> clientSaslContext() {
+            return FilterHandler.this.fcd.clientSaslContext();
+        }
+
+        @Override
+        public Optional<? extends Principal> clientPrincipal() {
+            return fcd.isUseSaslPrincipal() ? clientPrincipal() :
+                    Optional.ofNullable(inboundChannel.pipeline().get(SslHandler.class))
+                            .flatMap(FilterHandler.this::getPeerTlsCertificate)
+                            .map(X509Certificate::getSubjectX500Principal);
+        }
+
+        @Override
+        public void clientSaslAuthenticationSuccess(SaslPrincipal principal) {
             // dispatch principal injection
-            fcd.clientSaslAuthenticationSuccess(FilterHandler.this.filterAndInvoker.filter(), principal);
+            fcd.clientSaslAuthenticationSuccess("PLAIN", principal, null);
 
             // throw new UnsupportedOperationException("clientSaslAuthenticationSuccess(" + principal + ")");
             // TODO unlock the rest of the filter chain (state machine?)
@@ -627,6 +618,45 @@ public class FilterHandler extends ChannelDuplexHandler {
             return filterPromise.minimalCompletionStage();
         }
 
+    }
+
+    private Optional<X509Certificate> getPeerTlsCertificate(SslHandler sslHandler) {
+        if (sslHandler != null) {
+            SSLSession session = sslHandler.engine().getSession();
+
+            Certificate[] peerCertificates;
+            try {
+                peerCertificates = session.getPeerCertificates();
+            }
+            catch (SSLPeerUnverifiedException e) {
+                peerCertificates = null;
+            }
+            if (peerCertificates != null && peerCertificates.length > 0) {
+                return Optional.of((X509Certificate) peerCertificates[0]);
+            }
+            else {
+                return Optional.empty();
+            }
+        }
+        else {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<X509Certificate> localTlsCertificate(SslHandler sslHandler) {
+        if (sslHandler != null) {
+            SSLSession session = sslHandler.engine().getSession();
+            Certificate[] localCertificates = session.getLocalCertificates();
+            if (localCertificates != null && localCertificates.length > 0) {
+                return Optional.of((X509Certificate) localCertificates[0]);
+            }
+            else {
+                return Optional.empty();
+            }
+        }
+        else {
+            return Optional.empty();
+        }
     }
 
 }

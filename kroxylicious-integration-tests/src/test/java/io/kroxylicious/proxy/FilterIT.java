@@ -50,8 +50,8 @@ import io.github.nettyplus.leakdetector.junit.NettyLeakDetectorExtension;
 import io.kroxylicious.proxy.config.NamedFilterDefinition;
 import io.kroxylicious.proxy.config.NamedFilterDefinitionBuilder;
 import io.kroxylicious.proxy.filter.AuditLogger;
-import io.kroxylicious.proxy.filter.ClientSaslPrincipalAwareLawyer;
-import io.kroxylicious.proxy.filter.ClientSaslPrincipalAwareLawyerFilter;
+import io.kroxylicious.proxy.filter.ClientTlsAwareLawyer;
+import io.kroxylicious.proxy.filter.ClientAuthAwareLawyerFilter;
 import io.kroxylicious.proxy.filter.ForwardingStyle;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilter;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilterFactory;
@@ -59,7 +59,6 @@ import io.kroxylicious.proxy.filter.RequestResponseMarkingFilter;
 import io.kroxylicious.proxy.filter.RequestResponseMarkingFilterFactory;
 import io.kroxylicious.proxy.filter.SaslInspection;
 import io.kroxylicious.proxy.filter.SaslPlainInitiation;
-import io.kroxylicious.proxy.filter.SaslPlainInitiationFilter;
 import io.kroxylicious.proxy.filter.SaslPlainTermination;
 import io.kroxylicious.proxy.filter.simpletransform.FetchResponseTransformation;
 import io.kroxylicious.proxy.filter.simpletransform.ProduceRequestTransformation;
@@ -544,8 +543,8 @@ class FilterIT {
                 SaslPlainTermination.class.getName())
                 .build();
         NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
-                ClientSaslPrincipalAwareLawyer.class.getName(),
-                ClientSaslPrincipalAwareLawyer.class.getName())
+                ClientTlsAwareLawyer.class.getName(),
+                ClientTlsAwareLawyer.class.getName())
                 .build();
         var config = proxy(cluster)
                 .addToFilterDefinitions(saslTermination, lawyer)
@@ -577,12 +576,12 @@ class FilterIT {
                     .singleElement()
                     .extracting(ConsumerRecord::headers)
                     .as("record headers")
-                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
+                    .extracting(headers -> headers.headers(ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME),
                             InstanceOfAssertFactories.iterable(Header.class))
-                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .as("headers with key %s", ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME)
                     .singleElement()
                     .extracting(Header::value)
-                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .as("value of only header for key %s", ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME)
                     .isNotNull()
                     .extracting(String::new)
                     .isEqualTo("alice");
@@ -600,8 +599,8 @@ class FilterIT {
                 SaslPlainInitiation.class.getName())
                 .build();
         NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
-                ClientSaslPrincipalAwareLawyer.class.getName(),
-                ClientSaslPrincipalAwareLawyer.class.getName())
+                ClientTlsAwareLawyer.class.getName(),
+                ClientTlsAwareLawyer.class.getName())
                 .build();
         var config = proxy(cluster)
                 .addToFilterDefinitions(saslInitiation, lawyer)
@@ -627,17 +626,10 @@ class FilterIT {
             assertThat(records.records(topic.name()))
                     .as("topic %s records", topic.name())
                     .singleElement()
-                    .extracting(ConsumerRecord::headers)
-                    .as("record headers")
-                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
-                            InstanceOfAssertFactories.iterable(Header.class))
-                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
-                    .singleElement()
-                    .extracting(Header::value)
-                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
-                    .isNotNull()
+                    .extracting(ConsumerRecord::value)
+                    .as("record value")
                     .extracting(String::new)
-                    .isEqualTo("alice");
+                    .isEqualTo(PLAINTEXT);
         }
     }
 
@@ -656,8 +648,8 @@ class FilterIT {
                 SaslInspection.class.getName())
                 .build();
         NamedFilterDefinition lawyer = new NamedFilterDefinitionBuilder(
-                ClientSaslPrincipalAwareLawyer.class.getName(),
-                ClientSaslPrincipalAwareLawyer.class.getName())
+                ClientTlsAwareLawyer.class.getName(),
+                ClientTlsAwareLawyer.class.getName())
                 .build();
         var config = proxy(cluster)
                 .addToFilterDefinitions(auditLogger, saslInspection, lawyer)
@@ -699,12 +691,12 @@ class FilterIT {
                     .singleElement()
                     .extracting(ConsumerRecord::headers)
                     .as("record headers")
-                    .extracting(headers -> headers.headers(ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL),
+                    .extracting(headers -> headers.headers(ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME),
                             InstanceOfAssertFactories.iterable(Header.class))
-                    .as("headers with key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .as("headers with key %s", ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME)
                     .singleElement()
                     .extracting(Header::value)
-                    .as("value of only header for key %s", ClientSaslPrincipalAwareLawyerFilter.HEADER_KEY_CLIENT_PRINCIPAL)
+                    .as("value of only header for key %s", ClientAuthAwareLawyerFilter.HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME)
                     .isNotNull()
                     .extracting(String::new)
                     .isEqualTo("alice");

@@ -8,20 +8,16 @@ package io.kroxylicious.proxy.authentication;
 
 import java.util.Optional;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-
 /**
- * The context API for {@link ClientSaslAware}.
  * This is implemented by the runtime for use by plugins.
  */
-public interface SaslContext {
+public interface ClientSaslContext {
 
     /**
      * The name of the SASL mechanism used.
      * @return The name of the SASL mechanism used.
      */
     String mechanismName();
-    // TODO client version, NAME
 
     /**
      * Returns the client's principal.

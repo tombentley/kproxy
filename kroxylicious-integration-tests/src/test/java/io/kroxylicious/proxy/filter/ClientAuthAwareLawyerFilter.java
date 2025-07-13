@@ -16,8 +16,9 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.kafka.common.header.internals.RecordHeader;
 
-import io.kroxylicious.proxy.authentication.SaslContext;
+import io.kroxylicious.proxy.authentication.ClientSaslContext;
 import io.kroxylicious.proxy.authentication.SaslPrincipal;
+import io.kroxylicious.proxy.tls.ClientTlsContext;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -25,12 +26,12 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * A filter that adds {@linkplain FilterContext#clientTlsContext() client-facing TLS context}-dependent headers to produced records.
  * Tests can consume the produced records and assert that those records have the expected header values.
  */
-public class ClientTlsAwareLawyerFilter
+public class ClientAuthAwareLawyerFilter
         extends AbstractProduceHeaderInjectionFilter {
 
     @NonNull
     private static String headerName(String hashtag) {
-        return ClientTlsAwareLawyerFilter.class.getSimpleName() + hashtag;
+        return ClientAuthAwareLawyerFilter.class.getSimpleName() + hashtag;
     }
 
     public static final String HEADER_KEY_CLIENT_TLS = headerName("#clientTlsContext.isPresent");
@@ -45,30 +46,30 @@ public class ClientTlsAwareLawyerFilter
             context -> context.clientTlsContext().isPresent() ? new byte[]{ 1 } : new byte[]{ 0 },
             HEADER_KEY_CLIENT_TLS_PROXY_X500PRINCIPAL_NAME,
             context -> context.clientTlsContext()
-                    .map(FilterContext.ClientTlsContext::proxyServerCertificate)
-                    .map(ClientTlsAwareLawyerFilter::principalName)
+                    .map(ClientTlsContext::proxyServerCertificate)
+                    .map(ClientAuthAwareLawyerFilter::principalName)
                     .map(String::getBytes)
                     .orElse(null),
             HEADER_KEY_CLIENT_TLS_CLIENT_X500PRINCIPAL_NAME,
             context -> context.clientTlsContext()
-                    .map(FilterContext.ClientTlsContext::clientCertificate)
-                    .flatMap(opt -> opt.map(ClientTlsAwareLawyerFilter::principalName))
+                    .map(ClientTlsContext::clientCertificate)
+                    .flatMap(opt -> opt.map(ClientAuthAwareLawyerFilter::principalName))
                     .map(String::getBytes)
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME,
             context -> context.clientSaslContext()
-                    .flatMap(SaslContext::clientPrincipal)
+                    .map(ClientSaslContext::clientPrincipal)
                     .map(SaslPrincipal::getName)
                     .map(String::getBytes)
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_MECH_NAME,
             context -> context.clientSaslContext()
-                    .map(SaslContext::mechanismName)
+                    .map(ClientSaslContext::mechanismName)
                     .map(String::getBytes)
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_PROXY_SASLPRINCIPAL_NAME,
             context -> context.clientSaslContext()
-                    .map(SaslContext::proxyServerPrincipal)
+                    .flatMap(ClientSaslContext::proxyServerPrincipal)
                     .map(SaslPrincipal::getName)
                     .map(String::getBytes)
                     .orElse(null)
