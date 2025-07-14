@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//JAVA 21+
+//JAVA 17+
 //DEPS org.jsoup:jsoup:1.20.1
 //DEPS info.picocli:picocli:4.6.3
 //DEPS com.fasterxml.jackson.core:jackson-core:2.18.3
