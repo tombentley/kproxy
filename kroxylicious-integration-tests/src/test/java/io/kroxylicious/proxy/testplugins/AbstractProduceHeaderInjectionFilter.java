@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.proxy.filter;
+package io.kroxylicious.proxy.testplugins;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -22,6 +22,9 @@ import org.apache.kafka.common.record.RecordBatch;
 
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.kafka.transform.RecordTransform;
+import io.kroxylicious.proxy.filter.FilterContext;
+import io.kroxylicious.proxy.filter.ProduceRequestFilter;
+import io.kroxylicious.proxy.filter.RequestFilterResult;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;

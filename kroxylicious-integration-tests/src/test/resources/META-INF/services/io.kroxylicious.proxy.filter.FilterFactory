@@ -5,8 +5,8 @@ io.kroxylicious.proxy.filter.RejectingCreateTopicFilterFactory
 io.kroxylicious.proxy.filter.DecodeAll
 io.kroxylicious.proxy.InvocationCountingFilterFactory
 io.kroxylicious.proxy.CreateTopicRequest
-io.kroxylicious.proxy.filter.AuditLogger
-io.kroxylicious.proxy.filter.SaslPlainTermination
-io.kroxylicious.proxy.filter.SaslPlainInitiation
-io.kroxylicious.proxy.filter.SaslInspection
-io.kroxylicious.proxy.filter.ClientTlsAwareLawyer
+io.kroxylicious.proxy.testplugins.AuditLogger
+io.kroxylicious.proxy.testplugins.SaslPlainTermination
+io.kroxylicious.proxy.testplugins.SaslPlainInitiation
+io.kroxylicious.proxy.testplugins.SaslInspection
+io.kroxylicious.proxy.testplugins.ClientTlsAwareLawyer

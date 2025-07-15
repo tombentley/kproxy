@@ -6,6 +6,7 @@
 
 package io.kroxylicious.proxy.tls;
 
+import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.Optional;
@@ -31,6 +32,8 @@ public interface ServerTlsCredentialSupplier {
      * This is implemented by the runtime for use by plugins.
      */
     interface Context {
+
+        Optional<? extends Principal> clientPrincipal();
 
         /**
          * The TLS information from the Kafka client.

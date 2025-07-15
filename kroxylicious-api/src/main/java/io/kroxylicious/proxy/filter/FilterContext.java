@@ -198,8 +198,6 @@ public interface FilterContext {
      */
     Optional<? extends Principal> clientPrincipal();
 
-
-
 //    /**
 //     * @return The TLS context for the server connection, or empty if the server connection is not TLS.
 //     */

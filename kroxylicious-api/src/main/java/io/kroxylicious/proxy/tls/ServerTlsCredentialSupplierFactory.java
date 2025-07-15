@@ -8,6 +8,7 @@ package io.kroxylicious.proxy.tls;
 
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.util.concurrent.ScheduledExecutorService;
 
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
@@ -38,12 +39,12 @@ public interface ServerTlsCredentialSupplierFactory<C, I> {
 
         /**
          * An executor backed by the single Thread responsible for dispatching
-         * work to a Filter instance for a channel.
-         * It is safe to mutate Filter members from this executor.
+         * work to a ServerTlsCredentialSupplier instance for a channel.
+         * It is safe to mutate ServerTlsCredentialSupplier members from this executor.
          * @return executor
          * @throws IllegalStateException if the factory is not bound to a channel yet.
          */
-        FilterDispatchExecutor filterDispatchExecutor();
+        ScheduledExecutorService filterDispatchExecutor();
 
         /**
          * Gets a plugin instance for the given plugin type and name

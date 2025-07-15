@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.proxy.filter;
+package io.kroxylicious.proxy.testplugins;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import javax.security.auth.x500.X500Principal;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.kroxylicious.proxy.authentication.ClientSaslContext;
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
+import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.tls.ClientTlsContext;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
