@@ -5,12 +5,12 @@
  */
 
 /**
- * APIs for plugins that provide or consume SASL authentication outcomes.
+ * APIs for plugins that are exposed to details of TLS connections between the proxy and its network peers.
  */
 @ReturnValuesAreNonnullByDefault
 @DefaultAnnotationForParameters(NonNull.class)
 @DefaultAnnotation(NonNull.class)
-package io.kroxylicious.proxy.authentication;
+package io.kroxylicious.proxy.tls;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.DefaultAnnotationForParameters;

@@ -14,10 +14,11 @@ import java.util.concurrent.CompletionStage;
 import io.kroxylicious.proxy.authentication.ClientSaslContext;
 
 /**
- * Implemented by a {@link io.kroxylicious.proxy.filter.Filter} that provides
- * the credentials for the TLS connection between the proxy and the Kafka server.
+ * Implemented by a plugin that provides
+ * the TLS client credentials for the TLS connection between the proxy and the Kafka server.
  */
 public interface ServerTlsCredentialSupplier {
+
     /**
      * Return the TlsCredentials for the connection.
      * @param context The context.
@@ -30,14 +31,24 @@ public interface ServerTlsCredentialSupplier {
      * This is implemented by the runtime for use by plugins.
      */
     interface Context {
+
+        /**
+         * The TLS information from the Kafka client.
+         * @return The TLS information from the Kafka client, or empty if the connection between the proxy and the client is not TLS.
+         */
         Optional<ClientTlsContext> clientTlsContext();
+
+        /**
+         * The SASL information from the Kafka client.
+         * @return The SASL information from the Kafka client, or empty if the client has not authenticated with the proxy.
+         */
         Optional<ClientSaslContext> clientSaslContext();
 
         /**
          * Returns the default credentials for this target cluster (e.g. from the proxy configuration file).
          * Implementations of {@link ServerTlsCredentialSupplier} may use this as a fall-back
-         * or default, for example if the apply a certificiate-per-client-principal pattern
-         * but are being used with an anonymous principal.
+         * or default, for example when applying a certificate-per-client-principal pattern
+         * but being used with an anonymous principal.
          * @return the default credentials.
          */
         TlsCredentials defaultTlsCredentials();

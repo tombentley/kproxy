@@ -9,6 +9,12 @@ package io.kroxylicious.proxy.tls;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
 
+import io.kroxylicious.proxy.filter.FilterContext;
+
+/**
+ * Exposes TLS information about the proxy-to-server connection to plugins, for example using {@link FilterContext#serverTlsContext()}.
+ * This is implemented by the runtime for use by plugins.
+ */
 public interface ServerTlsContext {
     /**
      * @return The TLS server certificate that the proxy presented to the server during TLS handshake,
