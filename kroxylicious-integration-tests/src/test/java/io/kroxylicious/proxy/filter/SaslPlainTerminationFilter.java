@@ -21,6 +21,8 @@ import org.apache.kafka.common.message.SaslAuthenticateRequestData;
 import org.apache.kafka.common.message.SaslAuthenticateResponseData;
 import org.apache.kafka.common.message.SaslHandshakeRequestData;
 import org.apache.kafka.common.message.SaslHandshakeResponseData;
+import org.apache.kafka.common.protocol.ApiKeys;
+import org.apache.kafka.common.protocol.ApiMessage;
 import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.security.plain.PlainLoginModule;
 import org.apache.kafka.common.security.plain.internals.PlainServerCallbackHandler;
@@ -30,8 +32,7 @@ import org.slf4j.LoggerFactory;
 import io.kroxylicious.proxy.internal.KafkaAuthnHandler;
 
 public class SaslPlainTerminationFilter
-        implements SaslHandshakeRequestFilter,
-        SaslAuthenticateRequestFilter {
+        implements RequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SaslPlainTerminationFilter.class);
 
@@ -48,11 +49,10 @@ public class SaslPlainTerminationFilter
         return plainServerCallbackHandler;
     }
 
-    @Override
-    public CompletionStage<RequestFilterResult> onSaslHandshakeRequest(short apiVersion,
-                                                                       RequestHeaderData header,
-                                                                       SaslHandshakeRequestData request,
-                                                                       FilterContext context) {
+    CompletionStage<RequestFilterResult> onSaslHandshakeRequest(short apiVersion,
+                                                                RequestHeaderData header,
+                                                                SaslHandshakeRequestData request,
+                                                                FilterContext context) {
         Errors errorCode = Errors.UNSUPPORTED_SASL_MECHANISM;
         if ("PLAIN".equals(request.mechanism())) {
             PlainServerCallbackHandler cbh = saslPlainCallbackHandler("alice", "alice-secret");
@@ -74,11 +74,10 @@ public class SaslPlainTerminationFilter
                 .completed();
     }
 
-    @Override
-    public CompletionStage<RequestFilterResult> onSaslAuthenticateRequest(short apiVersion,
-                                                                          RequestHeaderData header,
-                                                                          SaslAuthenticateRequestData request,
-                                                                          FilterContext context) {
+    CompletionStage<RequestFilterResult> onSaslAuthenticateRequest(short apiVersion,
+                                                                   RequestHeaderData header,
+                                                                   SaslAuthenticateRequestData request,
+                                                                   FilterContext context) {
         byte[] bytes = new byte[0];
         Errors error;
         String errorMessage;
@@ -139,4 +138,25 @@ public class SaslPlainTerminationFilter
         return bytes;
     }
 
+    @Override
+    public CompletionStage<RequestFilterResult> onRequest(ApiKeys apiKey,
+                                                          RequestHeaderData header,
+                                                          ApiMessage request,
+                                                          FilterContext context) {
+        return switch (apiKey) {
+            case API_VERSIONS -> context.forwardRequest(header, request);
+            case SASL_HANDSHAKE -> onSaslHandshakeRequest(header.requestApiVersion(), header, (SaslHandshakeRequestData) request, context);
+            case SASL_AUTHENTICATE -> onSaslAuthenticateRequest(header.requestApiVersion(), header, (SaslAuthenticateRequestData) request, context);
+            default -> {
+                if (context.clientSaslContext().isPresent()) {
+                    yield context.forwardRequest(header, request);
+                }
+                else {
+                    yield context.requestFilterResultBuilder()
+                            .errorResponse(header, request, Errors.CLUSTER_AUTHORIZATION_FAILED.exception())
+                            .completed();
+                }
+            }
+        };
+    }
 }

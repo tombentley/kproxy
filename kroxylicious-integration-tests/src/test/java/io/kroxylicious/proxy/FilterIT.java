@@ -538,6 +538,10 @@ class FilterIT {
     @Test
     void shouldTerminate(KafkaCluster cluster, Topic topic) throws Exception {
 
+        NamedFilterDefinition auditLogger = new NamedFilterDefinitionBuilder(
+                AuditLogger.class.getName(),
+                AuditLogger.class.getName())
+                .build();
         NamedFilterDefinition saslTermination = new NamedFilterDefinitionBuilder(
                 SaslPlainTermination.class.getName(),
                 SaslPlainTermination.class.getName())
@@ -547,8 +551,8 @@ class FilterIT {
                 ClientTlsAwareLawyer.class.getName())
                 .build();
         var config = proxy(cluster)
-                .addToFilterDefinitions(saslTermination, lawyer)
-                .addToDefaultFilters(saslTermination.name(), lawyer.name());
+                .addToFilterDefinitions(auditLogger, saslTermination, lawyer)
+                .addToDefaultFilters(auditLogger.name(), saslTermination.name(), lawyer.name());
 
         try (var tester = kroxyliciousTester(config);
                 var producer = tester.producer(Map.of(
@@ -559,10 +563,20 @@ class FilterIT {
                                             username="alice"
                                             password="alice-secret";
                                 """,
-                        CLIENT_ID_CONFIG, "shouldModifyProduceMessage",
+                        CLIENT_ID_CONFIG, "shouldTerminate-producer",
                         DELIVERY_TIMEOUT_MS_CONFIG, 3_600_000));
                 var consumer = tester
-                        .consumer(Serdes.String(), Serdes.ByteArray(), Map.of(GROUP_ID_CONFIG, "my-group-id", AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
+                        .consumer(Serdes.String(), Serdes.ByteArray(),
+                                Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT",
+                                        SaslConfigs.SASL_MECHANISM, "PLAIN",
+                                        SaslConfigs.SASL_JAAS_CONFIG, """
+                                        org.apache.kafka.common.security.plain.PlainLoginModule required
+                                            username="alice"
+                                            password="alice-secret";
+                                """,
+                                        CLIENT_ID_CONFIG, "shouldTerminate-consumer",
+                                        GROUP_ID_CONFIG, "my-group-id",
+                                        AUTO_OFFSET_RESET_CONFIG, "earliest"))) {
             producer.send(new ProducerRecord<>(topic.name(), "my-key", PLAINTEXT)).get();
 
             producer.flush();
