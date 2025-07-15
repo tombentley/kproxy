@@ -520,22 +520,10 @@ public class FilterHandler extends ChannelDuplexHandler {
         }
 
         @Override
-        public Optional<ClientSaslContext> clientSaslContext() {
-            return FilterHandler.this.fcd.clientSaslContext();
-        }
-
-        @Override
-        public Optional<? extends Principal> clientPrincipal() {
-            return fcd.isUseSaslPrincipal() ? clientPrincipal() :
-                    Optional.ofNullable(inboundChannel.pipeline().get(SslHandler.class))
-                            .flatMap(FilterHandler.this::getPeerTlsCertificate)
-                            .map(X509Certificate::getSubjectX500Principal);
-        }
-
-        @Override
-        public void clientSaslAuthenticationSuccess(SaslPrincipal principal) {
+        public void clientSaslAuthenticationSuccess(@NonNull String mechanism,
+                                                    @NonNull String authorizedId) {
             // dispatch principal injection
-            fcd.clientSaslAuthenticationSuccess("PLAIN", principal, null);
+            fcd.clientSaslAuthenticationSuccess(mechanism, authorizedId, null);
 
             // throw new UnsupportedOperationException("clientSaslAuthenticationSuccess(" + principal + ")");
             // TODO unlock the rest of the filter chain (state machine?)
@@ -543,11 +531,27 @@ public class FilterHandler extends ChannelDuplexHandler {
         }
 
         @Override
-        public void clientSaslAuthenticationFailure(Exception exception) {
+        public void clientSaslAuthenticationFailure(@Nullable String mechanism,
+                                                    @Nullable String authorizedId,
+                                                    @NonNull Exception exception) {
             UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException("clientSaslAuthenticationFailure(" + exception + ")");
             unsupportedOperationException.addSuppressed(exception);
             throw unsupportedOperationException;
             // TODO lock the rest of the filter chain
+        }
+
+        @Override
+        public @NonNull Optional<ClientSaslContext> clientSaslContext() {
+            return FilterHandler.this.fcd.clientSaslContext();
+        }
+
+        @Override
+        public @NonNull Optional<? extends Principal> clientPrincipal() {
+            return fcd.isUseSaslPrincipal() ?
+                    fcd.clientPrincipal() :
+                    Optional.ofNullable(inboundChannel.pipeline().get(SslHandler.class))
+                            .flatMap(FilterHandler.this::getPeerTlsCertificate)
+                            .map(X509Certificate::getSubjectX500Principal);
         }
 
         @Override

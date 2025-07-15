@@ -22,8 +22,6 @@ import org.apache.kafka.common.protocol.Errors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
-
 public class SaslInspectionFilter
         implements
         SaslHandshakeRequestFilter,
@@ -177,19 +175,18 @@ public class SaslInspectionFilter
         if (response.errorCode() == Errors.NONE.code()) {
             LOGGER.info("Server accepts SASL credentials for client on channel {}",
                     context.channelDescriptor());
-            SaslPrincipal principal = new SaslPrincipal(this.authorizationIdFromClient);
             if (producePrincipal) {
-                LOGGER.info("Client on channel {} is {}",
+                LOGGER.info("Client on channel {} has authorizationId {}",
                         context.channelDescriptor(),
-                        principal);
-                context.clientSaslAuthenticationSuccess(principal);
+                        this.authorizationIdFromClient);
+                context.clientSaslAuthenticationSuccess(proposedMechanism, this.authorizationIdFromClient);
             }
         }
         else {
             Errors error = Errors.forCode(response.errorCode());
             LOGGER.info("Server rejects SASL credentials with error {} for client on channel {}",
                     error.name(), context.channelDescriptor());
-            context.clientSaslAuthenticationFailure(error.exception());
+            context.clientSaslAuthenticationFailure(proposedMechanism, this.authorizationIdFromClient, error.exception());
         }
 
         resetState();

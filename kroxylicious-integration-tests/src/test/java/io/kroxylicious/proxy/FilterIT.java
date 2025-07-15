@@ -50,8 +50,8 @@ import io.github.nettyplus.leakdetector.junit.NettyLeakDetectorExtension;
 import io.kroxylicious.proxy.config.NamedFilterDefinition;
 import io.kroxylicious.proxy.config.NamedFilterDefinitionBuilder;
 import io.kroxylicious.proxy.filter.AuditLogger;
-import io.kroxylicious.proxy.filter.ClientTlsAwareLawyer;
 import io.kroxylicious.proxy.filter.ClientAuthAwareLawyerFilter;
+import io.kroxylicious.proxy.filter.ClientTlsAwareLawyer;
 import io.kroxylicious.proxy.filter.ForwardingStyle;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilter;
 import io.kroxylicious.proxy.filter.RejectingCreateTopicFilterFactory;
@@ -590,7 +590,7 @@ class FilterIT {
 
     @Test
     void shouldInitiate(@SaslMechanism(principals = { @SaslMechanism.Principal(user = "alice", password = "alice-secret") }) KafkaCluster cluster,
-                       Topic topic)
+                        Topic topic)
             throws Exception {
         String testName = "shouldInitiate";
 

@@ -27,7 +27,6 @@ import org.apache.kafka.common.security.plain.internals.PlainServerCallbackHandl
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
 import io.kroxylicious.proxy.internal.KafkaAuthnHandler;
 
 public class SaslPlainTerminationFilter
@@ -92,12 +91,12 @@ public class SaslPlainTerminationFilter
         catch (SaslAuthenticationException e) {
             error = Errors.SASL_AUTHENTICATION_FAILED;
             errorMessage = e.getMessage();
-            context.clientSaslAuthenticationFailure(e);
+            context.clientSaslAuthenticationFailure(null, null, e);
         }
         catch (SaslException e) {
             error = Errors.SASL_AUTHENTICATION_FAILED;
             errorMessage = "An error occurred";
-            context.clientSaslAuthenticationFailure(e);
+            context.clientSaslAuthenticationFailure(null, null, e);
         }
 
         SaslAuthenticateResponseData body = new SaslAuthenticateResponseData()
@@ -131,7 +130,7 @@ public class SaslPlainTerminationFilter
                 String authorizationId = saslServer.getAuthorizationID();
                 // var properties = KafkaAuthnHandler.SaslMechanism.fromMechanismName(saslServer.getMechanismName()).negotiatedProperties(saslServer);
                 LOGGER.debug("{}: Authentication successful, authorizationId={}", context.channelDescriptor(), authorizationId);
-                context.clientSaslAuthenticationSuccess(new SaslPrincipal("user", authorizationId));
+                context.clientSaslAuthenticationSuccess(saslServer.getMechanismName(), authorizationId);
             }
             finally {
                 saslServer.dispose();

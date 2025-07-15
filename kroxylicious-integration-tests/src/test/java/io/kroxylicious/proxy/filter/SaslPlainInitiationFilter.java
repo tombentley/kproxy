@@ -43,9 +43,11 @@ public class SaslPlainInitiationFilter implements RequestFilter, ApiVersionsResp
 
     private State state = State.START;
     private short saslHandshakeVersion = -1;
-    private short saslAuthenticateVersion= -1;
+    private short saslAuthenticateVersion = -1;
+
     record BufferedRequest(RequestHeaderData header,
                            ApiMessage request, CompletionStage<RequestFilterResult> fut) {}
+
     private final List<BufferedRequest> bufferedRequests = new ArrayList<>();
 
     @Override
@@ -65,8 +67,8 @@ public class SaslPlainInitiationFilter implements RequestFilter, ApiVersionsResp
                     state = State.AWAITING_API_VERSIONS;
                     LOGGER.info("Sending {} request", apiKey);
                     yield context.sendRequest(
-                                    requestHeader(ApiKeys.API_VERSIONS, (short) 4),
-                                    new ApiVersionsRequestData().setClientSoftwareName("kroxylicious").setClientSoftwareVersion("1.0"))
+                            requestHeader(ApiKeys.API_VERSIONS, (short) 4),
+                            new ApiVersionsRequestData().setClientSoftwareName("kroxylicious").setClientSoftwareVersion("1.0"))
                             .thenCompose(apiVer -> {
                                 return context.forwardRequest(header, request);
                             });
@@ -106,7 +108,7 @@ public class SaslPlainInitiationFilter implements RequestFilter, ApiVersionsResp
         if (state == State.AWAITING_API_VERSIONS) {
             LOGGER.info("Sending SASL_HANDSHAKE request");
             state = State.AWAITING_SASL_HANDSHAKE;
-            return context.<SaslHandshakeResponseData>sendRequest(
+            return context.<SaslHandshakeResponseData> sendRequest(
                     requestHeader(ApiKeys.SASL_HANDSHAKE, saslHandshakeVersion),
                     new SaslHandshakeRequestData()
                             .setMechanism("PLAIN"))
@@ -114,24 +116,24 @@ public class SaslPlainInitiationFilter implements RequestFilter, ApiVersionsResp
                         if (handshakeResponse.errorCode() == Errors.NONE.code()) {
                             LOGGER.info("Sending SASL_AUTHENTICATE request");
                             state = State.AWAITING_SASL_AUTHENTICATE;
-                            return context.<SaslAuthenticateResponseData>sendRequest(
-                                        requestHeader(ApiKeys.SASL_AUTHENTICATE, saslAuthenticateVersion),
+                            return context.<SaslAuthenticateResponseData> sendRequest(
+                                    requestHeader(ApiKeys.SASL_AUTHENTICATE, saslAuthenticateVersion),
                                     new SaslAuthenticateRequestData()
                                             .setAuthBytes(("\0" + username + "\0" + password).getBytes(StandardCharsets.UTF_8)))
-                                .thenCompose(authenticateResponse -> {
-                                    if (authenticateResponse.errorCode() == Errors.NONE.code()) {
-                                        for (BufferedRequest bufferedRequest : bufferedRequests) {
-                                            LOGGER.info("Forwarding buffered {} request", ApiKeys.forId(bufferedRequest.header.apiKey()));
-                                            context.forwardRequest(bufferedRequest.header, bufferedRequest.request);
+                                    .thenCompose(authenticateResponse -> {
+                                        if (authenticateResponse.errorCode() == Errors.NONE.code()) {
+                                            for (BufferedRequest bufferedRequest : bufferedRequests) {
+                                                LOGGER.info("Forwarding buffered {} request", ApiKeys.forId(bufferedRequest.header.apiKey()));
+                                                context.forwardRequest(bufferedRequest.header, bufferedRequest.request);
+                                            }
+                                            state = State.FORWARDING;
+                                            LOGGER.info("Forwarding API_VERSIONS response");
+                                            return context.forwardResponse(header, apiVersionsResponse);
                                         }
-                                        state = State.FORWARDING;
-                                        LOGGER.info("Forwarding API_VERSIONS response");
-                                        return context.forwardResponse(header, apiVersionsResponse);
-                                    }
-                                    else {
-                                        throw new RuntimeException("authenticate failed: " + Errors.forCode(authenticateResponse.errorCode()).name());
-                                    }
-                            });
+                                        else {
+                                            throw new RuntimeException("authenticate failed: " + Errors.forCode(authenticateResponse.errorCode()).name());
+                                        }
+                                    });
                         }
                         else {
                             // handshake failed

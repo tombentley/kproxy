@@ -6,7 +6,6 @@
 
 package io.kroxylicious.proxy.filter;
 
-import io.kroxylicious.proxy.authentication.SaslPrincipal;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 

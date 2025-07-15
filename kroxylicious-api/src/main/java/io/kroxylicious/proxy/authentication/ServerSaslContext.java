@@ -8,7 +8,10 @@ package io.kroxylicious.proxy.authentication;
 
 import java.util.Optional;
 
+import io.kroxylicious.proxy.filter.FilterContext;
+
 /**
+ * Exposes SASL authentication information to plugins, for example using {@link FilterContext#serverSaslContext()} ()}.
  * This is implemented by the runtime for use by plugins.
  */
 public interface ServerSaslContext {

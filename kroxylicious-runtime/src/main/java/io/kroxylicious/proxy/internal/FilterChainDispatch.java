@@ -17,13 +17,13 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 public class FilterChainDispatch implements ClientSaslContext {
 
     private final boolean useSaslPrincipal;
-    private SaslPrincipal saslPrincipal = null;
+    private String clientAuthorizationId;
     private String mechanism;
-    private SaslPrincipal proxyPrincipal;
+    private String proxyServerId;
 
     public FilterChainDispatch(boolean useSaslPrincipal) {
         this.useSaslPrincipal = useSaslPrincipal;
-        this.saslPrincipal = null;
+        this.clientAuthorizationId = null;
     }
 
     boolean isUseSaslPrincipal() {
@@ -31,20 +31,20 @@ public class FilterChainDispatch implements ClientSaslContext {
     }
 
     void clientSaslAuthenticationSuccess(String mechanism,
-                                         SaslPrincipal principal,
-                                         @Nullable SaslPrincipal proxyPrincipal) {
+                                         String clientAuthorizationId,
+                                         @Nullable String proxyServerId) {
         Objects.requireNonNull(mechanism, "mechanism");
-        Objects.requireNonNull(principal, "principal");
-        if (this.saslPrincipal != null) {
+        Objects.requireNonNull(clientAuthorizationId, "clientAuthorizationId");
+        if (this.clientAuthorizationId != null) {
             throw new IllegalStateException("SaslPrincipal is already set");
         }
-        this.saslPrincipal = principal;
+        this.clientAuthorizationId = clientAuthorizationId;
         this.mechanism = mechanism;
-        this.proxyPrincipal = proxyPrincipal;
+        this.proxyServerId = proxyServerId;
     }
 
     public Optional<ClientSaslContext> clientSaslContext() {
-        if (saslPrincipal != null) {
+        if (clientAuthorizationId != null) {
             return Optional.of(this);
         }
         else {
@@ -58,13 +58,18 @@ public class FilterChainDispatch implements ClientSaslContext {
     }
 
     @Override
-    public SaslPrincipal clientPrincipal() {
-        return saslPrincipal;
+    public String authorizationId() {
+        return this.clientAuthorizationId;
     }
 
     @Override
-    public Optional<SaslPrincipal> proxyServerPrincipal() {
-        return Optional.ofNullable(this.proxyPrincipal);
+    public Optional<String> proxyServerId() {
+        return Optional.ofNullable(this.proxyServerId);
+    }
+
+    Optional<SaslPrincipal> clientPrincipal() {
+        return Optional.ofNullable(this.clientAuthorizationId)
+                .map(SaslPrincipal::new);
     }
 
 }

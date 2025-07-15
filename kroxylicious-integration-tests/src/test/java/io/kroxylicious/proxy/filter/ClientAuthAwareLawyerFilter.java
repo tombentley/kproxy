@@ -58,8 +58,7 @@ public class ClientAuthAwareLawyerFilter
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_CLIENT_SASLPRINCIPAL_NAME,
             context -> context.clientSaslContext()
-                    .map(ClientSaslContext::clientPrincipal)
-                    .map(SaslPrincipal::getName)
+                    .map(ClientSaslContext::authorizationId)
                     .map(String::getBytes)
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_MECH_NAME,
@@ -69,8 +68,7 @@ public class ClientAuthAwareLawyerFilter
                     .orElse(null),
             HEADER_KEY_CLIENT_SASL_PROXY_SASLPRINCIPAL_NAME,
             context -> context.clientSaslContext()
-                    .flatMap(ClientSaslContext::proxyServerPrincipal)
-                    .map(SaslPrincipal::getName)
+                    .flatMap(ClientSaslContext::proxyServerId)
                     .map(String::getBytes)
                     .orElse(null)
 

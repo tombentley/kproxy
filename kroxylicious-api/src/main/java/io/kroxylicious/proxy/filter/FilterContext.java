@@ -150,6 +150,37 @@ public interface FilterContext {
     Optional<ClientTlsContext> clientTlsContext();
 
     /**
+     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+     * to announce a successful authentication outcome with the Kafka client to other plugins.
+     * After calling this method the result of {@link #clientSaslContext()} will
+     * be non-empty for this and other filters.
+     *
+     * In order to support reauthentication, calls to this method and
+     * {@link #clientSaslAuthenticationFailure(String, String, Exception)}
+     * may be arbitrarily interleaved during the lifetime of a given filter instance.
+     * @param mechanism The SASL mechanism used
+     * @param authorizedId The authorizedId
+     */
+    void clientSaslAuthenticationSuccess(String mechanism,
+                                         String authorizedId);
+
+    /**
+     * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+     * to announce a failed authentication outcome with the Kafka client.
+     * It is the filter's responsilbity to return the right error response to a client, and/or disconnect.
+     *
+     * In order to support reauthentication, calls to this method and
+     * {@link #clientSaslAuthenticationSuccess(String, String)}
+     * may be arbitrarily interleaved during the lifetime of a given filter instance.
+     * @param mechanism The SASL mechanism used, or null if this is not known.
+     * @param authorizedId The authorizedId, or null if this is not known.
+     * @param exception An exception describing the authentication failure.
+     */
+    void clientSaslAuthenticationFailure(@Nullable String mechanism,
+                                         @Nullable String authorizedId,
+                                         Exception exception);
+
+    /**
      * @return The SASL context for the client connection, or empty if the client
      * has not successfully authenticated using SASL.
      */
@@ -167,83 +198,63 @@ public interface FilterContext {
      */
     Optional<? extends Principal> clientPrincipal();
 
-    /**
-    * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    * to announce a successful authentication outcome with the Kafka client to other plugins.
-     * After calling this method the result of {@link #clientSaslContext()} will
-     * be non-empty for this and other filters.
-     * This method may be called multiple times over the lifetime of
-     * a session if reauthentication is required.
-     * TODO define the semantics around reauth
-    * @param saslPrincipal The authenticated principal.
-    */
-    void clientSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
 
-    /**
-    * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    * to announce a failed authentication outcome with the Kafka client.
-     * TODO make clear that it's a terminator or inspector's responsilbity to
-     *   return the right error response to a client, and or disconnect.
-     * TODO this also has a role during reauthentation.
-    * @param exception An exception describing the authentication failure.
-    */
-    void clientSaslAuthenticationFailure(Exception exception);
 
-    /**
-     * @return The TLS context for the server connection, or empty if the server connection is not TLS.
-     */
-    Optional<ServerTlsContext> serverTlsContext();
-
-    /**
-     * @return The SASL context for the server connection, or empty if the server
-     * has not successfully authenticated using SASL.
-     */
-    Optional<ServerSaslContext> serverSaslContext();
-
-    /**
-     * Returns the authenticated principal for the server connection, or empty if the server
-     * has not successfully authenticated, or if the server authentication was not mutual.
-     * The concrete type of principal returned depends on the proxy configuration.
-     * For example,
-     * it may be a {@link javax.security.auth.x500.X500Principal} if server identity is TLS-based,
-     * or it may be a {@link SaslPrincipal} is client identity is SASL based.
-     * @return The authenticated principal for the server connection, or empty if the server
-     * has not successfully authenticated.
-     */
-    Optional<? extends Principal> serverPrincipal();
-
-    /**
-     * Allows a filter
-     * to announce a successful authentication outcome with the Kafka server to other plugins.
-     * After calling this method the result of {@link #serverSaslContext()} will
-     * be non-empty for this and other filters.
-     * This method may be called multiple times over the lifetime of
-     * a session if reauthentication is required.
-     * TODO define the semantics around reauth
-     * @param saslPrincipal The authenticated principal.
-     */
-    void serverSaslAuthenticationSuccess(SaslPrincipal saslPrincipal);
-
-    /**
-     * Allows a filter
-     * to announce a failed authentication outcome with the Kafka server.
-     * @param exception An exception describing the authentication failure.
-     */
-    void serverSaslAuthenticationFailure(Exception exception);
-
-    //
-    // /**
-    // * Allows a filter
-    // * to announce a successful authentication outcome with the Kafka server to subsequent
-    // * {@link ServerConnectionAware}-implementing plugins.
-    // * @param saslPrincipal The authenticated principal
-    // */
-    // void serverAuthenticationSuccess(SaslPrincipal saslPrincipal);
-    //
-    // /**
-    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
-    // * to announce a failed authentication outcome with the Kafka server.
-    // * @param exception An exception describing the authentication failure.
-    // */
-    // void serverAuthenticationFailure(Exception exception);
+//    /**
+//     * @return The TLS context for the server connection, or empty if the server connection is not TLS.
+//     */
+//    Optional<ServerTlsContext> serverTlsContext();
+//
+//    /**
+//     * Allows a filter
+//     * to announce a successful authentication outcome with the Kafka server to other plugins.
+//     * After calling this method the result of {@link #serverSaslContext()} will
+//     * be non-empty for this and other filters.
+//     * This method may be called multiple times over the lifetime of
+//     * a session if reauthentication is required.
+//     * TODO define the semantics around reauth
+//     * @param saslPrincipal The authenticated principal.
+//     */
+//    void serverSaslAuthenticationSuccess(String mechanism, String serverId);
+//
+//    /**
+//     * Allows a filter
+//     * to announce a failed authentication outcome with the Kafka server.
+//     * @param exception An exception describing the authentication failure.
+//     */
+//    void serverSaslAuthenticationFailure(String mechanism, String serverId, Exception exception);
+//
+//    /**
+//     * @return The SASL context for the server connection, or empty if the server
+//     * has not successfully authenticated using SASL.
+//     */
+//    Optional<ServerSaslContext> serverSaslContext();
+//
+//    /**
+//     * Returns the authenticated principal for the server connection, or empty if the server
+//     * has not successfully authenticated, or if the server authentication was not mutual.
+//     * The concrete type of principal returned depends on the proxy configuration.
+//     * For example,
+//     * it may be a {@link javax.security.auth.x500.X500Principal} if server identity is TLS-based,
+//     * or it may be a {@link SaslPrincipal} is client identity is SASL based.
+//     * @return The authenticated principal for the server connection, or empty if the server
+//     * has not successfully authenticated.
+//     */
+//    Optional<? extends Principal> serverPrincipal();
+//
+//    //
+//    // /**
+//    // * Allows a filter
+//    // * to announce a successful authentication outcome with the Kafka server to subsequent
+//    // * {@link ServerConnectionAware}-implementing plugins.
+//    // * @param saslPrincipal The authenticated principal
+//    // */
+//    // void serverAuthenticationSuccess(SaslPrincipal saslPrincipal);
+//    //
+//    // /**
+//    // * Allows a filter (typically one which implements {@link SaslAuthenticateRequestFilter})
+//    // * to announce a failed authentication outcome with the Kafka server.
+//    // * @param exception An exception describing the authentication failure.
+//    // */
+//    // void serverAuthenticationFailure(Exception exception);
 }

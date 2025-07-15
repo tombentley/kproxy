@@ -15,11 +15,6 @@ public interface ClientTlsContext {
      */
     X509Certificate proxyServerCertificate();
 
-    // TODO TLS version
-    // TODO Cipher suite
-    // client IP address
-    //
-
     /**
      * @return the client's certificate, or empty if no TLS client certificate was presented during TLS handshake.
      */
