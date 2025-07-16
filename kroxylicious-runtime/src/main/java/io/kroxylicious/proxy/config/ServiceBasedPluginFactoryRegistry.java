@@ -8,6 +8,8 @@ package io.kroxylicious.proxy.config;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
@@ -49,7 +51,7 @@ public class ServiceBasedPluginFactoryRegistry implements PluginFactoryRegistry 
     }
 
     private static Map<String, ProviderAndConfigType> loadProviders(Class<?> pluginInterface) {
-        HashMap<String, Set<ProviderAndConfigType>> nameToProviders = new HashMap<>();
+        HashMap<String, Set<ProviderAndConfigType>> nameToProviders = new LinkedHashMap<>();
         ServiceLoader<?> load = ServiceLoader.load(pluginInterface);
         load.stream().forEach(provider -> {
             Class<?> providerType = provider.type();
@@ -61,7 +63,7 @@ public class ServiceBasedPluginFactoryRegistry implements PluginFactoryRegistry 
                 ProviderAndConfigType providerAndConfigType = new ProviderAndConfigType(provider, annotation.configType());
                 Stream.of(providerType.getName(), providerType.getSimpleName()).forEach(name2 -> nameToProviders.compute(name2, (k2, v) -> {
                     if (v == null) {
-                        v = new HashSet<>();
+                        v = new LinkedHashSet<>();
                     }
                     v.add(providerAndConfigType);
                     return v;
@@ -82,7 +84,17 @@ public class ServiceBasedPluginFactoryRegistry implements PluginFactoryRegistry 
         }
         return bySingleton.get(true).stream().collect(Collectors.toMap(
                 Map.Entry::getKey,
-                e -> e.getValue().iterator().next()));
+                e -> e.getValue().iterator().next(),
+                (v1, v2) -> {
+                    throw new RuntimeException();
+                },
+                LinkedHashMap::new));
+    }
+
+    @Override
+    public @NonNull Set<String> pluginImplementations(@NonNull Class<?> pluginClass) {
+        var nameToProvider = load(pluginClass);
+        return nameToProvider.keySet();
     }
 
     @Override

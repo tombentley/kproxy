@@ -8,6 +8,7 @@ package io.kroxylicious.proxy.bootstrap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -90,6 +91,12 @@ class FilterChainFactoryTest {
                 else {
                     throw new RuntimeException();
                 }
+            }
+
+            @NonNull
+            @Override
+            public Set<String> pluginImplementations(@NonNull Class<?> pluginClass) {
+                return Set.of();
             }
         };
 

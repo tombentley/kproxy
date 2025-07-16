@@ -1,0 +1,7 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://kroxylicious.io/schema/0.14.0/bob.yaml"
+type: object
+properties:
+  bob:
+    type: integer
+    maximum: 5

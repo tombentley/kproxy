@@ -8,10 +8,6 @@ package io.kroxylicious.proxy.config.admin;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @JsonSerialize
-public class PrometheusMetricsConfig {
-
-    public PrometheusMetricsConfig() {
-
-    }
+public record PrometheusMetricsConfig() {
 
 }

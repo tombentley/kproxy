@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -55,6 +56,12 @@ public class ConfigParser implements PluginFactoryRegistry {
     @Override
     public <T> @NonNull PluginFactory<T> pluginFactory(@NonNull Class<T> pluginClass) {
         return pluginFactoryRegistry.pluginFactory(pluginClass);
+    }
+
+    @NonNull
+    @Override
+    public Set<String> pluginImplementations(@NonNull Class<?> pluginClass) {
+        return pluginFactoryRegistry.pluginImplementations(pluginClass);
     }
 
     public Configuration parseConfiguration(String configuration) {

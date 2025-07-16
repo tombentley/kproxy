@@ -1,0 +1,18 @@
+$schema: configuration.json
+virtualClusters:
+  - name: tom
+    gateways:
+      - portIdentifiesNode:
+          advertisedBrokerAddressPattern: "323"
+          bootstrapAddress: fdrfer
+          nodeStartPort: 1
+development:
+  nigel:
+    $schema: "https://kroxylicious.io/schema/0.14.0/bob.yaml"
+    bob: 6
+management:
+  port: 1234
+  bindAddress: 0.0.0.0
+micrometer:
+  - type: io.kroxylicious.proxy.micrometer.StandardBindersHook
+    config:

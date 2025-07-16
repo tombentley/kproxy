@@ -6,6 +6,8 @@
 
 package io.kroxylicious.proxy.config;
 
+import java.util.Set;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 public interface PluginFactoryRegistry {
@@ -17,4 +19,6 @@ public interface PluginFactoryRegistry {
      * @param <P> The type of plugin
      */
     <P> @NonNull PluginFactory<P> pluginFactory(@NonNull Class<P> pluginClass);
+
+    @NonNull Set<String> pluginImplementations(@NonNull Class<?> pluginClass);
 }

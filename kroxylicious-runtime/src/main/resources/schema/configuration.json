@@ -1,0 +1,403 @@
+{
+  "$schema" : "https://json-schema.org/draft-07/schema",
+  "$id" : "https://kroxylicious.io/schema/0.14.0/configuration.yaml",
+  "$defs" : {
+    "int" : {
+      "type" : "integer",
+      "minimum" : -2147483648,
+      "maximum" : 2147483647
+    },
+    "io.kroxylicious.proxy.config.admin.PrometheusMetricsConfig" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : { }
+    },
+    "io.kroxylicious.proxy.config.admin.EndpointsConfiguration" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "prometheus" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.admin.PrometheusMetricsConfig"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.admin.ManagementConfiguration" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "bindAddress" : {
+          "type" : "string"
+        },
+        "port" : {
+          "$ref" : "#/$defs/int"
+        },
+        "endpoints" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.admin.EndpointsConfiguration"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.NamedFilterDefinition" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "type" : {
+          "type" : "string",
+          "enum" : [ "io.kroxylicious.proxy.internal.filter.TestFilterFactory", "TestFilterFactory", "io.kroxylicious.proxy.internal.filter.OptionalConfigFactory", "OptionalConfigFactory", "io.kroxylicious.proxy.internal.filter.RequiresConfigFactory", "RequiresConfigFactory", "io.kroxylicious.proxy.internal.filter.ConstructorInjection", "ConstructorInjection", "io.kroxylicious.proxy.internal.filter.FieldInjection", "FieldInjection", "io.kroxylicious.proxy.internal.filter.Record", "Record", "io.kroxylicious.proxy.internal.filter.SetterInjection", "SetterInjection", "io.kroxylicious.proxy.internal.filter.FactoryMethod", "FactoryMethod", "io.kroxylicious.proxy.internal.filter.MissingPluginImplName", "MissingPluginImplName", "io.kroxylicious.proxy.internal.filter.NestedPluginConfigFactory", "NestedPluginConfigFactory", "io.kroxylicious.proxy.internal.filter.FlakyFactory", "FlakyFactory" ]
+        },
+        "config" : {
+          "type" : "object"
+        }
+      }
+    },
+    "java.lang.String" : {
+      "type" : "string"
+    },
+    "io.kroxylicious.proxy.config.secret.InlinePassword" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "password" : {
+          "type" : "string"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.secret.FilePassword" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "passwordFile" : {
+          "type" : "string"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.secret.PasswordProvider" : {
+      "oneOf" : [ {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.InlinePassword"
+      }, {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.FilePassword"
+      } ]
+    },
+    "io.kroxylicious.proxy.config.tls.KeyPair" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "privateKeyFile" : {
+          "type" : "string"
+        },
+        "certificateFile" : {
+          "type" : "string"
+        },
+        "keyPasswordProvider" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.PasswordProvider"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.KeyStore" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "storeFile" : {
+          "type" : "string"
+        },
+        "storePasswordProvider" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.PasswordProvider"
+        },
+        "keyPasswordProvider" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.PasswordProvider"
+        },
+        "storeType" : {
+          "type" : "string"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.KeyProvider" : {
+      "oneOf" : [ {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.KeyPair"
+      }, {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.KeyStore"
+      } ]
+    },
+    "io.kroxylicious.proxy.config.tls.TlsClientAuth" : {
+      "type" : "string",
+      "enum" : [ "REQUIRED", "REQUESTED", "NONE" ]
+    },
+    "io.kroxylicious.proxy.config.tls.ServerOptions" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "clientAuth" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TlsClientAuth"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.TrustOptions" : {
+      "oneOf" : [ {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.ServerOptions"
+      } ]
+    },
+    "io.kroxylicious.proxy.config.tls.TrustStore" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "storeFile" : {
+          "type" : "string"
+        },
+        "storePasswordProvider" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.secret.PasswordProvider"
+        },
+        "storeType" : {
+          "type" : "string"
+        },
+        "trustOptions" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TrustOptions"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.InsecureTls" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "insecure" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.TrustProvider" : {
+      "oneOf" : [ {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TrustStore"
+      }, {
+        "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.InsecureTls"
+      } ]
+    },
+    "io.kroxylicious.proxy.config.tls.AllowDeny" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "allowed" : {
+          "type" : "array"
+        },
+        "denied" : {
+          "type" : "array"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.tls.Tls" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "key" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.KeyProvider"
+        },
+        "trust" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TrustProvider"
+        },
+        "cipherSuites" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+        },
+        "protocols" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.TargetCluster" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "bootstrapServers" : {
+          "type" : "string"
+        },
+        "tls" : {
+          "type" : "object",
+          "additionalProperties" : false,
+          "properties" : {
+            "key" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.KeyProvider"
+            },
+            "trust" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TrustProvider"
+            },
+            "cipherSuites" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+            },
+            "protocols" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+            }
+          }
+        }
+      }
+    },
+    "io.kroxylicious.proxy.service.HostPort" : {
+      "type" : "string"
+    },
+    "io.kroxylicious.proxy.config.NamedRange" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "start" : {
+          "$ref" : "#/$defs/int"
+        },
+        "end" : {
+          "$ref" : "#/$defs/int"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.PortIdentifiesNodeIdentificationStrategy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "bootstrapAddress" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.service.HostPort"
+        },
+        "advertisedBrokerAddressPattern" : {
+          "type" : "string"
+        },
+        "nodeStartPort" : {
+          "$ref" : "#/$defs/int"
+        },
+        "nodeIdRanges" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/io.kroxylicious.proxy.config.NamedRange"
+          }
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.SniHostIdentifiesNodeIdentificationStrategy" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "bootstrapAddress" : {
+          "type" : "string"
+        },
+        "advertisedBrokerAddressPattern" : {
+          "type" : "string"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.VirtualClusterGateway" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "portIdentifiesNode" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.PortIdentifiesNodeIdentificationStrategy"
+        },
+        "sniHostIdentifiesNode" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.SniHostIdentifiesNodeIdentificationStrategy"
+        },
+        "tls" : {
+          "type" : "object",
+          "additionalProperties" : false,
+          "properties" : {
+            "key" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.KeyProvider"
+            },
+            "trust" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.TrustProvider"
+            },
+            "cipherSuites" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+            },
+            "protocols" : {
+              "$ref" : "#/$defs/io.kroxylicious.proxy.config.tls.AllowDeny"
+            }
+          }
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.VirtualCluster" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "targetCluster" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.TargetCluster"
+        },
+        "gateways" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/io.kroxylicious.proxy.config.VirtualClusterGateway"
+          }
+        },
+        "logNetwork" : {
+          "type" : "boolean"
+        },
+        "logFrames" : {
+          "type" : "boolean"
+        },
+        "filters" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/java.lang.String"
+          }
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.MicrometerDefinition" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "type" : {
+          "type" : "string",
+          "enum" : [ "io.kroxylicious.proxy.micrometer.CommonTagsHook", "CommonTagsHook", "io.kroxylicious.proxy.micrometer.StandardBindersHook", "StandardBindersHook", "io.kroxylicious.proxy.micrometer.PauseDetectorHook", "PauseDetectorHook" ]
+        },
+        "config" : {
+          "type" : "object"
+        }
+      }
+    },
+    "io.kroxylicious.proxy.config.Configuration" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "management" : {
+          "$ref" : "#/$defs/io.kroxylicious.proxy.config.admin.ManagementConfiguration"
+        },
+        "filterDefinitions" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/io.kroxylicious.proxy.config.NamedFilterDefinition"
+          }
+        },
+        "defaultFilters" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/java.lang.String"
+          }
+        },
+        "virtualClusters" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/io.kroxylicious.proxy.config.VirtualCluster"
+          }
+        },
+        "micrometer" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/io.kroxylicious.proxy.config.MicrometerDefinition"
+          }
+        },
+        "useIoUring" : {
+          "type" : "boolean"
+        },
+        "development" : {
+          "type" : "object"
+        }
+      }
+    },
+    "$schema" : {
+      "type" : "string"
+    }
+  },
+  "$ref" : "#/$defs/io.kroxylicious.proxy.config.Configuration"
+}
