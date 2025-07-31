@@ -586,6 +586,7 @@
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>3.6.0</version>
                     <configuration>
+                        <excludes>**/module-info.java</excludes> <!-- not supported by checkstyle https://github.com/checkstyle/checkstyle/issues/3059 -->
                         <violationSeverity>warning</violationSeverity>
                         <failOnViolation>true</failOnViolation>
                         <failsOnError>true</failsOnError>
