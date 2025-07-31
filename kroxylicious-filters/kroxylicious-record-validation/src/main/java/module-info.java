@@ -8,6 +8,6 @@ module io.kroxylicious.filter.validation {
     requires com.github.spotbugs.annotations;
     requires kafka.clients;
     requires org.slf4j;
-    requires kroxylicious.api;
+    requires io.kroxylicious.proxy.api;
     requires io.kroxylicious.proxy.tag;
 }

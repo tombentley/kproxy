@@ -6,5 +6,5 @@ module io.kroxylicious.filter.oauthbearer {
     requires kafka.clients;
     requires org.slf4j;
     requires io.kroxylicious.proxy.tag;
-    requires kroxylicious.api;
+    requires io.kroxylicious.proxy.api;
 }

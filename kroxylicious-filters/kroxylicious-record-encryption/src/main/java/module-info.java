@@ -7,7 +7,7 @@ module io.kroxylicious.filter.encryption {
     requires micrometer.core;
     requires org.slf4j;
     requires kroxylicious.kms;
-    requires kroxylicious.api;
+    requires io.kroxylicious.proxy.api;
     requires io.kroxylicious.proxy.tag;
     requires kroxylicious.kafka.message.tools;
 }
