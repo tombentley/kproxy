@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.dek;
+package io.kroxylicious.filter.encryption.test.dek;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.encryption.config.CipherSpec;
+import io.kroxylicious.filter.encryption.dek.CipherSpecResolver;
+import io.kroxylicious.filter.encryption.dek.UnknownCipherSpecException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

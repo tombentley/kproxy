@@ -4,10 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.dek;
+package io.kroxylicious.filter.encryption.test.dek;
 
 import org.assertj.core.api.AbstractBooleanAssert;
 import org.junit.jupiter.api.Test;
+
+import io.kroxylicious.filter.encryption.dek.AtomicCryptorUsageCounter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 

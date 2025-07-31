@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.crypto;
+package io.kroxylicious.filter.encryption.test.crypto;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -26,9 +26,14 @@ import org.mockito.Mockito;
 
 import io.kroxylicious.filter.encryption.config.AadSpec;
 import io.kroxylicious.filter.encryption.config.RecordField;
+import io.kroxylicious.filter.encryption.crypto.Aad;
+import io.kroxylicious.filter.encryption.crypto.AadResolver;
+import io.kroxylicious.filter.encryption.crypto.Parcel;
+import io.kroxylicious.filter.encryption.crypto.ParcelV1;
+import io.kroxylicious.filter.encryption.crypto.WrapperV2;
 import io.kroxylicious.filter.encryption.dek.CipherSpecResolver;
 import io.kroxylicious.filter.encryption.dek.DekManager;
-import io.kroxylicious.filter.encryption.dek.NullCipherManager;
+import io.kroxylicious.filter.encryption.test.dek.NullCipherManager;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.DestroyableRawSecretKey;
 import io.kroxylicious.kms.service.Kms;

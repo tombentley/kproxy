@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.encrypt;
+package io.kroxylicious.filter.encryption.test.encrypt;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,6 +27,9 @@ import io.kroxylicious.filter.encryption.common.FilterThreadExecutor;
 import io.kroxylicious.filter.encryption.config.RecordField;
 import io.kroxylicious.filter.encryption.crypto.Encryption;
 import io.kroxylicious.filter.encryption.dek.DekManager;
+import io.kroxylicious.filter.encryption.encrypt.EncryptionDekCache;
+import io.kroxylicious.filter.encryption.encrypt.EncryptionScheme;
+import io.kroxylicious.filter.encryption.encrypt.InBandEncryptionManager;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryEdek;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.UnitTestingKmsService;

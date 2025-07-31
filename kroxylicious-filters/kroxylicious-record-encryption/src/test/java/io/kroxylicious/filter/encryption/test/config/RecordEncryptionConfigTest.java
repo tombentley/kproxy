@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.config;
+package io.kroxylicious.filter.encryption.test.config;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -17,6 +17,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import io.kroxylicious.filter.encryption.config.KmsCacheConfig;
+import io.kroxylicious.filter.encryption.config.RecordEncryptionConfig;
+import io.kroxylicious.filter.encryption.config.UnresolvedKeyPolicy;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 

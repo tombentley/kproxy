@@ -152,7 +152,7 @@ public class EncryptionDekCache<K, E> {
      * @return number of times a mapping has been removed from the underlying cache
      */
     @VisibleForTesting
-    long invalidationCount() {
+    public long invalidationCount() {
         return invalidationCount.get();
     }
 }

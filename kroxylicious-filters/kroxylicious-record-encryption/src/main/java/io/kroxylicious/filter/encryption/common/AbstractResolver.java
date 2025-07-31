@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import io.kroxylicious.proxy.tag.VisibleForTesting;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
@@ -57,7 +59,8 @@ public abstract class AbstractResolver<E extends Enum<E>, T extends PersistedIde
     }
 
     @SafeVarargs
-    protected final S subset(E... e) {
+    @VisibleForTesting
+    public final S subset(E... e) {
         var m = new HashMap<>(nameMapping);
         m.keySet().retainAll(Arrays.asList(e));
         return newInstance(m.values());

@@ -11,12 +11,14 @@ import java.util.List;
 
 import io.kroxylicious.filter.encryption.common.AbstractResolver;
 import io.kroxylicious.filter.encryption.config.AadSpec;
+import io.kroxylicious.proxy.tag.VisibleForTesting;
 
 public class AadResolver extends AbstractResolver<AadSpec, Aad, AadResolver> {
 
     private static final AadResolver ALL = new AadResolver(List.of(AadNone.INSTANCE));
 
-    AadResolver(Collection<Aad> impls) {
+    @VisibleForTesting
+    public AadResolver(Collection<Aad> impls) {
         super(impls);
     }
 

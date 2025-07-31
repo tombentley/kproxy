@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.config;
+package io.kroxylicious.filter.encryption.test.config;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import io.kroxylicious.filter.encryption.config.TopicNameKekSelection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

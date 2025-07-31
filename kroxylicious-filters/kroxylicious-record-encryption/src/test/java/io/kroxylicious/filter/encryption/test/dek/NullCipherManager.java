@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.dek;
+package io.kroxylicious.filter.encryption.test.dek;
 
 import java.nio.ByteBuffer;
 import java.security.spec.AlgorithmParameterSpec;
@@ -14,6 +14,7 @@ import javax.crypto.Cipher;
 import javax.crypto.NullCipher;
 
 import io.kroxylicious.filter.encryption.config.CipherSpec;
+import io.kroxylicious.filter.encryption.dek.CipherManager;
 
 public class NullCipherManager implements CipherManager {
 

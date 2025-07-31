@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.dek;
+package io.kroxylicious.filter.encryption.test.dek;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -19,8 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.kroxylicious.filter.encryption.FixedDekKmsService;
 import io.kroxylicious.filter.encryption.config.EncryptionConfigurationException;
+import io.kroxylicious.filter.encryption.dek.Aes;
+import io.kroxylicious.filter.encryption.dek.CipherManager;
+import io.kroxylicious.filter.encryption.dek.Dek;
+import io.kroxylicious.filter.encryption.dek.DekManager;
+import io.kroxylicious.filter.encryption.dek.DestroyedDekException;
+import io.kroxylicious.filter.encryption.dek.ExhaustedDekException;
+import io.kroxylicious.filter.encryption.test.FixedDekKmsService;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryEdek;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.UnitTestingKmsService;
 import io.kroxylicious.kms.service.Serde;
@@ -60,7 +66,7 @@ class DekManagerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void testLimitsNumbersOfEncryptors(CipherManager cipherManager) {
         // Given
         var config = new UnitTestingKmsService.Config(12, 96, List.of());
@@ -78,7 +84,7 @@ class DekManagerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void testDecryptedEdekIsGoodForDecryptingData(CipherManager cipherManager) {
         // Given
         var config = new UnitTestingKmsService.Config(12, 96, List.of());

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption;
+package io.kroxylicious.filter.encryption.test;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -60,6 +60,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
+import io.kroxylicious.filter.encryption.RecordEncryptionFilter;
 import io.kroxylicious.filter.encryption.common.FilterThreadExecutor;
 import io.kroxylicious.filter.encryption.config.TopicNameBasedKekSelector;
 import io.kroxylicious.filter.encryption.config.TopicNameKekSelection;

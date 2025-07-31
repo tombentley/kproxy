@@ -29,25 +29,28 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * and GMAC"
  */
 @NotThreadSafe
-class Wrapping96BitCounter implements Destroyable {
+@VisibleForTesting
+public class Wrapping96BitCounter implements Destroyable {
 
     private int low;
     private int mid;
     private int hi;
     private boolean destroyed = false;
 
-    Wrapping96BitCounter(@NonNull SecureRandom rng) {
+    @VisibleForTesting
+    public Wrapping96BitCounter(@NonNull SecureRandom rng) {
         low = rng.nextInt();
         mid = rng.nextInt();
         hi = rng.nextInt();
     }
 
     @VisibleForTesting
-    int sizeBytes() {
+    public int sizeBytes() {
         return 12;
     }
 
-    void generateIv(byte[] iv) {
+    @VisibleForTesting
+    public void generateIv(byte[] iv) {
         if (destroyed) {
             throw new IllegalStateException();
         }

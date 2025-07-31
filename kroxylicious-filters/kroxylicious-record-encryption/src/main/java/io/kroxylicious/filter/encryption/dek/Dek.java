@@ -22,6 +22,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 
 import io.kroxylicious.kms.service.DestroyableRawSecretKey;
+import io.kroxylicious.proxy.tag.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -74,7 +75,8 @@ public final class Dek<E> {
     final AtomicCryptorUsageCounter outstandingCryptors;
     private final CipherManager cipherManager;
 
-    Dek(@NonNull E edek, @NonNull DestroyableRawSecretKey key, @NonNull CipherManager cipherManager, long maxEncryptions) {
+    @VisibleForTesting
+    public Dek(@NonNull E edek, @NonNull DestroyableRawSecretKey key, @NonNull CipherManager cipherManager, long maxEncryptions) {
         /* protected access because instantion only allowed via a DekManager */
         Objects.requireNonNull(edek);
         if (Objects.requireNonNull(key).isDestroyed()) {

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.dek;
+package io.kroxylicious.filter.encryption.test.dek;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +18,11 @@ import javax.security.auth.DestroyFailedException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.kroxylicious.filter.encryption.dek.CipherManager;
+import io.kroxylicious.filter.encryption.dek.Dek;
+import io.kroxylicious.filter.encryption.dek.DekException;
+import io.kroxylicious.filter.encryption.dek.DekUsageException;
+import io.kroxylicious.filter.encryption.dek.DestroyedDekException;
 import io.kroxylicious.kms.service.DestroyableRawSecretKey;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -28,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DekTest {
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void constructorThrowsOnDestroyedKey(CipherManager cipherManager) {
         var key = makeKey();
         key.destroy();
@@ -38,7 +43,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void constructorThrowsOnNegativeExceptions(CipherManager cipherManager) {
         var key = makeKey();
         assertThatThrownBy(() -> new Dek<>("edek", key, cipherManager, -1))
@@ -46,7 +51,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptorThrowsDestroyedDekExceptionOnDekWithZeroEncryptions(CipherManager cipherManager) {
         var key = makeKey();
         var dek = new Dek<>("edek", key, cipherManager, 0);
@@ -60,7 +65,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptorThrowsOnZeroEncryptions(CipherManager cipherManager) {
         var key = makeKey();
         var dek = new Dek<>("edek", key, cipherManager, 1);
@@ -69,7 +74,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptorThrowsOnNegativeEncryptions(CipherManager cipherManager) {
         var key = makeKey();
         var dek = new Dek<>("edek", key, cipherManager, 1);
@@ -78,7 +83,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void returnsEdek(CipherManager cipherManager) {
         var key = makeKey();
         String edek = "edek";
@@ -88,7 +93,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroyUnusedDek(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -107,7 +112,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Encryptor_destroyThenClose(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -128,7 +133,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Encryptor_closeThenDestroy(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -148,7 +153,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy2Encryptor(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -180,7 +185,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy2EncryptorMultiClose(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -208,7 +213,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Decryptor_destroyThenClose(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -229,7 +234,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Decryptor_closeThenDestroy(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -248,7 +253,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy2Decryptor(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -281,7 +286,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy2DecryptorMultiClose(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -309,7 +314,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Encryptor1Decryptor_destroy(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -336,7 +341,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Encryptor1Decryptor_destroyForEncrypt(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -367,7 +372,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroy1Encryptor1Decryptor_destroyForDecrypt(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -398,7 +403,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void destroyWhen0InitialEncryptions(CipherManager cipherManager) throws DestroyFailedException {
         // Given
         var key = makeKey();
@@ -420,7 +425,7 @@ class DekTest {
                        ByteBuffer ciphertext) {}
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptDecryptNoAad(CipherManager cipherManager) throws NoSuchAlgorithmException {
         ByteBuffer aad = null;
         var encryptInfo = encrypt(cipherManager, aad, "hello, world");
@@ -429,7 +434,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptDecryptWithAad(CipherManager cipherManager) throws NoSuchAlgorithmException {
         ByteBuffer aad = ByteBuffer.wrap(new byte[]{ 42, 56, 89 });
         var encryptInfo = encrypt(cipherManager, aad, "hello, world");
@@ -438,7 +443,7 @@ class DekTest {
     }
 
     @ParameterizedTest
-    @MethodSource("io.kroxylicious.filter.encryption.dek.CipherManagerTest#allCipherManagers")
+    @MethodSource("io.kroxylicious.filter.encryption.test.dek.CipherManagerTest#allCipherManagers")
     void encryptDecryptWithMismatchingAad(CipherManager cipherManager) throws NoSuchAlgorithmException {
         ByteBuffer encryptAad = ByteBuffer.wrap(new byte[]{ 42, 56, 89 });
         var encryptInfo = encrypt(cipherManager, encryptAad, "hello, world");
