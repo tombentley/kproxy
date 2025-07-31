@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.kms;
+package io.kroxylicious.filter.encryption.kms;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -18,7 +18,6 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.filter.encryption.kms.CachingKms;
 import io.kroxylicious.kms.service.DekPair;
 import io.kroxylicious.kms.service.Kms;
 import io.kroxylicious.kms.service.Serde;

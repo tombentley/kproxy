@@ -66,11 +66,11 @@ public class RecordEncryptionFilter<K>
     private final FilterThreadExecutor filterThreadExecutor;
     private final UnresolvedKeyPolicy unresolvedKeyPolicy;
 
-    public RecordEncryptionFilter(EncryptionManager<K> encryptionManager,
-                                  DecryptionManager decryptionManager,
-                                  TopicNameBasedKekSelector<K> kekSelector,
-                                  @NonNull FilterThreadExecutor filterThreadExecutor,
-                                  UnresolvedKeyPolicy unresolvedKeyPolicy) {
+    RecordEncryptionFilter(EncryptionManager<K> encryptionManager,
+                           DecryptionManager decryptionManager,
+                           TopicNameBasedKekSelector<K> kekSelector,
+                           @NonNull FilterThreadExecutor filterThreadExecutor,
+                           UnresolvedKeyPolicy unresolvedKeyPolicy) {
         this.kekSelector = kekSelector;
         this.encryptionManager = encryptionManager;
         this.decryptionManager = decryptionManager;

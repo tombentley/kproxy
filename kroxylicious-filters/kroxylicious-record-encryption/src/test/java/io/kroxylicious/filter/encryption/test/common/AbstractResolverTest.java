@@ -4,16 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.common;
+package io.kroxylicious.filter.encryption.common;
 
 import java.util.Collection;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-
-import io.kroxylicious.filter.encryption.common.AbstractResolver;
-import io.kroxylicious.filter.encryption.common.EncryptionException;
-import io.kroxylicious.filter.encryption.common.PersistedIdentifiable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -102,7 +98,7 @@ class AbstractResolverTest {
         MyImpl quux = new MyImpl(2, MyEnum.QUUX);
         assertThatThrownBy(() -> resolver.toSerializedId(quux))
                 .isExactlyInstanceOf(EncryptionException.class)
-                .hasMessageStartingWith("Unknown MyEnum impl: io.kroxylicious.filter.encryption.test.common.AbstractResolverTest$MyImpl@");
+                .hasMessageStartingWith("Unknown MyEnum impl: io.kroxylicious.filter.encryption.common.AbstractResolverTest$MyImpl@");
     }
 
     @Test
@@ -123,7 +119,7 @@ class AbstractResolverTest {
 
         assertThatThrownBy(() -> resolver.toSerializedId(bar))
                 .isExactlyInstanceOf(EncryptionException.class)
-                .hasMessageStartingWith("Unknown MyEnum impl: io.kroxylicious.filter.encryption.test.common.AbstractResolverTest$MyImpl@");
+                .hasMessageStartingWith("Unknown MyEnum impl: io.kroxylicious.filter.encryption.common.AbstractResolverTest$MyImpl@");
     }
 
     @Test

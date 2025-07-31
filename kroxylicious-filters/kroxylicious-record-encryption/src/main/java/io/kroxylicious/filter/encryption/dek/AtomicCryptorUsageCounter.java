@@ -10,20 +10,18 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntUnaryOperator;
 import java.util.function.LongUnaryOperator;
 
-import io.kroxylicious.proxy.tag.VisibleForTesting;
-
 /**
  * <p>This counter exists to track different usages of a {@link Dek} so that we can
  * destroy the underlying Key Material as soon as there are no cryptors using it.
  * We identify two distinct usage types of a {@link Dek}, encryption and decryption.
- * This classes responsibilities are:</p>
+ * This classes responsibilities are:
  * <ul>
  *     <li>acquiring ( or denying ) new usages for each usage type</li>
  *     <li>tracking outstanding usages for each usage type as usages are acquired and later released</li>
  *     <li>tracking whether the application has destroyed each usage type</li>
  *     <li>reporting when the end state has been reached (both usage types destroyed and with 0 usages outstanding)</li>
  * </ul>
- *
+ * </p>
  * <p>Usages of a type can be acquired as long as that type is not destroyed.</p>
  * <p>We use an AtomicLong, but it's really an atomic pair of ints acting as
  * reference counts for the number of outstanding encryptors and decryptors.
@@ -46,11 +44,9 @@ import io.kroxylicious.proxy.tag.VisibleForTesting;
  *     <tr><td>{@link #destroyForDecrypt()}</td>    <td>-1</td>              <td>-2</td>   </tr>
  *     <tr><td>{@link #releaseDecryptorUsage()}</td><td>-1</td>              <td>-1</td>    </tr>
  *     <tr><td colspan="3">«{@link #END}» // key gets destroyed </td></tr>
- *     <caption>A caption</caption>
  * </table>
  */
-@VisibleForTesting
-public class AtomicCryptorUsageCounter {
+class AtomicCryptorUsageCounter {
     private static final long START = combine(1, 1);
     private static final long END = combine(-1, -1);
     private final AtomicLong state = new AtomicLong(START);

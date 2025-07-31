@@ -4,14 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.config;
+package io.kroxylicious.filter.encryption.config;
 
 import java.util.EnumSet;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-
-import io.kroxylicious.filter.encryption.config.RecordField;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

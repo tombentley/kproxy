@@ -4,17 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.crypto;
+package io.kroxylicious.filter.encryption.crypto;
 
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.encryption.config.AadSpec;
 import io.kroxylicious.filter.encryption.config.CipherSpec;
-import io.kroxylicious.filter.encryption.crypto.AadNone;
-import io.kroxylicious.filter.encryption.crypto.Encryption;
-import io.kroxylicious.filter.encryption.crypto.ParcelV1;
-import io.kroxylicious.filter.encryption.crypto.WrapperV1;
-import io.kroxylicious.filter.encryption.crypto.WrapperV2;
 import io.kroxylicious.filter.encryption.dek.Aes;
 import io.kroxylicious.filter.encryption.dek.UnknownCipherSpecException;
 

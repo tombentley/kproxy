@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.crypto;
+package io.kroxylicious.filter.encryption.crypto;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -20,7 +20,6 @@ import java.util.stream.Stream;
 
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.record.Record;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,8 +32,6 @@ import com.google.common.reflect.ClassPath;
 
 import io.kroxylicious.filter.encryption.config.ParcelVersion;
 import io.kroxylicious.filter.encryption.config.RecordField;
-import io.kroxylicious.filter.encryption.crypto.Parcel;
-import io.kroxylicious.filter.encryption.crypto.ParcelVersionResolver;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.test.record.RecordTestUtils;
 
@@ -124,20 +121,17 @@ class ParcelTest {
         }
     }
 
-    private static final Pattern TEST_RESOURCE_FILTER = Pattern.compile("serialization/parcel/[^/]*\\.yaml$");
+    private static final Pattern TEST_RESOURCE_FILTER = Pattern.compile("serialization/parcel/.*\\.yaml");
 
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
     private static Stream<Arguments> exemplarStream() throws IOException {
         return ClassPath.from(ParcelTest.class.getClassLoader()).getResources().stream()
-                .filter(ri -> {
-                    boolean matches = TEST_RESOURCE_FILTER.matcher(ri.getResourceName()).find();
-                    return matches;
-                })
+                .filter(ri -> TEST_RESOURCE_FILTER.matcher(ri.getResourceName()).matches())
                 .map(resourceInfo -> {
-                    try (var stream = resourceInfo.asByteSource().openStream()) {
+                    try {
                         ParcelSerializationExemplar parcelSerializationExemplar = MAPPER.reader()
-                                .readValue(stream, ParcelSerializationExemplar.class);
+                                .readValue(resourceInfo.asByteSource().openStream(), ParcelSerializationExemplar.class);
                         return new NamedExemplars(parcelSerializationExemplar, resourceInfo.getResourceName());
                     }
                     catch (IOException e) {
@@ -148,7 +142,6 @@ class ParcelTest {
                 .map(exemplar -> Arguments.of(exemplar.name + " - " + exemplar.version, exemplar));
     }
 
-    @Disabled
     @ParameterizedTest(name = "{0}")
     @MethodSource("exemplarStream")
     void shouldDeserializeExpectedContentsFromBytes(String name, NamedExemplar exemplar) {
@@ -167,7 +160,6 @@ class ParcelTest {
         }
     }
 
-    @Disabled
     @ParameterizedTest(name = "{0}")
     @MethodSource("exemplarStream")
     void shouldSerializeToExpectedBytes(String name, NamedExemplar exemplar) {

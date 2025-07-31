@@ -117,17 +117,17 @@ public class CachingKms<K, E> implements Kms<K, E> {
     }
 
     @VisibleForTesting
-    public void decryptDekCacheCleanUp() {
+    void decryptDekCacheCleanUp() {
         decryptDekCache.synchronous().cleanUp();
     }
 
     @VisibleForTesting
-    public void resolveAliasCacheCleanUp() {
+    void resolveAliasCacheCleanUp() {
         resolveAliasCache.synchronous().cleanUp();
     }
 
     @VisibleForTesting
-    public void notFoundAliasCacheCleanUp() {
+    void notFoundAliasCacheCleanUp() {
         notFoundAliasCache.cleanUp();
     }
 

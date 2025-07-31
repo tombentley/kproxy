@@ -59,12 +59,12 @@ public class WrapperV2 implements Wrapper {
     }
 
     @VisibleForTesting
-    public CipherSpecResolver cipherSpecResolver() {
+    CipherSpecResolver cipherSpecResolver() {
         return cipherSpecResolver;
     }
 
     @VisibleForTesting
-    public AadResolver aadResolver() {
+    AadResolver aadResolver() {
         return aadResolver;
     }
 

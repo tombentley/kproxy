@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.encrypt;
+package io.kroxylicious.filter.encryption.encrypt;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.encryption.FixedDekKmsService;
 import io.kroxylicious.filter.encryption.config.RecordField;
 import io.kroxylicious.filter.encryption.crypto.Encryption;
 import io.kroxylicious.filter.encryption.decrypt.DecryptState;
@@ -28,9 +29,6 @@ import io.kroxylicious.filter.encryption.decrypt.RecordDecryptor;
 import io.kroxylicious.filter.encryption.dek.Aes;
 import io.kroxylicious.filter.encryption.dek.Dek;
 import io.kroxylicious.filter.encryption.dek.DekManager;
-import io.kroxylicious.filter.encryption.encrypt.EncryptionScheme;
-import io.kroxylicious.filter.encryption.encrypt.RecordEncryptor;
-import io.kroxylicious.filter.encryption.test.FixedDekKmsService;
 import io.kroxylicious.kafka.transform.RecordTransform;
 import io.kroxylicious.kms.service.Serde;
 import io.kroxylicious.test.assertj.KafkaAssertions;

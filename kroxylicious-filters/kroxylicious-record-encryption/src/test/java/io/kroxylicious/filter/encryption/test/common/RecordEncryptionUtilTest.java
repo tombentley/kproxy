@@ -3,7 +3,7 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.kroxylicious.filter.encryption.test.common;
+package io.kroxylicious.filter.encryption.common;
 
 import java.nio.ByteBuffer;
 import java.util.function.Function;
@@ -18,7 +18,6 @@ import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.encryption.common.RecordEncryptionUtil;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.test.record.RecordTestUtils;
 

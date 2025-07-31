@@ -64,7 +64,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 @Plugin(configType = RecordEncryptionConfig.class)
 public class RecordEncryption<K, E> implements FilterFactory<RecordEncryptionConfig, SharedEncryptionContext<K, E>> {
 
-    public static final ScheduledExecutorService RETRY_POOL = Executors.newSingleThreadScheduledExecutor(r -> {
+    static final ScheduledExecutorService RETRY_POOL = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread retryThread = new Thread(r, "kmsRetry");
         retryThread.setDaemon(true);
         return retryThread;
@@ -81,7 +81,7 @@ public class RecordEncryption<K, E> implements FilterFactory<RecordEncryptionCon
         checkCipherSuite(CipherManager::newCipher);
     }
 
-    /* exposed for testing */ public static void checkCipherSuite(Function<CipherManager, Cipher> cipherFunc) {
+    /* exposed for testing */ static void checkCipherSuite(Function<CipherManager, Cipher> cipherFunc) {
         List<CipherSpec> failures = Arrays.stream(CipherSpec.values()).flatMap(cipherSpec -> {
             try {
                 Cipher cipher = cipherFunc.apply(CipherSpecResolver.ALL.fromName(cipherSpec));

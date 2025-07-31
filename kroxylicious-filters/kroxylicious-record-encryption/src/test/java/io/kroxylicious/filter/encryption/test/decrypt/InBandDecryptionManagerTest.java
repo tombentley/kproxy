@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test.decrypt;
+package io.kroxylicious.filter.encryption.decrypt;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -43,22 +43,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
+import io.kroxylicious.filter.encryption.EncryptorCreationException;
+import io.kroxylicious.filter.encryption.TestingDek;
 import io.kroxylicious.filter.encryption.common.EncryptionException;
 import io.kroxylicious.filter.encryption.common.FilterThreadExecutor;
 import io.kroxylicious.filter.encryption.config.RecordField;
 import io.kroxylicious.filter.encryption.crypto.Encryption;
 import io.kroxylicious.filter.encryption.crypto.EncryptionHeader;
 import io.kroxylicious.filter.encryption.crypto.EncryptionResolver;
-import io.kroxylicious.filter.encryption.decrypt.DecryptionDekCache;
-import io.kroxylicious.filter.encryption.decrypt.InBandDecryptionManager;
 import io.kroxylicious.filter.encryption.dek.CipherSpecResolver;
 import io.kroxylicious.filter.encryption.dek.Dek;
 import io.kroxylicious.filter.encryption.dek.DekManager;
 import io.kroxylicious.filter.encryption.encrypt.EncryptionDekCache;
 import io.kroxylicious.filter.encryption.encrypt.EncryptionScheme;
 import io.kroxylicious.filter.encryption.encrypt.InBandEncryptionManager;
-import io.kroxylicious.filter.encryption.test.EncryptorCreationException;
-import io.kroxylicious.filter.encryption.test.TestingDek;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryEdek;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.InMemoryKms;
 import io.kroxylicious.kms.provider.kroxylicious.inmemory.UnitTestingKmsService;

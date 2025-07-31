@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.encryption.test;
+package io.kroxylicious.filter.encryption;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -16,7 +16,6 @@ import javax.crypto.Cipher;
 import org.assertj.core.api.AbstractThrowableAssert;
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.encryption.RecordEncryption;
 import io.kroxylicious.filter.encryption.config.CipherSpec;
 import io.kroxylicious.filter.encryption.config.DekManagerConfig;
 import io.kroxylicious.filter.encryption.config.EncryptionConfigurationException;
