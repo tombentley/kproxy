@@ -146,6 +146,20 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.3</version>
+                <configuration>
+                    <argLine>
+                        @{jacoco.argline}
+                        --add-reads io.kroxylicious.filter.encryption=com.fasterxml.jackson.databind
+                        --add-reads io.kroxylicious.filter.encryption=com.fasterxml.jackson.dataformat.yaml
+                        --add-opens io.kroxylicious.filter.encryption/io.kroxylicious.filter.encryption.crypto=com.fasterxml.jackson.databind
+                        --add-opens io.kroxylicious.filter.encryption/io.kroxylicious.filter.encryption.config=com.fasterxml.jackson.databind
+                    </argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <executions>
                     <execution>

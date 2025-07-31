@@ -5,8 +5,8 @@
  */
 
 /**
- * Encryption related code that's common to both {@link io.kroxylicious.filter.encryption.encrypt}
- * and {@link io.kroxylicious.filter.encryption.decrypt},
- * but doesn't directly handle key material (which is what {@link io.kroxylicious.filter.encryption.dek} is for).
+ * Encryption related code that's common to both {@code io.kroxylicious.filter.encryption.encrypt}
+ * and {@code io.kroxylicious.filter.encryption.decrypt},
+ * but doesn't directly handle key material (which is what {@code io.kroxylicious.filter.encryption.dek} is for).
  */
 package io.kroxylicious.filter.encryption.crypto;
