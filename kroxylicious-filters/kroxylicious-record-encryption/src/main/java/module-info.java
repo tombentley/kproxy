@@ -1,7 +1,7 @@
 module io.kroxylicious.filter.encryption {
     requires com.fasterxml.jackson.annotation;
     requires com.github.benmanes.caffeine;
-    requires com.github.spotbugs.annotations;
+    //requires com.github.spotbugs.annotations;
     requires jsr305;
     requires kafka.clients;
     requires micrometer.core;
@@ -10,4 +10,5 @@ module io.kroxylicious.filter.encryption {
     requires io.kroxylicious.proxy.api;
     requires io.kroxylicious.proxy.tag;
     requires kroxylicious.kafka.message.tools;
+    provides io.kroxylicious.proxy.filter.FilterFactory with io.kroxylicious.filter.encryption.RecordEncryption;
 }

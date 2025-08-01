@@ -8,8 +8,6 @@ package io.kroxylicious.proxy.filter;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nullable;
-
 import org.apache.kafka.common.message.RequestHeaderData;
 import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.protocol.ApiMessage;
@@ -17,6 +15,8 @@ import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 import io.kroxylicious.proxy.authentication.ClientSaslContext;
 import io.kroxylicious.proxy.tls.ClientTlsContext;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * A context to allow filters to interact with other filters and the pipeline.

@@ -468,6 +468,7 @@
         <module>kroxylicious-operator-test-support</module>
         <module>kroxylicious-operator</module>
         <module>kroxylicious-operator-dist</module>
+        <module>kroxylicious-plugins</module>
     </modules>
 
 
