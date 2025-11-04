@@ -12,10 +12,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.Uuid;
@@ -137,7 +137,17 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
         }
 
         @Override
-        public String clobberResponse(ObjectNode jsonResponse) {
+        public String clobberResponse(BaseClusterFixture cluster, ObjectNode jsonResponse) {
+            jsonResponse.get("responses").forEach(response -> {
+                var topicId = response.path("topicId").asText(null);
+                if (topicId != null && !response.has("name")) {
+                    for (var e : cluster.topicIds().entrySet()) {
+                        if (e.getValue().toString().equals(topicId)) {
+                            ((ObjectNode) response).put("name", e.getKey());
+                        }
+                    }
+                }
+            });
             var topics = sortArray(jsonResponse, "responses", "name");
             for (var topics1 : topics) {
                 if (topics1.isObject()) {
@@ -151,7 +161,12 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
         public void assertVisibleSideEffects(BaseClusterFixture cluster) {
             // Assuming the requests for alice and bob were successful we expect their topics to have been deleted
             // We never expect eve's topic to get deleted
-            assertThat(topicListing(cluster)).isEqualTo(Set.of("eve-topic"));
+            assertThat(topicListing(cluster)).doesNotContain("alice-topic");
+        }
+
+        @Override
+        public Object observedVisibleSideEffects(BaseClusterFixture cluster) {
+            return topicListing(cluster);
         }
 
         @Override
@@ -178,18 +193,8 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
         }
     }
 
-    List<Arguments> test() {
-        DeleteTopicsRequestData[] requests = {
-                new DeleteTopicsRequestData()
-                        .setTimeoutMs(60_000)
-                        .setTopicNames(List.of("")),
-                new DeleteTopicsRequestData()
-                        .setTimeoutMs(60_000)
-                        .setTopics(List.of(new DeleteTopicsRequestData.DeleteTopicState().setName(""))),
-                new DeleteTopicsRequestData()
-                        .setTimeoutMs(60_000)
-                        .setTopics(List.of(new DeleteTopicsRequestData.DeleteTopicState().setTopicId(Uuid.randomUuid()))),
-        };
+    List<Arguments> shouldEnforceAccessToTopics() {
+
 
         // Compute the n-fold Cartesian product of the tuples (except for pruning)
         List<Arguments> result = new ArrayList<>();
@@ -199,48 +204,73 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
                         Arguments.of(new UnsupportedApiVersion<>(ApiKeys.DELETE_TOPICS, apiVersion)));
             }
             else {
-                for (var request : requests) {
-                    RequestTemplate<DeleteTopicsRequestData> requestTemplate = new RequestTemplate<>() {
-                        @Override
-                        public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
-                            var result = request.duplicate();
-                            String topicName = user + "-topic";
-                            if (result.topicNames() != null) {
-                                result.setTopicNames(result.topicNames().stream().map(name -> topicName).toList());
+                if (apiVersion <= 5) {
+                    for (List<String> topicNames : List.of(List.of(ALICE + "-topic"), ALL_TOPIC_NAMES_IN_TEST)) {
+                        RequestTemplate<DeleteTopicsRequestData> requestTemplate = new RequestTemplate<>() {
+                            @Override
+                            public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
+                                return new DeleteTopicsRequestData()
+                                        .setTimeoutMs(60_000)
+                                        .setTopicNames(topicNames);
                             }
-                            else if (result.topics() != null) {
-                                result.setTopics(result.topics().stream().map(state -> {
-                                    if (state.name() != null) {
-                                        state.setName(topicName);
-                                    }
-                                    else if (state.topicId() != null) {
-                                        state.setTopicId(Objects.requireNonNull(clusterFixture.topicIds().get(topicName)));
-                                    }
-                                    else {
-                                        throw new IllegalStateException();
-                                    }
-                                    return state;
-                                }).toList());
+                            @Override
+                            public String toString() {
+                                return "delete by name " + topicNames;
                             }
-                            else {
-                                throw new IllegalStateException();
-                            }
-                            return result;
-                        }
-                    };
+                        };
 
-                    if (apiVersion <= 5) {
-                        if (request.topicNames() != null && !request.topicNames().isEmpty()) {
-                            result.add(
-                                    Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
-                        }
+                        result.add(
+                                Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
+
                     }
-                    else {
-                        if (request.topics() != null && !request.topics().isEmpty()) {
-                            result.add(
-                                    Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
-                        }
+                }
+                else { // using states...
+                    // ... with topic names
+                    for (List<String> topicNames : List.of(List.of(ALICE + "-topic"), ALL_TOPIC_NAMES_IN_TEST)) {
+                        RequestTemplate<DeleteTopicsRequestData> requestTemplate = new RequestTemplate<>() {
+                            @Override
+                            public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
+                                return new DeleteTopicsRequestData()
+                                        .setTimeoutMs(60_000)
+                                        .setTopics(topicNames.stream().map(topicName -> new DeleteTopicsRequestData.DeleteTopicState().setName(topicName)).toList());
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "delete by state with name " + topicNames;
+                            }
+                        };
+                        result.add(
+                                Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
                     }
+
+                    // ... with topic ids
+//                    for (List<String> topicNames : List.of(//List.of(ALICE + "-topic"),
+//                            ALL_TOPIC_NAMES_IN_TEST)) {
+                        RequestTemplate<DeleteTopicsRequestData> requestTemplate = new RequestTemplate<>() {
+                            @Override
+                            public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
+                                return new DeleteTopicsRequestData()
+                                        .setTimeoutMs(60_000)
+                                        .setTopics(Stream.of(user + "-topic")
+                                                .map(topicName -> {
+                                                    Uuid v = clusterFixture.topicIds().get(topicName);
+                                                    System.err.println(topicName + "=" + v);
+                                                    return new DeleteTopicsRequestData.DeleteTopicState()
+                                                            .setTopicId(v);
+                                                })
+                                                .toList());
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "delete by topicId with name " + "${user}-topic";
+                            }
+                        };
+                        result.add(
+                                Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
+//                    }
+
                 }
             }
         }
@@ -249,7 +279,7 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
 
     @ParameterizedTest
     @MethodSource
-    void test(VersionSpecificVerification<DeleteTopicsRequestData, DeleteTopicsResponseData> test) {
+    void shouldEnforceAccessToTopics(VersionSpecificVerification<DeleteTopicsRequestData, DeleteTopicsResponseData> test) {
         try (var referenceCluster = new ReferenceCluster(this.kafkaClusterWithAuthz, this.topicIdsInUnproxiedCluster);
                 var proxiedCluster = new ProxiedCluster(this.kafkaClusterNoAuthz, this.topicIdsInProxiedCluster, rulesFile)) {
             test.verifyBehaviour(referenceCluster, proxiedCluster);

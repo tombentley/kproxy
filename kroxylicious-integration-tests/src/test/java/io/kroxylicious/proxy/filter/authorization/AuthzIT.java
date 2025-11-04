@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -222,7 +223,7 @@ public class AuthzIT extends BaseIT {
             return apiVersion;
         }
 
-        public abstract String clobberResponse(ObjectNode jsonResponse);
+        public abstract String clobberResponse(BaseClusterFixture cluster, ObjectNode jsonResponse);
 
         public abstract void assertVisibleSideEffects(BaseClusterFixture cluster);
 
@@ -237,6 +238,10 @@ public class AuthzIT extends BaseIT {
         }
 
         public void prepareCluster(BaseClusterFixture cluster) {
+        }
+
+        public Object observedVisibleSideEffects(BaseClusterFixture cluster) {
+            return null;
         }
     }
 
@@ -560,9 +565,9 @@ public class AuthzIT extends BaseIT {
                 .endVirtualCluster();
     }
 
-    protected <Q extends ApiMessage, P extends ApiMessage> Map<String, P> responsesByUser(BaseClusterFixture baseTestCluster,
-                                                                                          VersionSpecificVerification<Q, P> scenario) {
-        var responsesByUser = new HashMap<String, P>();
+    protected <Q extends ApiMessage, S extends ApiMessage> Map<String, S> responsesByUser(BaseClusterFixture baseTestCluster,
+                                                                                          VersionSpecificVerification<Q, S> scenario) {
+        var responsesByUser = new HashMap<String, S>();
         Map<String, Request> requests = scenario.requests(baseTestCluster);
         Map<String, KafkaClient> clients = baseTestCluster.authenticatedClients(requests.keySet());
         try {
@@ -582,7 +587,7 @@ public class AuthzIT extends BaseIT {
                         baseTestCluster.name());
                 var resp = client.getSync(request);
 
-                var r = (P) resp.payload().message();
+                var r = (S) resp.payload().message();
                 LOG.info("{} {}{} << {}",
                         user,
                         request.apiKeys(),
@@ -609,6 +614,7 @@ public class AuthzIT extends BaseIT {
                 scenario);
 
         scenario.assertUnproxiedResponses(unproxiedResponsesByUser);
+        var referenceObservation = scenario.observedVisibleSideEffects(referenceCluster);
         scenario.assertVisibleSideEffects(referenceCluster);
 
         scenario.prepareCluster(proxiedCluster);
@@ -619,15 +625,19 @@ public class AuthzIT extends BaseIT {
 
         // assert the responses from the proxied cluster at the same as from the unproxied cluster
         // (modulo clobbbering things like UUIDs which will be unavoidably different)
-        Function<S, String> convertAndClobberUserResponse = ((Function<S, ObjectNode>) scenario::convertResponse)
-                .andThen(scenario::clobberResponse);
+        BiFunction<S, BaseClusterFixture, String> convertAndClobberUserResponse = ((BiFunction<S, BaseClusterFixture, String>) (response, cl) -> {
+            var node = scenario.convertResponse(response);
+            return scenario.clobberResponse(cl, node);
+        });
         assertThat(mapValues(proxiedResponsesByUser,
-                convertAndClobberUserResponse))
+                x -> convertAndClobberUserResponse.apply(x, proxiedCluster)))
                 .as("Expect equivalent response to an unproxied Kafka cluster with the equivalent AuthZ")
                 .isEqualTo(mapValues(unproxiedResponsesByUser,
-                        convertAndClobberUserResponse));
+                        x -> convertAndClobberUserResponse.apply(x, referenceCluster)));
         // assertions about side effects
         scenario.assertVisibleSideEffects(proxiedCluster);
+        var proxiedObservation = scenario.observedVisibleSideEffects(proxiedCluster);
+        assertThat(proxiedObservation).isEqualTo(referenceObservation);
     }
 
     protected <Q extends ApiMessage, S extends ApiMessage> void verifyUnsupportedVersion(ProxiedCluster proxiedCluster,

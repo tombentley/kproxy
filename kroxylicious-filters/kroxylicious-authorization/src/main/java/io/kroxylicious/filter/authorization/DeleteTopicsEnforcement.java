@@ -7,9 +7,15 @@
 package io.kroxylicious.filter.authorization;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.message.DeleteTopicsRequestData;
 import org.apache.kafka.common.message.DeleteTopicsResponseData;
 import org.apache.kafka.common.message.RequestHeaderData;
@@ -19,6 +25,7 @@ import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.Decision;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
+import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
 
 public class DeleteTopicsEnforcement extends ApiEnforcement<DeleteTopicsRequestData, DeleteTopicsResponseData> {
 
@@ -31,7 +38,7 @@ public class DeleteTopicsEnforcement extends ApiEnforcement<DeleteTopicsRequestD
     short maxSupportedVersion() {
         // DELETE_TOPICS: v6 allows topic ids: It's better to force the client to use v5 than fail a v6 later on
         // when the client goes ahead and uses topic ids
-        return 5;
+        return 6;
     }
 
     /**
@@ -44,26 +51,59 @@ public class DeleteTopicsEnforcement extends ApiEnforcement<DeleteTopicsRequestD
                                                    AuthorizationFilter authorizationFilter) {
         short apiVersion = header.requestApiVersion();
         boolean useStates = apiVersion >= 6;
-        List<Action> actions;
+        final CompletableFuture<TopicNameMapping> mappingStage;
+        CompletionStage<List<Action>> actionsStage;
         TopicResource operation = TopicResource.DELETE;
         if (useStates) {
-            actions = operation.actionsOf(request.topics().stream()
-                    .map(t -> {
-                        if (t.name() != null) {
-                            return t.name();
-                        }
-                        else {
-                            throw authorizationFilter.topicIdsNotSupported();
-                        }
-                    }));
+            var partitioned = request.topics().stream().collect(Collectors.partitioningBy(t -> t.name() != null));
+            List<DeleteTopicsRequestData.DeleteTopicState> statesUsingIds = partitioned.get(false);
+            if (statesUsingIds.isEmpty()) {
+                actionsStage = CompletableFuture.completedStage(operation.actionsOf(partitioned.get(true).stream()
+                        .map(DeleteTopicsRequestData.DeleteTopicState::name)));
+                mappingStage = null;
+            }
+            else {
+                mappingStage = new CompletableFuture<>();
+                context.topicNames(statesUsingIds.stream()
+                        .map(DeleteTopicsRequestData.DeleteTopicState::topicId)
+                        .toList()).whenComplete((mapping, error) -> {
+                            // painfully, the stage returned by context.topicNames() cannot be converted to a future
+                            // so we have to make our own
+                            if (error == null) {
+                                mappingStage.complete(mapping);
+                            }
+                            else {
+                                mappingStage.completeExceptionally(error);
+                            }
+                        });
+                CompletionStage<List<Action>> actionsStage1 = mappingStage.thenApply(mapping -> {
+                    Stream<String> names = request.topics().stream()
+                            .map(t -> {
+                                return mapping.topicNames().get(t.topicId());
+                            });
+                    List<Action> actions = operation.actionsOf(names);
+                    return actions;
+                });
+                actionsStage = actionsStage1;
+            }
         }
         else {
-            actions = operation.actionsOf(request.topicNames().stream());
+            actionsStage = CompletableFuture.completedStage(operation.actionsOf(request.topicNames().stream()));
+            mappingStage = null;
         }
-        return authorizationFilter.authorization(context, actions)
+        return actionsStage
+                .thenCompose(actions -> authorizationFilter.authorization(context, actions))
                 .thenCompose(authorization -> {
                     if (useStates) {
-                        var decisions = authorization.partition(request.topics(), operation, DeleteTopicsRequestData.DeleteTopicState::name);
+                        Map<Decision, List<DeleteTopicsRequestData.DeleteTopicState>> decisions;
+                        if (mappingStage != null) {
+                            decisions = authorization.partition(request.topics(), operation,
+                                    state -> mappingStage.join().topicNames().get(state.topicId()));
+                        }
+                        else {
+                            decisions = authorization.partition(request.topics(), operation,
+                                    DeleteTopicsRequestData.DeleteTopicState::name);
+                        }
                         if (decisions.get(Decision.ALLOW).isEmpty()) {
                             // Shortcircuit if there's no allowed actions
                             DeleteTopicsResponseData.DeletableTopicResultCollection v = new DeleteTopicsResponseData.DeletableTopicResultCollection();
