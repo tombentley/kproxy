@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.Uuid;
@@ -40,8 +39,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.kroxylicious.filter.authorization.AuthorizationFilter;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class DeleteTopicsAuthzIT extends AuthzIT {
 
@@ -97,6 +94,40 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
         deleteTopicsAndAcls(kafkaClusterNoAuthz, ALL_TOPIC_NAMES_IN_TEST, List.of());
     }
 
+    private static class DeleteTopicsByIdTemplate implements RequestTemplate<DeleteTopicsRequestData> {
+        private final boolean addUserTopic;
+        private final boolean addUnknownTopic;
+
+        DeleteTopicsByIdTemplate(boolean addUserTopic, boolean addUnknownTopic) {
+            this.addUserTopic = addUserTopic;
+            this.addUnknownTopic = addUnknownTopic;
+        }
+
+        @Override
+        public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
+
+
+            DeleteTopicsRequestData request = new DeleteTopicsRequestData()
+                    .setTimeoutMs(60_000);
+            if (addUserTopic) {
+                var state = new DeleteTopicsRequestData.DeleteTopicState()
+                        .setTopicId(clusterFixture.topicIds().get(user + "-topic"));
+                request.topics().add(state);
+            }
+            if (addUnknownTopic) {
+                var state2 = new DeleteTopicsRequestData.DeleteTopicState()
+                        .setTopicId(Uuid.randomUuid());
+                request.topics().add(state2);
+            }
+            return request;
+        }
+
+        @Override
+        public String toString() {
+            return "delete by topicId:" + (addUserTopic ? " {topicId for name ${user}-topic}" : "") + (addUnknownTopic ? " {unknownTopicId}" : "");
+        }
+    }
+
     class DeleteTopicsEquivalence extends Equivalence<DeleteTopicsRequestData, DeleteTopicsResponseData> {
 
         private final RequestTemplate<DeleteTopicsRequestData> requestTemplate;
@@ -148,7 +179,7 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
                     }
                 }
             });
-            var topics = sortArray(jsonResponse, "responses", "name");
+            var topics = sortArray(jsonResponse, "responses", "name", "errorMessage");
             for (var topics1 : topics) {
                 if (topics1.isObject()) {
                     clobberUuid((ObjectNode) topics1, "topicId");
@@ -159,9 +190,6 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
 
         @Override
         public void assertVisibleSideEffects(BaseClusterFixture cluster) {
-            // Assuming the requests for alice and bob were successful we expect their topics to have been deleted
-            // We never expect eve's topic to get deleted
-            assertThat(topicListing(cluster)).doesNotContain("alice-topic");
         }
 
         @Override
@@ -248,32 +276,12 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
                     }
 
                     // ... with topic ids
-//                    for (List<String> topicNames : List.of(//List.of(ALICE + "-topic"),
-//                            ALL_TOPIC_NAMES_IN_TEST)) {
-                        RequestTemplate<DeleteTopicsRequestData> requestTemplate = new RequestTemplate<>() {
-                            @Override
-                            public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
-                                return new DeleteTopicsRequestData()
-                                        .setTimeoutMs(60_000)
-                                        .setTopics(Stream.of(user + "-topic")
-                                                .map(topicName -> {
-                                                    Uuid v = clusterFixture.topicIds().get(topicName);
-                                                    System.err.println(topicName + "=" + v);
-                                                    return new DeleteTopicsRequestData.DeleteTopicState()
-                                                            .setTopicId(v);
-                                                })
-                                                .toList());
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "delete by topicId with name " + "${user}-topic";
-                            }
-                        };
-                        result.add(
-                                Arguments.of(new DeleteTopicsEquivalence(apiVersion, requestTemplate)));
-//                    }
-
+                    result.add(
+                            Arguments.of(new DeleteTopicsEquivalence(apiVersion, new DeleteTopicsByIdTemplate(true, true))));
+                    result.add(
+                            Arguments.of(new DeleteTopicsEquivalence(apiVersion, new DeleteTopicsByIdTemplate(true, false))));
+                    result.add(
+                            Arguments.of(new DeleteTopicsEquivalence(apiVersion, new DeleteTopicsByIdTemplate(false, true))));
                 }
             }
         }

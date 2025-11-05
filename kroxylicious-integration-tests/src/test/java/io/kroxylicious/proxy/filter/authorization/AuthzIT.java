@@ -322,12 +322,18 @@ public class AuthzIT extends BaseIT {
                         entry -> valueMapper.apply(entry.getValue())));
     }
 
-    protected static ArrayNode sortArray(ObjectNode root, String arrayProperty, String sortProperty) {
+    protected static ArrayNode sortArray(ObjectNode root, String arrayProperty, String sortProperty, String... thenSortProperties) {
         JsonNode topics = root.path(arrayProperty);
         if (topics.isArray()) {
+            Comparator<JsonNode> comparing = Comparator.comparing(itemNode -> itemNode.get(sortProperty).textValue(),
+                    Comparator.nullsFirst(String::compareTo));
+            for (var thenSortProperty: thenSortProperties) {
+                Comparator<JsonNode> thenComparator = Comparator.comparing(itemNode -> itemNode.get(thenSortProperty).textValue(),
+                        Comparator.nullsFirst(String::compareTo));
+                comparing = comparing.thenComparing(thenComparator);
+            }
             var sortedTopics = topics.valueStream().sorted(
-                    Comparator.comparing(itemNode -> itemNode.get(sortProperty).textValue(),
-                            Comparator.nullsFirst((String x, String y) -> x.compareTo(y))))
+                            comparing)
                     .toList();
             root.putArray(arrayProperty).addAll(sortedTopics);
             return (ArrayNode) root.get(arrayProperty);
@@ -631,7 +637,7 @@ public class AuthzIT extends BaseIT {
         });
         assertThat(mapValues(proxiedResponsesByUser,
                 x -> convertAndClobberUserResponse.apply(x, proxiedCluster)))
-                .as("Expect equivalent response to an unproxied Kafka cluster with the equivalent AuthZ")
+                .as("Expect proxied response to be the same as the reference response with equivalent AuthZ")
                 .isEqualTo(mapValues(unproxiedResponsesByUser,
                         x -> convertAndClobberUserResponse.apply(x, referenceCluster)));
         // assertions about side effects
