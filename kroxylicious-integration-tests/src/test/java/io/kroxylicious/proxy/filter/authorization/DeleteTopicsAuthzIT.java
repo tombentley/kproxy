@@ -232,7 +232,10 @@ public class DeleteTopicsAuthzIT extends AuthzIT {
                             public DeleteTopicsRequestData request(String user, BaseClusterFixture clusterFixture) {
                                 return new DeleteTopicsRequestData()
                                         .setTimeoutMs(60_000)
-                                        .setTopics(topicNames.stream().map(topicName -> new DeleteTopicsRequestData.DeleteTopicState().setName(topicName)).toList());
+                                        .setTopics(topicNames.stream()
+                                                .map(topicName -> new DeleteTopicsRequestData.DeleteTopicState()
+                                                        .setName(topicName))
+                                                .toList());
                             }
 
                             @Override
