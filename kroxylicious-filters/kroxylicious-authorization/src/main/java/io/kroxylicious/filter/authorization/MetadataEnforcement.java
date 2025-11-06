@@ -193,28 +193,28 @@ public class MetadataEnforcement extends ApiEnforcement<MetadataRequestData, Met
                 .thenCompose(authorize -> {
                     var toRemove = new ArrayList<MetadataResponseData.MetadataResponseTopic>();
 
-                    for (var t : response.topics()) {
-                        if (authorize.decision(TopicResource.DESCRIBE, t.name()) == Decision.DENY) {
+                    for (var responseTopic : response.topics()) {
+                        if (authorize.decision(TopicResource.DESCRIBE, responseTopic.name()) == Decision.DENY) {
                             if (completer.isAllTopics()) {
-                                toRemove.add(t);
+                                toRemove.add(responseTopic);
                             }
                             else {
                                 // TODO in this case do we return the topic Id if the client didn't already know it?
-                                t.setErrorCode(Errors.TOPIC_AUTHORIZATION_FAILED.code());
-                                t.partitions().clear();
-                                t.setIsInternal(false);
-                                t.setTopicAuthorizedOperations(Integer.MIN_VALUE);
+                                responseTopic.setErrorCode(Errors.TOPIC_AUTHORIZATION_FAILED.code());
+                                responseTopic.partitions().clear();
+                                responseTopic.setIsInternal(false);
+                                responseTopic.setTopicAuthorizedOperations(Integer.MIN_VALUE);
                                 if (completer.requestUsesTopicIds()) {
-                                    t.setName(null);
+                                    responseTopic.setName(null);
                                 }
                                 else {
-                                    t.setTopicId(Uuid.ZERO_UUID);
+                                    responseTopic.setTopicId(Uuid.ZERO_UUID);
                                 }
                             }
                         }
                         else { // ALLOW
                             if (completer.includeTopicAuthorizedOperations()) {
-                                t.setTopicAuthorizedOperations(topicAuthzOptions(authorize, t));
+                                responseTopic.setTopicAuthorizedOperations(topicAuthzOptions(authorize, responseTopic));
                             }
                         }
                     }

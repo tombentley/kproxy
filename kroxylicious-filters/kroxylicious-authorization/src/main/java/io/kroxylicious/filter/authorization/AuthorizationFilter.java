@@ -46,7 +46,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public class AuthorizationFilter implements RequestFilter, ResponseFilter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(io.kroxylicious.filter.authorization.AuthorizationFilter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AuthorizationFilter.class);
 
     static Map<ApiKeys, ApiEnforcement> apiEnforcement = new EnumMap<>(ApiKeys.class);
     static {
@@ -85,6 +85,7 @@ public class AuthorizationFilter implements RequestFilter, ResponseFilter {
         apiEnforcement.put(ApiKeys.INIT_PRODUCER_ID, new Passthrough<>(0, 6));
         apiEnforcement.put(ApiKeys.ADD_PARTITIONS_TO_TXN, new Passthrough<>(0, 5));
         apiEnforcement.put(ApiKeys.ADD_OFFSETS_TO_TXN, new Passthrough<>(0, 4));
+        apiEnforcement.put(ApiKeys.END_TXN, new Passthrough<>(0, 5));
     }
 
     @VisibleForTesting
@@ -215,6 +216,7 @@ public class AuthorizationFilter implements RequestFilter, ResponseFilter {
                                                           RequestHeaderData header,
                                                           ApiMessage request,
                                                           FilterContext context) {
+        LOG.info("{} >>>>> {}", header.clientId(), request);
         var usesUnsupportedApi = checkRequestApiAndVersions(apiKey,
                 header,
                 request,
@@ -237,6 +239,7 @@ public class AuthorizationFilter implements RequestFilter, ResponseFilter {
                                                             ResponseHeaderData header,
                                                             ApiMessage response,
                                                             FilterContext context) {
+        LOG.info("<<<<<<< {}", response);
         var enforcement = apiEnforcement.get(apiKey);
         if (enforcement != null) {
             return enforcement.onResponse(header, response, context, this);

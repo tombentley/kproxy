@@ -42,8 +42,9 @@ class ListOffsetsEnforcement extends ApiEnforcement<ListOffsetsRequestData, List
                 .map(s -> new Action(TopicResource.DESCRIBE, s)).toList();
         return authorizationFilter.authorization(context, actions)
                 .thenCompose(authorization -> {
-                    Map<Decision, List<ListOffsetsTopic>> topicDescribeDecisions = request.topics().stream()
-                            .collect(Collectors.groupingBy(t -> authorization.decision(TopicResource.DESCRIBE, t.name())));
+                    Map<Decision, List<ListOffsetsTopic>> topicDescribeDecisions = authorization.partition(request.topics(),
+                            TopicResource.DESCRIBE,
+                            ListOffsetsTopic::name);
                     List<ListOffsetsTopic> allowedTopics = topicDescribeDecisions.getOrDefault(Decision.ALLOW, List.of());
                     if (allowedTopics.isEmpty()) {
                         // Shortcircuit if there's no allowed topics

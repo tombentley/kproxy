@@ -51,6 +51,11 @@ public final class ReferenceCluster implements BaseClusterFixture {
     }
 
     @Override
+    public Map<String, Object> getKafkaClientConfiguration(String username, String password) {
+        return cluster.getKafkaClientConfiguration(username, password);
+    }
+
+    @Override
     public void close() {
 
     }

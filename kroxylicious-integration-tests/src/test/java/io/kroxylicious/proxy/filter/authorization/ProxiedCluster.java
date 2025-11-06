@@ -7,10 +7,17 @@
 package io.kroxylicious.proxy.filter.authorization;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.config.SaslConfigs;
 
+import io.kroxylicious.proxy.config.Configuration;
+import io.kroxylicious.proxy.config.ConfigurationBuilder;
+import io.kroxylicious.proxy.testplugins.SaslPlainTerminationConfig;
 import io.kroxylicious.test.tester.KroxyliciousTester;
 import io.kroxylicious.testing.kafka.api.KafkaCluster;
 
@@ -24,6 +31,7 @@ public final class ProxiedCluster implements BaseClusterFixture {
     private final Path rulesFile;
     private final KroxyliciousTester tester;
     private final KafkaCluster backingCluster;
+    private final Configuration proxyConfig;
 
     ProxiedCluster(KafkaCluster cluster,
                    Map<String, Uuid> topicIds,
@@ -32,7 +40,9 @@ public final class ProxiedCluster implements BaseClusterFixture {
         this.topicIds = topicIds;
         this.rulesFile = rulesFile;
 
-        this.tester = kroxyliciousTester(AuthzIT.proxyConfig(cluster, AuthzIT.PASSWORDS, rulesFile));
+        ConfigurationBuilder builder = AuthzIT.proxyConfig(cluster, AuthzIT.PASSWORDS, rulesFile);
+        this.proxyConfig = builder.build();
+        this.tester = kroxyliciousTester(builder);
     }
 
     @Override
@@ -61,5 +71,17 @@ public final class ProxiedCluster implements BaseClusterFixture {
 
     public void close() {
         tester.close();
+    }
+
+    @Override
+    public Map<String, Object> getKafkaClientConfiguration(String username, String password) {
+        Map<String, Object> clientConfiguration = tester.clientConfiguration();
+        clientConfiguration.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
+        clientConfiguration.put(SaslConfigs.SASL_MECHANISM, "PLAIN");
+        clientConfiguration.put(SaslConfigs.SASL_JAAS_CONFIG, """
+                org.apache.kafka.common.security.plain.PlainLoginModule required 
+                    username="%s" 
+                    password="%s";""".formatted(username, password));
+        return clientConfiguration;
     }
 }

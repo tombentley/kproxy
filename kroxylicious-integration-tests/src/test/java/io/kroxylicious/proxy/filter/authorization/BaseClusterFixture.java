@@ -47,6 +47,8 @@ public interface BaseClusterFixture extends AutoCloseable {
                 }));
     }
 
+    Map<String, Object> getKafkaClientConfiguration(String username, String password);
+
     /**
      * Close any closeable resources created by this fixture
      */
