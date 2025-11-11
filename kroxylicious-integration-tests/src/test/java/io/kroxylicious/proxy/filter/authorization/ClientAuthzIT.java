@@ -74,8 +74,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.offset;
 
+/**
+ * A test that runs through a sequence of interactions using real high level Clients,
+ * recording the outcomes or (expected) exceptions.
+ * We expect the client to experience the same outcomes when pointed at Kafka-with-ACLs,
+ * or proxy-with-authz (give or take some internal identifiers).
+ */
 public class ClientAuthzIT extends AuthzIT {
 
     public static final String TOPIC_A = "topicA";
@@ -695,9 +700,7 @@ public class ClientAuthzIT extends AuthzIT {
                         transactionalProducer.beginTransaction();
                         assertThat(transactionalProducer.sendOffsetsToTransaction(offsets, metadata).value()).isNull();
                         transactionalProducer.commitTransaction();
-//                        transactionalProducer.beginTransaction();
-//                        transactionalProducer.send(topicA, 5);
-//                        transactionalProducer.commitTransaction();
+
                     }
                 }
                 setup.deleteTopic(topicA);
@@ -861,7 +864,12 @@ public class ClientAuthzIT extends AuthzIT {
         }
     }
 
-
+    /**
+     * Cleans/normalises the hostnames and port numbers from a topic description,
+     * so they're comparable between clusters for assertion purposes.
+     * @param topicDescription The topic description
+     * @return A new cleaned up topic description
+     */
     static TopicDescription cleanTopicDescription(TopicDescription topicDescription) {
         return new TopicDescription(
                 topicDescription.name(),

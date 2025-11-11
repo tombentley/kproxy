@@ -216,7 +216,7 @@ public class AuthorizationFilter implements RequestFilter, ResponseFilter {
                                                           RequestHeaderData header,
                                                           ApiMessage request,
                                                           FilterContext context) {
-        LOG.info("{} >>>>> {}", header.clientId(), request);
+
         var usesUnsupportedApi = checkRequestApiAndVersions(apiKey,
                 header,
                 request,
@@ -239,7 +239,7 @@ public class AuthorizationFilter implements RequestFilter, ResponseFilter {
                                                             ResponseHeaderData header,
                                                             ApiMessage response,
                                                             FilterContext context) {
-        LOG.info("<<<<<<< {}", response);
+
         var enforcement = apiEnforcement.get(apiKey);
         if (enforcement != null) {
             return enforcement.onResponse(header, response, context, this);

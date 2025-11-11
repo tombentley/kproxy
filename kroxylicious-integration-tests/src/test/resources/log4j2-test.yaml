@@ -45,12 +45,6 @@ Configuration:
          AppenderRef:
            - ref: Console
 
-      -  name: io.kroxylicious.filter.authorization
-         additivity: false
-         level: INFO
-         AppenderRef:
-           - ref: Console
-
       -  name: org.apache.zookeeper
          additivity: false
          level: ERROR
