@@ -28,7 +28,7 @@ public class DefaultSubjectBuilder implements TransportSubjectBuilder, SaslSubje
     public CompletionStage<Subject> buildTransportSubject(TransportSubjectBuilder.Context context) {
         try {
             Set<Principal> collect = adders.stream()
-                    .flatMap(lal -> lal.doIt(context))
+                    .flatMap(adder -> adder.createPrincipals(context))
                     .collect(Collectors.toSet());
             return CompletableFuture.completedStage(new Subject(collect));
         }
@@ -41,7 +41,7 @@ public class DefaultSubjectBuilder implements TransportSubjectBuilder, SaslSubje
     public CompletionStage<Subject> buildSaslSubject(SaslSubjectBuilder.Context context) {
         try {
             Set<Principal> collect = adders.stream()
-                    .flatMap(lal -> lal.doIt(context))
+                    .flatMap(lal -> lal.createPrincipals(context))
                     .collect(Collectors.toSet());
             return CompletableFuture.completedStage(new Subject(collect));
         }

@@ -17,7 +17,7 @@ public record PrincipalAdder(
                              Function<Object, Stream<String>> extractor,
                              List<MappingRule> rules,
                              PrincipalFactory<?> factory) {
-    Stream<Principal> doIt(Object context) {
+    Stream<Principal> createPrincipals(Object context) {
         return extractor.apply(context)
                 .flatMap(extractedName -> rules.stream().map(rule -> rule.apply(extractedName))
                         .filter(Optional::isPresent)

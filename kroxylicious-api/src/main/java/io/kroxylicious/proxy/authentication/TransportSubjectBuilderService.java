@@ -10,7 +10,6 @@ import edu.umd.cs.findbugs.annotations.UnknownNullness;
 
 /**
  * The service interface used to construct a {@link TransportSubjectBuilder}.
- * A {@code TransportSubjectBuilderService} can be specified on a virtual cluster.
  *
  * @param <C> The configuration type consumed by the particular {@link TransportSubjectBuilder} implementation.
  */
