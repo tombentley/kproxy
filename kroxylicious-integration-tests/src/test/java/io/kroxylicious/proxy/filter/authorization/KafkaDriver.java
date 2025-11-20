@@ -116,6 +116,7 @@ class KafkaDriver {
         return result;
     }
 
+    @SuppressWarnings("BusyWait")
     FindCoordinatorResponseData findCoordinator(CoordinatorType coordinatorType, String key) {
         do {
             short findCoordinatorVersion = (short) 1;
