@@ -522,6 +522,7 @@
         <module>kroxylicious-docs</module>
         <module>kroxylicious-authorizer-api</module>
         <module>kroxylicious-authorizer-providers</module>
+        <module>kroxylicious-filters/kroxylicious-record-transformation</module>
     </modules>
 
 

@@ -26,6 +26,7 @@
         <module>kroxylicious-record-encryption</module>
         <module>kroxylicious-multitenant</module>
         <module>kroxylicious-record-validation</module>
+        <module>kroxylicious-record-transformation</module>
         <module>kroxylicious-simple-transform</module>
         <module>kroxylicious-oauthbearer-validation</module>
         <module>kroxylicious-sasl-inspection</module>
