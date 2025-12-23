@@ -11,7 +11,7 @@ public interface SchemaTransformation {
         return schemaIdentifier -> schemaIdentifier;
     }
     static SchemaTransformation drop() {
-        return schemaIdentifier -> new NoSchema();
+        return schemaIdentifier -> NoSchema.INSTANCE;
     }
     static SchemaTransformation globalId(long globalId) {
         return schemaIdentifier -> new GlobalId(globalId);

@@ -7,18 +7,30 @@
 package io.kroxylicious.filter.transformation;
 
 import java.io.IOException;
-import java.util.function.Function;
+import java.util.Optional;
+import java.util.function.BiFunction;
 
 import org.apache.kafka.common.header.Header;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
 
-
-    private final String schemaIdHeader = "";
-    private Boolean schemaPrefixIs4Bytes = true;
+    private final @Nullable String globalIdHeaderName;
+    private final @Nullable String contentIdHeaderName;
+    private final @Nullable String contentHashHeaderName;
+    private final boolean schemaPrefixIs4Bytes;
     private final DatumDeserializer<T> deserializer;
 
-    public SchemaIdentifyingDeserializer(DatumDeserializer<T> deserializer) {
+    public SchemaIdentifyingDeserializer(String contentHashHeaderName,
+                                         String globalIdHeaderName,
+                                         String contentIdHeaderName,
+                                         Boolean schemaPrefixIs4Bytes,
+                                         DatumDeserializer<T> deserializer) {
+        this.contentHashHeaderName = contentHashHeaderName;
+        this.globalIdHeaderName = globalIdHeaderName;
+        this.contentIdHeaderName = contentIdHeaderName;
+        this.schemaPrefixIs4Bytes = schemaPrefixIs4Bytes;
         this.deserializer = deserializer;
     }
 
@@ -35,58 +47,70 @@ public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
     }
 
     private SchemaIdentifier schemaIdentifier(Header[] headers, TransformationInputStream in) throws IOException {
-        SchemaIdentifier schemaIdentifier = new NoSchema();
-        Long schemaId = null;
-        in.mark(9);
+        SchemaIdentifier schemaIdentifier = NoSchema.INSTANCE;
+        schemaIdentifier = fromPrefix(in, schemaIdentifier);
+        if (schemaIdentifier instanceof NoSchema && globalIdHeaderName != null) {
+            schemaIdentifier = extracted(headers, globalIdHeaderName, parseLong().andThen(GlobalId::new));
+        }
+        if (schemaIdentifier instanceof NoSchema && contentIdHeaderName != null) {
+            schemaIdentifier = extracted(headers, contentIdHeaderName, parseLong().andThen(ContentId::new));
+        }
+        if (schemaIdentifier instanceof NoSchema && contentHashHeaderName != null) {
+            schemaIdentifier = extracted(headers, contentHashHeaderName, (x, y) -> new ContentHash(y));
+        }
+        return schemaIdentifier;
+    }
+
+    private SchemaIdentifier fromPrefix(TransformationInputStream in, SchemaIdentifier schemaIdentifier) throws IOException {
+        in.mark(schemaPrefixIs4Bytes ? 5 : 9);
         int maybeMagic = in.read();
         if (maybeMagic == 0x00) {
-            if (schemaPrefixIs4Bytes != null) {
-                if (schemaPrefixIs4Bytes) {
-                    schemaId = (long) in.readInt();
-                }
-                else {
-                    schemaId = in.readLong();
-                }
-                schemaIdentifier = new GlobalId(schemaId);
+            if (schemaPrefixIs4Bytes && in.available() >= 4) {
+                schemaIdentifier = new Prefix(in.readNBytes(4));
+            }
+            else if (!schemaPrefixIs4Bytes && in.available() >= 8) {
+                schemaIdentifier = new Prefix(in.readNBytes(8));
+            }
+            else {
+                in.reset();
             }
         }
         else {
             in.reset();
         }
-        if (schemaIdHeader != null) {
-            schemaIdentifier = extracted(headers, schemaIdHeader);
-        }
-        else {
-            schemaIdentifier = extracted(headers, "io.apicurio.global.id", GlobalId::new);
-            if (schemaIdentifier instanceof NoSchema) {
-                schemaIdentifier = extracted(headers, "io.apicurio.content.id", ContentId::new);
-            }
-            if (schemaIdentifier instanceof NoSchema) {
-                schemaIdentifier = extracted(headers, "io.apicurio.content.hash", ContentHash::new);
-            }
-        }
         return schemaIdentifier;
     }
 
-    private SchemaIdentifier extracted(Header[] headers, String headerKey, Function<Long, SchemaIdentifier> fn) throws IOException {
-        Long schemaId;
+    private SchemaIdentifier extracted(Header[] headers, String headerKey, BiFunction<String, byte[], SchemaIdentifier> fn) {
+        return firstHeaderWithKey(headers, headerKey)
+                .map(headerValue -> fn.apply(headerKey, headerValue))
+                .orElse(NoSchema.INSTANCE);
+    }
+
+    BiFunction<String, byte[], Long> parseLong() {
+        return this::parseLong;
+    }
+
+    long parseLong(String headerKey, byte[] headerValue) {
+        long schemaId;
+        if (schemaPrefixIs4Bytes && headerValue.length == 4) {
+            schemaId = ((long) headerValue[0]) << 24 | ((long) headerValue[1]) << 16 | ((long) headerValue[2]) << 8 | ((long) headerValue[0]);
+        }
+        else if (!schemaPrefixIs4Bytes && headerValue.length == 8) {
+            schemaId = ((long) headerValue[0]) << 24 | ((long) headerValue[1]) << 16 | ((long) headerValue[2]) << 8 | ((long) headerValue[0]);
+        }
+        else {
+            throw new RuntimeException("Header with key `" + headerKey + "` had a length of " + headerValue.length + " bytes, which can't be interpreted as a schema id");
+        }
+        return schemaId;
+    }
+
+    private static Optional<byte[]> firstHeaderWithKey(Header[] headers, String headerKey) {
         for (var header : headers) {
             if (header.key().equals(headerKey)) {
-                var headerValue = header.value();
-                if (schemaPrefixIs4Bytes) {
-                    if (headerValue.length == 4) {
-                        schemaId = ((long) headerValue[0]) << 24 | ((long) headerValue[1]) << 16 | ((long) headerValue[2]) << 8 | ((long) headerValue[0]);
-                    }
-                    else if (headerValue.length == 8) {
-                        schemaId = ((long) headerValue[0]) << 24 | ((long) headerValue[1]) << 16 | ((long) headerValue[2]) << 8 | ((long) headerValue[0]);
-                    }
-                    else {
-                        throw new IOException("Header with key `" + headerKey + "` had a length of " + headerValue.length + "bytes, which can't be interpreted as a schema id");
-                    }
-                    return fn.apply(schemaId);
-                }
+                return Optional.of(header.value());
             }
         }
-        return new NoSchema();
+        return Optional.empty();
     }
 }

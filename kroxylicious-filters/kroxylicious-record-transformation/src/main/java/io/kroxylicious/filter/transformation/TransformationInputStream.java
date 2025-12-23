@@ -9,15 +9,18 @@ package io.kroxylicious.filter.transformation;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class TransformationInputStream extends InputStream {
-    protected final ByteBuffer byteBuffer;
-    private int mark;
-    private int readlimit;
+    private final ByteBuffer byteBuffer;
+    private int mark = -1;
+    private int readlimit = -1;
 
-    TransformationInputStream(ByteBuffer buf) {
-        byteBuffer = buf;
+    public TransformationInputStream(ByteBuffer buf) {
+        byteBuffer = buf.duplicate();
+        byteBuffer.order(ByteOrder.BIG_ENDIAN);
     }
 
     @Override
@@ -65,6 +68,13 @@ public class TransformationInputStream extends InputStream {
         return len;
     }
 
+    /**
+     * Reads the next byte of data from the input stream.
+     * If no byte is available because the end of the stream has been reached,
+     * EOFException is thrown.
+     * @return the next byte of data
+     * @throws IOException
+     */
     public byte readByte() throws IOException {
         var b = read();
         if (b == -1) {
@@ -75,6 +85,13 @@ public class TransformationInputStream extends InputStream {
         }
     }
 
+    /**
+     * Reads the next 32-bit integer of data from the input stream assuming big endian byte order.
+     * If no int is available because the end of the stream has been, or would be, reached
+     * EOFException is thrown.
+     * @return the next int of data
+     * @throws IOException
+     */
     public int readInt() throws IOException {
         if (this.byteBuffer.remaining() < 4) {
             throw new EOFException();
@@ -82,11 +99,23 @@ public class TransformationInputStream extends InputStream {
         return this.byteBuffer.getInt();
     }
 
+    /**
+     * Reads the next 64-bit long of data from the input stream assuming big endian byte order.
+     * If no long is available because the end of the stream has been, or would be, reached
+     * EOFException is thrown.
+     * @return the next long of data
+     * @throws IOException
+     */
     public long readLong() throws IOException {
         if (this.byteBuffer.remaining() < 8) {
             throw new EOFException();
         }
         return this.byteBuffer.getLong();
+    }
+
+    @Override
+    public long transferTo(OutputStream out) throws IOException {
+        return super.transferTo(out);
     }
 
     /**

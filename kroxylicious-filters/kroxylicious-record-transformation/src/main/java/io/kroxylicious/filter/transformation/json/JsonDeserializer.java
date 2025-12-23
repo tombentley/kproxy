@@ -26,7 +26,7 @@ public class JsonDeserializer implements
     @Override
     public Datum<JsonNode> deserialize(Header[] headers, TransformationInputStream in) throws IOException {
         var source = MAPPER.readTree(in);
-        return new Datum<>(new NoSchema(), JsonNode.class, source);
+        return new Datum<>(NoSchema.INSTANCE, JsonNode.class, source);
     }
 
     @Override

@@ -17,7 +17,7 @@ public class TransformationOutputStream extends OutputStream {
     private boolean writable = true;
     private ByteBuffer byteBuffer;
 
-    TransformationOutputStream(int initialCapacity) {
+    public TransformationOutputStream(int initialCapacity) {
         this(ByteBuffer.allocate(initialCapacity));
     }
 
@@ -31,6 +31,12 @@ public class TransformationOutputStream extends OutputStream {
         byteBuffer = newBuffer;
     }
 
+    private void ensureCapacity(int numBytes) {
+        if (byteBuffer.remaining() < numBytes) {
+            realloc((int) (GROWTH_FACTOR * (byteBuffer.capacity() + numBytes)));
+        }
+    }
+
     private void checkWritable() throws IOException {
         if (!writable) {
             throw new IOException("stream is no longer writable");
@@ -40,29 +46,28 @@ public class TransformationOutputStream extends OutputStream {
     @Override
     public void write(int b) throws IOException {
         checkWritable();
-        if (!byteBuffer.hasRemaining()) {
-            realloc((int) (GROWTH_FACTOR * (byteBuffer.capacity() + 1)));
-        }
+        ensureCapacity(1);
         byteBuffer.put((byte) b);
     }
     
     @Override
     public void write(byte[] bytes, int off, int len) throws IOException {
         checkWritable();
-        if (byteBuffer.remaining() < len) {
-            realloc((int) (GROWTH_FACTOR * (byteBuffer.capacity() + len)));
-        }
+        ensureCapacity(len);
         byteBuffer.put(bytes, off, len);
     }
 
     @Override
     public void close() throws IOException {
+        if (writable) {
+            byteBuffer = byteBuffer.asReadOnlyBuffer().flip();
+        }
         writable = false;
-        byteBuffer = byteBuffer.asReadOnlyBuffer();
     }
 
     public void write(ByteBuffer byteBuffer) throws IOException {
         checkWritable();
+        ensureCapacity(byteBuffer.remaining());
         this.byteBuffer.put(byteBuffer);
     }
 
@@ -72,17 +77,19 @@ public class TransformationOutputStream extends OutputStream {
 
     public ByteBuffer toByteBuffer() throws IOException {
         close();
-        return byteBuffer.flip();
+        return byteBuffer.duplicate();
     }
 
-    public void writeInt(int schemaId) throws IOException {
+    public void writeInt(int value) throws IOException {
         checkWritable();
-        byteBuffer.putInt(schemaId);
+        ensureCapacity(4);
+        byteBuffer.putInt(value);
     }
 
-    public void writeLong(long schemaId) throws IOException {
+    public void writeLong(long value) throws IOException {
         checkWritable();
-        byteBuffer.putLong(schemaId);
+        ensureCapacity(8);
+        byteBuffer.putLong(value);
     }
 }
 

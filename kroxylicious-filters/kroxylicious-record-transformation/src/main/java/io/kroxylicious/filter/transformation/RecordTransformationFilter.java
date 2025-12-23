@@ -8,6 +8,9 @@ package io.kroxylicious.filter.transformation;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -71,20 +74,7 @@ public class RecordTransformationFilter implements FetchResponseFilter {
                 .toMemoryRecords(byteBufferOutputStream, new VoidRecordTransform(recordTransformation));
     }
 
-    private static ByteBuffer applyBufferTransformation(int initialCapacity,
-                                                        Header[] headers,
-                                                        ByteBuffer srcBuffer,
-                                                        DatumTransformation datumTransformation) {
-        TransformationInputStream in = new TransformationInputStream(srcBuffer);
-        TransformationOutputStream out = new TransformationOutputStream(initialCapacity);
-        try {
-            datumTransformation.apply(headers, in, out);
-            return out.toByteBuffer();
-        }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
+
 
     @SuppressWarnings("java:S6213") // `record` is a perfectly acceptable identifier
     private static class VoidRecordTransform implements RecordTransform<Void> {
@@ -93,6 +83,17 @@ public class RecordTransformationFilter implements FetchResponseFilter {
         private Header[] transformedHeaders;
         private ByteBuffer transformedKey;
         private ByteBuffer transformedValue;
+        private static final VarHandle transformedKeyHandle;
+        private static final VarHandle transformedValueHandle;
+        static {
+            try {
+                transformedKeyHandle = MethodHandles.lookup().findVarHandle(VoidRecordTransform.class, "transformedKey", ByteBuffer.class);
+                transformedValueHandle = MethodHandles.lookup().findVarHandle(VoidRecordTransform.class, "transformedValue", ByteBuffer.class);
+            }
+            catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         VoidRecordTransform(RecordTransformation recordTransformation) {
             this.recordTransformation = recordTransformation;
@@ -105,7 +106,6 @@ public class RecordTransformationFilter implements FetchResponseFilter {
 
         @Override
         public void init(@Nullable Void state, Record record) {
-            this.transformedHeaders = recordTransformation.headerTransformation().transformHeaders(record.headers());
             this.transformedKey = applyBufferTransformation(2 * record.keySize(),
                     record.headers(),
                     record.key(),
@@ -114,6 +114,48 @@ public class RecordTransformationFilter implements FetchResponseFilter {
                     record.headers(),
                     record.value(),
                     recordTransformation.valueTransformation());
+            this.transformedHeaders = recordTransformation.headerTransformation().transformHeaders(record.headers());
+        }
+
+        private static ByteBuffer applyBufferTransformation(int initialCapacity,
+                                                            Header[] headers,
+                                                            ByteBuffer srcBuffer,
+                                                            DatumTransformation datumTransformation) {
+            TransformationInputStream in = new TransformationInputStream(srcBuffer);
+            TransformationOutputStream out = new TransformationOutputStream(initialCapacity);
+            try {
+                var datum = datumTransformation.deserializer().deserialize(headers, in);
+                var originalSchema = datum.schemaIdentifier();
+                var value = datum.datum();
+                var type = datum.type();
+                for (DatumMapper mapper : datumTransformation.mappers()) {
+                    value = mapper.transform(value);
+                    type = mapper.returnedType();
+                    if (!type.isInstance(value)) {
+                        throw new RuntimeException();
+                    }
+                }
+                // Idea is to split the serialization, so that there's a dedicated serializer for schema ids
+                // and a dedicated serializer for values
+                // Also split up the transformation of schemaIdentifiers as a preprocessing step
+                // So:
+                // 1. Transform the key -> Datum
+                // 1. Transform the value -> Datum
+                // Final transform on just the schema ids
+                // 1. Serialize the key schema id -> Headers?
+                // 3. Serialize the key -> prefix?
+                // 2. Serialize the value schema id -> Headers?
+                // 4. Serialize the value -> prefix?
+                // 5. Transform the headers
+                // 6. Combine the headers
+                //datum.schemaIdentifier()
+                var finalDatum = new Datum(null, type, value);
+                ((DatumSerializer) datumTransformation.serializer()).serialize(finalDatum, out);
+                return out.toByteBuffer();
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
         @Override

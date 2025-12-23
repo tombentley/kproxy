@@ -22,12 +22,10 @@ import io.kroxylicious.filter.transformation.SchemaTransformation;
 public class ApplyJsonPatch implements DatumMapper<JsonNode, JsonNode> {
 
     private final JsonNode patch;
-    private final SchemaTransformation schemaTransformation;
 
-    public ApplyJsonPatch(JsonNode patch,
-                          SchemaTransformation schemaTransformation) {
+    public ApplyJsonPatch(JsonNode patch) {
         this.patch = Objects.requireNonNull(patch);
-        this.schemaTransformation = schemaTransformation;
+        JsonPatch.validate(patch);
     }
 
     @Override
@@ -41,10 +39,9 @@ public class ApplyJsonPatch implements DatumMapper<JsonNode, JsonNode> {
     }
 
     @Override
-    public Datum<JsonNode> transform(Datum<JsonNode> datum) {
-        JsonNode target = JsonPatch.apply(patch, datum.datum());
-        SchemaIdentifier schemaIdentifier = schemaTransformation.schemaIdentifier(datum.schemaIdentifier());
-        return new Datum<>(schemaIdentifier, JsonNode.class, target);
-
+    public JsonNode transform(JsonNode value) {
+        JsonNode target = JsonPatch.apply(patch, value);
+        return target;
     }
+
 }

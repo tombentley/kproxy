@@ -6,7 +6,4 @@
 
 package io.kroxylicious.filter.transformation;
 
-public record NoSchema() implements SchemaIdentifier {
-    public static final NoSchema INSTANCE = new NoSchema();
-
-}
+public record Prefix(byte[] prefix) implements SchemaIdentifier{}
