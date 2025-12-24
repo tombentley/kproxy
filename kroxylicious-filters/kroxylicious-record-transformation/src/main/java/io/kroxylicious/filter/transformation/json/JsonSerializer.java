@@ -7,16 +7,15 @@
 package io.kroxylicious.filter.transformation.json;
 
 import java.io.IOException;
+import java.io.OutputStream;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.transformation.Datum;
-import io.kroxylicious.filter.transformation.DatumSerializer;
-import io.kroxylicious.filter.transformation.TransformationOutputStream;
+import io.kroxylicious.filter.transformation.api.format.Serializer;
 
 public class JsonSerializer implements
-        DatumSerializer<JsonNode> {
+        Serializer<JsonNode> {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -26,7 +25,7 @@ public class JsonSerializer implements
     }
 
     @Override
-    public void serialize(Datum<JsonNode> datum, TransformationOutputStream out) throws IOException {
-        MAPPER.writeValue(out, datum.datum());
+    public void serialize(JsonNode value, OutputStream out) throws IOException {
+        MAPPER.writeValue(out, value);
     }
 }

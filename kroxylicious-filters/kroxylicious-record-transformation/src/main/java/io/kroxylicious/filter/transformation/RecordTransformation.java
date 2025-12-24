@@ -6,6 +6,10 @@
 
 package io.kroxylicious.filter.transformation;
 
+import io.kroxylicious.filter.transformation.api.schema.identification.InputSchemaIdentification;
+import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaTransformation;
+
 /**
  * A collection of transformations to be applied to a record.
  * @param headerTransformation The transformation to apply to each record's headers.
@@ -13,7 +17,17 @@ package io.kroxylicious.filter.transformation;
  * @param valueTransformation The transformation to apply to each record's value.
  */
 public record RecordTransformation(
+
         HeadersTransformation headerTransformation,
-        DatumTransformation keyTransformation,
-        DatumTransformation valueTransformation) {
+
+        InputSchemaIdentification keyInputSchemaIdentification,
+        SchemaTransformation keySchemaTransformation,
+        OutputSchemaIdentification keyOutputschemaIdentification,
+        DataTransformation keyTransformation,
+
+        InputSchemaIdentification valueInputSchemaIdentification,
+        SchemaTransformation valueSchemaTransformation,
+        OutputSchemaIdentification valueOutputSchemaIdentification,
+        DataTransformation valueTransformation
+        ) {
 }

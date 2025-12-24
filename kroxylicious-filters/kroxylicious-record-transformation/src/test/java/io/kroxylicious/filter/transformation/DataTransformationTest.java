@@ -19,12 +19,16 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
+import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.api.format.Serializer;
+import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-class DatumTransformationTest {
+class DataTransformationTest {
 
     static List<Arguments> shouldCheckConstructorArguments() {
         return List.of(
@@ -62,13 +66,13 @@ class DatumTransformationTest {
     @MethodSource
     void shouldCheckConstructorArguments(Optional<String> expectedMessage, List<Class<?>> types) {
         // Given
-        var dd = mock(DatumDeserializer.class);
+        var dd = mock(Deserializer.class);
         Mockito.when(dd.returnedType()).thenReturn(types.get(0));
         expectedMessage = expectedMessage.map(s -> s.replace("DESER", dd.getClass().getName()));
 
-        List<DatumMapper<?, ?>> mappers = new ArrayList<>();
+        List<Mapper<?, ?>> mappers = new ArrayList<>();
         for (int i = 1; i < types.size() - 1; i+=2) {
-            var dm = mock(DatumMapper.class);
+            var dm = mock(Mapper.class);
             Mockito.when(dm.acceptedType()).thenReturn(types.get(i));
             Mockito.when(dm.returnedType()).thenReturn(types.get(i+1));
             mappers.add(dm);
@@ -76,44 +80,42 @@ class DatumTransformationTest {
             expectedMessage = expectedMessage.map(s -> s.replace(target, dm.getClass().getName()));
         }
 
-        var ds = mock(DatumSerializer.class);
+        var ds = mock(Serializer.class);
         Mockito.when(ds.acceptedType()).thenReturn(types.get(types.size() - 1));
         expectedMessage = expectedMessage.map(s -> s.replace("SER", ds.getClass().getName()));
 
         // When/Then
         if (expectedMessage.isPresent()) {
-            Assertions.assertThatThrownBy(() -> new DatumTransformation(dd, mappers, ds))
+            Assertions.assertThatThrownBy(() -> new DataTransformation(dd, mappers, ds))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
-            Assertions.assertThatCode(() -> new DatumTransformation(dd, mappers, ds)).doesNotThrowAnyException();
+            Assertions.assertThatCode(() -> new DataTransformation(dd, mappers, ds)).doesNotThrowAnyException();
         }
     }
 
     @Test
     void shouldApply() throws IOException {
         // Given
-        Datum<Integer> integerDatum = new Datum<>(NoSchema.INSTANCE, Integer.class, 1);
-        DatumDeserializer<Integer> dd = mock(DatumDeserializer.class);
+        Deserializer<Integer> dd = mock(Deserializer.class);
         Mockito.when(dd.returnedType()).thenReturn(Integer.class);
-        Mockito.when(dd.deserialize(any(), any())).thenReturn(integerDatum);
+        Mockito.when(dd.deserialize(any(), any())).thenReturn(1);
 
-
-        DatumMapper<Integer, Integer> dm = mock(DatumMapper.class);
+        Mapper<Integer, Integer> dm = mock(Mapper.class);
         Mockito.when(dm.acceptedType()).thenReturn(Integer.class);
         Mockito.when(dm.returnedType()).thenReturn(Integer.class);
         Mockito.when(dm.transform(1)).thenReturn(2);
 
-        DatumSerializer<Integer> ds = mock(DatumSerializer.class);
+        Serializer<Integer> ds = mock(Serializer.class);
         Mockito.when(ds.acceptedType()).thenReturn(Integer.class);
 
-        DatumTransformation dt = new DatumTransformation(dd, List.of(dm), ds);
+        DataTransformation dt = new DataTransformation(dd, List.of(dm), ds);
 
         // When
         dt.apply(new Header[0], null, null);
 
         // Then
-        verify(ds).serialize(eq(new Datum<>(NoSchema.INSTANCE, Integer.class, 2)), any());
+        verify(ds).serialize(eq(2), any());
     }
 }

@@ -7,26 +7,24 @@
 package io.kroxylicious.filter.transformation.json;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.kafka.common.header.Header;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.transformation.Datum;
-import io.kroxylicious.filter.transformation.DatumDeserializer;
-import io.kroxylicious.filter.transformation.NoSchema;
-import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.format.Deserializer;
 
 public class JsonDeserializer implements
-        DatumDeserializer<JsonNode> {
+        Deserializer<JsonNode> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
-    public Datum<JsonNode> deserialize(Header[] headers, TransformationInputStream in) throws IOException {
+    public JsonNode deserialize(Header[] headers, InputStream in) throws IOException {
         var source = MAPPER.readTree(in);
-        return new Datum<>(NoSchema.INSTANCE, JsonNode.class, source);
+        return source;
     }
 
     @Override

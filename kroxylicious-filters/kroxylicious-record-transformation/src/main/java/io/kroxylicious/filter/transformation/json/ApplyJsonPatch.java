@@ -11,15 +11,12 @@ import java.util.Objects;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonPatch;
 
-import io.kroxylicious.filter.transformation.Datum;
-import io.kroxylicious.filter.transformation.DatumMapper;
-import io.kroxylicious.filter.transformation.SchemaIdentifier;
-import io.kroxylicious.filter.transformation.SchemaTransformation;
+import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 
 /**
  * Apply a given <a href="https://datatracker.ietf.org/doc/html/rfc6902">RFC-6902 JSON Patch</a> to buffers containing data in JSON format.
  */
-public class ApplyJsonPatch implements DatumMapper<JsonNode, JsonNode> {
+public class ApplyJsonPatch implements Mapper<JsonNode, JsonNode> {
 
     private final JsonNode patch;
 

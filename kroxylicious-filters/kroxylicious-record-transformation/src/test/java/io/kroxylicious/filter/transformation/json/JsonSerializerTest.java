@@ -19,8 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.kroxylicious.filter.transformation.Datum;
-import io.kroxylicious.filter.transformation.NoSchema;
 import io.kroxylicious.filter.transformation.TransformationOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,11 +51,10 @@ class JsonSerializerTest {
     @MethodSource
     void shouldSerialize(JsonNode node, String expected) throws IOException {
         // Given
-        var datum = new Datum<>(NoSchema.INSTANCE, JsonNode.class, node);
         TransformationOutputStream output = new TransformationOutputStream(100);
 
         // When
-        jsonSerializer.serialize(datum, output);
+        jsonSerializer.serialize(node, output);
 
         // Then
         String string = StandardCharsets.UTF_8.newDecoder().decode(output.toByteBuffer()).toString();

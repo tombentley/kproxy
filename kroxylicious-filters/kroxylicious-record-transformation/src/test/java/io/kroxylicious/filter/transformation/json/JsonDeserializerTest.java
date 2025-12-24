@@ -54,8 +54,8 @@ public class JsonDeserializerTest {
     @MethodSource
     void shouldDeserialize(String json, Predicate<Object> assertion) throws IOException {
         TransformationInputStream in = new TransformationInputStream(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
-        var datum = jsonDeserializer.deserialize(new Header[0], in);
-        assertThat((Object) datum.datum()).matches(assertion);
+        var value = jsonDeserializer.deserialize(new Header[0], in);
+        assertThat((Object) value).matches(assertion);
 
     }
 }

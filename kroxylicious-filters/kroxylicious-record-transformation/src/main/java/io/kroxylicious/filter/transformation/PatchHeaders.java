@@ -51,8 +51,8 @@ class PatchHeaders implements HeadersTransformation {
         this.operations = operations;
     }
 
-    public Header[] transformHeaders(Header[] originalHeaders) {
-        Header[] currentHeaders = originalHeaders;
+    public List<Header> transformHeaders(List<Header> originalHeaders) {
+        List<Header> currentHeaders = originalHeaders;
         for (var operation : operations) {
             var result = new ArrayList<Header>();
             if (operation instanceof TestFirst) {
@@ -65,7 +65,7 @@ class PatchHeaders implements HeadersTransformation {
                 }
             }
             else if (operation instanceof AddLast addLast) {
-                result.addAll(Arrays.asList(currentHeaders));
+                result.addAll(currentHeaders);
                 result.add(new RecordHeader(addLast.key(), addLast.value()));
             }
             else if (operation instanceof RemoveFirst) {
@@ -116,7 +116,7 @@ class PatchHeaders implements HeadersTransformation {
                     }
                 }
             }
-            currentHeaders = result.toArray(new Header[0]);
+            currentHeaders = result;
         }
         return currentHeaders;
     }

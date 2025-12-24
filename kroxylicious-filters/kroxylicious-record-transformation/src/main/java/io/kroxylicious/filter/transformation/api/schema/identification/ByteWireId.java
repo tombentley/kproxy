@@ -4,6 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.api.schema.identification;
 
-public record ContentHash(byte[] hash) implements SchemaIdentifier {}
+public record ByteWireId(byte[] bytes) implements WireSchemaId {
+}

@@ -12,8 +12,12 @@ import java.util.Objects;
 
 import org.apache.kafka.common.header.Header;
 
+import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.api.format.Serializer;
+import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+
 /**
- * <p>A transformation pipeline for {@link Datum}s which start, and end, as byte sequences with associated schema metadata.</p>
+ * <p>A transformation pipeline for values which start, and end, as byte sequences with associated schema metadata.</p>
  *
  * <p>Deserialization yields a schema identifier, but mapping of datums do not preserve schemas.
  * This is an intentional design decision because it's often not possible to for a transformation developer to
@@ -37,19 +41,19 @@ import org.apache.kafka.common.header.Header;
  * @param mappers The mappers to sequentially apply
  * @param serializer The serializer
  */
-record DatumTransformation(
-        DatumDeserializer<?> deserializer,
-        List<DatumMapper<?, ?>> mappers,
-        DatumSerializer<?> serializer
+record DataTransformation(
+        Deserializer<?> deserializer,
+        List<Mapper<?, ?>> mappers,
+        Serializer<?> serializer
 ) {
-    DatumTransformation {
+    DataTransformation {
         Objects.requireNonNull(deserializer);
         Objects.requireNonNull(mappers);
         Objects.requireNonNull(serializer);
         var type = deserializer.returnedType();
         var typeSource = "the deserializer of type " + deserializer.getClass().getName();
         for (int i = 0; i < mappers.size(); i++) {
-            DatumMapper<?, ?> mapper = mappers.get(i);
+            Mapper<?, ?> mapper = mappers.get(i);
             if (!mapper.acceptedType().isAssignableFrom(type)) {
                 throw new IllegalArgumentException("The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
             }
@@ -64,11 +68,10 @@ record DatumTransformation(
     void apply(Header[] headers,
                TransformationInputStream in,
                TransformationOutputStream out) throws IOException {
-        var datum = deserializer.deserialize(headers, in);
-        var value = datum.datum();
-        for (DatumMapper mapper : mappers) {
+        var value = deserializer.deserialize(headers, in);
+        for (Mapper mapper : mappers) {
             value = mapper.transform(value);
         }
-        ((DatumSerializer) serializer).serialize(new Datum(NoSchema.INSTANCE, Object.class, value), out);
+        ((Serializer) serializer).serialize(value, out);
     }
 }

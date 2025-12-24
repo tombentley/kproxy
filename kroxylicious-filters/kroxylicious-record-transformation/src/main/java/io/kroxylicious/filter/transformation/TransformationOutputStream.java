@@ -80,6 +80,11 @@ public class TransformationOutputStream extends OutputStream {
         return byteBuffer.duplicate();
     }
 
+    public void reset() {
+        writable = true;
+        byteBuffer.reset();
+    }
+
     public void writeInt(int value) throws IOException {
         checkWritable();
         ensureCapacity(4);

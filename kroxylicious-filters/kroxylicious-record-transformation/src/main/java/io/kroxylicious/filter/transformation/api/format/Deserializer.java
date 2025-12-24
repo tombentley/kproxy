@@ -4,15 +4,16 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.api.format;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.kafka.common.header.Header;
 
-public interface DatumDeserializer<T> {
+public interface Deserializer<T> {
 
     Class<T> returnedType();
 
-    Datum<T> deserialize(Header[] headers, TransformationInputStream in) throws IOException;
+    T deserialize(Header[] headers, InputStream in) throws IOException;
 }

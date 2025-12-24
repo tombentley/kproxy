@@ -15,8 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.InvalidJsonPatchException;
 
-import io.kroxylicious.filter.transformation.Datum;
-import io.kroxylicious.filter.transformation.GlobalId;
+import io.kroxylicious.filter.transformation.ValueAndSchemaId;
+import io.kroxylicious.filter.transformation.api.schema.identification.GlobalId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -59,7 +59,7 @@ class ApplyJsonPatchTest {
     @Test
     void shouldApply() throws JsonProcessingException {
         // Given
-        var datum = new Datum<>(new GlobalId(1), JsonNode.class, OBJECT_MAPPER.getNodeFactory().objectNode());
+        var datum = new ValueAndSchemaId<>(new GlobalId(1), JsonNode.class, OBJECT_MAPPER.getNodeFactory().objectNode());
 
         // When
         var transformedNode = patcher.transform(datum.datum());

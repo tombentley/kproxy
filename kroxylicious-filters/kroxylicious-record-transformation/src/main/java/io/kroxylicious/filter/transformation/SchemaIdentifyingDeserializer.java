@@ -7,26 +7,27 @@
 package io.kroxylicious.filter.transformation;
 
 import java.io.IOException;
-import java.util.Optional;
-import java.util.function.BiFunction;
+import java.io.InputStream;
 
 import org.apache.kafka.common.header.Header;
 
+import io.kroxylicious.filter.transformation.api.format.Deserializer;
+
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
+public class SchemaIdentifyingDeserializer<T> implements Deserializer<T> {
 
     private final @Nullable String globalIdHeaderName;
     private final @Nullable String contentIdHeaderName;
     private final @Nullable String contentHashHeaderName;
     private final boolean schemaPrefixIs4Bytes;
-    private final DatumDeserializer<T> deserializer;
+    private final Deserializer<T> deserializer;
 
     public SchemaIdentifyingDeserializer(String contentHashHeaderName,
                                          String globalIdHeaderName,
                                          String contentIdHeaderName,
                                          Boolean schemaPrefixIs4Bytes,
-                                         DatumDeserializer<T> deserializer) {
+                                         Deserializer<T> deserializer) {
         this.contentHashHeaderName = contentHashHeaderName;
         this.globalIdHeaderName = globalIdHeaderName;
         this.contentIdHeaderName = contentIdHeaderName;
@@ -40,36 +41,35 @@ public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
     }
 
     @Override
-    public Datum<T> deserialize(Header[] headers, TransformationInputStream in) throws IOException {
-        SchemaIdentifier schemaIdentifier = schemaIdentifier(headers, in);
-        Datum<T> datum = deserializer.deserialize(headers, in);
-        return new Datum<>(schemaIdentifier, datum.type(), datum.datum());
+    public T deserialize(Header[] headers, InputStream in) throws IOException {
+        T value = deserializer.deserialize(headers, in);
+        return value;
+    }
+/*
+    private WireSchemaId schemaIdentifier(Header[] headers, TransformationInputStream in) throws IOException {
+        WireSchemaId wireSchemaId = NoSchema.INSTANCE;
+        wireSchemaId = fromPrefix(in, wireSchemaId);
+        if (wireSchemaId instanceof NoSchema && globalIdHeaderName != null) {
+            wireSchemaId = extracted(headers, globalIdHeaderName, parseLong().andThen(GlobalId::new));
+        }
+        if (wireSchemaId instanceof NoSchema && contentIdHeaderName != null) {
+            wireSchemaId = extracted(headers, contentIdHeaderName, parseLong().andThen(ContentId::new));
+        }
+        if (wireSchemaId instanceof NoSchema && contentHashHeaderName != null) {
+            wireSchemaId = extracted(headers, contentHashHeaderName, (x, y) -> new ContentHash(y));
+        }
+        return wireSchemaId;
     }
 
-    private SchemaIdentifier schemaIdentifier(Header[] headers, TransformationInputStream in) throws IOException {
-        SchemaIdentifier schemaIdentifier = NoSchema.INSTANCE;
-        schemaIdentifier = fromPrefix(in, schemaIdentifier);
-        if (schemaIdentifier instanceof NoSchema && globalIdHeaderName != null) {
-            schemaIdentifier = extracted(headers, globalIdHeaderName, parseLong().andThen(GlobalId::new));
-        }
-        if (schemaIdentifier instanceof NoSchema && contentIdHeaderName != null) {
-            schemaIdentifier = extracted(headers, contentIdHeaderName, parseLong().andThen(ContentId::new));
-        }
-        if (schemaIdentifier instanceof NoSchema && contentHashHeaderName != null) {
-            schemaIdentifier = extracted(headers, contentHashHeaderName, (x, y) -> new ContentHash(y));
-        }
-        return schemaIdentifier;
-    }
-
-    private SchemaIdentifier fromPrefix(TransformationInputStream in, SchemaIdentifier schemaIdentifier) throws IOException {
+    private WireSchemaId fromPrefix(TransformationInputStream in, WireSchemaId wireSchemaId) throws IOException {
         in.mark(schemaPrefixIs4Bytes ? 5 : 9);
         int maybeMagic = in.read();
         if (maybeMagic == 0x00) {
             if (schemaPrefixIs4Bytes && in.available() >= 4) {
-                schemaIdentifier = new Prefix(in.readNBytes(4));
+                wireSchemaId = new Prefix(in.readNBytes(4));
             }
             else if (!schemaPrefixIs4Bytes && in.available() >= 8) {
-                schemaIdentifier = new Prefix(in.readNBytes(8));
+                wireSchemaId = new Prefix(in.readNBytes(8));
             }
             else {
                 in.reset();
@@ -78,10 +78,10 @@ public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
         else {
             in.reset();
         }
-        return schemaIdentifier;
+        return wireSchemaId;
     }
 
-    private SchemaIdentifier extracted(Header[] headers, String headerKey, BiFunction<String, byte[], SchemaIdentifier> fn) {
+    private WireSchemaId extracted(Header[] headers, String headerKey, BiFunction<String, byte[], WireSchemaId> fn) {
         return firstHeaderWithKey(headers, headerKey)
                 .map(headerValue -> fn.apply(headerKey, headerValue))
                 .orElse(NoSchema.INSTANCE);
@@ -113,4 +113,5 @@ public class SchemaIdentifyingDeserializer<T> implements DatumDeserializer<T> {
         }
         return Optional.empty();
     }
+ */
 }

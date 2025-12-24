@@ -4,9 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.api.schema.identification;
 
-public record NoSchema() implements SchemaIdentifier {
+/**
+ * The absence of a schema identifier on the wire.
+ */
+public record NoSchema() implements WireSchemaId {
     public static final NoSchema INSTANCE = new NoSchema();
 
 }

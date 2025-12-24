@@ -6,11 +6,13 @@
 
 package io.kroxylicious.filter.transformation;
 
+import java.util.List;
+
 import org.apache.kafka.common.header.Header;
 
 public interface HeadersTransformation {
     HeadersTransformation IDENTITY = headers -> headers;
-    HeadersTransformation EMPTY = headers -> new Header[0];
+    HeadersTransformation EMPTY = headers -> List.of();
 
     static HeadersTransformation headers() {
         return IDENTITY;
@@ -20,6 +22,6 @@ public interface HeadersTransformation {
         return EMPTY;
     }
 
-    Header[] transformHeaders(Header[] headers);
+    List<Header> transformHeaders(List<Header> headers);
 }
 
