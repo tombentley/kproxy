@@ -23,6 +23,7 @@ import org.apache.kafka.common.record.RecordBatch;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -106,7 +107,7 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
                 .map(Header::key)
                 .collect(Collectors.toSet());
         var headers = removeHeadersWithKeys(
-                recordTransformation.headerTransformation().transformHeaders(List.of(record.headers())),
+                recordTransformation.headerTransformation().transform(List.of(record.headers())),
                 keysToRemove);
         headers.addAll(keySchemaHeaders);
         headers.addAll(valueSchemaHeaders);
@@ -131,7 +132,7 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
 
         // First obtain the schema id
         var originalSchemaId = dataLocation.inputSchemaIdentification(recordTransformation).schemaIdFromData(List.of(record.headers()), dataLocation, in);
-        var finalSchemaId = dataLocation.schemaTransformation(recordTransformation).schemaIdentifier(topicName, dataLocation, originalSchemaId);
+        var finalSchemaId = dataLocation.schemaTransformation(recordTransformation).schemaIdentifier(new SchemaIdTransformation.SchemaTransformationContext(topicName, dataLocation, originalSchemaId));
         var schemaIdentificationStrategy = dataLocation.outputSchemaIdentification(recordTransformation);
         var headers = schemaIdentificationStrategy.headers(finalSchemaId, dataLocation);
 

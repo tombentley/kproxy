@@ -14,6 +14,10 @@ import org.apache.kafka.common.header.Header;
 import io.kroxylicious.filter.transformation.RecordDataLocation;
 import io.kroxylicious.filter.transformation.TransformationInputStream;
 
-public interface InputSchemaIdentification {
-    WireSchemaId schemaIdFromData(List<Header> headers, RecordDataLocation site, TransformationInputStream data) throws IOException;
+/**
+ * How schemas are identified during deserialization
+ */
+public interface InputSchemaIdentification<S extends WireSchemaId> {
+    Class<S> returnedType();
+    S schemaIdFromData(List<Header> headers, RecordDataLocation site, TransformationInputStream data) throws IOException;
 }

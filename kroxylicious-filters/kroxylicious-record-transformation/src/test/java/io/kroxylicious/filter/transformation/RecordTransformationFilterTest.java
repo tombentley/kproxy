@@ -35,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 import io.kroxylicious.filter.transformation.api.schema.identification.ConfluentSchemaIdentificationStrategy;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaTransformation;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
 import io.kroxylicious.filter.transformation.format.bytes.BytesDeserializer;
 import io.kroxylicious.filter.transformation.format.bytes.BytesSerializer;
 import io.kroxylicious.filter.transformation.format.json.JsonDeserializer;
@@ -66,17 +66,17 @@ class RecordTransformationFilterTest {
             List<Mapper<?, ?>> keyMappers,
             List<Mapper<?, ?>> valueMappers) {
         return new RecordTransformation(
-                HeadersTransformation.IDENTITY,
+                Mapper.identityHeaders(),
 
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaTransformation.preserve(),
+                SchemaIdTransformation.preserve(),
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
                 JsonDeserializer.INSTANCE,
                 keyMappers,
                 JsonSerializer.INSTANCE,
 
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaTransformation.preserve(),
+                SchemaIdTransformation.preserve(),
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
                 JsonDeserializer.INSTANCE,
                 valueMappers,
@@ -88,17 +88,17 @@ class RecordTransformationFilterTest {
             List<Mapper<?, ?>> keyMappers,
             List<Mapper<?, ?>> valueMappers) {
         return new RecordTransformation(
-                HeadersTransformation.IDENTITY,
+                Mapper.identityHeaders(),
 
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaTransformation.preserve(),
+                SchemaIdTransformation.preserve(),
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
                 BytesDeserializer.INSTANCE,
                 keyMappers,
                 BytesSerializer.INSTANCE,
 
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaTransformation.preserve(),
+                SchemaIdTransformation.preserve(),
                 ConfluentSchemaIdentificationStrategy.INSTANCE,
                 BytesDeserializer.INSTANCE,
                 valueMappers,

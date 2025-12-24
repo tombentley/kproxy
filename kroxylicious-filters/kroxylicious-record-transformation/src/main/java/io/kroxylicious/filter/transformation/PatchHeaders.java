@@ -51,7 +51,7 @@ class PatchHeaders implements HeadersTransformation {
         this.operations = operations;
     }
 
-    public List<Header> transformHeaders(List<Header> originalHeaders) {
+    public List<Header> transform(List<Header> originalHeaders) {
         List<Header> currentHeaders = originalHeaders;
         for (var operation : operations) {
             var result = new ArrayList<Header>();

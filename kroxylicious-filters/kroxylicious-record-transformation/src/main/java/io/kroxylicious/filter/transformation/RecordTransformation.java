@@ -9,29 +9,33 @@ package io.kroxylicious.filter.transformation;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.kafka.common.header.Header;
+
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 import io.kroxylicious.filter.transformation.api.schema.identification.InputSchemaIdentification;
 import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaTransformation;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
 
 /**
  * A collection of transformations to be applied to a record.
  */
 public record RecordTransformation(
 
-        HeadersTransformation headerTransformation,
+        Mapper<List<Header>, List<Header>> headerTransformation,
+
+        // TODO factor out a schemaidpipeline and a datapipeline
 
         InputSchemaIdentification keyInputSchemaIdentification,
-        SchemaTransformation keySchemaTransformation,
+        SchemaIdTransformation keySchemaIdTransformation,
         OutputSchemaIdentification keyOutputschemaIdentification,
         Deserializer<?> keyDeserializer,
         List<Mapper<?, ?>> keyMappers,
         Serializer<?> keySerializer,
 
         InputSchemaIdentification valueInputSchemaIdentification,
-        SchemaTransformation valueSchemaTransformation,
+        SchemaIdTransformation valueSchemaIdTransformation,
         OutputSchemaIdentification valueOutputSchemaIdentification,
         Deserializer<?> valueDeserializer,
         List<Mapper<?, ?>> valueMappers,
@@ -61,5 +65,6 @@ public record RecordTransformation(
     public RecordTransformation {
         validatePipeline(keyDeserializer, keyMappers, keySerializer);
         validatePipeline(valueDeserializer, valueMappers, valueSerializer);
+        // TODO need to validate the schema pipeline in the same way
     }
 }

@@ -16,7 +16,7 @@ import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 import io.kroxylicious.filter.transformation.api.schema.identification.InputSchemaIdentification;
 import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaTransformation;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -30,7 +30,7 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
     Deserializer<?> deserializer(RecordTransformation transformation);
     Serializer<?> serializer(RecordTransformation transformation);
     List<Mapper<?, ?>> mappers(RecordTransformation transformation);
-    SchemaTransformation schemaTransformation(RecordTransformation transformation);
+    SchemaIdTransformation schemaTransformation(RecordTransformation transformation);
     InputSchemaIdentification inputSchemaIdentification(RecordTransformation transformation);
     OutputSchemaIdentification outputSchemaIdentification(RecordTransformation transformation);
 
@@ -59,8 +59,8 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public SchemaTransformation schemaTransformation(RecordTransformation transformation) {
-            return transformation.keySchemaTransformation();
+        public SchemaIdTransformation schemaTransformation(RecordTransformation transformation) {
+            return transformation.keySchemaIdTransformation();
         }
 
         @Override
@@ -99,8 +99,8 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public SchemaTransformation schemaTransformation(RecordTransformation transformation) {
-            return transformation.valueSchemaTransformation();
+        public SchemaIdTransformation schemaTransformation(RecordTransformation transformation) {
+            return transformation.valueSchemaIdTransformation();
         }
 
         @Override

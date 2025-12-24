@@ -12,7 +12,23 @@ import org.apache.kafka.common.header.Header;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
 
-public interface OutputSchemaIdentification {
-    byte[] prefix(WireSchemaId schemaId);
-    List<Header> headers(WireSchemaId schemaId, RecordDataLocation site);
+/**
+ * How schemas are identified during serialization.
+ */
+public interface OutputSchemaIdentification<W extends WireSchemaId> {
+
+    Class<W> acceptedType();
+
+    /**
+     * @param schemaId The wire schema id
+     * @return The bytes which should prefix the serialized data
+     */
+    byte[] prefix(W schemaId);
+
+    /**
+     * @param schemaId The wire schema id
+     * @param site The data being serialized
+     * @return The headers which should be added to the record.
+     */
+    List<Header> headers(W schemaId, RecordDataLocation site);
 }
