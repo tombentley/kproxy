@@ -13,7 +13,9 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
-import io.kroxylicious.filter.transformation.TransformationInputStream; /**
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+
+/**
  * The schema identification strategy used by Apicurio Schema Registry: a 9 byte prefix to the data.
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */

@@ -12,6 +12,8 @@ package io.kroxylicious.filter.transformation.api.schema.identification;
  */
 public class ConfluentSchemaIdentificationStrategy extends PrefixedDataIdentificationStrategy {
 
+    public static final ConfluentSchemaIdentificationStrategy INSTANCE = new ConfluentSchemaIdentificationStrategy();
+
     ConfluentSchemaIdentificationStrategy() {
         super(0x00, 5);
     }

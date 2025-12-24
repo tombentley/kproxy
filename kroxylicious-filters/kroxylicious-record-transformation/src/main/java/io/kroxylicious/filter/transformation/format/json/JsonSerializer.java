@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation.json;
+package io.kroxylicious.filter.transformation.format.json;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,6 +18,7 @@ public class JsonSerializer implements
         Serializer<JsonNode> {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
+    public static final JsonSerializer INSTANCE = new JsonSerializer();
 
     @Override
     public Class<JsonNode> acceptedType() {

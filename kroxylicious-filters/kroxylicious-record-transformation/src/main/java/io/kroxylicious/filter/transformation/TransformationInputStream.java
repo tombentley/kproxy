@@ -13,8 +13,14 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/**
+ * A {@link ByteBuffer}-backed InputStream
+ * with some optimizations for record transformation.
+ * The internal buffer will be reallocated and copied if the initial
+ * capacity proves undersized.
+ */
 public class TransformationInputStream extends InputStream {
-    private final ByteBuffer byteBuffer;
+    private ByteBuffer byteBuffer;
     private int mark = -1;
     private int readlimit = -1;
 
@@ -115,16 +121,25 @@ public class TransformationInputStream extends InputStream {
 
     @Override
     public long transferTo(OutputStream out) throws IOException {
-        return super.transferTo(out);
+        if (out instanceof TransformationOutputStream tout) {
+            // We can avoid some intermediate buffers used by super's impl
+            int remaining = byteBuffer.remaining();
+            tout.write(this.byteBuffer);
+            return remaining;
+        }
+        else {
+            return super.transferTo(out);
+        }
     }
 
     /**
      * Transfer the remaining bytes from this stream to the given stream.
      * @param outputStream The stream to tranfers this stream's bytes to.
      */
-    public void transferTo(TransformationOutputStream outputStream) throws IOException {
-        // TODO note that this does not override `public long transferTo(OutputStream out) throws IOException` but it should do
-        // TODO this is a copy. It would be nice if we could make make it take ownership
-        outputStream.write(this.byteBuffer);
+    public void offer(TransformationOutputStream outputStream) throws IOException {
+        // TODO this should not be public, but it needs to be accessible to ByteSerializer
+        if (outputStream.accept(this.byteBuffer)) {
+            this.byteBuffer = this.byteBuffer.asReadOnlyBuffer();
+        }
     }
 }

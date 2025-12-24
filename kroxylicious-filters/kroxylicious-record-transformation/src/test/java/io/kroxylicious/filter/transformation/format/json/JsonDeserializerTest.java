@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation.json;
+package io.kroxylicious.filter.transformation.format.json;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -54,7 +54,7 @@ public class JsonDeserializerTest {
     @MethodSource
     void shouldDeserialize(String json, Predicate<Object> assertion) throws IOException {
         TransformationInputStream in = new TransformationInputStream(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
-        var value = jsonDeserializer.deserialize(new Header[0], in);
+        var value = jsonDeserializer.deserialize(in);
         assertThat((Object) value).matches(assertion);
 
     }

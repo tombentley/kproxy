@@ -64,11 +64,23 @@ public class RecordAssert extends AbstractAssert<RecordAssert, Record> {
                 .describedAs(RECORD_KEY_DESCRIPTION);
     }
 
+    private AbstractByteArrayAssert<?> keyBytesAssert() {
+        isNotNull();
+        return Assertions.assertThat(RecordTestUtils.recordKeyAsBytes(actual))
+                .describedAs(RECORD_VALUE_DESCRIPTION);
+    }
+
     public RecordAssert hasKeyEqualTo(String expect) {
         isNotNull();
         Assertions.assertThat(actual).extracting(RecordTestUtils::recordKeyAsString)
                 .describedAs(RECORD_KEY_DESCRIPTION)
                 .isEqualTo(expect);
+        return this;
+    }
+
+    public RecordAssert hasKeyEqualTo(byte[] expect) {
+        isNotNull();
+        keyBytesAssert().isEqualTo(expect);
         return this;
     }
 

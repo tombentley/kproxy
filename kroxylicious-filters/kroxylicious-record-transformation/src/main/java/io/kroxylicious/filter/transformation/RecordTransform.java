@@ -9,6 +9,7 @@ package io.kroxylicious.filter.transformation;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -75,14 +76,14 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
         try {
 
             var keySchemaHeaders = applyBufferTransformation(
-                    KeyDataLocation.INSTANCE,
+                    RecordDataLocation.KeyDataLocation.INSTANCE,
                     record,
                     keyOut
             );
             this.transformedKey = keyOut.toByteBuffer();
 
             var valueSchemaHeaders = applyBufferTransformation(
-                    ValueDataLocation.INSTANCE,
+                    RecordDataLocation.ValueDataLocation.INSTANCE,
                     record,
                     valueOut
             );
@@ -112,15 +113,21 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
         return headers.toArray(new Header[0]);
     }
 
-    List<Header> removeHeadersWithKeys(List<Header> headers, Set<String> keys) {
-        return headers.stream().filter(header -> !keys.contains(header.key())).toList();
+    ArrayList<Header> removeHeadersWithKeys(List<Header> headers, Set<String> keys) {
+        return headers.stream().filter(header -> !keys.contains(header.key())).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private List<Header> applyBufferTransformation(RecordDataLocation dataLocation,
                                                    Record record,
                                                    TransformationOutputStream out) throws IOException {
 
-        TransformationInputStream in = new TransformationInputStream(dataLocation.buffer(record));
+        ByteBuffer buffer = dataLocation.buffer(record);
+        // TODO think about how we handle null buffers. null buffer != empty buffer != null value (e.g. json null) != empty value (e.g. json empty array).
+        //  There's nothing to deserialize so skip the deserialiser but pass null into the mapper chain?
+        //  Or skip the chain entirely?
+        //  If the chain can return null then we also need to handle that in serializers
+        //  Is this a reason to have a Datum wrapper so that null != Datum(null)
+        TransformationInputStream in = new TransformationInputStream(buffer != null ? buffer : ByteBuffer.wrap(new byte[0]));
 
         // First obtain the schema id
         var originalSchemaId = dataLocation.inputSchemaIdentification(recordTransformation).schemaIdFromData(List.of(record.headers()), dataLocation, in);
@@ -129,14 +136,13 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
         var headers = schemaIdentificationStrategy.headers(finalSchemaId, dataLocation);
 
         // Then execute the pipeline
-        DataTransformation dataTransformation1 = dataLocation.dataTransformation(recordTransformation);
-        Deserializer<?> deserializer = dataTransformation1.deserializer();
-        var value = deserializer.deserialize(record.headers(), in);
+        Deserializer<?> deserializer = dataLocation.deserializer(recordTransformation);
+        var value = deserializer.deserialize(in);
         var type = deserializer.returnedType();
         if (!type.isInstance(value)) {
             throw new RuntimeException();
         }
-        for (Mapper mapper : dataTransformation1.mappers()) {
+        for (Mapper mapper : dataLocation.mappers(recordTransformation)) {
             value = mapper.transform(value);
             type = mapper.returnedType();
             if (!type.isInstance(value)) {
@@ -145,7 +151,7 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
         }
 
         out.write(schemaIdentificationStrategy.prefix(finalSchemaId));
-        ((Serializer) dataTransformation1.serializer()).serialize(value, out);
+        ((Serializer) dataLocation.serializer(recordTransformation)).serialize(value, out);
 
         return headers;
     }

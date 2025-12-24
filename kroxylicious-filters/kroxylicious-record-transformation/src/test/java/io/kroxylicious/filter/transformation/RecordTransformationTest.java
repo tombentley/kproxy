@@ -6,14 +6,11 @@
 
 package io.kroxylicious.filter.transformation;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.kafka.common.header.Header;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,12 +20,9 @@ import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
-class DataTransformationTest {
+class RecordTransformationTest {
 
     static List<Arguments> shouldCheckConstructorArguments() {
         return List.of(
@@ -86,36 +80,13 @@ class DataTransformationTest {
 
         // When/Then
         if (expectedMessage.isPresent()) {
-            Assertions.assertThatThrownBy(() -> new DataTransformation(dd, mappers, ds))
+            Assertions.assertThatThrownBy(() -> RecordTransformation.validatePipeline(dd, mappers, ds))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
-            Assertions.assertThatCode(() -> new DataTransformation(dd, mappers, ds)).doesNotThrowAnyException();
+            Assertions.assertThatCode(() -> RecordTransformation.validatePipeline(dd, mappers, ds)).doesNotThrowAnyException();
         }
     }
 
-    @Test
-    void shouldApply() throws IOException {
-        // Given
-        Deserializer<Integer> dd = mock(Deserializer.class);
-        Mockito.when(dd.returnedType()).thenReturn(Integer.class);
-        Mockito.when(dd.deserialize(any(), any())).thenReturn(1);
-
-        Mapper<Integer, Integer> dm = mock(Mapper.class);
-        Mockito.when(dm.acceptedType()).thenReturn(Integer.class);
-        Mockito.when(dm.returnedType()).thenReturn(Integer.class);
-        Mockito.when(dm.transform(1)).thenReturn(2);
-
-        Serializer<Integer> ds = mock(Serializer.class);
-        Mockito.when(ds.acceptedType()).thenReturn(Integer.class);
-
-        DataTransformation dt = new DataTransformation(dd, List.of(dm), ds);
-
-        // When
-        dt.apply(new Header[0], null, null);
-
-        // Then
-        verify(ds).serialize(eq(2), any());
-    }
 }

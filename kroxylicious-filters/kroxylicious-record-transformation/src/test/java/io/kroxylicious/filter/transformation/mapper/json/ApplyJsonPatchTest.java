@@ -4,9 +4,8 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation.json;
+package io.kroxylicious.filter.transformation.mapper.json;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,25 +14,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.InvalidJsonPatchException;
 
-import io.kroxylicious.filter.transformation.ValueAndSchemaId;
-import io.kroxylicious.filter.transformation.api.schema.identification.GlobalId;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ApplyJsonPatchTest {
+public class ApplyJsonPatchTest {
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private ApplyJsonPatch patcher;
-
-    @BeforeEach
-    void setUp() throws JsonProcessingException {
-        patcher = new ApplyJsonPatch(
-                OBJECT_MAPPER.readTree("""
-                        [
-                        {"op":"add", "path":"/one", "value":1}
-                        ]"""));
+    public static final ApplyJsonPatch ADD_ONE;
+    static {
+        try {
+            ADD_ONE = new ApplyJsonPatch(
+                    OBJECT_MAPPER.readTree("""
+                            [
+                            {"op":"add", "path":"/one", "value":1}
+                            ]"""));
+        }
+        catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 
     @Test
     void shouldRejectInvalidPatch() throws JsonProcessingException {
@@ -48,21 +48,21 @@ class ApplyJsonPatchTest {
 
     @Test
     void shouldHaveJsonNodeAccetpedType() {
-        assertThat(patcher.acceptedType()).isEqualTo(JsonNode.class);
+        assertThat(ADD_ONE.acceptedType()).isEqualTo(JsonNode.class);
     }
 
     @Test
     void shouldHaveJsonNodeReturnType() {
-        assertThat(patcher.returnedType()).isEqualTo(JsonNode.class);
+        assertThat(ADD_ONE.returnedType()).isEqualTo(JsonNode.class);
     }
 
     @Test
-    void shouldApply() throws JsonProcessingException {
+    void shouldApply() {
         // Given
-        var datum = new ValueAndSchemaId<>(new GlobalId(1), JsonNode.class, OBJECT_MAPPER.getNodeFactory().objectNode());
+        ObjectNode node = OBJECT_MAPPER.getNodeFactory().objectNode();
 
         // When
-        var transformedNode = patcher.transform(datum.datum());
+        var transformedNode = ADD_ONE.transform(node);
 
         // Then
         assertThat(transformedNode.isObject()).isTrue();

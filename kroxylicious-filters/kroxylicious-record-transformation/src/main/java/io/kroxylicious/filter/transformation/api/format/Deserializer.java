@@ -9,11 +9,9 @@ package io.kroxylicious.filter.transformation.api.format;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.kafka.common.header.Header;
-
 public interface Deserializer<T> {
 
     Class<T> returnedType();
 
-    T deserialize(Header[] headers, InputStream in) throws IOException;
+    T deserialize(InputStream in) throws IOException;
 }
