@@ -26,6 +26,11 @@ public record RecordTransformation(
         Mapper<List<Header>, List<Header>> headerTransformation,
 
         // TODO factor out a schemaidpipeline and a datapipeline
+        // TODO then implement (once!) the identity transformations for these things
+        //  as a singleton, because we'd expect that it's quite common to, for example
+        //  have the identity data pipeline for keys or value, but not the other
+        //  And when the identity data pipeline is used then it would be common to use the
+        //  Identity schema pipeline too
 
         InputSchemaIdentification keyInputSchemaIdentification,
         SchemaIdTransformation keySchemaIdTransformation,

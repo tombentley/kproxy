@@ -69,7 +69,7 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
                                                            ByteBufferOutputStream byteBufferOutputStream,
                                                            RecordTransformation recordTransformation) {
         return RecordStream.ofRecords(records)
-                .toMemoryRecords(byteBufferOutputStream, new RecordTransform(topicName, recordTransformation));
+                .toMemoryRecords(byteBufferOutputStream, new RecordTransformer(topicName, recordTransformation));
     }
 
     @Override

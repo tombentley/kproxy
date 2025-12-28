@@ -31,7 +31,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * The thing that actually transforms records.
  */
 @SuppressWarnings("java:S6213") // `record` is a perfectly acceptable identifier
-class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform<Void> {
+class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransform<Void> {
 
     private final String topicName;
     private final RecordTransformation recordTransformation;
@@ -41,7 +41,7 @@ class RecordTransform implements io.kroxylicious.kafka.transform.RecordTransform
     private TransformationOutputStream keyOut;
     private TransformationOutputStream valueOut;
 
-    RecordTransform(String topicName, RecordTransformation recordTransformation) {
+    RecordTransformer(String topicName, RecordTransformation recordTransformation) {
         this.topicName = topicName;
         this.recordTransformation = recordTransformation;
     }

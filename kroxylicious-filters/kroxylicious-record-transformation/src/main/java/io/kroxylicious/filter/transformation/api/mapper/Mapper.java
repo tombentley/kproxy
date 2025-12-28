@@ -11,8 +11,6 @@ import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
-import io.kroxylicious.filter.transformation.HeadersTransformation;
-
 /**
  * <p>A typed, unary function for transformating values.</p>
  * @param <T> The parameter's Java type
@@ -20,6 +18,12 @@ import io.kroxylicious.filter.transformation.HeadersTransformation;
  */
 public interface Mapper<T, U> {
 
+    /**
+     * Returns an instance of the identity mapper for the given type
+     * @param type The Class of the type of this mapper
+     * @return The identity mapper for the given type.
+     * @param <T> The type of this mapper
+     */
     static <T> Mapper<T, T> identity(Class<T> type) {
         return new Mapper<>() {
             @Override
