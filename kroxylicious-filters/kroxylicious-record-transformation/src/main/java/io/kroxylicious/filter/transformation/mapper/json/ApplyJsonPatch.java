@@ -11,6 +11,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonPatch;
 
+import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 
 /**
@@ -36,7 +37,7 @@ public class ApplyJsonPatch implements Mapper<JsonNode, JsonNode> {
     }
 
     @Override
-    public JsonNode transform(JsonNode value) {
+    public JsonNode transform(JsonNode value, Context context) {
         JsonNode target = JsonPatch.apply(patch, value);
         return target;
     }

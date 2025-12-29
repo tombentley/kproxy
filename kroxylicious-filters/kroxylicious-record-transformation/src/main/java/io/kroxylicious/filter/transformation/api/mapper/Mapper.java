@@ -7,9 +7,6 @@
 package io.kroxylicious.filter.transformation.api.mapper;
 
 import java.io.IOException;
-import java.util.List;
-
-import org.apache.kafka.common.header.Header;
 
 /**
  * <p>A typed, unary function for transformating values.</p>
@@ -17,55 +14,6 @@ import org.apache.kafka.common.header.Header;
  * @param <U> The returned value's Java type
  */
 public interface Mapper<T, U> {
-
-    /**
-     * Returns an instance of the identity mapper for the given type
-     * @param type The Class of the type of this mapper
-     * @return The identity mapper for the given type.
-     * @param <T> The type of this mapper
-     */
-    static <T> Mapper<T, T> identity(Class<T> type) {
-        return new Mapper<>() {
-            @Override
-            public Class<T> acceptedType() {
-                return type;
-            }
-
-            @Override
-            public Class<T> returnedType() {
-                return type;
-            }
-
-            @Override
-            public T transform(T value) {
-                return value;
-            }
-        };
-    }
-
-    static Mapper<List<Header>, List<Header>> identityHeaders() {
-        return Mapper.<List<Header>>identity((Class) List.class);
-    }
-
-    static <T> Mapper<List<T>, List<T>> emptyList() {
-        return new Mapper<List<T>, List<T>>() {
-            @Override
-            public Class<List<T>> acceptedType() {
-                return (Class) List.class;
-            }
-
-            @Override
-            public Class<List<T>> returnedType() {
-                return (Class) List.class;
-            }
-
-            @Override
-            public List<T> transform(List<T> value) {
-                return List.of();
-            }
-        };
-    }
-
 
     /**
      * @return The class of the parameter's Java type
@@ -79,9 +27,10 @@ public interface Mapper<T, U> {
 
     /**
      * Applies the transformation to the given value.
+     *
      * @param value The value to be transformed.
+     * @param context
      * @return The transformed value.
-     * @throws IOException
      */
-    U transform(T value);
+    U transform(T value, Context context);
 }

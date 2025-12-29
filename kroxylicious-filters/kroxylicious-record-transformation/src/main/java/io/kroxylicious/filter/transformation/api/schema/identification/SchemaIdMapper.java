@@ -6,8 +6,12 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
-public record ApicurioSchemaCoordinates(
-        byte[] globalId,
-        String groupId,
-        String artifactId,
-        String version) implements WireSchemaId {}
+import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+
+public interface SchemaIdMapper<S extends WireSchemaId,
+        W extends WireSchemaId> extends Mapper<S, W> {
+
+
+}
+
+

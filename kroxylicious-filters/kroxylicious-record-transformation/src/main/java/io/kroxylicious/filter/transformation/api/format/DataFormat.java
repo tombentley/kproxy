@@ -6,14 +6,10 @@
 
 package io.kroxylicious.filter.transformation.api.format;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
 public interface DataFormat<T> {
 
     Class<T> type();
-    void serialize(T value, OutputStream out) throws IOException;
-    T deserialize(InputStream in) throws IOException;
+    Serializer<T> serializer();
+    Deserializer<T> deserializer();
     // validator validate(TransformationInputStream in)
 }

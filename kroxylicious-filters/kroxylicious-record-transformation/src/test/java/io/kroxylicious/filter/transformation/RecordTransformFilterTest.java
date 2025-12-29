@@ -34,8 +34,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
-import io.kroxylicious.filter.transformation.api.schema.identification.ConfluentSchemaIdentificationStrategy;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
+import io.kroxylicious.filter.transformation.api.mapper.Mappers;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdDeserializer;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaSerializer;
 import io.kroxylicious.filter.transformation.format.bytes.BytesDeserializer;
 import io.kroxylicious.filter.transformation.format.bytes.BytesSerializer;
 import io.kroxylicious.filter.transformation.format.json.JsonDeserializer;
@@ -52,7 +54,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RecordTransformationFilterTest {
+class RecordTransformFilterTest {
 
     @Mock
     FilterContext filterContext;
@@ -62,47 +64,45 @@ class RecordTransformationFilterTest {
 
 
     @NonNull
-    private static RecordTransformation jsonTransformation(
+    private static RecordTransform jsonTransformation(
             List<Mapper<?, ?>> keyMappers,
             List<Mapper<?, ?>> valueMappers) {
-        return new RecordTransformation(
-                Mapper.identityHeaders(),
+        return new RecordTransform(
+                Mappers.identityHeaders(),
 
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaIdTransformation.preserve(),
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                JsonDeserializer.INSTANCE,
-                keyMappers,
-                JsonSerializer.INSTANCE,
+                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
+                        Mappers.preserve(NoSchema.class),
+                        NoSchemaSerializer.INSTANCE),
+                new DataTransform(JsonDeserializer.INSTANCE,
+                        keyMappers,
+                        JsonSerializer.INSTANCE),
 
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaIdTransformation.preserve(),
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                JsonDeserializer.INSTANCE,
-                valueMappers,
-                JsonSerializer.INSTANCE);
+                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
+                        Mappers.preserve(NoSchema.class),
+                        NoSchemaSerializer.INSTANCE),
+                new DataTransform(JsonDeserializer.INSTANCE,
+                        valueMappers,
+                        JsonSerializer.INSTANCE));
     }
 
     @NonNull
-    private static RecordTransformation bytesTransformation(
+    private static RecordTransform bytesTransformation(
             List<Mapper<?, ?>> keyMappers,
             List<Mapper<?, ?>> valueMappers) {
-        return new RecordTransformation(
-                Mapper.identityHeaders(),
-
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaIdTransformation.preserve(),
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                BytesDeserializer.INSTANCE,
-                keyMappers,
-                BytesSerializer.INSTANCE,
-
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                SchemaIdTransformation.preserve(),
-                ConfluentSchemaIdentificationStrategy.INSTANCE,
-                BytesDeserializer.INSTANCE,
-                valueMappers,
-                BytesSerializer.INSTANCE);
+        return new RecordTransform(
+                Mappers.identityHeaders(),
+                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
+                        Mappers.preserve(NoSchema.class),
+                        NoSchemaSerializer.INSTANCE),
+                new DataTransform(BytesDeserializer.INSTANCE,
+                        keyMappers,
+                        BytesSerializer.INSTANCE),
+                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
+                        Mappers.preserve(NoSchema.class),
+                        NoSchemaSerializer.INSTANCE),
+                new DataTransform(BytesDeserializer.INSTANCE,
+                        valueMappers,
+                        BytesSerializer.INSTANCE));
     }
 
     @NonNull

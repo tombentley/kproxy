@@ -27,9 +27,9 @@ import io.kroxylicious.proxy.filter.ResponseFilterResult;
 public class RecordTransformationFilter implements ApiVersionsResponseFilter, FetchResponseFilter {
 
     public static final short LATEST_FETCH_API_VERSION_USING_TOPIC_NAMES = (short) 12;
-    Map<String, RecordTransformation> transformations;
+    Map<String, RecordTransform> transformations;
 
-    public RecordTransformationFilter(Map<String, RecordTransformation> transformations) {
+    public RecordTransformationFilter(Map<String, RecordTransform> transformations) {
         this.transformations = transformations;
     }
 
@@ -67,9 +67,9 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
     private static MemoryRecords applyRecordTransformation(String topicName,
                                                            MemoryRecords records,
                                                            ByteBufferOutputStream byteBufferOutputStream,
-                                                           RecordTransformation recordTransformation) {
+                                                           RecordTransform recordTransform) {
         return RecordStream.ofRecords(records)
-                .toMemoryRecords(byteBufferOutputStream, new RecordTransformer(topicName, recordTransformation));
+                .toMemoryRecords(byteBufferOutputStream, new RecordTransformer(topicName, recordTransform));
     }
 
     @Override

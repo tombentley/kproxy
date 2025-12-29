@@ -10,11 +10,11 @@ package io.kroxylicious.filter.transformation.api.schema.identification;
  * The schema identification strategy used by Confluent Schema Registry: a 5 byte prefix to the data.
  * The first byte is the zero ('magic') byte, followed by a 4 byte identifier.
  */
-public class ConfluentSchemaIdentificationStrategy extends PrefixedDataIdentificationStrategy {
+public class ConfluentSchemaIdDeserializer extends AbstractPrefixedSchemaIdDeserializer {
 
-    public static final ConfluentSchemaIdentificationStrategy INSTANCE = new ConfluentSchemaIdentificationStrategy();
+    public static final ConfluentSchemaIdDeserializer INSTANCE = new ConfluentSchemaIdDeserializer();
 
-    ConfluentSchemaIdentificationStrategy() {
+    ConfluentSchemaIdDeserializer() {
         super(0x00, 5);
     }
 }

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.mapper.headers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,11 +13,14 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
+import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+
 /**
  * Simple transformations on record headers, using a given <a href="https://datatracker.ietf.org/doc/html/rfc6902">JSON Patch</a>-style
  * sequence of operations.
  */
-class PatchHeaders implements HeadersTransformation {
+class PatchHeaders implements Mapper<List<Header>, List<Header>> {
 
     sealed interface HeaderOperation permits TestFirst, RemoveFirst, AddLast, ReplaceFirst, MoveFirst, CopyFirst {
         String key();
@@ -51,7 +54,18 @@ class PatchHeaders implements HeadersTransformation {
         this.operations = operations;
     }
 
-    public List<Header> transform(List<Header> originalHeaders) {
+    @Override
+    public Class<List<Header>> acceptedType() {
+        return (Class) List.class;
+    }
+
+    @Override
+    public Class<List<Header>> returnedType() {
+        return (Class) List.class;
+    }
+
+    @Override
+    public List<Header> transform(List<Header> originalHeaders, Context context) {
         List<Header> currentHeaders = originalHeaders;
         for (var operation : operations) {
             var result = new ArrayList<Header>();

@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Predicate;
 
-import org.apache.kafka.common.header.Header;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -22,7 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.kroxylicious.filter.transformation.RecordDataLocation;
 import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.mapper.Context;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,7 +55,7 @@ public class JsonDeserializerTest {
     @MethodSource
     void shouldDeserialize(String json, Predicate<Object> assertion) throws IOException {
         TransformationInputStream in = new TransformationInputStream(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
-        var value = jsonDeserializer.deserialize(in);
+        var value = jsonDeserializer.deserialize(in, new Context("test-topic", List.of(), RecordDataLocation.KeyDataLocation.INSTANCE));
         assertThat((Object) value).matches(assertion);
 
     }

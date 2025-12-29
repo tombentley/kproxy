@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.transformation.mapper.json;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,6 +15,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.InvalidJsonPatchException;
+
+import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.mapper.Context;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -62,7 +67,7 @@ public class ApplyJsonPatchTest {
         ObjectNode node = OBJECT_MAPPER.getNodeFactory().objectNode();
 
         // When
-        var transformedNode = ADD_ONE.transform(node);
+        var transformedNode = ADD_ONE.transform(node, new Context("", List.of(), RecordDataLocation.KeyDataLocation.INSTANCE));
 
         // Then
         assertThat(transformedNode.isObject()).isTrue();

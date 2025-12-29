@@ -11,13 +11,14 @@ import java.io.InputStream;
 
 import io.kroxylicious.filter.transformation.TransformationInputStream;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.api.mapper.Context;
 
 public class BytesDeserializer implements Deserializer<TransformationInputStream> {
 
     public static final BytesDeserializer INSTANCE = new BytesDeserializer();
 
     @Override
-    public TransformationInputStream deserialize(InputStream in) throws IOException {
+    public TransformationInputStream deserialize(InputStream in, Context context) throws IOException {
         return (TransformationInputStream) in;
     }
 

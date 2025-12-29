@@ -6,35 +6,20 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
-import io.kroxylicious.filter.transformation.TransformationInputStream;
 
 /**
  * The schema identification strategy used by Apicurio Schema Registry: a 9 byte prefix to the data.
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */
-public class ApicurioHeaderSchemaIdentificationStrategy
-        implements InputSchemaIdentification<ApicurioSchemaCoordinates>,
-        OutputSchemaIdentification<ByteWireId> {
+public class ApicurioHeaderSerializer
+        implements OutputSchemaIdentification<ByteWireId> {
 
-    @Override
-    public ApicurioSchemaCoordinates schemaIdFromData(List<Header> headers, RecordDataLocation site, TransformationInputStream data) throws IOException {
-        return headers.stream()
-                .filter(header -> header.key().equals("apicurio." + site + ".globalId"))
-                .findFirst()
-                .<WireSchemaId>map(header ->
-                        // TODO should validate that it's 4 bytes
-                        new ByteWireId(header.value())
-                )
-                .orElse(null);
-
-    }
 
     @Override
     public byte[] prefix(ByteWireId schemaId) {
@@ -48,11 +33,6 @@ public class ApicurioHeaderSchemaIdentificationStrategy
             return List.of(new RecordHeader("apicurio." + site + ".globalId", schemaId.bytes()));
         }
         return List.of();
-    }
-
-    @Override
-    public Class<ApicurioSchemaCoordinates> returnedType() {
-        return ApicurioSchemaCoordinates.class;
     }
 
     @Override

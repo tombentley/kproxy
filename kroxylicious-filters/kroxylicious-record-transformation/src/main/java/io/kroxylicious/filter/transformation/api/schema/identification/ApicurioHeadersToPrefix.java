@@ -6,7 +6,9 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
-public class ApicurioHeadersToPrefix implements SchemaIdTransformation<ApicurioSchemaCoordinates, ByteWireId> {
+import io.kroxylicious.filter.transformation.api.mapper.Context;
+
+public class ApicurioHeadersToPrefix implements SchemaIdMapper<ApicurioSchemaCoordinates, ByteWireId> {
 
     @Override
     public Class<ApicurioSchemaCoordinates> acceptedType() {
@@ -19,8 +21,8 @@ public class ApicurioHeadersToPrefix implements SchemaIdTransformation<ApicurioS
     }
 
     @Override
-    public ByteWireId schemaIdentifier(SchemaTransformationContext<ApicurioSchemaCoordinates> context) {
-        long l = context.wireSchemaId().globalId();
+    public ByteWireId transform(ApicurioSchemaCoordinates wireSchemaId, Context context) {
+        byte[] l = wireSchemaId.globalId();
         return new ByteWireId(l);
     }
 }

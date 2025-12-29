@@ -23,7 +23,9 @@ import org.apache.kafka.common.record.RecordBatch;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
+import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
+import io.kroxylicious.filter.transformation.api.schema.registry.SchemaRegistry;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -34,16 +36,16 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransform<Void> {
 
     private final String topicName;
-    private final RecordTransformation recordTransformation;
+    private final RecordTransform recordTransform;
     private Header[] transformedHeaders;
     private ByteBuffer transformedKey;
     private ByteBuffer transformedValue;
     private TransformationOutputStream keyOut;
     private TransformationOutputStream valueOut;
 
-    RecordTransformer(String topicName, RecordTransformation recordTransformation) {
+    RecordTransformer(String topicName, RecordTransform recordTransform) {
         this.topicName = topicName;
-        this.recordTransformation = recordTransformation;
+        this.recordTransform = recordTransform;
     }
 
     @Override
@@ -100,14 +102,15 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
     private Header[] transformedHeaders(org.apache.kafka.common.record.Record record,
                                         List<Header> keySchemaHeaders,
                                         List<Header> valueSchemaHeaders) {
-        // TODO detect conflicts.
+        // TODO detect header key conflicts.
         // TODO decide whether we remove schema headers before the headTransformation or afterwards
         //   if before then we can detect and give a good error if the user has added those headers
         var keysToRemove = Stream.concat(keySchemaHeaders.stream(), valueSchemaHeaders.stream())
                 .map(Header::key)
                 .collect(Collectors.toSet());
+        var context = new Context(this.topicName, List.of(record.headers()), null);
         var headers = removeHeadersWithKeys(
-                recordTransformation.headerTransformation().transform(List.of(record.headers())),
+                this.recordTransform.headerTransformation().transform(List.of(record.headers()), context),
                 keysToRemove);
         headers.addAll(keySchemaHeaders);
         headers.addAll(valueSchemaHeaders);
@@ -130,31 +133,46 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         //  Is this a reason to have a Datum wrapper so that null != Datum(null)
         TransformationInputStream in = new TransformationInputStream(buffer != null ? buffer : ByteBuffer.wrap(new byte[0]));
 
+        Context context = new Context(topicName, List.of(record.headers()), dataLocation);
+
         // First obtain the schema id
-        var originalSchemaId = dataLocation.inputSchemaIdentification(recordTransformation).schemaIdFromData(List.of(record.headers()), dataLocation, in);
-        var finalSchemaId = dataLocation.schemaTransformation(recordTransformation).schemaIdentifier(new SchemaIdTransformation.SchemaTransformationContext(topicName, dataLocation, originalSchemaId));
-        var schemaIdentificationStrategy = dataLocation.outputSchemaIdentification(recordTransformation);
-        var headers = schemaIdentificationStrategy.headers(finalSchemaId, dataLocation);
+        var originalSchemaId = dataLocation.inputSchemaIdentification(recordTransform)
+                .deserialize(in, context);
+        //extracted(originalSchemaId);
+
+        // Transform the schema id
+
+        var finalSchemaId = dataLocation.schemaTransformation(recordTransform)
+                .transform(originalSchemaId, context);
+        var schemaIdentificationStrategy = dataLocation.outputSchemaIdentification(recordTransform);
+        var schemaHeaders = schemaIdentificationStrategy.headers(finalSchemaId, dataLocation);
 
         // Then execute the pipeline
-        Deserializer<?> deserializer = dataLocation.deserializer(recordTransformation);
-        var value = deserializer.deserialize(in);
+        Deserializer<?> deserializer = dataLocation.deserializer(recordTransform);
+        var value = deserializer.deserialize(in, new Context("test-topic", List.of(), RecordDataLocation.KeyDataLocation.INSTANCE));
         var type = deserializer.returnedType();
         if (!type.isInstance(value)) {
             throw new RuntimeException();
         }
-        for (Mapper mapper : dataLocation.mappers(recordTransformation)) {
-            value = mapper.transform(value);
-            type = mapper.returnedType();
-            if (!type.isInstance(value)) {
-                throw new RuntimeException();
-            }
+        Mapper mapper = dataLocation.mappers(recordTransform);
+        value = mapper.transform(value, context);
+        type = mapper.returnedType();
+        if (!type.isInstance(value)) {
+            throw new RuntimeException();
         }
 
         out.write(schemaIdentificationStrategy.prefix(finalSchemaId));
-        ((Serializer) dataLocation.serializer(recordTransformation)).serialize(value, out);
+        ((Serializer) dataLocation.serializer(recordTransform)).serialize(value, out);
 
-        return headers;
+        return schemaHeaders;
+    }
+
+    private static Deserializer<?> extracted(WireSchemaId originalSchemaId) {
+        // TODO now, maybe we need to fetch the schema from a registry before we can deserialize it
+        //   (but only if we actually need to deserialize the data; i.e. this is not a schema id only transformation)
+        SchemaRegistry registry = null;
+        var df = registry.getSchema(originalSchemaId).toCompletableFuture().join();
+        return df.deserializer();
     }
 
     @Override

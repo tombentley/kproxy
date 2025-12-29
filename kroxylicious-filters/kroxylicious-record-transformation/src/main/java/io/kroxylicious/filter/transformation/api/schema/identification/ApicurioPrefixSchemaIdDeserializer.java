@@ -10,9 +10,9 @@ package io.kroxylicious.filter.transformation.api.schema.identification;
  * The schema identification strategy used by Apicurio Schema Registry: a 9 byte prefix to the data.
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */
-public class ApicurioPrefixSchemaIdentificationStrategy extends PrefixedDataIdentificationStrategy {
+public class ApicurioPrefixSchemaIdDeserializer extends AbstractPrefixedSchemaIdDeserializer {
 
-    ApicurioPrefixSchemaIdentificationStrategy() {
+    ApicurioPrefixSchemaIdDeserializer() {
         super(0x00, 9);
     }
 }

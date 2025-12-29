@@ -7,16 +7,15 @@
 package io.kroxylicious.filter.transformation;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.apache.kafka.common.record.Record;
 
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
-import io.kroxylicious.filter.transformation.api.schema.identification.InputSchemaIdentification;
+import io.kroxylicious.filter.transformation.api.mapper.Mappers;
 import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdTransformation;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -27,12 +26,12 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
 
     @Nullable ByteBuffer buffer(Record record);
 
-    Deserializer<?> deserializer(RecordTransformation transformation);
-    Serializer<?> serializer(RecordTransformation transformation);
-    List<Mapper<?, ?>> mappers(RecordTransformation transformation);
-    SchemaIdTransformation schemaTransformation(RecordTransformation transformation);
-    InputSchemaIdentification inputSchemaIdentification(RecordTransformation transformation);
-    OutputSchemaIdentification outputSchemaIdentification(RecordTransformation transformation);
+    Deserializer<?> deserializer(RecordTransform transformation);
+    Serializer<?> serializer(RecordTransform transformation);
+    Mapper<?, ?> mappers(RecordTransform transformation);
+    Mapper<WireSchemaId, WireSchemaId> schemaTransformation(RecordTransform transformation);
+    Deserializer<? extends WireSchemaId> inputSchemaIdentification(RecordTransform transformation);
+    OutputSchemaIdentification outputSchemaIdentification(RecordTransform transformation);
 
     record KeyDataLocation() implements RecordDataLocation {
 
@@ -44,33 +43,33 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public Deserializer<?> deserializer(RecordTransformation transformation) {
-            return transformation.keyDeserializer();
+        public Deserializer<?> deserializer(RecordTransform transformation) {
+            return transformation.keyTransform().deserializer();
         }
 
         @Override
-        public Serializer<?> serializer(RecordTransformation transformation) {
-            return transformation.keySerializer();
+        public Serializer<?> serializer(RecordTransform transformation) {
+            return transformation.keyTransform().serializer();
         }
 
         @Override
-        public List<Mapper<?, ?>> mappers(RecordTransformation transformation) {
-            return transformation.keyMappers();
+        public Mapper<?, ?> mappers(RecordTransform transformation) {
+            return transformation.keyTransform().mapperOpt().orElse(Mappers.identity(transformation.keyTransform().deserializer().returnedType()));
         }
 
         @Override
-        public SchemaIdTransformation schemaTransformation(RecordTransformation transformation) {
-            return transformation.keySchemaIdTransformation();
+        public Mapper schemaTransformation(RecordTransform transformation) {
+            return transformation.keySchemaIdTransform().schemaIdTransformation();
         }
 
         @Override
-        public InputSchemaIdentification inputSchemaIdentification(RecordTransformation transformation) {
-            return transformation.keyInputSchemaIdentification();
+        public Deserializer inputSchemaIdentification(RecordTransform transformation) {
+            return transformation.keySchemaIdTransform().inputSchemaIdentification();
         }
 
         @Override
-        public OutputSchemaIdentification outputSchemaIdentification(RecordTransformation transformation) {
-            return transformation.keyOutputschemaIdentification();
+        public OutputSchemaIdentification outputSchemaIdentification(RecordTransform transformation) {
+            return transformation.keySchemaIdTransform().outputschemaIdentification();
         }
     }
 
@@ -84,33 +83,33 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public Deserializer<?> deserializer(RecordTransformation transformation) {
-            return transformation.valueDeserializer();
+        public Deserializer<?> deserializer(RecordTransform transformation) {
+            return transformation.valueTransform().deserializer();
         }
 
         @Override
-        public Serializer<?> serializer(RecordTransformation transformation) {
-            return transformation.valueSerializer();
+        public Serializer<?> serializer(RecordTransform transformation) {
+            return transformation.valueTransform().serializer();
         }
 
         @Override
-        public List<Mapper<?, ?>> mappers(RecordTransformation transformation) {
-            return transformation.valueMappers();
+        public Mapper<?, ?> mappers(RecordTransform transformation) {
+            return transformation.valueTransform().mapperOpt().orElse(Mappers.identity(transformation.valueTransform().deserializer().returnedType()));
         }
 
         @Override
-        public SchemaIdTransformation schemaTransformation(RecordTransformation transformation) {
-            return transformation.valueSchemaIdTransformation();
+        public Mapper schemaTransformation(RecordTransform transformation) {
+            return transformation.valueSchemaIdTransform().schemaIdTransformation();
         }
 
         @Override
-        public InputSchemaIdentification inputSchemaIdentification(RecordTransformation transformation) {
-            return transformation.valueInputSchemaIdentification();
+        public Deserializer inputSchemaIdentification(RecordTransform transformation) {
+            return transformation.valueSchemaIdTransform().inputSchemaIdentification();
         }
 
         @Override
-        public OutputSchemaIdentification outputSchemaIdentification(RecordTransformation transformation) {
-            return transformation.valueOutputSchemaIdentification();
+        public OutputSchemaIdentification<?> outputSchemaIdentification(RecordTransform transformation) {
+            return transformation.valueSchemaIdTransform().outputschemaIdentification();
         }
     }
 }

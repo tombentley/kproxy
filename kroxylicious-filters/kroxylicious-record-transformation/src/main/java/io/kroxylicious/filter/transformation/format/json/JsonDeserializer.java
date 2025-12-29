@@ -9,12 +9,11 @@ package io.kroxylicious.filter.transformation.format.json;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.kafka.common.header.Header;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.api.mapper.Context;
 
 public class JsonDeserializer implements
         Deserializer<JsonNode> {
@@ -23,7 +22,7 @@ public class JsonDeserializer implements
     public static final JsonDeserializer INSTANCE = new JsonDeserializer();
 
     @Override
-    public JsonNode deserialize(InputStream in) throws IOException {
+    public JsonNode deserialize(InputStream in, Context context) throws IOException {
         var source = MAPPER.readTree(in);
         return source;
     }
