@@ -51,6 +51,7 @@ public class AvroDeserializer implements Deserializer<AvroValue> {
         }
 
         Object read = reader.read(null, decoder);
-        return new AvroValue(read);
+
+        return new AvroValue(reader.getSchema(), read);
     }
 }

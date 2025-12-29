@@ -137,7 +137,7 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         Context context = new Context(topicName, List.of(record.headers()), dataLocation);
 
         // First obtain the schema id
-        WireSchemaId originalSchemaId = dataLocation.schemaIdTransform(recordTransform).inputSchemaIdentification()
+        WireSchemaId originalSchemaId = dataLocation.schemaIdTransform(recordTransform).schemaIdDeserializer()
                 .deserialize(in, context);
         //extracted(originalSchemaId);
 

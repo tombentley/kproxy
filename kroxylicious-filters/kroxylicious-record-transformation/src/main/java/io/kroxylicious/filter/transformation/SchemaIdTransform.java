@@ -14,7 +14,7 @@ import io.kroxylicious.filter.transformation.api.schema.identification.OutputSch
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 public record SchemaIdTransform<S extends WireSchemaId, W extends WireSchemaId>(
-        Deserializer<S> inputSchemaIdentification,
+        Deserializer<S> schemaIdDeserializer,
         Mapper<S, W> schemaIdTransformation,
         OutputSchemaIdentification<W> outputschemaIdentification) {
 
@@ -31,7 +31,7 @@ public record SchemaIdTransform<S extends WireSchemaId, W extends WireSchemaId>(
     //   transform the data
 
     public SchemaIdTransform {
-        var deserializer = Objects.requireNonNull(inputSchemaIdentification);
+        var deserializer = Objects.requireNonNull(schemaIdDeserializer);
         var mapper = Objects.requireNonNull(schemaIdTransformation);
         var serializer = Objects.requireNonNull(outputschemaIdentification);
         Class<? extends WireSchemaId> type = deserializer.returnedType();

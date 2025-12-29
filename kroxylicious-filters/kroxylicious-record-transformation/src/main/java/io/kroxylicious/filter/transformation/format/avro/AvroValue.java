@@ -6,5 +6,7 @@
 
 package io.kroxylicious.filter.transformation.format.avro;
 
-public record AvroValue(Object value) {
+import org.apache.avro.Schema;
+
+public record AvroValue(Schema schema, Object value) {
 }

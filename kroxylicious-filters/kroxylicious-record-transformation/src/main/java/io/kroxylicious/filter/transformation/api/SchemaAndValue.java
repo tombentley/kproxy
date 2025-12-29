@@ -6,4 +6,7 @@
 
 package io.kroxylicious.filter.transformation.api;
 
-public record TypedValue<T, V>(T type, V value) { }
+public interface SchemaAndValue<S, V> {
+    S schema();
+    V value();
+}
