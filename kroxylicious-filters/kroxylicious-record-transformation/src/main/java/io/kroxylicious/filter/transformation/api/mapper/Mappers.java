@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
+import io.kroxylicious.filter.transformation.TypeException;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
@@ -53,7 +54,7 @@ public class Mappers {
         for (var mapper : mappers) {
             if (type != null
                     && !mapper.acceptedType().isAssignableFrom(type)) {
-                throw new IllegalArgumentException(
+                throw new TypeException(
                         "The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from the mapper of type " + prevMapper.getClass().getName()
                 );
             }

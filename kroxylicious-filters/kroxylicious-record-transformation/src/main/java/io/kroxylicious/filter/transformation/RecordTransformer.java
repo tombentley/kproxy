@@ -24,6 +24,7 @@ import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.mapper.Mappers;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.registry.SchemaRegistry;
 
@@ -79,14 +80,14 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         try {
 
             var keySchemaHeaders = applyBufferTransformation(
-                    RecordDataLocation.KeyDataLocation.INSTANCE,
+                    RecordDataLocation.KEY,
                     record,
                     keyOut
             );
             this.transformedKey = keyOut.toByteBuffer();
 
             var valueSchemaHeaders = applyBufferTransformation(
-                    RecordDataLocation.ValueDataLocation.INSTANCE,
+                    RecordDataLocation.VALUE,
                     record,
                     valueOut
             );
@@ -108,7 +109,7 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         var keysToRemove = Stream.concat(keySchemaHeaders.stream(), valueSchemaHeaders.stream())
                 .map(Header::key)
                 .collect(Collectors.toSet());
-        var context = new Context(this.topicName, List.of(record.headers()), null);
+        var context = new Context(this.topicName, List.of(record.headers()), null); // TODO there is no location here
         var headers = removeHeadersWithKeys(
                 this.recordTransform.headerTransformation().transform(List.of(record.headers()), context),
                 keysToRemove);
@@ -136,33 +137,36 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         Context context = new Context(topicName, List.of(record.headers()), dataLocation);
 
         // First obtain the schema id
-        var originalSchemaId = dataLocation.inputSchemaIdentification(recordTransform)
+        WireSchemaId originalSchemaId = dataLocation.schemaIdTransform(recordTransform).inputSchemaIdentification()
                 .deserialize(in, context);
         //extracted(originalSchemaId);
 
         // Transform the schema id
 
-        var finalSchemaId = dataLocation.schemaTransformation(recordTransform)
+        var finalSchemaId = dataLocation.schemaIdTransform(recordTransform).schemaIdTransformation()
                 .transform(originalSchemaId, context);
-        var schemaIdentificationStrategy = dataLocation.outputSchemaIdentification(recordTransform);
+        var schemaIdentificationStrategy = dataLocation.schemaIdTransform(recordTransform).outputschemaIdentification();
         var schemaHeaders = schemaIdentificationStrategy.headers(finalSchemaId, dataLocation);
 
         // Then execute the pipeline
-        Deserializer<?> deserializer = dataLocation.deserializer(recordTransform);
-        var value = deserializer.deserialize(in, new Context("test-topic", List.of(), RecordDataLocation.KeyDataLocation.INSTANCE));
+        Deserializer<?> deserializer = dataLocation.dataTransform(recordTransform).deserializer();
+        var value = deserializer.deserialize(in, new Context("test-topic", List.of(), RecordDataLocation.KEY));
         var type = deserializer.returnedType();
         if (!type.isInstance(value)) {
-            throw new RuntimeException();
+            throw new TypeException("value was of type " + value.getClass().getName() + " which is not an instance of type " + type.getName());
         }
-        Mapper mapper = dataLocation.mappers(recordTransform);
-        value = mapper.transform(value, context);
-        type = mapper.returnedType();
-        if (!type.isInstance(value)) {
-            throw new RuntimeException();
+        DataTransform dataTransform = dataLocation.dataTransform(recordTransform);
+        if (dataTransform.mapperOpt().isPresent()) {
+            Mapper mapper = dataTransform.mapperOpt().orElse(Mappers.identity(dataTransform.deserializer().returnedType()));
+            value = mapper.transform(value, context);
+            type = mapper.returnedType();
+            if (!type.isInstance(value)) {
+                throw new TypeException("value was of type " + value.getClass().getName() + " which is not an instance of type " + type.getName());
+            }
         }
 
         out.write(schemaIdentificationStrategy.prefix(finalSchemaId));
-        ((Serializer) dataLocation.serializer(recordTransform)).serialize(value, out);
+        ((Serializer) dataLocation.dataTransform(recordTransform).serializer()).serialize(value, out);
 
         return schemaHeaders;
     }

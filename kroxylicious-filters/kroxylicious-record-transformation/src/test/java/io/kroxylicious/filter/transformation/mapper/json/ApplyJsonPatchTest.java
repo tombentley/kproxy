@@ -67,7 +67,7 @@ public class ApplyJsonPatchTest {
         ObjectNode node = OBJECT_MAPPER.getNodeFactory().objectNode();
 
         // When
-        var transformedNode = ADD_ONE.transform(node, new Context("", List.of(), RecordDataLocation.KeyDataLocation.INSTANCE));
+        var transformedNode = ADD_ONE.transform(node, new Context("", List.of(), RecordDataLocation.KEY));
 
         // Then
         assertThat(transformedNode.isObject()).isTrue();

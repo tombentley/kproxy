@@ -11,6 +11,7 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 
 import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 /**
  * A collection of transformations to be applied to a record.
@@ -19,10 +20,10 @@ public record RecordTransform(
 
         Mapper<List<Header>, List<Header>> headerTransformation,
 
-        SchemaIdTransform<?, ?> keySchemaIdTransform,
+        SchemaIdTransform<WireSchemaId, WireSchemaId> keySchemaIdTransform,
         DataTransform keyTransform,
 
-        SchemaIdTransform<?, ?> valueSchemaIdTransform,
+        SchemaIdTransform<WireSchemaId, WireSchemaId> valueSchemaIdTransform,
         DataTransform valueTransform
         ) {
 

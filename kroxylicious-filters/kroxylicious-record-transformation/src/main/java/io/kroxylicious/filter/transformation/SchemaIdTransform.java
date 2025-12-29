@@ -38,13 +38,13 @@ public record SchemaIdTransform<S extends WireSchemaId, W extends WireSchemaId>(
         var typeSource = "the deserializer of type " + deserializer.getClass().getName();
 
         if (!mapper.acceptedType().isAssignableFrom(type)) {
-            throw new IllegalArgumentException("The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
+            throw new TypeException("The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
         }
         type = mapper.returnedType();
         typeSource = "the mapper of type " + mapper.getClass().getName();
 
         if (!serializer.acceptedType().isAssignableFrom(type)) {
-            throw new IllegalArgumentException("The serializer of type " + serializer.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
+            throw new TypeException("The serializer of type " + serializer.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
         }
     }
 }

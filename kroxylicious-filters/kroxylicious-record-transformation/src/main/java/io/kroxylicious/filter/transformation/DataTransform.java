@@ -44,7 +44,7 @@ public record DataTransform(
             var mapper = mapperOpt.get();
 
             if (!mapper.acceptedType().isAssignableFrom(type)) {
-                throw new IllegalArgumentException(
+                throw new TypeException(
                         "The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
             }
             type = mapper.returnedType();
@@ -52,7 +52,7 @@ public record DataTransform(
         }
 
         if (!serializer.acceptedType().isAssignableFrom(type)) {
-            throw new IllegalArgumentException("The serializer of type " + serializer.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
+            throw new TypeException("The serializer of type " + serializer.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from " + typeSource);
         }
     }
 }

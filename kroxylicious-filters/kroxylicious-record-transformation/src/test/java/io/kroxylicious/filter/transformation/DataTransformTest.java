@@ -81,7 +81,7 @@ class DataTransformTest {
         // When/Then
         if (expectedMessage.isPresent()) {
             Assertions.assertThatThrownBy(() -> new DataTransform(dd, mappers, ds))
-                    .isExactlyInstanceOf(IllegalArgumentException.class)
+                    .isExactlyInstanceOf(TypeException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
