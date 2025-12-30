@@ -6,16 +6,14 @@
 
 package io.kroxylicious.filter.transformation.api.schema.registry;
 
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.filter.transformation.api.format.DataFormat;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 public interface SchemaRegistry {
 
-    // TODO the registry is presumable returning some metadata about the type of schema returned
+    // TODO the registry is presumably returning some metadata about the type of schema returned
     //   the impl of this interface is best placed to interpret that and return a deserializer
-    CompletionStage<DataFormat<?>> getSchema(WireSchemaId wireSchemaId);
-    CompletionStage<WireSchemaId> lookup(Map<String, String> coordinates);
+    <W extends WireSchemaId> CompletionStage<ResolvedSchema> getSchema(W wireSchemaId);
+
 }

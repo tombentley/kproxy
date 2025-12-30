@@ -6,10 +6,13 @@
 
 package io.kroxylicious.filter.transformation.api.format;
 
-public interface DataFormat<T> {
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-    Class<T> type();
-    Serializer<T> serializer();
-    Deserializer<T> deserializer();
+public interface DataFormat<S, V> {
+
+    WireSchemaId schemaId();
+    Class<V> type();
+    Serializer<V> serializer();
+    Deserializer<S, V> deserializer();
     // validator validate(TransformationInputStream in)
 }

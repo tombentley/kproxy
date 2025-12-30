@@ -8,14 +8,15 @@ package io.kroxylicious.filter.transformation;
 
 import java.util.Objects;
 
-import io.kroxylicious.filter.transformation.api.format.Deserializer;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdDeserializer;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 public record SchemaIdTransform<S extends WireSchemaId, W extends WireSchemaId>(
-        Deserializer<S> schemaIdDeserializer,
-        Mapper<S, W> schemaIdTransformation,
+        SchemaIdDeserializer<S> schemaIdDeserializer,
+        TypeCheckable<S, W> schemaIdTransformation,
         OutputSchemaIdentification<W> outputschemaIdentification) {
 
     // TODO then implement the identity transformations for schema id.

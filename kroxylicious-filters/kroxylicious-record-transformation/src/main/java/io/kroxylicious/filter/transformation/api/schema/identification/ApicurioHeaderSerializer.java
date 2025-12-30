@@ -6,12 +6,16 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.Type;
+import io.kroxylicious.filter.transformation.api.TypeException;
 
 /**
  * The schema identification strategy used by Apicurio Schema Registry: a 9 byte prefix to the data.
@@ -22,12 +26,7 @@ public class ApicurioHeaderSerializer
 
 
     @Override
-    public byte[] prefix(ByteWireId schemaId) {
-        return new byte[0];
-    }
-
-    @Override
-    public List<Header> headers(ByteWireId schemaId, RecordDataLocation site) {
+    public List<Header> prefix(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException  {
         if (schemaId.bytes().length == 8) {
             // TODO this won't interoperate with the prefix strategy (e.g. headers to prefix transformations).
             return List.of(new RecordHeader("apicurio." + site + ".globalId", schemaId.bytes()));
@@ -36,7 +35,10 @@ public class ApicurioHeaderSerializer
     }
 
     @Override
-    public Class<ByteWireId> acceptedType() {
-        return ByteWireId.class;
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (type.wireSchemaId() != WireSchemaId.class) {
+            throw new TypeException("Not a WireSchemaId: " + type);
+        }
+        return null;
     }
 }

@@ -6,11 +6,7 @@
 
 package io.kroxylicious.filter.transformation;
 
-import java.util.List;
-
-import org.apache.kafka.common.header.Header;
-
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.HeaderMapping;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 /**
@@ -18,13 +14,13 @@ import io.kroxylicious.filter.transformation.api.schema.identification.WireSchem
  */
 public record RecordTransform(
 
-        Mapper<List<Header>, List<Header>> headerTransformation,
+        HeaderMapping headerTransformation,
 
         SchemaIdTransform<WireSchemaId, WireSchemaId> keySchemaIdTransform,
-        DataTransform keyTransform,
+        SchemalessDataTransform keyTransform,
 
         SchemaIdTransform<WireSchemaId, WireSchemaId> valueSchemaIdTransform,
-        DataTransform valueTransform
+        SchemalessDataTransform valueTransform
         ) {
 
 }

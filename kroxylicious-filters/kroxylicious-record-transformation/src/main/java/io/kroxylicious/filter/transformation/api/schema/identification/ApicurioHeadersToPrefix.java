@@ -6,23 +6,22 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
-import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
+import io.kroxylicious.filter.transformation.api.TypeException;
 
-public class ApicurioHeadersToPrefix implements SchemaIdMapper<ApicurioSchemaCoordinates, ByteWireId> {
+public class ApicurioHeadersToPrefix<S, T> implements SchemaIdMapping<S, T> {
 
     @Override
-    public Class<ApicurioSchemaCoordinates> acceptedType() {
-        return ApicurioSchemaCoordinates.class;
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (type.wireSchemaId() != ApicurioSchemaCoordinates.class) {
+            throw new TypeException("");
+        }
+        return new Type(ByteWireId.class, type.schema(), type.cls());
     }
 
-    @Override
-    public Class<ByteWireId> returnedType() {
-        return ByteWireId.class;
-    }
-
-    @Override
-    public ByteWireId transform(ApicurioSchemaCoordinates wireSchemaId, Context context) {
-        byte[] l = wireSchemaId.globalId();
-        return new ByteWireId(l);
+    public WireSchemaId transformSchemaId(SchemaAndValue<S, T> schemaAndValue) {
+        WireSchemaId byteWireId = new ByteWireId(((ApicurioSchemaCoordinates) schemaAndValue.schemaId()).globalId());
+        return byteWireId;
     }
 }

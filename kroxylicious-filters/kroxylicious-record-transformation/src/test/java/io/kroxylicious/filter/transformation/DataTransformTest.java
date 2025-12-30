@@ -16,9 +16,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
+import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 import static org.mockito.Mockito.mock;
 
@@ -64,9 +65,9 @@ class DataTransformTest {
         Mockito.when(dd.returnedType()).thenReturn(types.get(0));
         expectedMessage = expectedMessage.map(s -> s.replace("DESER", dd.getClass().getName()));
 
-        List<Mapper<?, ?>> mappers = new ArrayList<>();
+        List<TypeCheckable<?, ?>> mappers = new ArrayList<>();
         for (int i = 1; i < types.size() - 1; i+=2) {
-            var dm = mock(Mapper.class);
+            var dm = mock(TypeCheckable.class);
             Mockito.when(dm.acceptedType()).thenReturn(types.get(i));
             Mockito.when(dm.returnedType()).thenReturn(types.get(i+1));
             mappers.add(dm);
@@ -80,12 +81,12 @@ class DataTransformTest {
 
         // When/Then
         if (expectedMessage.isPresent()) {
-            Assertions.assertThatThrownBy(() -> new DataTransform(dd, mappers, ds))
+            Assertions.assertThatThrownBy(() -> new SchemalessDataTransform(dd, mappers, ds))
                     .isExactlyInstanceOf(TypeException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
-            Assertions.assertThatCode(() -> new DataTransform(dd, mappers, ds)).doesNotThrowAnyException();
+            Assertions.assertThatCode(() -> new SchemalessDataTransform(dd, mappers, ds)).doesNotThrowAnyException();
         }
     }
 

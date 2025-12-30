@@ -33,7 +33,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 import io.kroxylicious.filter.transformation.api.mapper.Mappers;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdDeserializer;
@@ -65,42 +65,42 @@ class RecordTransformFilterTest {
 
     @NonNull
     private static RecordTransform jsonTransformation(
-            List<Mapper<?, ?>> keyMappers,
-            List<Mapper<?, ?>> valueMappers) {
+            List<TypeCheckable<?, ?>> keyMappers,
+            List<TypeCheckable<?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
 
                 new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
                         Mappers.preserve(NoSchema.class),
                         NoSchemaSerializer.INSTANCE),
-                new DataTransform(JsonDeserializer.INSTANCE,
+                new SchemalessDataTransform(JsonDeserializer.INSTANCE,
                         keyMappers,
                         JsonSerializer.INSTANCE),
 
                 new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
                         Mappers.preserve(NoSchema.class),
                         NoSchemaSerializer.INSTANCE),
-                new DataTransform(JsonDeserializer.INSTANCE,
+                new SchemalessDataTransform(JsonDeserializer.INSTANCE,
                         valueMappers,
                         JsonSerializer.INSTANCE));
     }
 
     @NonNull
     private static RecordTransform bytesTransformation(
-            List<Mapper<?, ?>> keyMappers,
-            List<Mapper<?, ?>> valueMappers) {
+            List<TypeCheckable<?, ?>> keyMappers,
+            List<TypeCheckable<?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
                 new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
                         Mappers.preserve(NoSchema.class),
                         NoSchemaSerializer.INSTANCE),
-                new DataTransform(BytesDeserializer.INSTANCE,
+                new SchemalessDataTransform(BytesDeserializer.INSTANCE,
                         keyMappers,
                         BytesSerializer.INSTANCE),
                 new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
                         Mappers.preserve(NoSchema.class),
                         NoSchemaSerializer.INSTANCE),
-                new DataTransform(BytesDeserializer.INSTANCE,
+                new SchemalessDataTransform(BytesDeserializer.INSTANCE,
                         valueMappers,
                         BytesSerializer.INSTANCE));
     }

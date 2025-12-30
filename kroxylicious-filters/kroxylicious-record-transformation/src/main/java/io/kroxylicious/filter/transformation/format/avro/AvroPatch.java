@@ -4,25 +4,19 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation.mapper.avro;
+package io.kroxylicious.filter.transformation.format.avro;
 
+import org.apache.avro.Schema;
+
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
-import io.kroxylicious.filter.transformation.format.avro.AvroValue;
 
-public class AvroPatch implements Mapper<AvroValue, AvroValue> {
-    @Override
-    public Class<AvroValue> acceptedType() {
-        return AvroValue.class;
-    }
+public class AvroPatch implements AvroDataMapping {
+
+
 
     @Override
-    public Class<AvroValue> returnedType() {
-        return AvroValue.class;
-    }
-
-    @Override
-    public AvroValue transform(AvroValue value, Context context) {
+    public SchemaAndValue<Schema, Object> transform(SchemaAndValue<Schema, Object> schemaAndValue, Context context) {
         return null;
         /*
         Schema schema;

@@ -13,14 +13,16 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.HeaderMapping;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
  * Simple transformations on record headers, using a given <a href="https://datatracker.ietf.org/doc/html/rfc6902">JSON Patch</a>-style
  * sequence of operations.
  */
-class PatchHeaders implements Mapper<List<Header>, List<Header>> {
+class PatchHeaders implements HeaderMapping {
 
     sealed interface HeaderOperation permits TestFirst, RemoveFirst, AddLast, ReplaceFirst, MoveFirst, CopyFirst {
         String key();
@@ -54,17 +56,6 @@ class PatchHeaders implements Mapper<List<Header>, List<Header>> {
         this.operations = operations;
     }
 
-    @Override
-    public Class<List<Header>> acceptedType() {
-        return (Class) List.class;
-    }
-
-    @Override
-    public Class<List<Header>> returnedType() {
-        return (Class) List.class;
-    }
-
-    @Override
     public List<Header> transform(List<Header> originalHeaders, Context context) {
         List<Header> currentHeaders = originalHeaders;
         for (var operation : operations) {

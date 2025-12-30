@@ -15,32 +15,40 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 
 /**
  * A deserializer for Avro-serialized data.
  */
-public class AvroDeserializer implements Deserializer<AvroValue> {
+public class AvroBinaryDeserializer implements Deserializer<Schema, Object> {
 
     private final boolean binary;
     private final Schema schema;
     private final GenericDatumReader<Object> reader;
     private BinaryDecoder decoder;
 
-    public AvroDeserializer(Schema schema, boolean binary) {
+    @Override
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
+            throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
+        }
+        return new Type(NoSchema.class, Schema.class, Object.class);
+    }
+
+    public AvroBinaryDeserializer(Schema schema, boolean binary) {
         this.schema = schema;
         this.binary = binary;
         this.reader = new GenericDatumReader<>(schema);
     }
 
     @Override
-    public Class<AvroValue> returnedType() {
-        return AvroValue.class;
-    }
-
-    @Override
-    public AvroValue deserialize(InputStream in, Context context) throws IOException {
+    public SchemaAndValue<Schema, Object> deserialize(InputStream in, Context context) throws IOException {
         DecoderFactory decoderFactory = DecoderFactory.get();
         Decoder decoder;
         if (binary) {
@@ -52,6 +60,6 @@ public class AvroDeserializer implements Deserializer<AvroValue> {
 
         Object read = reader.read(null, decoder);
 
-        return new AvroValue(reader.getSchema(), read);
+        return new SchemaAndValue<>(reader.getSchema(), read);
     }
 }

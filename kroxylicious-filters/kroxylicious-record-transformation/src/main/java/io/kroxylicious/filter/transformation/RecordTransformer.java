@@ -7,11 +7,13 @@
 package io.kroxylicious.filter.transformation;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,13 +22,21 @@ import org.apache.kafka.common.record.CompressionType;
 import org.apache.kafka.common.record.Record;
 import org.apache.kafka.common.record.RecordBatch;
 
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.SchemaResolver;
+import io.kroxylicious.filter.transformation.api.Type;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.format.DataFormat;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
 import io.kroxylicious.filter.transformation.api.mapper.Mappers;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
+import io.kroxylicious.filter.transformation.api.schema.identification.OutputSchemaIdentification;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdDeserializer;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
-import io.kroxylicious.filter.transformation.api.schema.registry.SchemaRegistry;
+import io.kroxylicious.filter.transformation.format.json.JsonFormat;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -135,14 +145,54 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         TransformationInputStream in = new TransformationInputStream(buffer != null ? buffer : ByteBuffer.wrap(new byte[0]));
 
         Context context = new Context(topicName, List.of(record.headers()), dataLocation);
+        {
+            SchemaIdDeserializer<?> schemaIdDeserializer = null;
+            SchemaResolver schemaResolver = null;
+            DataFormat<?, ?> df;
+            DataMapping<?, ?, ?, ?> dataMapping = null;
+
+            OutputSchemaIdentification<WireSchemaId> outputSchemaIdentification = null;
+
+            SchemaAndValue<?, ?> deserialized;
+
+            Type<?, ?, ?> type = Type.fromBytes();
+            { // schema-based deserialization
+                type = schemaIdDeserializer.typeCheck(type);
+                type = schemaResolver.typeCheck(type);
+
+
+                SchemaAndValue<? extends WireSchemaId, InputStream> schemaTaggedStream = schemaIdDeserializer.transform(in, context);
+                CompletionStage<DataFormat<?, ?>> transform1 = schemaResolver.transform(schemaTaggedStream.schema(), context);
+                df = transform1.toCompletableFuture().join();
+                Deserializer<?, ?> deserializer = df.deserializer();
+
+                InputStream value = schemaTaggedStream.value();
+                type = deserializer.typeCheck(Type.fromBytes());
+
+                deserialized = deserializer.transform(value, context);
+            }
+            { // schema-less deserialization
+                df = new JsonFormat();
+                deserialized = df.deserializer().transform(in, context);
+            }
+            type = dataMapping.typeCheck(type);
+
+            Serializer<?> serializer = df.serializer();
+
+            serializer.accepts(type);
+
+            SchemaAndValue<?, ?> mapped = dataMapping.transform((SchemaAndValue) deserialized, context);
+            var schemaHeaders = outputSchemaIdentification.headers(mapped.schema(), dataLocation);
+            serializer.serialize(mapped.value(), out);
+
+        }
 
         // First obtain the schema id
-        WireSchemaId originalSchemaId = dataLocation.schemaIdTransform(recordTransform).schemaIdDeserializer()
-                .deserialize(in, context);
-        //extracted(originalSchemaId);
+        WireSchemaId originalSchemaId = dataLocation.schemaIdTransform(recordTransform)
+                .schemaIdDeserializer()
+                .deserialize(in, context).schema();
 
         // Transform the schema id
-
         var finalSchemaId = dataLocation.schemaIdTransform(recordTransform).schemaIdTransformation()
                 .transform(originalSchemaId, context);
         var schemaIdentificationStrategy = dataLocation.schemaIdTransform(recordTransform).outputschemaIdentification();
@@ -155,9 +205,9 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
         if (!type.isInstance(value)) {
             throw new TypeException("value was of type " + value.getClass().getName() + " which is not an instance of type " + type.getName());
         }
-        DataTransform dataTransform = dataLocation.dataTransform(recordTransform);
+        SchemalessDataTransform dataTransform = dataLocation.dataTransform(recordTransform);
         if (dataTransform.mapperOpt().isPresent()) {
-            Mapper mapper = dataTransform.mapperOpt().orElse(Mappers.identity(dataTransform.deserializer().returnedType()));
+            TypeCheckable mapper = dataTransform.mapperOpt().orElse(Mappers.identity(dataTransform.deserializer().returnedType()));
             value = mapper.transform(value, context);
             type = mapper.returnedType();
             if (!type.isInstance(value)) {
@@ -165,18 +215,10 @@ class RecordTransformer implements io.kroxylicious.kafka.transform.RecordTransfo
             }
         }
 
-        out.write(schemaIdentificationStrategy.prefix(finalSchemaId));
+        schemaIdentificationStrategy.prefix(dataLocation, finalSchemaId, out);
         ((Serializer) dataLocation.dataTransform(recordTransform).serializer()).serialize(value, out);
 
         return schemaHeaders;
-    }
-
-    private static Deserializer<?> extracted(WireSchemaId originalSchemaId) {
-        // TODO now, maybe we need to fetch the schema from a registry before we can deserialize it
-        //   (but only if we actually need to deserialize the data; i.e. this is not a schema id only transformation)
-        SchemaRegistry registry = null;
-        var df = registry.getSchema(originalSchemaId).toCompletableFuture().join();
-        return df.deserializer();
     }
 
     @Override

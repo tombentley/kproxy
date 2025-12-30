@@ -6,29 +6,24 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
  * How schemas are identified during serialization.
  */
-public interface OutputSchemaIdentification<W extends WireSchemaId> {
-
-    Class<W> acceptedType();
+public interface OutputSchemaIdentification<W extends WireSchemaId> extends TypeCheckable {
 
     /**
      * @param schemaId The wire schema id
-     * @return The bytes which should prefix the serialized data
+     * @return Headers which might need to be added to the record
      */
-    byte[] prefix(W schemaId);
+    List<Header> prefix(RecordDataLocation site, W schemaId, OutputStream outputStream) throws IOException;
 
-    /**
-     * @param schemaId The wire schema id
-     * @param site The data being serialized
-     * @return The headers which should be added to the record.
-     */
-    List<Header> headers(W schemaId, RecordDataLocation site);
 }

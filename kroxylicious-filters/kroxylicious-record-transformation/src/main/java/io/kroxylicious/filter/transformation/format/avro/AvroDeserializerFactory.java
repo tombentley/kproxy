@@ -9,12 +9,12 @@ package io.kroxylicious.filter.transformation.format.avro;
 import org.apache.avro.Schema;
 
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
- * Maps from an Avro {@link Schema} to an {@link AvroDeserializer}
+ * Maps from an Avro {@link Schema} to an {@link AvroBinaryDeserializer}
  */
-public class AvroDeserializerFactory implements Mapper<Schema, AvroDeserializer> {
+public class AvroDeserializerFactory implements TypeCheckable<Schema, AvroBinaryDeserializer> {
 
     @Override
     public Class<Schema> acceptedType() {
@@ -22,12 +22,11 @@ public class AvroDeserializerFactory implements Mapper<Schema, AvroDeserializer>
     }
 
     @Override
-    public Class<AvroDeserializer> returnedType() {
-        return AvroDeserializer.class;
+    public Class<AvroBinaryDeserializer> returnedType() {
+        return AvroBinaryDeserializer.class;
     }
 
-    @Override
-    public AvroDeserializer transform(Schema schema, Context context) {
-        return new AvroDeserializer(schema, true);
+    public AvroBinaryDeserializer transform(Schema schema, Context context) {
+        return new AvroBinaryDeserializer(schema, true);
     }
 }

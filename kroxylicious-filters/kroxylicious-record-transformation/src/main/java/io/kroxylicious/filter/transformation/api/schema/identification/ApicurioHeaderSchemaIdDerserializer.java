@@ -11,7 +11,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.kafka.common.header.Header;
 
-import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 
 /**
@@ -19,10 +22,18 @@ import io.kroxylicious.filter.transformation.api.mapper.Context;
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */
 public class ApicurioHeaderSchemaIdDerserializer
-        implements Deserializer<ApicurioSchemaCoordinates> {
+        implements SchemaIdDeserializer<ApicurioSchemaCoordinates> {
 
     @Override
-    public ApicurioSchemaCoordinates deserialize(InputStream data, Context context) {
+    public Type<ApicurioSchemaCoordinates, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
+            throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
+        }
+        return new Type<>(ApicurioSchemaCoordinates.class, Void.class, TransformationInputStream.class);
+    }
+
+    @Override
+    public SchemaAndValue<Void, InputStream> deserialize(InputStream data, Context context) {
         byte[] globalId = null;
         String groupId = null;
         String artifactId = null;
@@ -52,11 +63,7 @@ public class ApicurioHeaderSchemaIdDerserializer
                 }
             }
         }
-        return new ApicurioSchemaCoordinates(globalId, groupId, artifactId, version);
+        return new SchemaAndValue<>(new ApicurioSchemaCoordinates(globalId, groupId, artifactId, version), null, data);
     }
 
-    @Override
-    public Class<ApicurioSchemaCoordinates> returnedType() {
-        return ApicurioSchemaCoordinates.class;
-    }
 }

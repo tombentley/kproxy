@@ -8,9 +8,8 @@ package io.kroxylicious.filter.transformation.api.mapper;
 
 import java.util.List;
 
-import org.apache.kafka.common.header.Header;
-
-import io.kroxylicious.filter.transformation.TypeException;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
@@ -18,158 +17,87 @@ public class Mappers {
     private Mappers() {
     }
 
-    static <S, T, U> Mapper<S, U> compose(Mapper<S, T> first, Mapper<T, U> andThen) {
-        if (!andThen.acceptedType().isAssignableFrom(first.returnedType())) {
-            throw new RuntimeException();
-        }
-        return new Mapper<>() {
+    static <W extends WireSchemaId, S, T> DataMapping<S, T, S, T> withSchemaId(W schemaId) {
+        return new DataMapping<>() {
             @Override
-            public Class<S> acceptedType() {
-                return first.acceptedType();
+            public SchemaAndValue<S, T> transform(SchemaAndValue<S, T> value, Context context) {
+                return new SchemaAndValue<>(schemaId, value.schema(), value.value());
             }
 
             @Override
-            public Class<U> returnedType() {
-                return andThen.returnedType();
+            public Type<W, ?, ?> typeCheck(Type<?, ?, ?> type) {
+                Class<W> aClass = (Class) schemaId.getClass();
+                return new Type<>(aClass, type.schema(), type.cls());
+            }
+        };
+    }
+
+    static <S, T> DataMapping<S, T, S, T> identity() {
+        return new DataMapping<>() {
+            @Override
+            public SchemaAndValue<S, T> transform(SchemaAndValue<S, T> value, Context context) {
+                return value;
             }
 
             @Override
-            public U transform(S value, Context context) {
+            public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+                return type;
+            }
+        };
+    }
+
+    static <S, T, U, V, W, X> DataMapping<S, T, W, X> compose(DataMapping<S, T, U, V> first, DataMapping<U, V, W, X> andThen) {
+        return new DataMapping<>() {
+
+            @Override
+            public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+                var intermediateType = first.typeCheck(type);
+                return andThen.typeCheck(intermediateType);
+            }
+
+            @Override
+            public SchemaAndValue<W, X> transform(SchemaAndValue<S, T> value, Context context) {
                 var intermediateResult = first.transform(value, context);
                 return andThen.transform(intermediateResult, context);
             }
         };
     }
 
-    public static Mapper<?, ?> compose(List<Mapper<?, ?>> mappers) {
+    public static DataMapping<?, ?, ?, ?> compose(List<DataMapping<?, ?, ?, ?>> mappers) {
         if (mappers.isEmpty()) {
-            throw new IllegalArgumentException();
+            return identity();
         }
         if (mappers.size() == 1) {
             return mappers.get(0);
         }
-
-        Class<?> type = null;
-        Mapper<?, ?> prevMapper = null;
-        for (var mapper : mappers) {
-            if (type != null
-                    && !mapper.acceptedType().isAssignableFrom(type)) {
-                throw new TypeException(
-                        "The mapper of type " + mapper.getClass().getName() + " cannot accept values of type " + type.getName() + " returned from the mapper of type " + prevMapper.getClass().getName()
-                );
+        DataMapping<?, ?, ?, ?> result = null;
+        for (DataMapping<?, ?, ?, ?> mapper : mappers) {
+            if (result == null) {
+                result = mapper;
             }
-            type = mapper.returnedType();
-            prevMapper = mapper;
+            result = compose((DataMapping) result, (DataMapping) mapper);
         }
-        return new Mapper<>() {
-
-            @Override
-            public Class acceptedType() {
-                return mappers.get(0).acceptedType();
-            }
-
-            @Override
-            public Class returnedType() {
-                return mappers.get(mappers.size() - 1).returnedType();
-            }
-
-            @Override
-            public Object transform(Object value, Context context) {
-                for (var mapper : mappers) {
-                    value = applyTransform(mapper, value, context);
-                }
-                return value;
-            }
-
-            private static <S, T> Object applyTransform(Mapper<S, T> mapper, Object value, Context context) {
-                S value1 = mapper.acceptedType().cast(value);
-                return mapper.transform(value1, context);
-            }
-        };
+        return result;
     }
 
-    public static <T> Mapper<List<T>, List<T>> emptyList() {
-        return new Mapper<List<T>, List<T>>() {
-            @Override
-            public Class<List<T>> acceptedType() {
-                return (Class) List.class;
-            }
-
-            @Override
-            public Class<List<T>> returnedType() {
-                return (Class) List.class;
-            }
-
-            @Override
-            public List<T> transform(List<T> value, Context context) {
-                return List.of();
-            }
-        };
+    public static HeaderMapping emptyHeaders() {
+        return (headers, context) -> List.of();
     }
 
-    public static Mapper<List<Header>, List<Header>> identityHeaders() {
-        return Mappers.<List<Header>>identity((Class) List.class);
+    public static HeaderMapping identityHeaders() {
+        return (headers, context) -> headers;
     }
 
-    /**
-     * Returns an instance of the identity mapper for the given type
-     * @param type The Class of the type of this mapper
-     * @return The identity mapper for the given type.
-     * @param <T> The type of this mapper
-     */
-    public static <T> Mapper<T, T> identity(Class<T> type) {
-        return new Mapper<>() {
+    public static <S, V> DataMapping<S, V, S, V> noSchemaId() {
+        return new DataMapping<>() {
             @Override
-            public Class<T> acceptedType() {
-                return type;
+            public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+                return null;
             }
 
             @Override
-            public Class<T> returnedType() {
-                return type;
-            }
-
-            @Override
-            public T transform(T value, Context context) {
-                return value;
-            }
-        };
-    }
-
-    public static <S extends WireSchemaId> Mapper<S, ? super S> preserve(Class<S> type) {
-        return new Mapper<>() {
-            @Override
-            public Class<S> acceptedType() {
-                return type;
-            }
-
-            @Override
-            public Class<S> returnedType() {
-                return type;
-            }
-
-            @Override
-            public S transform(S wireSchemaId, Context context) {
-                return wireSchemaId;
-            }
-        };
-    }
-
-    public static Mapper<WireSchemaId, NoSchema> noSchemaId() {
-        return new Mapper<>() {
-            @Override
-            public Class<WireSchemaId> acceptedType() {
-                return WireSchemaId.class;
-            }
-
-            @Override
-            public Class<NoSchema> returnedType() {
-                return NoSchema.class;
-            }
-
-            @Override
-            public NoSchema transform(WireSchemaId wireSchemaId, Context context) {
-                return NoSchema.INSTANCE;
+            public SchemaAndValue<S, V> transform(SchemaAndValue<S, V> schemaAndValue, Context context) {
+                return new SchemaAndValue<>(NoSchema.INSTANCE, schemaAndValue.schema(), schemaAndValue.value());
             }
         };
     }

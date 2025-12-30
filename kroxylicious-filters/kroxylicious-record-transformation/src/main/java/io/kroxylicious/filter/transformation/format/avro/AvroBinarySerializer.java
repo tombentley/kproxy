@@ -15,23 +15,34 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 
-public class AvroSerializer implements Serializer<AvroValue> {
+public class AvroBinarySerializer implements Serializer<Object> {
 
+    private final GenericDatumWriter<Object> writer;
     private BinaryEncoder encoder;
 
     private boolean binary;
 
-    @Override
-    public Class<AvroValue> acceptedType() {
-        return AvroValue.class;
+    private Schema schema;
+
+    public AvroBinarySerializer(Schema schema, boolean binary) {
+        this.schema = schema;
+        this.binary = binary;
+        this.writer = new GenericDatumWriter<>(schema);
     }
 
     @Override
-    public void serialize(AvroValue value, OutputStream out) throws IOException {
+    public void accepts(Type<?, ?, ?> type) {
+        if (type.schema() != Schema.class) {
+            throw new TypeException("");
+        }
+    }
 
-        Schema schema = value.schema();
+    @Override
+    public void serialize(Object value, OutputStream out) throws IOException {
 
         EncoderFactory encoderFactory = EncoderFactory.get();
         Encoder encoder;
@@ -42,8 +53,7 @@ public class AvroSerializer implements Serializer<AvroValue> {
             encoder = encoderFactory.jsonEncoder(schema, out);
         }
 
-        var writer = new GenericDatumWriter<>(schema);
-        writer.write(value.value(), encoder);
+        writer.write(value, encoder);
         encoder.flush();
     }
 }

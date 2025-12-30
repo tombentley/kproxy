@@ -12,6 +12,8 @@ import java.io.OutputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 
 public class JsonSerializer implements
@@ -19,6 +21,13 @@ public class JsonSerializer implements
 
     static final ObjectMapper MAPPER = new ObjectMapper();
     public static final JsonSerializer INSTANCE = new JsonSerializer();
+
+    @Override
+    public void accepts(Type<?, ?, ?> type) {
+        if (type.cls() != JsonNode.class) {
+            throw new TypeException("");
+        }
+    }
 
     @Override
     public Class<JsonNode> acceptedType() {

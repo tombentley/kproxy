@@ -24,7 +24,7 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
 
     @Nullable ByteBuffer buffer(Record record);
 
-    DataTransform dataTransform(RecordTransform transformation);
+    SchemalessDataTransform dataTransform(RecordTransform transformation);
     SchemaIdTransform<WireSchemaId, WireSchemaId> schemaIdTransform(RecordTransform transformation);
 
     record KeyDataLocation() implements RecordDataLocation {
@@ -35,7 +35,7 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public DataTransform dataTransform(RecordTransform transformation) {
+        public SchemalessDataTransform dataTransform(RecordTransform transformation) {
             return transformation.keyTransform();
         }
 
@@ -53,7 +53,7 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public DataTransform dataTransform(RecordTransform transformation) {
+        public SchemalessDataTransform dataTransform(RecordTransform transformation) {
             return transformation.valueTransform();
         }
 

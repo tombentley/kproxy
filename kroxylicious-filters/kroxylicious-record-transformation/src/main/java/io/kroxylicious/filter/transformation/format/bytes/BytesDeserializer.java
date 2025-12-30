@@ -10,20 +10,28 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 
-public class BytesDeserializer implements Deserializer<TransformationInputStream> {
+public class BytesDeserializer implements Deserializer<NoSchema, TransformationInputStream> {
 
     public static final BytesDeserializer INSTANCE = new BytesDeserializer();
 
     @Override
-    public TransformationInputStream deserialize(InputStream in, Context context) throws IOException {
-        return (TransformationInputStream) in;
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
+            throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
+        }
+        return new Type(NoSchema.class, null, TransformationInputStream.class);
     }
 
     @Override
-    public Class<TransformationInputStream> returnedType() {
-        return TransformationInputStream.class;
+    public SchemaAndValue<NoSchema, TransformationInputStream> deserialize(InputStream in, Context context) throws IOException {
+        return new SchemaAndValue<>(NoSchema.INSTANCE, (TransformationInputStream) in);
     }
+
 }

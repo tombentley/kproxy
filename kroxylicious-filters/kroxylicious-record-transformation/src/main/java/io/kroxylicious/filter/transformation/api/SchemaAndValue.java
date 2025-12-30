@@ -6,7 +6,8 @@
 
 package io.kroxylicious.filter.transformation.api;
 
-public interface SchemaAndValue<S, V> {
-    S schema();
-    V value();
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
+
+public record SchemaAndValue<S, V>(WireSchemaId schemaId, S schema, V value) {
+
 }

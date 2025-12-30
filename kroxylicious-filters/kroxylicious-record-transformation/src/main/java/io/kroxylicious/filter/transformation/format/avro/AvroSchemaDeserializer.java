@@ -22,11 +22,6 @@ import io.kroxylicious.filter.transformation.api.mapper.Context;
 public class AvroSchemaDeserializer implements Deserializer<Schema> {
 
     @Override
-    public Class<Schema> returnedType() {
-        return Schema.class;
-    }
-
-    @Override
     public Schema deserialize(InputStream in, Context context) throws IOException {
         SchemaParser parser = new SchemaParser();
         SchemaParser.ParseResult parse = parser.parse(in);

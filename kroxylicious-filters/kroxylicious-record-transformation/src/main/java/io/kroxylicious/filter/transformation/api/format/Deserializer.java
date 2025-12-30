@@ -9,25 +9,16 @@ package io.kroxylicious.filter.transformation.api.format;
 import java.io.IOException;
 import java.io.InputStream;
 
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.mapper.Mapper;
+import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
-public interface Deserializer<T> extends Mapper<InputStream, T> {
+public interface Deserializer<S, V> extends TypeCheckable {
 
-    default Class<InputStream> acceptedType() {
-        return InputStream.class;
-    }
+    Type<?, ?, ?> typeCheck(Type<?, ?, ?> type);
 
-    Class<T> returnedType();
+    SchemaAndValue<S, V> deserialize(InputStream in, Context context) throws IOException;
 
-    T deserialize(InputStream in, Context context) throws IOException;
 
-    default T transform(InputStream in, Context context) {
-        try {
-            return deserialize(in, context);
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

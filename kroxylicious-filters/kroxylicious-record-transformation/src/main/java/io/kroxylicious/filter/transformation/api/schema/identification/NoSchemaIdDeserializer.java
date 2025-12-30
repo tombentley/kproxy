@@ -9,19 +9,25 @@ package io.kroxylicious.filter.transformation.api.schema.identification;
 import java.io.IOException;
 import java.io.InputStream;
 
-import io.kroxylicious.filter.transformation.api.format.Deserializer;
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
+import io.kroxylicious.filter.transformation.api.Type;
+import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 
-public class NoSchemaIdDeserializer implements Deserializer<NoSchema> {
+public class NoSchemaIdDeserializer implements SchemaIdDeserializer<NoSchema> {
     public static final NoSchemaIdDeserializer INSTANCE = new NoSchemaIdDeserializer();
+
     @Override
-    public Class<NoSchema> returnedType() {
-        return NoSchema.class;
+    public SchemaAndValue<Void, InputStream> deserialize(InputStream data, Context context) throws IOException {
+        return new SchemaAndValue<>(NoSchema.INSTANCE, null, data);
     }
 
     @Override
-    public NoSchema deserialize(InputStream data, Context context) throws IOException {
-        return NoSchema.INSTANCE;
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
+            throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
+        }
+        return new Type<>(NoSchema.class, Void.class, TransformationInputStream.class);
     }
-
 }

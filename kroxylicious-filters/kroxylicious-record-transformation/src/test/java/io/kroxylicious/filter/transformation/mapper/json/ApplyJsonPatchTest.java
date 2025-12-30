@@ -18,6 +18,7 @@ import com.flipkart.zjsonpatch.InvalidJsonPatchException;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.format.json.ApplyJsonPatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -6,11 +6,15 @@
 
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
 import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.Type;
+import io.kroxylicious.filter.transformation.api.TypeException;
 
 public abstract class AbstractPrefixedSerializer
         implements OutputSchemaIdentification<ByteWireId> {
@@ -24,22 +28,23 @@ public abstract class AbstractPrefixedSerializer
     }
 
     @Override
-    public byte[] prefix(ByteWireId schemaId) {
+    public List<Header> prefix(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException {
         if (schemaId.bytes().length == prefixLengthWithMagic && schemaId.bytes()[0] == magic) {
-            return schemaId.bytes();
+            outputStream.write(magic);
+            outputStream.write(schemaId.bytes());
         }
         else {
             throw new RuntimeException(String.format("Unexpected prefix of %s bytes", schemaId.bytes().length));
         }
-    }
-
-    @Override
-    public List<Header> headers(ByteWireId schemaId, RecordDataLocation site) {
         return List.of();
     }
 
     @Override
-    public Class<ByteWireId> acceptedType() {
-        return ByteWireId.class;
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        if (type.wireSchemaId() != WireSchemaId.class) {
+            throw new TypeException("Not a WireSchemaId: " + type);
+        }
+        return null;
     }
+
 }

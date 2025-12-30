@@ -11,11 +11,21 @@ import java.io.OutputStream;
 
 import io.kroxylicious.filter.transformation.TransformationInputStream;
 import io.kroxylicious.filter.transformation.TransformationOutputStream;
+import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 
 public class BytesSerializer implements Serializer<TransformationInputStream> {
 
     public static final BytesSerializer INSTANCE = new BytesSerializer();
+
+    @Override
+    public void accepts(Type<?, ?, ?> type) {
+        if (type.cls() != TransformationInputStream.class) {
+            throw new TypeException("");
+        }
+    }
+
     @Override
     public Class<TransformationInputStream> acceptedType() {
         return TransformationInputStream.class;
