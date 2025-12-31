@@ -7,4 +7,7 @@
 package io.kroxylicious.filter.transformation.api.schema.registry;
 
 public class UnsupportedSchemaIdTypeException extends RuntimeException {
+    public UnsupportedSchemaIdTypeException(String message) {
+        super(message);
+    }
 }

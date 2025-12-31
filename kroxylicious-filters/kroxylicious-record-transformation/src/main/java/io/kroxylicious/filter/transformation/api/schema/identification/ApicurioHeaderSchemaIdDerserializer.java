@@ -34,7 +34,7 @@ public class ApicurioHeaderSchemaIdDerserializer
 
     @Override
     public SchemaAndValue<ApicurioSchemaCoordinates, Void, InputStream> deserialize(InputStream stream, Context context) {
-        byte[] globalId = null;
+        EightByteId globalId = null;
         String groupId = null;
         String artifactId = null;
         String version = null;
@@ -43,7 +43,7 @@ public class ApicurioHeaderSchemaIdDerserializer
             if (key.equals("apicurio." + context.location() + ".globalId")) {
                 if (globalId == null) {
                     if (header.value().length == 8) {
-                        globalId = header.value();
+                        globalId = EightByteId.fromBytes(header.value());
                     }
                 }
             }

@@ -42,7 +42,7 @@ import io.kroxylicious.filter.transformation.format.bytes.BytesFormat;
 import io.kroxylicious.filter.transformation.format.json.JsonFormat;
 import io.kroxylicious.filter.transformation.mapper.json.ApplyJsonPatchTest;
 import io.kroxylicious.filter.transformation.model.RecordTransform;
-import io.kroxylicious.filter.transformation.model.SchemalessDataTransform;
+import io.kroxylicious.filter.transformation.model.EarlyBoundDataTransform;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.test.assertj.KafkaAssertions;
@@ -69,12 +69,12 @@ class RecordTransformFilterTest {
             List<DataMapping<?, ?, ?, ?, ?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
-                new SchemalessDataTransform(
+                new EarlyBoundDataTransform(
                         NoSchemaIdDeserializer.INSTANCE,
                         JsonFormat.INSTANCE,
                         Optional.of(Mappers.compose(keyMappers)),
                         NoSchemaIdSerializer.INSTANCE),
-                new SchemalessDataTransform(
+                new EarlyBoundDataTransform(
                         NoSchemaIdDeserializer.INSTANCE,
                         JsonFormat.INSTANCE,
                         Optional.of(Mappers.compose(valueMappers)),
@@ -87,12 +87,12 @@ class RecordTransformFilterTest {
             List<DataMapping<?, ?, ?, ?, ?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
-                new SchemalessDataTransform(
+                new EarlyBoundDataTransform(
                         NoSchemaIdDeserializer.INSTANCE,
                         BytesFormat.INSTANCE,
                         Optional.of(Mappers.compose(keyMappers)),
                         NoSchemaIdSerializer.INSTANCE),
-                new SchemalessDataTransform(
+                new EarlyBoundDataTransform(
                         NoSchemaIdDeserializer.INSTANCE,
                         BytesFormat.INSTANCE,
                         Optional.of(Mappers.compose(valueMappers)),

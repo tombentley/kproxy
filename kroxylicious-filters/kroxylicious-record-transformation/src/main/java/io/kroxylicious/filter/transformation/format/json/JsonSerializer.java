@@ -16,11 +16,13 @@ import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
 
-public class JsonSerializer implements
-        Serializer<JsonNode> {
+public class JsonSerializer implements Serializer<JsonNode> {
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
-    public static final JsonSerializer INSTANCE = new JsonSerializer();
+    private final ObjectMapper mapper;
+
+    public JsonSerializer(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public void accepts(Type<?, ?, ?> type) {
@@ -31,6 +33,6 @@ public class JsonSerializer implements
 
     @Override
     public void serialize(JsonNode value, OutputStream out) throws IOException {
-        MAPPER.writeValue(out, value);
+        mapper.writeValue(out, value);
     }
 }

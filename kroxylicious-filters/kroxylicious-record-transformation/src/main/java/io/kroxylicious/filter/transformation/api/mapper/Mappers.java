@@ -28,35 +28,18 @@ public class Mappers {
      * A mapping that replaces the wireSchemaId with the given value
      */
     static <W2 extends WireSchemaId, W extends WireSchemaId, S, V> DataMapping<W, S, V, W2, S, V> withSchemaId(W2 schemaId) {
-        return new DataMapping<>() {
-            @Override
-            public SchemaAndValue<W2, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
-                return value.withSchemaId(schemaId);
-            }
-
-            @Override
-            public Type<W, ?, ?> typeCheck(Type<?, ?, ?> type) {
-                Class<W> aClass = (Class) schemaId.getClass();
-                return new Type<>(aClass, type.schema(), type.cls());
-            }
-        };
+        return new SchemaIdReplacement<>(schemaId);
     }
 
     /**
      * @return The identity mapping
      */
     static <W extends WireSchemaId, S, V> DataMapping<W, S, V, W, S, V> identity() {
-        return new DataMapping<>() {
-            @Override
-            public SchemaAndValue<W, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
-                return value;
-            }
+        return new IdentityDataMapping<>();
+    }
 
-            @Override
-            public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
-                return type;
-            }
-        };
+    static boolean isIdentity(DataMapping<?, ?, ?, ?, ?, ?> mapping) {
+        return mapping instanceof IdentityDataMapping;
     }
 
     /**
@@ -109,5 +92,35 @@ public class Mappers {
         return (headers, context) -> headers;
     }
 
+    private static class IdentityDataMapping<W extends WireSchemaId, S, V> implements DataMapping<W, S, V, W, S, V> {
+        @Override
+        public SchemaAndValue<W, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
+            return value;
+        }
 
+        @Override
+        public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+            return type;
+        }
+    }
+
+    private static class SchemaIdReplacement<W2 extends WireSchemaId, W extends WireSchemaId, S, V> implements DataMapping<W, S, V, W2, S, V> {
+
+        private final W2 schemaId;
+
+        SchemaIdReplacement(W2 schemaId) {
+            this.schemaId = schemaId;
+        }
+
+        @Override
+        public SchemaAndValue<W2, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
+            return value.withSchemaId(schemaId);
+        }
+
+        @Override
+        public Type<W, ?, ?> typeCheck(Type<?, ?, ?> type) {
+            Class<W> aClass = (Class) schemaId.getClass();
+            return new Type<>(aClass, type.schema(), type.cls());
+        }
+    }
 }

@@ -39,7 +39,7 @@ class JsonSerializerTest {
         );
     }
 
-    JsonSerializer jsonSerializer = new JsonSerializer();
+    JsonSerializer jsonSerializer = new JsonSerializer(new ObjectMapper());
 
     @ParameterizedTest
     @MethodSource

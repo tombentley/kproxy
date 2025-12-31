@@ -12,21 +12,20 @@ import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
 
-public class ApicurioHeadersToPrefix<S, T> implements DataMapping<ApicurioSchemaCoordinates, S, T, ByteWireId, S, T> {
-
+public class ApicurioHeadersToPrefix<S, T> implements DataMapping<ApicurioSchemaCoordinates, S, T, EightByteId, S, T> {
 
     @Override
     public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
         if (type.wireSchemaId() != ApicurioSchemaCoordinates.class) {
             throw new TypeException("");
         }
-        return new Type<>(ByteWireId.class, type.schema(), type.cls());
+        return new Type<>(EightByteId.class, type.schema(), type.cls());
     }
 
     @Override
-    public SchemaAndValue<ByteWireId, S, T> transform(SchemaAndValue<ApicurioSchemaCoordinates, S, T> schemaAndValue,
+    public SchemaAndValue<EightByteId, S, T> transform(SchemaAndValue<ApicurioSchemaCoordinates, S, T> schemaAndValue,
                                            Context context) {
-        return schemaAndValue.withSchemaId(new ByteWireId(schemaAndValue.schemaId().globalId()));
+        return schemaAndValue.withSchemaId(schemaAndValue.schemaId().globalId());
     }
 
 }

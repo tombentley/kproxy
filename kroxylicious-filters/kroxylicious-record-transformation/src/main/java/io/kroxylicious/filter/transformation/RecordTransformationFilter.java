@@ -36,11 +36,13 @@ import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdD
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.registry.ResolvedSchema;
 import io.kroxylicious.filter.transformation.api.schema.registry.SchemaRegistry;
+import io.kroxylicious.filter.transformation.api.schema.registry.UnsupportedSchemaIdTypeException;
 import io.kroxylicious.filter.transformation.format.avro.AvroFormat;
 import io.kroxylicious.filter.transformation.format.avro.AvroSchemaDeserializer;
+import io.kroxylicious.filter.transformation.format.json.JsonFormat;
 import io.kroxylicious.filter.transformation.model.LateBoundDataTransform;
 import io.kroxylicious.filter.transformation.model.RecordTransform;
-import io.kroxylicious.filter.transformation.model.SchemalessDataTransform;
+import io.kroxylicious.filter.transformation.model.EarlyBoundDataTransform;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.proxy.filter.ApiVersionsResponseFilter;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
@@ -133,9 +135,9 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
         Set<WireSchemaId> schemaIds = schemaIds(topicName, records, recordTransform);
 
         if (schemaIds.isEmpty()) {
-            BiFunction<Context, Record, DataFormat<?, ?, ?>> f = (context, record) -> {
-                if (context.location().dataTransform(recordTransform) instanceof SchemalessDataTransform<?, ?, ?, ?, ?, ?> s) {
-                    return s.dataFormat();
+            BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction = (context, record) -> {
+                if (context.location().dataTransform(recordTransform) instanceof EarlyBoundDataTransform<?, ?, ?, ?, ?, ?> dataTransform) {
+                    return dataTransform.dataFormat();
                 }
                 else {
                     throw new RecordTransformationException("WTF");
@@ -143,13 +145,16 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
             };
 
             // iteration!
-            MemoryRecords transformedRecords = RecordStream.ofRecords(records)
-                    .toMemoryRecords(byteBufferOutputStream, new SchemalessRecordTransformer(topicName, recordTransform,
-                            f));
-            return CompletableFuture.completedFuture(transformedRecords);
+            return CompletableFuture.completedFuture(transformMemoryRecords(topicName, records, byteBufferOutputStream, recordTransform, dataFormatFunction));
         }
         else {
             SchemaRegistry registry = null;
+            var notSupported = schemaIds.stream().map(WireSchemaId::getClass).filter(schemaId -> !registry.supports(schemaId)).map(Class::getName).collect(Collectors.joining(", "));
+            if (!notSupported.isEmpty()) {
+                throw new UnsupportedSchemaIdTypeException(
+                        String.format("Schema registry %s does not support schema ids of type %s",
+                        registry, notSupported));
+            }
             // At least one datum in at least one of the records depends on a late-bound schema
             CompletableFuture[] futures = schemaIds.stream().map(registry::getSchema).toArray(CompletableFuture[]::new);
             return CompletableFuture.allOf(futures).thenApply(
@@ -158,7 +163,7 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
                                 .map(future -> ((ResolvedSchema) future.join()))
                                 .collect(Collectors.toMap(ResolvedSchema::schemaId, RecordTransformationFilter::readSchema));
 
-                        BiFunction<Context, Record, DataFormat<?, ?, ?>> f = (context, record) -> {
+                        BiFunction<Context, Record, DataFormat<?, ?>> formatFunction = (context, record) -> {
                             try {
                                 var schemaIdDeserializer = recordTransform.keyTransform().schemaIdDeserializer();
                                 WireSchemaId wireSchemaId = SchemaIdConsumer.schemaId(record, context, schemaIdDeserializer);
@@ -169,11 +174,20 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
                             }
                         };
 
-                        return RecordStream.ofRecords(records)
-                                .toMemoryRecords(byteBufferOutputStream, new SchemalessRecordTransformer(topicName, recordTransform, f));
+                        return transformMemoryRecords(topicName, records, byteBufferOutputStream, recordTransform, formatFunction);
                     });
         }
+    }
 
+    @NonNull
+    private static MemoryRecords transformMemoryRecords(String topicName,
+                                                        MemoryRecords records,
+                                                        ByteBufferOutputStream byteBufferOutputStream,
+                                                        RecordTransform recordTransform,
+                                                        BiFunction<Context, Record, DataFormat<?, ?>> formatFunction) {
+        return RecordStream.ofRecords(records)
+                .toMemoryRecords(byteBufferOutputStream,
+                        new SchemalessRecordTransformer(topicName, recordTransform, formatFunction));
     }
 
     @NonNull
@@ -198,9 +212,9 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
         return schemaIds;
     }
 
-    @NonNull
-    private static DataFormat<?, ?, ?> readSchema(ResolvedSchema resolvedSchema) {
+    private static DataFormat<?, ?> readSchema(ResolvedSchema resolvedSchema) {
         return switch (resolvedSchema.schemaType()) {
+            case "jsonschema" -> JsonFormat.INSTANCE; // this is a bit of a lie
             case "avro" -> {
                 try {
                     yield new AvroFormat(resolvedSchema.schemaId(), new AvroSchemaDeserializer()

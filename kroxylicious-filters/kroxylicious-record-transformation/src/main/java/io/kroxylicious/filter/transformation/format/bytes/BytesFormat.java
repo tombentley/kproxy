@@ -15,17 +15,18 @@ import io.kroxylicious.filter.transformation.api.format.Serializer;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-
-public class BytesFormat implements DataFormat<BytesFormat.Encoding, Void, TransformationInputStream> {
+public class BytesFormat implements DataFormat<Void, TransformationInputStream> {
 
     public static final BytesFormat INSTANCE = new BytesFormat();
 
-    public enum Encoding {}
+    @Override
+    public String defaultEncoding() {
+        return "binary";
+    }
 
     @Override
-    public Set<Encoding> encodings() {
-        return Set.of();
+    public Set<String> encodings() {
+        return Set.of(defaultEncoding());
     }
 
     @Override
@@ -34,12 +35,12 @@ public class BytesFormat implements DataFormat<BytesFormat.Encoding, Void, Trans
     }
 
     @Override
-    public Serializer<TransformationInputStream> serializer(@Nullable Encoding encoding) {
+    public Serializer<TransformationInputStream> serializer(String encoding) {
         return new BytesSerializer();
     }
 
     @Override
-    public Deserializer<Void, TransformationInputStream> deserializer(@Nullable Encoding encoding) {
+    public Deserializer<Void, TransformationInputStream> deserializer(String encoding) {
         return new BytesDeserializer();
     }
 

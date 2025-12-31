@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class JsonDeserializerTest {
 
-    private JsonDeserializer jsonDeserializer = new JsonDeserializer();
+    private JsonDeserializer jsonDeserializer = new JsonDeserializer(new ObjectMapper());
 
 
     static List<Arguments> shouldDeserialize() {

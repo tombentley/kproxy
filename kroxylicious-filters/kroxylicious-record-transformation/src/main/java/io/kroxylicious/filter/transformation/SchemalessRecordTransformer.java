@@ -45,7 +45,7 @@ class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.Rec
     private final boolean typeCheck = false;
     private final String topicName;
     private final RecordTransform recordTransform;
-    private final BiFunction<Context, Record, DataFormat<?, ?, ?>> dataFormatFunction;
+    private final BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction;
 
     private Header[] transformedHeaders;
     private ByteBuffer transformedKey;
@@ -55,7 +55,7 @@ class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.Rec
 
     SchemalessRecordTransformer(String topicName,
                                 RecordTransform recordTransform,
-                                BiFunction<Context, Record, DataFormat<?, ?, ?>> dataFormatFunction) {
+                                BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction) {
         this.topicName = topicName;
         this.recordTransform = recordTransform;
         this.dataFormatFunction = dataFormatFunction;
@@ -138,8 +138,8 @@ class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.Rec
                                                    TransformationOutputStream out) throws IOException {
         Context context = new Context(topicName, List.of(record.headers()), dataLocation);
         var dataFormat = dataFormatFunction.apply(context, record);
-        var deserializer = dataFormat.deserializer(null);
-        var serializer = dataFormat.serializer(null);
+        var deserializer = dataFormat.deserializer(dataFormat.defaultEncoding());
+        var serializer = dataFormat.serializer(dataFormat.defaultEncoding());
         DataMapping dataMapping = dataLocation.dataTransform(recordTransform).mapperOpt().get();
         SchemaIdSerializer schemaIdSerializer = dataLocation.dataTransform(recordTransform).schemaIdSerializer();
         if (typeCheck) {

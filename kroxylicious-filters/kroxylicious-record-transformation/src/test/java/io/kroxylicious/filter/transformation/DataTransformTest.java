@@ -23,8 +23,7 @@ import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
 import io.kroxylicious.filter.transformation.api.mapper.Mappers;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdDeserializer;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdSerializer;
-import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdSerializer;
-import io.kroxylicious.filter.transformation.model.SchemalessDataTransform;
+import io.kroxylicious.filter.transformation.model.EarlyBoundDataTransform;
 
 import static org.mockito.Mockito.mock;
 
@@ -85,12 +84,12 @@ class DataTransformTest {
 
         // When/Then
         if (expectedMessage.isPresent()) {
-            Assertions.assertThatThrownBy(() -> new SchemalessDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis))
+            Assertions.assertThatThrownBy(() -> new EarlyBoundDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis))
                     .isExactlyInstanceOf(TypeException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
-            Assertions.assertThatCode(() -> new SchemalessDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis)).doesNotThrowAnyException();
+            Assertions.assertThatCode(() -> new EarlyBoundDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis)).doesNotThrowAnyException();
         }
     }
 

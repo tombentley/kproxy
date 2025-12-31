@@ -22,22 +22,18 @@ import io.kroxylicious.filter.transformation.api.TypeException;
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */
 public class ApicurioHeaderSerializer
-        implements SchemaIdSerializer<ByteWireId> {
-
+        implements SchemaIdSerializer<EightByteId> {
 
     @Override
-    public List<Header> serializeSchemaId(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException  {
-        if (schemaId.bytes().length == 8) {
-            // TODO this won't interoperate with the prefix strategy (e.g. headers to prefix transformations).
-            return List.of(new RecordHeader("apicurio." + site + ".globalId", schemaId.bytes()));
-        }
-        return List.of();
+    public List<Header> serializeSchemaId(RecordDataLocation site, EightByteId schemaId, OutputStream outputStream) throws IOException  {
+        // TODO this won't interoperate with the prefix strategy (e.g. headers to prefix transformations).
+        return List.of(new RecordHeader("apicurio." + site + ".globalId", schemaId.toBytes()));
     }
 
     @Override
     public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
-        if (type.wireSchemaId() != WireSchemaId.class) {
-            throw new TypeException("Not a WireSchemaId: " + type);
+        if (type.wireSchemaId() != EightByteId.class) {
+            throw new TypeException("Not a EightByteId: " + type);
         }
         return null;
     }

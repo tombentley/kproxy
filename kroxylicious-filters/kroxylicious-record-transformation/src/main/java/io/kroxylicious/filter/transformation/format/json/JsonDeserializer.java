@@ -19,8 +19,13 @@ import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 
-public class JsonDeserializer implements
-        Deserializer<Void, JsonNode> {
+public class JsonDeserializer implements Deserializer<Void, JsonNode> {
+
+    private final ObjectMapper mapper;
+
+    public JsonDeserializer(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
@@ -30,12 +35,9 @@ public class JsonDeserializer implements
         return new Type<>(NoSchemaId.class, Void.class, JsonNode.class);
     }
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    public static final JsonDeserializer INSTANCE = new JsonDeserializer();
-
     @Override
     public SchemaAndValue<NoSchemaId, Void, JsonNode> deserialize(InputStream in, Context context) throws IOException {
-        return new SchemaAndValue<>(NoSchemaId.INSTANCE, null, MAPPER.readTree(in));
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, null, mapper.readTree(in));
     }
 
 }

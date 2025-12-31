@@ -15,34 +15,38 @@ import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 
-public abstract class AbstractPrefixedSchemaIdDeserializer
-        implements SchemaIdDeserializer<ByteWireId> {
+public abstract class PrefixedSchemaIdDeserializer<W extends WireSchemaId>
+        implements SchemaIdDeserializer<W> {
 
-    private final int magic;
-    private final int prefixLengthWithMagic;
+    private final byte magic;
+    private final int prefixLengthAfterMagic;
+
+    abstract Class<W> wireSchemaIdClass();
+
+    abstract W parse(byte[] bytes);
 
     @Override
-    public Type<ByteWireId, ?, ?> typeCheck(Type<?, ?, ?> type) {
+    public Type<W, ?, ?> typeCheck(Type<?, ?, ?> type) {
         if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
             throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
         }
-        return new Type<>(ByteWireId.class, Void.class, TransformationInputStream.class);
+        return new Type<>(wireSchemaIdClass(), Void.class, TransformationInputStream.class);
     }
 
-    AbstractPrefixedSchemaIdDeserializer(int magic, int prefixLengthWithMagic) {
+    PrefixedSchemaIdDeserializer(byte magic, int prefixLengthAfterMagic) {
         this.magic = magic;
-        this.prefixLengthWithMagic = prefixLengthWithMagic;
+        this.prefixLengthAfterMagic = prefixLengthAfterMagic;
     }
 
     @Override
-    public SchemaAndValue<ByteWireId, Void, InputStream> deserialize(InputStream stream, Context context) throws IOException {
+    public SchemaAndValue<W, Void, InputStream> deserialize(InputStream stream, Context context) throws IOException {
         stream.mark(1);
         int maybeMagic = stream.read();
-        stream.reset();
-        if (maybeMagic == magic && stream.available() >= prefixLengthWithMagic) {
+        if (maybeMagic == magic && stream.available() >= prefixLengthAfterMagic) {
             // Note that we intentionally include the magic byte.
-            return new SchemaAndValue<>(new ByteWireId(stream.readNBytes(prefixLengthWithMagic)), null, stream);
+            return new SchemaAndValue<>(parse(stream.readNBytes(prefixLengthAfterMagic)), null, stream);
         }
+        stream.reset();
         return null;
     }
 

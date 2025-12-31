@@ -19,21 +19,21 @@ import io.kroxylicious.filter.transformation.api.schema.identification.WireSchem
 /**
  * A transformation on some data that doesn't depend on a schema (e.g. JSON)
  */
-public record SchemalessDataTransform<W extends WireSchemaId, S, V,
+public record EarlyBoundDataTransform<W extends WireSchemaId, S, V,
         W2 extends WireSchemaId, S2, V2>(
         SchemaIdDeserializer<W> schemaIdDeserializer, // optional (e.g. there is a schema, but we don't need it to decode)
-        DataFormat<?, S, V> dataFormat,
+        DataFormat<S, V> dataFormat,
         Optional<DataMapping<W, S, V, W2, S2, V2>> mapperOpt,
         SchemaIdSerializer<W2> schemaIdSerializer
 ) implements DataTransform {
 
-    public SchemalessDataTransform {
+    public EarlyBoundDataTransform {
         Objects.requireNonNull(dataFormat);
         Objects.requireNonNull(mapperOpt);
         Objects.requireNonNull(dataFormat);
 
-        var deserializer = dataFormat.deserializer(null);
-        var serializer = dataFormat.serializer(null);
+        var deserializer = dataFormat.deserializer(dataFormat.defaultEncoding());
+        var serializer = dataFormat.serializer(dataFormat.defaultEncoding());
 
         Type<?, ?, ?> type = deserializer.typeCheck(Type.fromBytes());
         if (mapperOpt.isPresent()) {

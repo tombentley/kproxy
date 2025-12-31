@@ -7,7 +7,7 @@
 package io.kroxylicious.filter.transformation.api.schema.identification;
 
 public record ApicurioSchemaCoordinates(
-        byte[] globalId,
+        EightByteId globalId,
         String groupId,
         String artifactId,
         String version) implements WireSchemaId {}
