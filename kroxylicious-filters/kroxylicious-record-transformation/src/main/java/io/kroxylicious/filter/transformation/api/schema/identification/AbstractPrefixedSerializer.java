@@ -12,12 +12,12 @@ import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
-import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.TypeException;
 
 public abstract class AbstractPrefixedSerializer
-        implements OutputSchemaIdentification<ByteWireId> {
+        implements SchemaIdSerializer<ByteWireId> {
 
     private final int magic;
     private final int prefixLengthWithMagic;
@@ -28,7 +28,7 @@ public abstract class AbstractPrefixedSerializer
     }
 
     @Override
-    public List<Header> prefix(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException {
+    public List<Header> serializeSchemaId(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException {
         if (schemaId.bytes().length == prefixLengthWithMagic && schemaId.bytes()[0] == magic) {
             outputStream.write(magic);
             outputStream.write(schemaId.bytes());

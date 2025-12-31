@@ -11,9 +11,11 @@ import java.io.OutputStream;
 
 import io.kroxylicious.filter.transformation.api.Type;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 public interface Serializer<T> {
 
     void accepts(Type<?, ?, ?> type);
 
-    void serialize(T value, OutputStream out) throws IOException;
+    void serialize(@Nullable T value, OutputStream out) throws IOException;
 }

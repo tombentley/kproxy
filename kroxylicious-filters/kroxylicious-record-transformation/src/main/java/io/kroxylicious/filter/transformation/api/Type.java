@@ -7,12 +7,20 @@
 package io.kroxylicious.filter.transformation.api;
 
 import java.io.InputStream;
+import java.util.Objects;
 
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-public record Type<W extends WireSchemaId, S, T>(Class<W> wireSchemaId, Class<S> schema, Class<T> cls) {
-    public static Type<NoSchema, Void, InputStream> fromBytes() {
-        return new Type(NoSchema.class, null, InputStream.class);
+public record Type<W extends WireSchemaId, S, V>(Class<W> wireSchemaId, Class<S> schema, Class<V> cls) {
+    public Type {
+        Objects.requireNonNull(wireSchemaId);
+        Objects.requireNonNull(schema);
+        Objects.requireNonNull(cls);
+    }
+
+    public static Type<NoSchemaId, Void, InputStream> fromBytes() {
+        return new Type(NoSchemaId.class, Void.class, TransformationInputStream.class);
     }
 }

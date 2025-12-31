@@ -9,7 +9,7 @@ package io.kroxylicious.filter.transformation.api.schema.identification;
 /**
  * The absence of a schema identifier on the wire.
  */
-public record NoSchema() implements WireSchemaId {
-    public static final NoSchema INSTANCE = new NoSchema();
+public record NoSchemaId() implements WireSchemaId {
+    public static final NoSchemaId INSTANCE = new NoSchemaId();
 
 }

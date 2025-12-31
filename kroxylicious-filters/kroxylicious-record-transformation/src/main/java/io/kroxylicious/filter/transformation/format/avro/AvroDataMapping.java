@@ -11,10 +11,11 @@ import org.apache.avro.Schema;
 import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-public interface AvroDataMapping extends DataMapping<
-        Schema, Object,
-        Schema, Object> {
+public interface AvroDataMapping<W extends WireSchemaId, W2 extends WireSchemaId> extends DataMapping<
+        W, Schema, Object,
+        W2, Schema, Object> {
 
     @Override
     default Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {

@@ -33,7 +33,7 @@ public class ApicurioHeaderSchemaIdDerserializer
     }
 
     @Override
-    public SchemaAndValue<Void, InputStream> deserialize(InputStream data, Context context) {
+    public SchemaAndValue<ApicurioSchemaCoordinates, Void, InputStream> deserialize(InputStream stream, Context context) {
         byte[] globalId = null;
         String groupId = null;
         String artifactId = null;
@@ -63,7 +63,7 @@ public class ApicurioHeaderSchemaIdDerserializer
                 }
             }
         }
-        return new SchemaAndValue<>(new ApicurioSchemaCoordinates(globalId, groupId, artifactId, version), null, data);
+        return new SchemaAndValue<>(new ApicurioSchemaCoordinates(globalId, groupId, artifactId, version), null, stream);
     }
 
 }

@@ -14,12 +14,17 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 import io.kroxylicious.filter.transformation.api.TypeException;
+import io.kroxylicious.filter.transformation.api.format.DataFormat;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
-import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
+import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
+import io.kroxylicious.filter.transformation.api.mapper.Mappers;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdDeserializer;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdSerializer;
+import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdSerializer;
+import io.kroxylicious.filter.transformation.model.SchemalessDataTransform;
 
 import static org.mockito.Mockito.mock;
 
@@ -61,32 +66,31 @@ class DataTransformTest {
     @MethodSource
     void shouldCheckConstructorArguments(Optional<String> expectedMessage, List<Class<?>> types) {
         // Given
+        var sid = NoSchemaIdDeserializer.INSTANCE;
         var dd = mock(Deserializer.class);
-        Mockito.when(dd.returnedType()).thenReturn(types.get(0));
+        var ds = mock(Serializer.class);
+        var df = mock(DataFormat.class);
+        var sis = NoSchemaIdSerializer.INSTANCE;
         expectedMessage = expectedMessage.map(s -> s.replace("DESER", dd.getClass().getName()));
 
-        List<TypeCheckable<?, ?>> mappers = new ArrayList<>();
+        List<DataMapping<?, ?, ?, ?, ?, ?>> mappers = new ArrayList<>();
         for (int i = 1; i < types.size() - 1; i+=2) {
-            var dm = mock(TypeCheckable.class);
-            Mockito.when(dm.acceptedType()).thenReturn(types.get(i));
-            Mockito.when(dm.returnedType()).thenReturn(types.get(i+1));
+            var dm = mock(DataMapping.class);
             mappers.add(dm);
             String target = "MAPPER" + ((i - 1) / 2);
             expectedMessage = expectedMessage.map(s -> s.replace(target, dm.getClass().getName()));
         }
 
-        var ds = mock(Serializer.class);
-        Mockito.when(ds.acceptedType()).thenReturn(types.get(types.size() - 1));
         expectedMessage = expectedMessage.map(s -> s.replace("SER", ds.getClass().getName()));
 
         // When/Then
         if (expectedMessage.isPresent()) {
-            Assertions.assertThatThrownBy(() -> new SchemalessDataTransform(dd, mappers, ds))
+            Assertions.assertThatThrownBy(() -> new SchemalessDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis))
                     .isExactlyInstanceOf(TypeException.class)
                     .hasMessage(expectedMessage.get());
         }
         else {
-            Assertions.assertThatCode(() -> new SchemalessDataTransform(dd, mappers, ds)).doesNotThrowAnyException();
+            Assertions.assertThatCode(() -> new SchemalessDataTransform(sid, df, Optional.of(Mappers.compose(mappers)), sis)).doesNotThrowAnyException();
         }
     }
 

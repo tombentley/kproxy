@@ -23,11 +23,11 @@ import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 public interface SchemaIdDeserializer<W extends WireSchemaId> extends TypeCheckable {
 
     /**
-     * Applies the transformation to the given value.
+     * Obtains the schema id, reading from the given {@code stream} it necessary.
      *
-     * @param value The value to be transformed.
-     * @param context
-     * @return The transformed value.
+     * @param stream The stream to be read from
+     * @param context The context
+     * @return The schema id.
      */
-    SchemaAndValue<Void, InputStream> deserialize(InputStream value, Context context) throws IOException;
+    SchemaAndValue<W, Void, InputStream> deserialize(InputStream stream, Context context) throws IOException;
 }

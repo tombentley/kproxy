@@ -10,13 +10,12 @@ import org.apache.avro.Schema;
 
 import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-public class AvroPatch implements AvroDataMapping {
-
-
+public class AvroPatch<W extends WireSchemaId> implements AvroDataMapping<W, W> {
 
     @Override
-    public SchemaAndValue<Schema, Object> transform(SchemaAndValue<Schema, Object> schemaAndValue, Context context) {
+    public SchemaAndValue<W, Schema, Object> transform(SchemaAndValue<W, Schema, Object> schemaAndValue, Context context) {
         return null;
         /*
         Schema schema;

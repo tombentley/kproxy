@@ -21,45 +21,35 @@ import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 
 /**
  * A deserializer for Avro-serialized data.
  */
 public class AvroBinaryDeserializer implements Deserializer<Schema, Object> {
 
-    private final boolean binary;
-    private final Schema schema;
     private final GenericDatumReader<Object> reader;
-    private BinaryDecoder decoder;
+    private BinaryDecoder cachedDecoder;
 
     @Override
     public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
         if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
             throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
         }
-        return new Type(NoSchema.class, Schema.class, Object.class);
+        return new Type<>(NoSchemaId.class, Schema.class, Object.class);
     }
 
-    public AvroBinaryDeserializer(Schema schema, boolean binary) {
-        this.schema = schema;
-        this.binary = binary;
+    public AvroBinaryDeserializer(Schema schema) {
         this.reader = new GenericDatumReader<>(schema);
     }
 
     @Override
-    public SchemaAndValue<Schema, Object> deserialize(InputStream in, Context context) throws IOException {
+    public SchemaAndValue<NoSchemaId, Schema, Object> deserialize(InputStream in, Context context) throws IOException {
         DecoderFactory decoderFactory = DecoderFactory.get();
-        Decoder decoder;
-        if (binary) {
-            decoder = this.decoder = decoderFactory.binaryDecoder(in, this.decoder);
-        }
-        else {
-            decoder = decoderFactory.jsonDecoder(schema, in);
-        }
+        Decoder decoder = this.cachedDecoder = decoderFactory.binaryDecoder(in, this.cachedDecoder);
 
         Object read = reader.read(null, decoder);
 
-        return new SchemaAndValue<>(reader.getSchema(), read);
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, reader.getSchema(), read);
     }
 }

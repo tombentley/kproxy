@@ -15,12 +15,12 @@ import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.TypeException;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 
-public class NoSchemaIdDeserializer implements SchemaIdDeserializer<NoSchema> {
+public class NoSchemaIdDeserializer implements SchemaIdDeserializer<NoSchemaId> {
     public static final NoSchemaIdDeserializer INSTANCE = new NoSchemaIdDeserializer();
 
     @Override
-    public SchemaAndValue<Void, InputStream> deserialize(InputStream data, Context context) throws IOException {
-        return new SchemaAndValue<>(NoSchema.INSTANCE, null, data);
+    public SchemaAndValue<NoSchemaId, Void, InputStream> deserialize(InputStream stream, Context context) throws IOException {
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, null, stream);
     }
 
     @Override
@@ -28,6 +28,6 @@ public class NoSchemaIdDeserializer implements SchemaIdDeserializer<NoSchema> {
         if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
             throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
         }
-        return new Type<>(NoSchema.class, Void.class, TransformationInputStream.class);
+        return new Type<>(NoSchemaId.class, Void.class, TransformationInputStream.class);
     }
 }

@@ -12,18 +12,20 @@ import java.util.List;
 
 import org.apache.kafka.common.header.Header;
 
-import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
  * How schemas are identified during serialization.
  */
-public interface OutputSchemaIdentification<W extends WireSchemaId> extends TypeCheckable {
+public interface SchemaIdSerializer<W extends WireSchemaId> extends TypeCheckable {
 
     /**
-     * @param schemaId The wire schema id
-     * @return Headers which might need to be added to the record
+     * @param site The data location.
+     * @param schemaId The wire schema id.
+     * @param outputStream The stream to write to
+     * @return Any additional headers which need to be added to the record.
      */
-    List<Header> prefix(RecordDataLocation site, W schemaId, OutputStream outputStream) throws IOException;
+    List<Header> serializeSchemaId(RecordDataLocation site, W schemaId, OutputStream outputStream) throws IOException;
 
 }

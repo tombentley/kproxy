@@ -13,12 +13,13 @@ import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 
 public interface Deserializer<S, V> extends TypeCheckable {
 
     Type<?, ?, ?> typeCheck(Type<?, ?, ?> type);
 
-    SchemaAndValue<S, V> deserialize(InputStream in, Context context) throws IOException;
+    SchemaAndValue<NoSchemaId, S, V> deserialize(InputStream in, Context context) throws IOException;
 
 
 }

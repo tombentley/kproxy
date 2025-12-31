@@ -9,6 +9,7 @@ package io.kroxylicious.filter.transformation;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.kafka.common.compress.Compression;
 import org.apache.kafka.common.header.Header;
@@ -33,16 +34,15 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
+import io.kroxylicious.filter.transformation.api.mapper.DataMapping;
 import io.kroxylicious.filter.transformation.api.mapper.Mappers;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
 import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdDeserializer;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaSerializer;
-import io.kroxylicious.filter.transformation.format.bytes.BytesDeserializer;
-import io.kroxylicious.filter.transformation.format.bytes.BytesSerializer;
-import io.kroxylicious.filter.transformation.format.json.JsonDeserializer;
-import io.kroxylicious.filter.transformation.format.json.JsonSerializer;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaIdSerializer;
+import io.kroxylicious.filter.transformation.format.bytes.BytesFormat;
+import io.kroxylicious.filter.transformation.format.json.JsonFormat;
 import io.kroxylicious.filter.transformation.mapper.json.ApplyJsonPatchTest;
+import io.kroxylicious.filter.transformation.model.RecordTransform;
+import io.kroxylicious.filter.transformation.model.SchemalessDataTransform;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.test.assertj.KafkaAssertions;
@@ -65,44 +65,38 @@ class RecordTransformFilterTest {
 
     @NonNull
     private static RecordTransform jsonTransformation(
-            List<TypeCheckable<?, ?>> keyMappers,
-            List<TypeCheckable<?, ?>> valueMappers) {
+            List<DataMapping<?, ?, ?, ?, ?, ?>> keyMappers,
+            List<DataMapping<?, ?, ?, ?, ?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
-
-                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
-                        Mappers.preserve(NoSchema.class),
-                        NoSchemaSerializer.INSTANCE),
-                new SchemalessDataTransform(JsonDeserializer.INSTANCE,
-                        keyMappers,
-                        JsonSerializer.INSTANCE),
-
-                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
-                        Mappers.preserve(NoSchema.class),
-                        NoSchemaSerializer.INSTANCE),
-                new SchemalessDataTransform(JsonDeserializer.INSTANCE,
-                        valueMappers,
-                        JsonSerializer.INSTANCE));
+                new SchemalessDataTransform(
+                        NoSchemaIdDeserializer.INSTANCE,
+                        JsonFormat.INSTANCE,
+                        Optional.of(Mappers.compose(keyMappers)),
+                        NoSchemaIdSerializer.INSTANCE),
+                new SchemalessDataTransform(
+                        NoSchemaIdDeserializer.INSTANCE,
+                        JsonFormat.INSTANCE,
+                        Optional.of(Mappers.compose(valueMappers)),
+                        NoSchemaIdSerializer.INSTANCE));
     }
 
     @NonNull
     private static RecordTransform bytesTransformation(
-            List<TypeCheckable<?, ?>> keyMappers,
-            List<TypeCheckable<?, ?>> valueMappers) {
+            List<DataMapping<?, ?, ?, ?, ?, ?>> keyMappers,
+            List<DataMapping<?, ?, ?, ?, ?, ?>> valueMappers) {
         return new RecordTransform(
                 Mappers.identityHeaders(),
-                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
-                        Mappers.preserve(NoSchema.class),
-                        NoSchemaSerializer.INSTANCE),
-                new SchemalessDataTransform(BytesDeserializer.INSTANCE,
-                        keyMappers,
-                        BytesSerializer.INSTANCE),
-                new SchemaIdTransform(NoSchemaIdDeserializer.INSTANCE,
-                        Mappers.preserve(NoSchema.class),
-                        NoSchemaSerializer.INSTANCE),
-                new SchemalessDataTransform(BytesDeserializer.INSTANCE,
-                        valueMappers,
-                        BytesSerializer.INSTANCE));
+                new SchemalessDataTransform(
+                        NoSchemaIdDeserializer.INSTANCE,
+                        BytesFormat.INSTANCE,
+                        Optional.of(Mappers.compose(keyMappers)),
+                        NoSchemaIdSerializer.INSTANCE),
+                new SchemalessDataTransform(
+                        NoSchemaIdDeserializer.INSTANCE,
+                        BytesFormat.INSTANCE,
+                        Optional.of(Mappers.compose(valueMappers)),
+                        NoSchemaIdSerializer.INSTANCE));
     }
 
     @NonNull

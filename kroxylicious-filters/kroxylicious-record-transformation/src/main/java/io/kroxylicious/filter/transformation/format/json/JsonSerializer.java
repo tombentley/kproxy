@@ -30,11 +30,6 @@ public class JsonSerializer implements
     }
 
     @Override
-    public Class<JsonNode> acceptedType() {
-        return JsonNode.class;
-    }
-
-    @Override
     public void serialize(JsonNode value, OutputStream out) throws IOException {
         MAPPER.writeValue(out, value);
     }

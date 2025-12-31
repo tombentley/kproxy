@@ -27,11 +27,6 @@ public class BytesSerializer implements Serializer<TransformationInputStream> {
     }
 
     @Override
-    public Class<TransformationInputStream> acceptedType() {
-        return TransformationInputStream.class;
-    }
-
-    @Override
     public void serialize(TransformationInputStream value, OutputStream out) throws IOException {
         if (out instanceof TransformationOutputStream) {
             value.offer((TransformationOutputStream) out);

@@ -13,7 +13,7 @@ import java.util.List;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
-import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.TypeException;
 
@@ -22,11 +22,11 @@ import io.kroxylicious.filter.transformation.api.TypeException;
  * The first byte is the zero ('magic') byte, followed by an 8 byte identifier.
  */
 public class ApicurioHeaderSerializer
-        implements OutputSchemaIdentification<ByteWireId> {
+        implements SchemaIdSerializer<ByteWireId> {
 
 
     @Override
-    public List<Header> prefix(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException  {
+    public List<Header> serializeSchemaId(RecordDataLocation site, ByteWireId schemaId, OutputStream outputStream) throws IOException  {
         if (schemaId.bytes().length == 8) {
             // TODO this won't interoperate with the prefix strategy (e.g. headers to prefix transformations).
             return List.of(new RecordHeader("apicurio." + site + ".globalId", schemaId.bytes()));

@@ -22,15 +22,9 @@ import io.kroxylicious.filter.transformation.api.format.Serializer;
 public class AvroBinarySerializer implements Serializer<Object> {
 
     private final GenericDatumWriter<Object> writer;
-    private BinaryEncoder encoder;
+    private BinaryEncoder cachedEncoder;
 
-    private boolean binary;
-
-    private Schema schema;
-
-    public AvroBinarySerializer(Schema schema, boolean binary) {
-        this.schema = schema;
-        this.binary = binary;
+    public AvroBinarySerializer(Schema schema) {
         this.writer = new GenericDatumWriter<>(schema);
     }
 
@@ -45,13 +39,8 @@ public class AvroBinarySerializer implements Serializer<Object> {
     public void serialize(Object value, OutputStream out) throws IOException {
 
         EncoderFactory encoderFactory = EncoderFactory.get();
-        Encoder encoder;
-        if (binary) {
-            encoder = this.encoder = encoderFactory.directBinaryEncoder(out, this.encoder);
-        }
-        else {
-            encoder = encoderFactory.jsonEncoder(schema, out);
-        }
+        Encoder encoder = this.cachedEncoder = encoderFactory.directBinaryEncoder(out, this.cachedEncoder);
+
 
         writer.write(value, encoder);
         encoder.flush();

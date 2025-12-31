@@ -20,7 +20,7 @@ import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 
 /**
  * A deserializer for Avro-serialized data.
@@ -35,7 +35,7 @@ public class AvroJsonDeserializer implements Deserializer<Schema, Object> {
         if (!TransformationInputStream.class.isAssignableFrom(type.cls())) {
             throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
         }
-        return new Type(NoSchema.class, Schema.class, Object.class);
+        return new Type(NoSchemaId.class, Schema.class, Object.class);
     }
 
     public AvroJsonDeserializer(Schema schema) {
@@ -44,12 +44,12 @@ public class AvroJsonDeserializer implements Deserializer<Schema, Object> {
     }
 
     @Override
-    public SchemaAndValue<Schema, Object> deserialize(InputStream in, Context context) throws IOException {
+    public SchemaAndValue<NoSchemaId, Schema, Object> deserialize(InputStream in, Context context) throws IOException {
         DecoderFactory decoderFactory = DecoderFactory.get();
         Decoder decoder = decoderFactory.jsonDecoder(schema, in);
 
         Object read = reader.read(null, decoder);
 
-        return new SchemaAndValue<>(reader.getSchema(), read);
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, reader.getSchema(), read);
     }
 }

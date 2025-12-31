@@ -6,34 +6,41 @@
 
 package io.kroxylicious.filter.transformation.format.bytes;
 
-import java.io.IOException;
-import java.util.Optional;
+import java.util.Set;
 
 import io.kroxylicious.filter.transformation.TransformationInputStream;
 import io.kroxylicious.filter.transformation.api.format.DataFormat;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-public class BytesFormat implements DataFormat<TransformationInputStream> {
+import edu.umd.cs.findbugs.annotations.Nullable;
+
+public class BytesFormat implements DataFormat<BytesFormat.Encoding, Void, TransformationInputStream> {
+
+    public static final BytesFormat INSTANCE = new BytesFormat();
+
+    public enum Encoding {}
+
+    @Override
+    public Set<Encoding> encodings() {
+        return Set.of();
+    }
+
     @Override
     public WireSchemaId schemaId() {
-        return NoSchema.INSTANCE;
+        return NoSchemaId.INSTANCE;
     }
 
     @Override
-    public Class<TransformationInputStream> type() {
-        return TransformationInputStream.class;
-    }
-
-    @Override
-    public Serializer<TransformationInputStream> serializer() {
+    public Serializer<TransformationInputStream> serializer(@Nullable Encoding encoding) {
         return new BytesSerializer();
     }
 
     @Override
-    public Deserializer<TransformationInputStream> deserializer() {
+    public Deserializer<Void, TransformationInputStream> deserializer(@Nullable Encoding encoding) {
         return new BytesDeserializer();
     }
+
 }

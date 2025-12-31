@@ -17,26 +17,25 @@ import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 
 public class JsonDeserializer implements
-        Deserializer<NoSchema, JsonNode> {
+        Deserializer<Void, JsonNode> {
 
     @Override
     public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
         if (!InputStream.class.isAssignableFrom(type.cls())) {
             throw new TypeException(String.format("Type %s is not assignable to InputStream", type));
         }
-        return new Type(NoSchema.class, null, JsonNode.class);
+        return new Type<>(NoSchemaId.class, Void.class, JsonNode.class);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     public static final JsonDeserializer INSTANCE = new JsonDeserializer();
 
     @Override
-    public SchemaAndValue<NoSchema, JsonNode> deserialize(InputStream in, Context context) throws IOException {
-        var source = MAPPER.readTree(in);
-        return new SchemaAndValue<>(NoSchema.INSTANCE, source);
+    public SchemaAndValue<NoSchemaId, Void, JsonNode> deserialize(InputStream in, Context context) throws IOException {
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, null, MAPPER.readTree(in));
     }
 
 }

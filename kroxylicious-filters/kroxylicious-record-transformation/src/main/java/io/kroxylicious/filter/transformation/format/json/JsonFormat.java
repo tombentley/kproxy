@@ -6,35 +6,39 @@
 
 package io.kroxylicious.filter.transformation.format.json;
 
-import java.io.IOException;
-import java.util.Optional;
+import java.util.Set;
+
+import org.apache.kafka.shaded.com.google.protobuf.DescriptorProtos;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.kroxylicious.filter.transformation.api.format.DataFormat;
 import io.kroxylicious.filter.transformation.api.format.Deserializer;
 import io.kroxylicious.filter.transformation.api.format.Serializer;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
-public class JsonFormat implements DataFormat<JsonNode> {
+public class JsonFormat implements DataFormat<JsonFormat.Encoding, Void, JsonNode> {
+    public static final JsonFormat INSTANCE = new JsonFormat();
+    public enum Encoding {}
+
+    @Override
+    public Set<Encoding> encodings() {
+        return Set.of();
+    }
+
     @Override
     public WireSchemaId schemaId() {
-        return NoSchema.INSTANCE;
+        return NoSchemaId.INSTANCE;
     }
 
     @Override
-    public Class<JsonNode> type() {
-        return JsonNode.class;
-    }
-
-    @Override
-    public Serializer<JsonNode> serializer() {
+    public Serializer<JsonNode> serializer(Encoding encoding) {
         return new JsonSerializer();
     }
 
     @Override
-    public Deserializer<JsonNode> deserializer() {
+    public Deserializer<Void, JsonNode> deserializer(Encoding encoding) {
         return new JsonDeserializer();
     }
 }

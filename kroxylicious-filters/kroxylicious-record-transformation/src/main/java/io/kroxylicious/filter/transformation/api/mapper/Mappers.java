@@ -10,18 +10,28 @@ import java.util.List;
 
 import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 public class Mappers {
     private Mappers() {
     }
 
-    static <W extends WireSchemaId, S, T> DataMapping<S, T, S, T> withSchemaId(W schemaId) {
+    /**
+     * A mapping that replaces removes schema information
+     */
+    public static <W extends WireSchemaId, S, V> DataMapping<W, S, V, NoSchemaId, S, V> noSchemaId() {
+        return withSchemaId(NoSchemaId.INSTANCE);
+    }
+
+    /**
+     * A mapping that replaces the wireSchemaId with the given value
+     */
+    static <W2 extends WireSchemaId, W extends WireSchemaId, S, V> DataMapping<W, S, V, W2, S, V> withSchemaId(W2 schemaId) {
         return new DataMapping<>() {
             @Override
-            public SchemaAndValue<S, T> transform(SchemaAndValue<S, T> value, Context context) {
-                return new SchemaAndValue<>(schemaId, value.schema(), value.value());
+            public SchemaAndValue<W2, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
+                return value.withSchemaId(schemaId);
             }
 
             @Override
@@ -32,10 +42,13 @@ public class Mappers {
         };
     }
 
-    static <S, T> DataMapping<S, T, S, T> identity() {
+    /**
+     * @return The identity mapping
+     */
+    static <W extends WireSchemaId, S, V> DataMapping<W, S, V, W, S, V> identity() {
         return new DataMapping<>() {
             @Override
-            public SchemaAndValue<S, T> transform(SchemaAndValue<S, T> value, Context context) {
+            public SchemaAndValue<W, S, V> transform(SchemaAndValue<W, S, V> value, Context context) {
                 return value;
             }
 
@@ -46,7 +59,15 @@ public class Mappers {
         };
     }
 
-    static <S, T, U, V, W, X> DataMapping<S, T, W, X> compose(DataMapping<S, T, U, V> first, DataMapping<U, V, W, X> andThen) {
+    /**
+     * A mapping that composes two other mappings
+     * @param first the first mapping to be applied
+     * @param andThen the second mapping, which will be applied to the result of the first mapping
+     * @return The composed mapping
+     */
+    static <W1 extends WireSchemaId, S1, V1, W2 extends WireSchemaId, S2, V2, W3 extends WireSchemaId, S3, V3> DataMapping<W1, S1, V1, W3, S3, V3> compose(
+            DataMapping<W1, S1, V1, W2, S2, V2> first,
+            DataMapping<W2, S2, V2, W3, S3, V3> andThen) {
         return new DataMapping<>() {
 
             @Override
@@ -56,22 +77,22 @@ public class Mappers {
             }
 
             @Override
-            public SchemaAndValue<W, X> transform(SchemaAndValue<S, T> value, Context context) {
+            public SchemaAndValue<W3, S3, V3> transform(SchemaAndValue<W1, S1, V1> value, Context context) {
                 var intermediateResult = first.transform(value, context);
                 return andThen.transform(intermediateResult, context);
             }
         };
     }
 
-    public static DataMapping<?, ?, ?, ?> compose(List<DataMapping<?, ?, ?, ?>> mappers) {
+    public static DataMapping<?, ?, ?, ?, ?, ?> compose(List<DataMapping<?, ?, ?, ?, ?, ?>> mappers) {
         if (mappers.isEmpty()) {
             return identity();
         }
         if (mappers.size() == 1) {
             return mappers.get(0);
         }
-        DataMapping<?, ?, ?, ?> result = null;
-        for (DataMapping<?, ?, ?, ?> mapper : mappers) {
+        DataMapping<?, ?, ?, ?, ?, ?> result = null;
+        for (DataMapping<?, ?, ?, ?, ?, ?> mapper : mappers) {
             if (result == null) {
                 result = mapper;
             }
@@ -88,17 +109,5 @@ public class Mappers {
         return (headers, context) -> headers;
     }
 
-    public static <S, V> DataMapping<S, V, S, V> noSchemaId() {
-        return new DataMapping<>() {
-            @Override
-            public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
-                return null;
-            }
 
-            @Override
-            public SchemaAndValue<S, V> transform(SchemaAndValue<S, V> schemaAndValue, Context context) {
-                return new SchemaAndValue<>(NoSchema.INSTANCE, schemaAndValue.schema(), schemaAndValue.value());
-            }
-        };
-    }
 }

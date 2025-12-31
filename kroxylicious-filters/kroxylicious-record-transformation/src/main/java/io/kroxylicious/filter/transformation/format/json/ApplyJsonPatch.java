@@ -13,12 +13,13 @@ import com.flipkart.zjsonpatch.JsonPatch;
 
 import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
-import io.kroxylicious.filter.transformation.api.schema.identification.NoSchema;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
+import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
 /**
  * Apply a given <a href="https://datatracker.ietf.org/doc/html/rfc6902">RFC-6902 JSON Patch</a> to buffers containing data in JSON format.
  */
-public class ApplyJsonPatch implements JsonDataMapping {
+public class ApplyJsonPatch implements JsonDataMapping<WireSchemaId, NoSchemaId> {
 
     private final JsonNode patch;
 
@@ -28,10 +29,10 @@ public class ApplyJsonPatch implements JsonDataMapping {
     }
 
     @Override
-    public SchemaAndValue<Void, JsonNode> transform(SchemaAndValue<Object, JsonNode> value,
+    public SchemaAndValue<NoSchemaId, Void, JsonNode> transform(SchemaAndValue<WireSchemaId, Object, JsonNode> value,
                                                     Context context) {
         JsonNode target = JsonPatch.apply(patch, value.value());
-        return new SchemaAndValue<>(NoSchema.INSTANCE, null, target);
+        return new SchemaAndValue<>(NoSchemaId.INSTANCE, null, target);
     }
 
 }

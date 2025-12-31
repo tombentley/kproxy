@@ -4,13 +4,14 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.api;
 
 import java.nio.ByteBuffer;
 
 import org.apache.kafka.common.record.Record;
 
-import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
+import io.kroxylicious.filter.transformation.model.DataTransform;
+import io.kroxylicious.filter.transformation.model.RecordTransform;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -22,10 +23,17 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
     KeyDataLocation KEY = new KeyDataLocation();
     ValueDataLocation VALUE = new ValueDataLocation();
 
+    /**
+     * @param record The record
+     * @return The buffer of data at this location, or null
+     */
     @Nullable ByteBuffer buffer(Record record);
 
-    SchemalessDataTransform dataTransform(RecordTransform transformation);
-    SchemaIdTransform<WireSchemaId, WireSchemaId> schemaIdTransform(RecordTransform transformation);
+    /**
+     * @param transformation The transform
+     * @return The transformation to be applied at this location
+     */
+    DataTransform<?, ?, ?, ?, ?, ?> dataTransform(RecordTransform transformation);
 
     record KeyDataLocation() implements RecordDataLocation {
 
@@ -35,13 +43,8 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public SchemalessDataTransform dataTransform(RecordTransform transformation) {
+        public DataTransform<?, ?, ?, ?, ?, ?> dataTransform(RecordTransform transformation) {
             return transformation.keyTransform();
-        }
-
-        @Override
-        public SchemaIdTransform<WireSchemaId, WireSchemaId> schemaIdTransform(RecordTransform transformation) {
-            return transformation.keySchemaIdTransform();
         }
     }
 
@@ -53,14 +56,10 @@ public sealed interface RecordDataLocation permits RecordDataLocation.KeyDataLoc
         }
 
         @Override
-        public SchemalessDataTransform dataTransform(RecordTransform transformation) {
+        public DataTransform<?, ?, ?, ?, ?, ?> dataTransform(RecordTransform transformation) {
             return transformation.valueTransform();
         }
 
-        @Override
-        public SchemaIdTransform<WireSchemaId, WireSchemaId> schemaIdTransform(RecordTransform transformation) {
-            return transformation.valueSchemaIdTransform();
-        }
 
     }
 }

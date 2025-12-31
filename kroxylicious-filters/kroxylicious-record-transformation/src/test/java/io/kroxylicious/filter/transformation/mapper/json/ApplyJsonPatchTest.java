@@ -16,8 +16,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.InvalidJsonPatchException;
 
-import io.kroxylicious.filter.transformation.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.RecordDataLocation;
+import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.format.json.ApplyJsonPatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,22 +55,12 @@ public class ApplyJsonPatchTest {
     }
 
     @Test
-    void shouldHaveJsonNodeAccetpedType() {
-        assertThat(ADD_ONE.acceptedType()).isEqualTo(JsonNode.class);
-    }
-
-    @Test
-    void shouldHaveJsonNodeReturnType() {
-        assertThat(ADD_ONE.returnedType()).isEqualTo(JsonNode.class);
-    }
-
-    @Test
     void shouldApply() {
         // Given
         ObjectNode node = OBJECT_MAPPER.getNodeFactory().objectNode();
 
         // When
-        var transformedNode = ADD_ONE.transform(node, new Context("", List.of(), RecordDataLocation.KEY));
+        var transformedNode = ADD_ONE.transform(new SchemaAndValue<>(NoSchemaId.INSTANCE, null, node), new Context("", List.of(), RecordDataLocation.KEY)).value();
 
         // Then
         assertThat(transformedNode.isObject()).isTrue();

@@ -35,13 +35,13 @@ public abstract class AbstractPrefixedSchemaIdDeserializer
     }
 
     @Override
-    public SchemaAndValue<Void, InputStream> deserialize(InputStream in, Context context) throws IOException {
-        in.mark(1);
-        int maybeMagic = in.read();
-        in.reset();
-        if (maybeMagic == magic && in.available() >= prefixLengthWithMagic) {
+    public SchemaAndValue<ByteWireId, Void, InputStream> deserialize(InputStream stream, Context context) throws IOException {
+        stream.mark(1);
+        int maybeMagic = stream.read();
+        stream.reset();
+        if (maybeMagic == magic && stream.available() >= prefixLengthWithMagic) {
             // Note that we intentionally include the magic byte.
-            return new SchemaAndValue<>(new ByteWireId(in.readNBytes(prefixLengthWithMagic)), null, in);
+            return new SchemaAndValue<>(new ByteWireId(stream.readNBytes(prefixLengthWithMagic)), null, stream);
         }
         return null;
     }

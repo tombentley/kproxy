@@ -12,17 +12,13 @@ import java.io.InputStream;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParser;
 
-import io.kroxylicious.filter.transformation.api.format.Deserializer;
-import io.kroxylicious.filter.transformation.api.mapper.Context;
-
 /**
  * Encapsulate Avro schema parsing.
  * Compose with a {@link AvroDeserializerFactory} to obtain a deserializer for Avro data.
  */
-public class AvroSchemaDeserializer implements Deserializer<Schema> {
+public class AvroSchemaDeserializer {
 
-    @Override
-    public Schema deserialize(InputStream in, Context context) throws IOException {
+    public Schema deserialize(InputStream in) throws IOException {
         SchemaParser parser = new SchemaParser();
         SchemaParser.ParseResult parse = parser.parse(in);
         return parse.mainSchema();

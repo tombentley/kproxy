@@ -8,25 +8,21 @@ package io.kroxylicious.filter.transformation.format.avro;
 
 import org.apache.avro.Schema;
 
+import io.kroxylicious.filter.transformation.api.Type;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
  * Maps from an Avro {@link Schema} to an {@link AvroBinaryDeserializer}
  */
-public class AvroDeserializerFactory implements TypeCheckable<Schema, AvroBinaryDeserializer> {
-
-    @Override
-    public Class<Schema> acceptedType() {
-        return Schema.class;
-    }
-
-    @Override
-    public Class<AvroBinaryDeserializer> returnedType() {
-        return AvroBinaryDeserializer.class;
-    }
+public class AvroDeserializerFactory implements TypeCheckable {
 
     public AvroBinaryDeserializer transform(Schema schema, Context context) {
-        return new AvroBinaryDeserializer(schema, true);
+        return new AvroBinaryDeserializer(schema);
+    }
+
+    @Override
+    public Type<?, ?, ?> typeCheck(Type<?, ?, ?> type) {
+        return null;
     }
 }
