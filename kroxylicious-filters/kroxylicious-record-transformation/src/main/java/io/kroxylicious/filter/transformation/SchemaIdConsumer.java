@@ -21,6 +21,7 @@ import org.apache.kafka.common.record.RecordBatch;
 
 import io.kroxylicious.filter.transformation.api.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.mapper.Context;
+import io.kroxylicious.filter.transformation.api.schema.identification.NoSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdDeserializer;
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 import io.kroxylicious.kafka.transform.RecordConsumer;
@@ -33,11 +34,11 @@ import io.kroxylicious.kafka.transform.RecordStream;
 class SchemaIdConsumer implements RecordConsumer<Void> {
 
     private final Map<RecordDataLocation, SchemaIdDeserializer<?>> recordTransform;
-
     private final String topicName;
     private final Set<WireSchemaId> schemas = new HashSet<>();
 
-    private SchemaIdConsumer(String topicName, Map<RecordDataLocation, SchemaIdDeserializer<?>> recordTransform) {
+    private SchemaIdConsumer(String topicName,
+                             Map<RecordDataLocation, SchemaIdDeserializer<?>> recordTransform) {
         this.topicName = topicName;
         this.recordTransform = recordTransform;
     }
@@ -57,19 +58,22 @@ class SchemaIdConsumer implements RecordConsumer<Void> {
     @Override
     public void accept(RecordBatch batch, Record record, Void state) {
         try {
-            this.schemas.add(schemaId(RecordDataLocation.KEY, record));
-            this.schemas.add(schemaId(RecordDataLocation.VALUE, record));
+            maybeAddSchemaId(RecordDataLocation.KEY, record);
+            maybeAddSchemaId(RecordDataLocation.VALUE, record);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private WireSchemaId schemaId(RecordDataLocation site,
+    private void maybeAddSchemaId(RecordDataLocation site,
                                   Record record) throws IOException {
         SchemaIdDeserializer<?> schemaIdDeserializer = recordTransform.get(site);
         Context context = new Context(topicName, List.of(record.headers()), site);
-        return schemaId(record, context, schemaIdDeserializer);
+        WireSchemaId wireSchemaId = schemaId(record, context, schemaIdDeserializer);
+        if (wireSchemaId != null && !(wireSchemaId instanceof NoSchemaId)) {
+            this.schemas.add(wireSchemaId);
+        }
     }
 
     public static WireSchemaId schemaId(Record record,
@@ -78,7 +82,7 @@ class SchemaIdConsumer implements RecordConsumer<Void> {
             throws IOException {
         ByteBuffer buffer = context.location().buffer(record);
         TransformationInputStream in = new TransformationInputStream(buffer != null ? buffer : ByteBuffer.wrap(new byte[0]));
-        var schemaTaggedStream = schemaIdDeserializer.deserialize(in, context);
-        return schemaTaggedStream.schemaId();
+        var schemaAndValue = schemaIdDeserializer.deserialize(in, context);
+        return schemaAndValue.schemaId();
     }
 }

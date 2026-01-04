@@ -25,7 +25,7 @@ public record EarlyBoundDataTransform<W extends WireSchemaId, S, V,
         DataFormat<S, V> dataFormat,
         Optional<DataMapping<W, S, V, W2, S2, V2>> mapperOpt,
         SchemaIdSerializer<W2> schemaIdSerializer
-) implements DataTransform {
+) implements DataTransform<W, S, V, W2, S2, V2> {
 
     public EarlyBoundDataTransform {
         Objects.requireNonNull(dataFormat);
@@ -41,6 +41,4 @@ public record EarlyBoundDataTransform<W extends WireSchemaId, S, V,
         }
         serializer.accepts(type);
     }
-
-
 }

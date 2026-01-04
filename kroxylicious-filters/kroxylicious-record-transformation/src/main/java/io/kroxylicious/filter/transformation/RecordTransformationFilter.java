@@ -36,26 +36,24 @@ import io.kroxylicious.filter.transformation.api.schema.identification.SchemaIdD
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 import io.kroxylicious.filter.transformation.api.schema.registry.ResolvedSchema;
 import io.kroxylicious.filter.transformation.api.schema.registry.SchemaRegistry;
-import io.kroxylicious.filter.transformation.api.schema.registry.UnsupportedSchemaIdTypeException;
 import io.kroxylicious.filter.transformation.format.avro.AvroFormat;
 import io.kroxylicious.filter.transformation.format.avro.AvroSchemaDeserializer;
 import io.kroxylicious.filter.transformation.format.json.JsonFormat;
+import io.kroxylicious.filter.transformation.model.EarlyBoundDataTransform;
 import io.kroxylicious.filter.transformation.model.LateBoundDataTransform;
 import io.kroxylicious.filter.transformation.model.RecordTransform;
-import io.kroxylicious.filter.transformation.model.EarlyBoundDataTransform;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.proxy.filter.ApiVersionsResponseFilter;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 @SuppressWarnings("java:S6213") // `record` is a perfectly acceptable identifier
 public class RecordTransformationFilter implements ApiVersionsResponseFilter, FetchResponseFilter {
 
     public static final short LATEST_FETCH_API_VERSION_USING_TOPIC_NAMES = (short) 12;
-    Map<String, RecordTransform> transformations;
+
+    private final Map<String, RecordTransform> transformations;
 
     public RecordTransformationFilter(Map<String, RecordTransform> transformations) {
         this.transformations = transformations;
@@ -128,11 +126,11 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
     }
 
     private static CompletableFuture<MemoryRecords> applyRecordTransformation(String topicName,
-                                                           MemoryRecords records,
-                                                           ByteBufferOutputStream byteBufferOutputStream,
-                                                           RecordTransform recordTransform) {
+                                                                              MemoryRecords records,
+                                                                              ByteBufferOutputStream byteBufferOutputStream,
+                                                                              RecordTransform recordTransform) {
 
-        Set<WireSchemaId> schemaIds = schemaIds(topicName, records, recordTransform);
+        Set<WireSchemaId> schemaIds = collectSchemaIds(topicName, records, recordTransform);
 
         if (schemaIds.isEmpty()) {
             BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction = (context, record) -> {
@@ -149,12 +147,7 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
         }
         else {
             SchemaRegistry registry = null;
-            var notSupported = schemaIds.stream().map(WireSchemaId::getClass).filter(schemaId -> !registry.supports(schemaId)).map(Class::getName).collect(Collectors.joining(", "));
-            if (!notSupported.isEmpty()) {
-                throw new UnsupportedSchemaIdTypeException(
-                        String.format("Schema registry %s does not support schema ids of type %s",
-                        registry, notSupported));
-            }
+            registry.checkSchemaIdsSupported(schemaIds);
             // At least one datum in at least one of the records depends on a late-bound schema
             CompletableFuture[] futures = schemaIds.stream().map(registry::getSchema).toArray(CompletableFuture[]::new);
             return CompletableFuture.allOf(futures).thenApply(
@@ -179,7 +172,6 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
         }
     }
 
-    @NonNull
     private static MemoryRecords transformMemoryRecords(String topicName,
                                                         MemoryRecords records,
                                                         ByteBufferOutputStream byteBufferOutputStream,
@@ -190,10 +182,9 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
                         new SchemalessRecordTransformer(topicName, recordTransform, formatFunction));
     }
 
-    @NonNull
-    private static Set<WireSchemaId> schemaIds(String topicName,
-                                               MemoryRecords records,
-                                               RecordTransform recordTransform) {
+    private static Set<WireSchemaId> collectSchemaIds(String topicName,
+                                                      MemoryRecords records,
+                                                      RecordTransform recordTransform) {
         var lateBound = new HashMap<RecordDataLocation, SchemaIdDeserializer<?>>(5);
         if (recordTransform.keyTransform() instanceof LateBoundDataTransform<?, ?, ?, ?, ?, ?> keyTransform) {
             lateBound.put(RecordDataLocation.KEY, keyTransform.schemaIdDeserializer());
@@ -203,7 +194,6 @@ public class RecordTransformationFilter implements ApiVersionsResponseFilter, Fe
         }
         Set<WireSchemaId> schemaIds;
         if (!lateBound.isEmpty()) {
-            // iteration!
             schemaIds = SchemaIdConsumer.schemaIds(topicName, lateBound, records);
         }
         else {

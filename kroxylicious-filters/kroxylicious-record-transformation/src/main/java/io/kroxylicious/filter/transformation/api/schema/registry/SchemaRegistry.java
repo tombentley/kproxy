@@ -6,7 +6,9 @@
 
 package io.kroxylicious.filter.transformation.api.schema.registry;
 
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import io.kroxylicious.filter.transformation.api.schema.identification.WireSchemaId;
 
@@ -17,6 +19,16 @@ public interface SchemaRegistry {
      * @return true iff this registry implementation supports the given kind of schema id
      */
     boolean supports(Class<? extends WireSchemaId> schemaIdType);
+
+    default void checkSchemaIdsSupported(Set<WireSchemaId> schemaIds) {
+        var notSupported = schemaIds.stream().map(WireSchemaId::getClass)
+                .filter(schemaId -> !supports(schemaId)).map(Class::getName).collect(Collectors.joining(", "));
+        if (!notSupported.isEmpty()) {
+            throw new UnsupportedSchemaIdTypeException(
+                    String.format("Schema registry %s does not support schema ids of type %s",
+                            this, notSupported));
+        }
+    }
 
     /**
      * Returns a completion stage for the resolved schema for the given schema id.

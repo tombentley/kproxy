@@ -14,7 +14,7 @@ import io.kroxylicious.filter.transformation.api.mapper.Context;
 import io.kroxylicious.filter.transformation.api.mapper.TypeCheckable;
 
 /**
- * A Deserializer that identifies a schema for the data that it is to read.
+ * Identifies a schema for the data to be deserialized.
  * If the implementation of {@link #deserialize(InputStream, Context)} needs to read
  * from the input stream to do this then the stream should be left so
  * that the next call to read will return the start of the data.

@@ -15,7 +15,7 @@ public class FourByteSchemaIdDeserializer extends PrefixedSchemaIdDeserializer<F
     public static final FourByteSchemaIdDeserializer INSTANCE = new FourByteSchemaIdDeserializer();
 
     FourByteSchemaIdDeserializer() {
-        super(0x00, 4);
+        super((byte) 0x00, 4);
     }
 
     @Override
