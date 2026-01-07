@@ -12,8 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class RecordTransformationConfigTest {
     ObjectMapper objectMapper = new YAMLMapper();
     @Test
@@ -56,21 +54,20 @@ class RecordTransformationConfigTest {
                       - topicName: invoices
                         valueFormat: Invoice  ## implied by the mappings and/or the presence of schema
                         tranformations:
-                          - type: JsonPatch
-                            config: 
-                              recordKey: 
-                                - op: remove
-                                  path: /name
+                          - type: JsonRemove
+                            config:
+                              recordKey:
+                                - path: /name
                           - type: AvroReplaceField
                             config: # a value transform
                               recordValue:
                                 fieldName: name
                                 stringValue: "***"
-                          - type: AppendRecordHeader:
+                          - type: AppendRecordHeader
                             config:
                               headerKey: my-header
                               utf8Value: hello-world
-                          - type: Replace
+                          - type: ReplaceRecordHeader
                             config: 
                               headerKey: your-header
                               base64Value: vrnui45908gj8034

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.transformation;
+package io.kroxylicious.filter.transformation.aafresh;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,6 +22,8 @@ import org.apache.kafka.common.record.CompressionType;
 import org.apache.kafka.common.record.Record;
 import org.apache.kafka.common.record.RecordBatch;
 
+import io.kroxylicious.filter.transformation.TransformationInputStream;
+import io.kroxylicious.filter.transformation.TransformationOutputStream;
 import io.kroxylicious.filter.transformation.api.RecordDataLocation;
 import io.kroxylicious.filter.transformation.api.SchemaAndValue;
 import io.kroxylicious.filter.transformation.api.Type;
@@ -42,12 +44,11 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * The thing that actually transforms records.
  */
 @SuppressWarnings("java:S6213") // `record` is a perfectly acceptable identifier
-class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.RecordTransform<Void> {
+class MappingRecordTransformer implements io.kroxylicious.kafka.transform.RecordTransform<Void> {
 
-    private final boolean typeCheck = false;
     private final String topicName;
     private final RecordTransform recordTransform;
-    private final BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction;
+    private final BiFunction<Context, Record, RecordFormat> dataFormatFunction;
 
     private Header[] transformedHeaders;
     private ByteBuffer transformedKey;
@@ -55,9 +56,9 @@ class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.Rec
     private TransformationOutputStream keyOut;
     private TransformationOutputStream valueOut;
 
-    SchemalessRecordTransformer(String topicName,
-                                RecordTransform recordTransform,
-                                BiFunction<Context, Record, DataFormat<?, ?>> dataFormatFunction) {
+    MappingRecordTransformer(String topicName,
+                             RecordTransform recordTransform,
+                             BiFunction<Context, Record, RecordFormat> dataFormatFunction) {
         this.topicName = topicName;
         this.recordTransform = recordTransform;
         this.dataFormatFunction = dataFormatFunction;
@@ -139,18 +140,33 @@ class SchemalessRecordTransformer implements io.kroxylicious.kafka.transform.Rec
                                                    Record record,
                                                    TransformationOutputStream out) throws IOException {
         Context context = new Context(topicName, List.of(record.headers()), dataLocation);
-        var dataFormat = dataFormatFunction.apply(context, record);
-        var deserializer = dataFormat.deserializer(dataFormat.defaultEncoding());
+        var recordFormat = dataFormatFunction.apply(context, record);
+        Deser<?> keyDeser = recordFormat.keyFormat();
+        Deser<?> valueDeser = recordFormat.valueFormat();
+        var key = keyDeser.deser(new TransformationInputStream(record.key()));
+        var value = valueDeser.deser(new TransformationInputStream(record.value()));
 
-        DataMapping dataMapping = dataLocation.dataTransform(recordTransform).mapperOpt().get();
+        MappingRecord2<?, ?> mappingRecord = new MappingRecord2<>(List.of(record.headers()), key, value);
+        RecordMapping2 recordMapping = null;
+        mappingRecord = recordMapping.transform(mappingRecord, context);
+        // ////////////////////////////
+        // TODO How do we serialize this? The mapping record doesn't provide its own schema info
+        // But do we need it to? The AvroRoot contains a schema, which could be extracted by an avro specific serializer
+
+        // TODO Assuming a change of schema, how to we figure out the new schema id?
+        //  We could argue that schemas come either from the config or from a registry
+        //  If from a registry then we know a schema id
+        //  If from a config when why do we need an id? (We could assume/require id-less on serialization, or we turn it into the first case using an inmemory registry)
+        //  The problem _then_ is that we know the schema, but we need it's id
+        //  Avro supports canonical schemas, but pb does not
+        //  So we need to preserve ids through the mappings, but that doesn't need to be a first class thing
+        //  (We could bury it in AvroRoot), but that makes schema id transformations
+        //  tied to a particular format.
+
+        // ////////////////////////////
         SchemaIdSerializer schemaIdSerializer = dataLocation.dataTransform(recordTransform).schemaIdSerializer();
         var serializer = dataFormat.serializer(dataFormat.defaultEncoding());
-        if (typeCheck) {
-            Type<?, ?, ?> type = deserializer.typeCheck(Type.fromBytes());
-            type = dataMapping.typeCheck(type);
-            type = schemaIdSerializer.typeCheck(type);
-            serializer.accepts(type);
-        }
+
         return transform(context, record, deserializer, dataMapping, schemaIdSerializer, serializer, out);
     }
 
