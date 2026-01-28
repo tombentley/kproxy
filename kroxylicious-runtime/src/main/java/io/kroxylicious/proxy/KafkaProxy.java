@@ -167,6 +167,9 @@ public final class KafkaProxy implements AutoCloseable {
                 .addKeyValue("virtualCluster", clusterName)
                 .addKeyValue("error", cause.map(Throwable::getMessage).orElse(null))
                 .log("Virtual cluster reached terminal stopped state, proxy shutdown required"));
+
+        // Set the PluginFactoryRegistry on each VirtualClusterModel for dynamic credential supplier support
+        this.virtualClusterModels.forEach(model -> model.setPluginFactoryRegistry(pfr));
     }
 
     @VisibleForTesting
