@@ -160,16 +160,13 @@ public final class KafkaProxy implements AutoCloseable {
     public KafkaProxy(PluginFactoryRegistry pfr, Configuration config, Features features) {
         this.pfr = requireNonNull(pfr);
         this.config = validate(requireNonNull(config), requireNonNull(features));
-        this.virtualClusterModels = config.virtualClusterModel();
+        this.virtualClusterModels = config.virtualClusterModel(pfr);
         this.managementConfiguration = config.management();
         this.micrometerConfig = config.getMicrometer();
         this.virtualClusterManager = new VirtualClusterManager(virtualClusterModels, (clusterName, cause) -> STARTUP_SHUTDOWN_LOGGER.atWarn()
                 .addKeyValue("virtualCluster", clusterName)
                 .addKeyValue("error", cause.map(Throwable::getMessage).orElse(null))
                 .log("Virtual cluster reached terminal stopped state, proxy shutdown required"));
-
-        // Set the PluginFactoryRegistry on each VirtualClusterModel for dynamic credential supplier support
-        this.virtualClusterModels.forEach(model -> model.setPluginFactoryRegistry(pfr));
     }
 
     @VisibleForTesting
@@ -403,6 +400,8 @@ public final class KafkaProxy implements AutoCloseable {
             }
         }
         finally {
+            // Close virtual cluster models to release TLS credential supplier resources
+            virtualClusterModels.forEach(VirtualClusterModel::close);
             managementEventGroup = null;
             proxyEventGroup = null;
             meterRegistries = null;
