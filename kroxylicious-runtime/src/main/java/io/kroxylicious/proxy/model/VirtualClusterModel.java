@@ -82,27 +82,15 @@ public class VirtualClusterModel {
     @Nullable
     private TopicNameCacheFilter topicNameCacheFilter = null;
 
-    @Nullable
-    private final PluginFactoryRegistry pluginFactoryRegistry;
-
     private final TlsCredentialSupplierManager tlsCredentialSupplierManager;
 
+    @VisibleForTesting
     public VirtualClusterModel(String clusterName,
                                TargetCluster targetCluster,
                                boolean logNetwork,
                                boolean logFrames,
                                List<NamedFilterDefinition> filters) {
         this(clusterName, targetCluster, logNetwork, logFrames, filters, new CacheConfiguration(null, null, null), null, null);
-    }
-
-    public VirtualClusterModel(String clusterName,
-                               TargetCluster targetCluster,
-                               boolean logNetwork,
-                               boolean logFrames,
-                               List<NamedFilterDefinition> filters,
-                               CacheConfiguration topicNameCacheConfig,
-                               @Nullable TransportSubjectBuilderConfig transportSubjectBuilderConfig) {
-        this(clusterName, targetCluster, logNetwork, logFrames, filters, topicNameCacheConfig, transportSubjectBuilderConfig, null);
     }
 
     public VirtualClusterModel(String clusterName,
@@ -120,7 +108,6 @@ public class VirtualClusterModel {
         this.filters = filters;
         this.topicNameCacheConfig = topicNameCacheConfig;
         this.transportSubjectBuilderConfig = transportSubjectBuilderConfig;
-        this.pluginFactoryRegistry = pluginFactoryRegistry;
 
         if (pluginFactoryRegistry != null) {
             TlsCredentialSupplierConfig definition = targetCluster.tls()
