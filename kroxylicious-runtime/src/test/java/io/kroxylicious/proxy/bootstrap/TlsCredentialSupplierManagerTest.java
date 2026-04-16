@@ -302,7 +302,7 @@ class TlsCredentialSupplierManagerTest {
                 return mock(ServerTlsCredentialSupplier.class);
             }
 
-            public boolean wasPluginInstanceCalled() {
+            private boolean wasPluginInstanceCalled() {
                 return pluginInstanceCalled;
             }
         }
@@ -524,7 +524,7 @@ class TlsCredentialSupplierManagerTest {
                 assertThat(initializationData.sharedResource()).isEqualTo("SharedResource-test-value");
             }
 
-            public boolean wasCloseCalled() {
+            private boolean wasCloseCalled() {
                 return closeCalled;
             }
         }
