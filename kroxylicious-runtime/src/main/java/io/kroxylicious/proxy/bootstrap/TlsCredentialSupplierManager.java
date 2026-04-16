@@ -98,14 +98,14 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
             }
         }
 
-        public ServerTlsCredentialSupplier getSupplier() {
+        private ServerTlsCredentialSupplier getSupplier() {
             if (closed.get()) {
                 throw new IllegalStateException("TLS credential supplier factory " + definition.type() + " is closed");
             }
             return supplier;
         }
 
-        public void close() {
+        private void close() {
             if (!this.closed.getAndSet(true)) {
                 try {
                     factory.close(initializationData);
