@@ -163,7 +163,10 @@ public class TlsUtil {
                 return keyFactory.generatePrivate(keySpec);
             }
             catch (InvalidKeySpecException e) {
-                LOGGER.debug("Failed to parse private key as {}, trying next algorithm", algorithm);
+                LOGGER.atDebug()
+                        .addKeyValue("algorithm", algorithm)
+                        .log("Failed to parse private key for algorithm");
+
             }
         }
         throw new IOException("Failed to parse private key with any supported algorithm");
@@ -283,11 +286,15 @@ public class TlsUtil {
         switch (algorithm) {
             case "RSA" -> validateRsaKeyMatch(privateKey, publicKey);
             case "EC" -> validateEcKeyMatch(privateKey, publicKey);
-            case "DSA" -> LOGGER.debug("DSA key-certificate matching validated via algorithm check");
-            default -> LOGGER.debug("Key-certificate matching for {} validated via algorithm check", algorithm);
+            case "DSA" -> LOGGER.atDebug().log("DSA key-certificate matching validated via algorithm check");
+            default -> LOGGER.atDebug()
+                    .addKeyValue("algorithm", algorithm)
+                    .log("Key-certificate matching validated via algorithm check");
         }
 
-        LOGGER.debug("Private key and certificate public key validated successfully: {}", algorithm);
+        LOGGER.atDebug()
+                .addKeyValue("algorithm", algorithm)
+                .log("Private key and certificate public key validated successfully");
     }
 
     /**
@@ -319,7 +326,8 @@ public class TlsUtil {
                             "The private key does not correspond to the certificate.");
         }
 
-        LOGGER.debug("RSA key modulus match validated");
+        LOGGER.atDebug()
+                .log("RSA key modulus match validated");
     }
 
     /**
@@ -350,7 +358,8 @@ public class TlsUtil {
                     "The private key does not correspond to the certificate.");
         }
 
-        LOGGER.debug("EC key-certificate match validated via curve parameter comparison");
+        LOGGER.atDebug()
+                .log("EC key-certificate match validated via curve parameter comparison");
     }
 
     /**
@@ -406,7 +415,8 @@ public class TlsUtil {
             validateChainOrderAndSignatures(certChain, now);
         }
 
-        LOGGER.debug("Certificate chain validation passed: {} certificates in chain", certChain.length);
+        LOGGER.atDebug()
+                .log("Certificate chain validation passed: {} certificates in chain", certChain.length);
     }
 
     /**

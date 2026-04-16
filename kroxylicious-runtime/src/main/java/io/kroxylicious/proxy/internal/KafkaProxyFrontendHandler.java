@@ -450,7 +450,12 @@ public class KafkaProxyFrontendHandler
                 supplier.tlsCredentials(supplierContext).whenComplete((credentials, throwable) -> {
                     outboundChannel.eventLoop().execute(() -> {
                         if (throwable != null) {
-                            LOGGER.error("TLS credential supplier failed for {}", remote, throwable);
+                            LOGGER.atError()
+                                    .addKeyValue("remote", remote)
+                                    .addKeyValue("error", throwable.getMessage())
+                                    .setCause(LOGGER.isDebugEnabled() ? throwable : null)
+                                    .log("TLS credential supplier failed{}",
+                                            LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
                             proxyChannelStateMachine.onServerException(
                                     new IllegalStateException("Failed to obtain TLS credentials", throwable));
                         }
@@ -466,7 +471,12 @@ public class KafkaProxyFrontendHandler
             });
         }
         catch (Exception e) {
-            LOGGER.error("Error invoking TLS credential supplier for {}", remote, e);
+            LOGGER.atError()
+                    .addKeyValue("remote", remote)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(LOGGER.isDebugEnabled() ? e : null)
+                    .log("Error invoking TLS credential supplier{}",
+                            LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
             proxyChannelStateMachine.onServerException(e);
         }
     }
@@ -505,10 +515,17 @@ public class KafkaProxyFrontendHandler
             final SslHandler handler = sslContext.newHandler(outboundChannel.alloc(), remote.host(), remote.port());
             pipeline.addFirst("ssl", handler);
 
-            LOGGER.debug("Successfully configured dynamic TLS credentials for connection to {}", remote);
+            LOGGER.atDebug()
+                    .addKeyValue("remote", remote)
+                    .log("Successfully configured dynamic TLS credentials");
         }
         catch (Exception e) {
-            LOGGER.error("Error applying TLS credentials to channel for connection to {}", remote, e);
+            LOGGER.atError()
+                    .addKeyValue("remote", remote)
+                    .addKeyValue("error", e.getMessage())
+                    .setCause(LOGGER.isDebugEnabled() ? e : null)
+                    .log("Error applying TLS credentials to channel{}",
+                            LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
             proxyChannelStateMachine.onServerException(e);
         }
     }

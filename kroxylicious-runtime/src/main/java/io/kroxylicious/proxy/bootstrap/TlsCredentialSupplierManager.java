@@ -77,7 +77,9 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
             // Eagerly create the shared supplier instance
             try {
                 this.supplier = factory.create(context, initializationData);
-                LOGGER.debug("Created shared TLS credential supplier instance from factory {}", definition.type());
+                LOGGER.atDebug()
+                        .addKeyValue("factory", definition.type())
+                        .log("Created shared TLS credential supplier instance from factory");
             }
             catch (Exception e) {
                 // Clean up initialization data if supplier creation fails
@@ -85,7 +87,11 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
                     factory.close(initializationData);
                 }
                 catch (Exception closeEx) {
-                    LOGGER.warn("Exception closing factory after supplier creation failure", closeEx);
+                    LOGGER.atWarn()
+                            .addKeyValue("error", closeEx.getMessage())
+                            .setCause(LOGGER.isDebugEnabled() ? closeEx : null)
+                            .log("Exception closing factory after supplier creation failure{}",
+                                    LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
                 }
                 throw new PluginConfigurationException(
                         "Exception creating TLS credential supplier " + definition.type() + " using factory " + factory, e);
@@ -103,10 +109,17 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
             if (!this.closed.getAndSet(true)) {
                 try {
                     factory.close(initializationData);
-                    LOGGER.debug("Closed TLS credential supplier factory {}", definition.type());
+                    LOGGER.atDebug()
+                            .addKeyValue("factory", definition.type())
+                            .log("Closed TLS credential supplier factory");
                 }
                 catch (Exception e) {
-                    LOGGER.warn("Exception closing TLS credential supplier factory {}", definition.type(), e);
+                    LOGGER.atWarn()
+                            .addKeyValue("factory", definition.type())
+                            .addKeyValue("error", e.getMessage())
+                            .setCause(LOGGER.isDebugEnabled() ? e : null)
+                            .log("Exception closing TLS credential supplier factory{}",
+                                    LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
                 }
             }
         }
@@ -149,7 +162,8 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
 
         if (definition == null) {
             this.factoryWrapper = null;
-            LOGGER.debug("No TLS credential supplier configured");
+            LOGGER.atDebug()
+                    .log("No TLS credential supplier configured");
         }
         else {
             @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -181,7 +195,9 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
 
                 if (definition.config() == null || configType.isInstance(definition.config())) {
                     wrapper = new FactoryWrapper(context, definition, factory);
-                    LOGGER.info("Initialized TLS credential supplier factory: {}", definition.type());
+                    LOGGER.atInfo()
+                            .addKeyValue("factory", definition.type())
+                            .log("Initialized TLS credential supplier");
                 }
                 else {
                     throw new PluginConfigurationException(
