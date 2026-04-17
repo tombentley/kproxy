@@ -22,6 +22,7 @@ import io.kroxylicious.proxy.tls.ServerTlsCredentialSupplierFactory;
 import io.kroxylicious.proxy.tls.ServerTlsCredentialSupplierFactoryContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -407,8 +408,7 @@ class TlsCredentialSupplierManagerTest {
     @Test
     void testCloseWithNullDefinition() {
         TlsCredentialSupplierManager manager = new TlsCredentialSupplierManager(pfr, null);
-        // Should not throw
-        manager.close();
+        assertThatCode(manager::close).doesNotThrowAnyException();
     }
 
     @Test
@@ -647,7 +647,6 @@ class TlsCredentialSupplierManagerTest {
     @Test
     void testUnconfiguredManagerCloseIsNoOp() {
         TlsCredentialSupplierManager manager = TlsCredentialSupplierManager.unconfigured();
-        // Should not throw
-        manager.close();
+        assertThatCode(manager::close).doesNotThrowAnyException();
     }
 }

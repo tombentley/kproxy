@@ -23,6 +23,7 @@ import io.kroxylicious.proxy.plugin.Plugins;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -304,6 +305,6 @@ class MockServerTlsCredentialSupplierImplementationsTest {
 
         DefaultCloseFactory factory = new DefaultCloseFactory();
         SimpleConfig config = new SimpleConfig("test");
-        factory.close(config);
+        assertThatCode(() -> factory.close(config)).doesNotThrowAnyException();
     }
 }
