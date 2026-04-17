@@ -189,31 +189,19 @@ public class TlsCredentialSupplierManager implements AutoCloseable {
                 }
             };
 
-            FactoryWrapper wrapper = null;
-            try {
-                ServerTlsCredentialSupplierFactory<? super Object, ? super Object> factory = pluginFactory.pluginInstance(definition.type());
-                Class<?> configType = pluginFactory.configType(definition.type());
+            ServerTlsCredentialSupplierFactory<? super Object, ? super Object> factory = pluginFactory.pluginInstance(definition.type());
+            Class<?> configType = pluginFactory.configType(definition.type());
 
-                if (definition.config() == null || configType.isInstance(definition.config())) {
-                    wrapper = new FactoryWrapper(context, definition, factory);
-                    LOGGER.atInfo()
-                            .addKeyValue("factory", definition.type())
-                            .log("Initialized TLS credential supplier");
-                }
-                else {
-                    throw new PluginConfigurationException(
-                            "TLS credential supplier " + definition.type() + " accepts config of type " +
-                                    configType.getName() + " but provided with config of type " + definition.config().getClass().getName());
-                }
+            if (definition.config() != null && !configType.isInstance(definition.config())) {
+                throw new PluginConfigurationException(
+                        "TLS credential supplier " + definition.type() + " accepts config of type " +
+                                configType.getName() + " but provided with config of type " + definition.config().getClass().getName());
             }
-            catch (Exception e) {
-                // If initialization fails, ensure we don't leave partial state
-                if (wrapper != null) {
-                    wrapper.close();
-                }
-                throw e;
-            }
-            this.factoryWrapper = wrapper;
+
+            this.factoryWrapper = new FactoryWrapper(context, definition, factory);
+            LOGGER.atInfo()
+                    .addKeyValue("factory", definition.type())
+                    .log("Initialized TLS credential supplier");
         }
     }
 

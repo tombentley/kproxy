@@ -196,7 +196,7 @@ virtualClusters:
     targetCluster:
       bootstrapServers: my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
       tls:
-        tlsCredentialSupplier:
+        credentialSupplier:
           type: MyCredentialSupplier  # <1>
           config:  # <2>
             path: /etc/certs
@@ -206,11 +206,11 @@ virtualClusters:
 <1> The type of TLS credential supplier (references a ServerTlsCredentialSupplierFactory implementation).
 <2> Optional supplier-specific configuration.
 
-NOTE: The `tlsCredentialSupplier` configuration is optional and follows the same pattern as filter configuration
+NOTE: The `credentialSupplier` configuration is optional and follows the same pattern as filter configuration
 with a `type` field identifying the supplier implementation and an optional `config` object for supplier-specific settings.
 
-IMPORTANT: The `key` and `tlsCredentialSupplier` properties are mutually exclusive. Use `key` for static credentials,
-or `tlsCredentialSupplier` for dynamic per-connection credential selection, but not both.
+IMPORTANT: The `key` and `credentialSupplier` properties are mutually exclusive. Use `key` for static credentials,
+or `credentialSupplier` for dynamic per-connection credential selection, but not both.
 
 Supplier implementations must be thread-safe, as a single instance is shared across all connections to the virtual cluster.
 Implementations must not block the calling thread; the `tlsCredentials()` method returns a `CompletionStage` for

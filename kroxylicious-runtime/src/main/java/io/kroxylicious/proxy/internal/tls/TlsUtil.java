@@ -21,7 +21,6 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
@@ -34,14 +33,10 @@ import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -128,11 +123,12 @@ public class TlsUtil {
     }
 
     private static byte[] decryptPrivateKey(byte[] keyBytes, char[] password) throws IOException {
+        PBEKeySpec pbeKeySpec = null;
         try {
             EncryptedPrivateKeyInfo encryptedInfo = new EncryptedPrivateKeyInfo(keyBytes);
             Cipher cipher = Cipher.getInstance(encryptedInfo.getAlgName());
             SecretKeyFactory skf = SecretKeyFactory.getInstance(encryptedInfo.getAlgName());
-            PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
+            pbeKeySpec = new PBEKeySpec(password);
             SecretKey pbeKey = skf.generateSecret(pbeKeySpec);
             AlgorithmParameters algParams = encryptedInfo.getAlgParameters();
             cipher.init(Cipher.DECRYPT_MODE, pbeKey, algParams);
@@ -141,6 +137,11 @@ public class TlsUtil {
         }
         catch (Exception e) {
             throw new IOException("Failed to decrypt encrypted private key: " + e.getMessage(), e);
+        }
+        finally {
+            if (pbeKeySpec != null) {
+                pbeKeySpec.clearPassword();
+            }
         }
     }
 
@@ -288,7 +289,10 @@ public class TlsUtil {
         switch (algorithm) {
             case "RSA" -> validateRsaKeyMatch(privateKey, publicKey);
             case "EC" -> validateEcKeyMatch(privateKey, publicKey);
-            case "DSA" -> LOGGER.atDebug().log("DSA key-certificate matching validated via algorithm check");
+            case "DSA" -> {
+                LOGGER.atWarn().log("DSA is deprecated in TLS 1.3 and usage is discouraged");
+                validateDsaKeyMatch(privateKey, publicKey);
+            }
             default -> LOGGER.atDebug()
                     .addKeyValue("algorithm", algorithm)
                     .log("Key-certificate matching validated via algorithm check");
@@ -333,35 +337,81 @@ public class TlsUtil {
     }
 
     /**
-     * Validates that an EC private key matches an EC public key by comparing curve parameters.
+     * Validates that an EC private key matches an EC public key using a sign-then-verify round-trip.
      *
      * @param privateKey The EC private key
      * @param publicKey The EC public key
      * @throws BadTlsCredentialsException if the keys don't match
      */
     private static void validateEcKeyMatch(@NonNull PrivateKey privateKey, @NonNull PublicKey publicKey) {
-        if (!(privateKey instanceof ECPrivateKey ecPrivateKey)) {
+        if (!(privateKey instanceof ECPrivateKey)) {
             throw new BadTlsCredentialsException("Expected ECPrivateKey but got " + privateKey.getClass().getName());
         }
-        if (!(publicKey instanceof ECPublicKey ecPublicKey)) {
+        if (!(publicKey instanceof ECPublicKey)) {
             throw new BadTlsCredentialsException("Expected ECPublicKey but got " + publicKey.getClass().getName());
         }
 
-        // Validate that both keys use the same curve
-        ECParameterSpec privateParams = ecPrivateKey.getParams();
-        ECParameterSpec publicParams = ecPublicKey.getParams();
+        // Verify key correspondence via sign-then-verify round-trip
+        try {
+            java.security.Signature sig = java.security.Signature.getInstance("SHA256withECDSA");
+            byte[] challenge = "kroxylicious-ec-key-validation".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            sig.initSign(privateKey);
+            sig.update(challenge);
+            byte[] signature = sig.sign();
 
-        if (privateParams == null || publicParams == null) {
-            throw new BadTlsCredentialsException("EC key parameters are null");
+            sig.initVerify(publicKey);
+            sig.update(challenge);
+            if (!sig.verify(signature)) {
+                throw new BadTlsCredentialsException(
+                        "EC private key does not correspond to certificate public key. " +
+                                "Signature verification failed.");
+            }
         }
-
-        if (!privateParams.getCurve().equals(publicParams.getCurve())) {
-            throw new BadTlsCredentialsException("EC private key curve does not match certificate public key curve. " +
-                    "The private key does not correspond to the certificate.");
+        catch (BadTlsCredentialsException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            throw new BadTlsCredentialsException(
+                    "Failed to validate EC key correspondence: " + e.getMessage(), e);
         }
 
         LOGGER.atDebug()
-                .log("EC key-certificate match validated via curve parameter comparison");
+                .log("EC key-certificate match validated via signature verification");
+    }
+
+    /**
+     * Validates that a DSA private key matches a DSA public key using a sign-then-verify round-trip.
+     *
+     * @param privateKey The DSA private key
+     * @param publicKey The DSA public key
+     * @throws BadTlsCredentialsException if the keys don't match
+     */
+    private static void validateDsaKeyMatch(@NonNull PrivateKey privateKey, @NonNull PublicKey publicKey) {
+        try {
+            java.security.Signature sig = java.security.Signature.getInstance("SHA256withDSA");
+            byte[] challenge = "kroxylicious-dsa-key-validation".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            sig.initSign(privateKey);
+            sig.update(challenge);
+            byte[] signature = sig.sign();
+
+            sig.initVerify(publicKey);
+            sig.update(challenge);
+            if (!sig.verify(signature)) {
+                throw new BadTlsCredentialsException(
+                        "DSA private key does not correspond to certificate public key. " +
+                                "Signature verification failed.");
+            }
+        }
+        catch (BadTlsCredentialsException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            throw new BadTlsCredentialsException(
+                    "Failed to validate DSA key correspondence: " + e.getMessage(), e);
+        }
+
+        LOGGER.atDebug()
+                .log("DSA key-certificate match validated via signature verification");
     }
 
     /**
@@ -510,33 +560,4 @@ public class TlsUtil {
         }
     }
 
-    /**
-     * Converts TlsCredentials to a Netty SslContext for client-side connections.
-     *
-     * @param credentials The TLS credentials to convert
-     * @return Netty SslContext configured with the provided credentials
-     * @throws SSLException if the SslContext cannot be built
-     */
-    @NonNull
-    public static SslContext toClientSslContext(@NonNull TlsCredentialsImpl credentials) throws SSLException {
-        return SslContextBuilder.forClient()
-                .keyManager(credentials.privateKey(), credentials.certificateChain())
-                .build();
-    }
-
-    /**
-     * Converts TlsCredentials to a Netty SslContext for client-side connections with custom trust configuration.
-     *
-     * @param credentials The TLS credentials to convert
-     * @param builder Pre-configured SslContextBuilder with trust and cipher suite configuration
-     * @return Netty SslContext configured with the provided credentials
-     * @throws SSLException if the SslContext cannot be built
-     */
-    @NonNull
-    public static SslContext toClientSslContext(@NonNull TlsCredentialsImpl credentials,
-                                                @NonNull SslContextBuilder builder)
-            throws SSLException {
-        return builder.keyManager(credentials.privateKey(), credentials.certificateChain())
-                .build();
-    }
 }

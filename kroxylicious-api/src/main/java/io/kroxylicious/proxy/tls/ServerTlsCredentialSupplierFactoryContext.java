@@ -71,7 +71,12 @@ public interface ServerTlsCredentialSupplierFactoryContext {
     /**
      * <p>Returns the filter dispatch executor for asynchronous operations.</p>
      *
+     * <p>Note: the executor is not available during
+     * {@link ServerTlsCredentialSupplierFactory#initialize(ServerTlsCredentialSupplierFactoryContext, Object)}.
+     * Calling this method during initialisation will throw {@link IllegalStateException}.</p>
+     *
      * @return The filter dispatch executor for this context
+     * @throws IllegalStateException if called during factory initialisation
      */
     @NonNull
     FilterDispatchExecutor filterDispatchExecutor();

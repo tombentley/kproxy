@@ -55,6 +55,37 @@ class TlsCredentialsImplTest {
     }
 
     @Test
+    void constructorDefensivelyCopiesChain() {
+        PrivateKey key = mock(PrivateKey.class);
+        X509Certificate cert = mock(X509Certificate.class);
+        X509Certificate[] chain = { cert };
+
+        TlsCredentialsImpl creds = new TlsCredentialsImpl(key, chain);
+
+        // Mutate the original array
+        chain[0] = null;
+
+        // Record should be unaffected
+        assertThat(creds.certificateChain()).containsExactly(cert);
+    }
+
+    @Test
+    void accessorReturnsDefensiveCopy() {
+        PrivateKey key = mock(PrivateKey.class);
+        X509Certificate cert = mock(X509Certificate.class);
+        X509Certificate[] chain = { cert };
+
+        TlsCredentialsImpl creds = new TlsCredentialsImpl(key, chain);
+
+        // Mutate the returned array
+        X509Certificate[] returned = creds.certificateChain();
+        returned[0] = null;
+
+        // Record should be unaffected
+        assertThat(creds.certificateChain()).containsExactly(cert);
+    }
+
+    @Test
     void toStringContainsCertCountAndAlgorithm() {
         PrivateKey key = mock(PrivateKey.class);
         when(key.getAlgorithm()).thenReturn("RSA");

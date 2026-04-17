@@ -7,7 +7,6 @@
 package io.kroxylicious.proxy.internal.tls;
 
 import java.io.File;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -43,6 +42,31 @@ public final class TestCertificateUtil {
      * @param extensions optional keytool -ext values (e.g. "eku=clientAuth", "eku=serverAuth")
      */
     public static KeyAndCert generateKeyStoreAndCert(String dn, String... extensions) throws Exception {
+        return generateKeyStoreAndCert(dn, "RSA", "2048", extensions);
+    }
+
+    /**
+     * Generates an EC self-signed certificate on the given named curve.
+     * @param dn the distinguished name
+     * @param groupName the EC curve name (e.g. "secp256r1")
+     */
+    public static KeyAndCert generateEcKeyStoreAndCert(String dn, String groupName) throws Exception {
+        return generateKeyStoreAndCert(dn, "EC", groupName, (String[]) null);
+    }
+
+    /**
+     * Generates a DSA self-signed certificate.
+     * @param dn the distinguished name
+     */
+    public static KeyAndCert generateDsaKeyStoreAndCert(String dn) throws Exception {
+        return generateKeyStoreAndCert(dn, "DSA", "2048", (String[]) null);
+    }
+
+    private static KeyAndCert generateKeyStoreAndCert(String dn,
+                                                      String keyAlg,
+                                                      String sizeOrGroup,
+                                                      String... extensions)
+            throws Exception {
         File ksFile = File.createTempFile("test-keystore", ".jks");
         ksFile.delete(); // keytool requires non-existent file
         ksFile.deleteOnExit();
@@ -51,14 +75,21 @@ public final class TestCertificateUtil {
         var args = new java.util.ArrayList<>(java.util.List.of(
                 "keytool", "-genkeypair",
                 "-alias", ALIAS,
-                "-keyalg", "RSA",
-                "-keysize", "2048",
+                "-keyalg", keyAlg,
                 "-validity", "365",
                 "-dname", dn,
                 "-keystore", ksFile.getAbsolutePath(),
                 "-storepass", PASSWORD,
                 "-keypass", PASSWORD,
                 "-storetype", "JKS"));
+        if ("EC".equals(keyAlg)) {
+            args.add("-groupname");
+            args.add(sizeOrGroup);
+        }
+        else {
+            args.add("-keysize");
+            args.add(sizeOrGroup);
+        }
         if (extensions != null) {
             for (String ext : extensions) {
                 args.add("-ext");

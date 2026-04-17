@@ -25,13 +25,19 @@ public record TlsCredentialsImpl(@NonNull PrivateKey privateKey, @NonNull X509Ce
         if (certificateChain.length == 0) {
             throw new IllegalArgumentException("certificateChain must not be empty");
         }
+        certificateChain = certificateChain.clone();
+    }
+
+    @Override
+    public X509Certificate[] certificateChain() {
+        return certificateChain.clone();
     }
 
     @Override
     public String toString() {
         return "TlsCredentialsImpl{" +
-                "certificateChain=" + (certificateChain != null ? certificateChain.length + " certificates" : "null") +
-                ", privateKey=" + (privateKey != null ? privateKey.getAlgorithm() : "null") +
+                "certificateChain=" + certificateChain.length + " certificates" +
+                ", privateKey=" + privateKey.getAlgorithm() +
                 '}';
     }
 }

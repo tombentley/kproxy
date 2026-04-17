@@ -14,8 +14,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.netty.handler.ssl.SslContextBuilder;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -141,18 +139,52 @@ class TlsUtilTest {
     class ValidateKeyAndCertMatch {
 
         @Test
-        void acceptsMatchingKeyAndCert() {
+        void acceptsMatchingRsaKeyAndCert() {
             TlsUtil.validateKeyAndCertMatch(keyAndCert.privateKey(), keyAndCert.cert());
         }
 
         @Test
-        void rejectsMismatchedKeyAndCert() throws Exception {
+        void rejectsMismatchedRsaKeyAndCert() throws Exception {
             TestCertificateUtil.KeyAndCert other = TestCertificateUtil.generateKeyStoreAndCert("CN=other");
             PrivateKey privateKey = other.privateKey();
             X509Certificate cert = keyAndCert.cert();
             assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(privateKey, cert))
                     .isInstanceOf(BadTlsCredentialsException.class)
                     .hasMessageContaining("does not match");
+        }
+
+        @Test
+        void acceptsMatchingEcKeyAndCert() throws Exception {
+            TestCertificateUtil.KeyAndCert ecKeyAndCert = TestCertificateUtil.generateEcKeyStoreAndCert("CN=ec-test", "secp256r1");
+            TlsUtil.validateKeyAndCertMatch(ecKeyAndCert.privateKey(), ecKeyAndCert.cert());
+        }
+
+        @Test
+        void rejectsMismatchedEcKeysOnSameCurve() throws Exception {
+            TestCertificateUtil.KeyAndCert ec1 = TestCertificateUtil.generateEcKeyStoreAndCert("CN=ec1", "secp256r1");
+            TestCertificateUtil.KeyAndCert ec2 = TestCertificateUtil.generateEcKeyStoreAndCert("CN=ec2", "secp256r1");
+            PrivateKey privateKey = ec1.privateKey();
+            X509Certificate cert = ec2.cert();
+            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(privateKey, cert))
+                    .isInstanceOf(BadTlsCredentialsException.class)
+                    .hasMessageContaining("does not correspond");
+        }
+
+        @Test
+        void acceptsMatchingDsaKeyAndCert() throws Exception {
+            TestCertificateUtil.KeyAndCert dsaKeyAndCert = TestCertificateUtil.generateDsaKeyStoreAndCert("CN=dsa-test");
+            TlsUtil.validateKeyAndCertMatch(dsaKeyAndCert.privateKey(), dsaKeyAndCert.cert());
+        }
+
+        @Test
+        void rejectsMismatchedDsaKeys() throws Exception {
+            TestCertificateUtil.KeyAndCert dsa1 = TestCertificateUtil.generateDsaKeyStoreAndCert("CN=dsa1");
+            TestCertificateUtil.KeyAndCert dsa2 = TestCertificateUtil.generateDsaKeyStoreAndCert("CN=dsa2");
+            PrivateKey privateKey = dsa1.privateKey();
+            X509Certificate cert = dsa2.cert();
+            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(privateKey, cert))
+                    .isInstanceOf(BadTlsCredentialsException.class)
+                    .hasMessageContaining("does not correspond");
         }
 
         @Test
@@ -215,24 +247,4 @@ class TlsUtilTest {
         }
     }
 
-    @Nested
-    class ToClientSslContext {
-
-        @Test
-        void buildsSslContextFromCredentials() throws Exception {
-            TlsCredentialsImpl creds = new TlsCredentialsImpl(keyAndCert.privateKey(), new X509Certificate[]{ keyAndCert.cert() });
-            var sslContext = TlsUtil.toClientSslContext(creds);
-            assertThat(sslContext).isNotNull();
-            assertThat(sslContext.isClient()).isTrue();
-        }
-
-        @Test
-        void buildsSslContextWithCustomBuilder() throws Exception {
-            TlsCredentialsImpl creds = new TlsCredentialsImpl(keyAndCert.privateKey(), new X509Certificate[]{ keyAndCert.cert() });
-            SslContextBuilder builder = SslContextBuilder.forClient();
-            var sslContext = TlsUtil.toClientSslContext(creds, builder);
-            assertThat(sslContext).isNotNull();
-            assertThat(sslContext.isClient()).isTrue();
-        }
-    }
 }

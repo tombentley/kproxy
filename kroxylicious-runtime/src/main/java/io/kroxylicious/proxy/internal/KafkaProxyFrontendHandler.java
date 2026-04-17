@@ -487,11 +487,9 @@ public class KafkaProxyFrontendHandler
      */
     void applySslContextToChannel(TlsCredentials credentials, HostPort remote, Channel outboundChannel, ChannelPipeline pipeline) {
         try {
-            if (!(credentials instanceof TlsCredentialsImpl)) {
+            if (!(credentials instanceof TlsCredentialsImpl credentialsImpl)) {
                 throw new IllegalStateException("Unexpected TlsCredentials implementation: " + credentials.getClass().getName());
             }
-
-            TlsCredentialsImpl credentialsImpl = (TlsCredentialsImpl) credentials;
 
             // Build SslContextBuilder with trust configuration from target cluster
             SslContextBuilder sslContextBuilder = SslContextBuilder.forClient()

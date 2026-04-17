@@ -37,9 +37,9 @@ import java.util.concurrent.CompletionStage;
  * <pre>{@code
  * public class FileBasedCredentialSupplier implements ServerTlsCredentialSupplier {
  *     private final PrivateKey key;
- *     private final Certificate[] chain;
+ *     private final X509Certificate[] chain;
  *
- *     public FileBasedCredentialSupplier(PrivateKey key, Certificate[] chain) {
+ *     public FileBasedCredentialSupplier(PrivateKey key, X509Certificate[] chain) {
  *         this.key = key;
  *         this.chain = chain;
  *     }
@@ -58,14 +58,14 @@ import java.util.concurrent.CompletionStage;
  * <pre>{@code
  * public class ClientSpecificSupplier implements ServerTlsCredentialSupplier {
  *     private final Map<String, PrivateKey> clientKeys;
- *     private final Map<String, Certificate[]> clientChains;
+ *     private final Map<String, X509Certificate[]> clientChains;
  *     private final PrivateKey defaultKey;
- *     private final Certificate[] defaultChain;
+ *     private final X509Certificate[] defaultChain;
  *
  *     public ClientSpecificSupplier(Map<String, PrivateKey> clientKeys,
- *                                   Map<String, Certificate[]> clientChains,
+ *                                   Map<String, X509Certificate[]> clientChains,
  *                                   PrivateKey defaultKey,
- *                                   Certificate[] defaultChain) {
+ *                                   X509Certificate[] defaultChain) {
  *         this.clientKeys = clientKeys;
  *         this.clientChains = clientChains;
  *         this.defaultKey = defaultKey;
@@ -81,7 +81,7 @@ import java.util.concurrent.CompletionStage;
  *                 .getSubjectX500Principal().getName();
  *
  *             PrivateKey key = clientKeys.get(clientId);
- *             Certificate[] chain = clientChains.get(clientId);
+ *             X509Certificate[] chain = clientChains.get(clientId);
  *
  *             if (key != null && chain != null) {
  *                 TlsCredentials creds = context.tlsCredentials(key, chain);
