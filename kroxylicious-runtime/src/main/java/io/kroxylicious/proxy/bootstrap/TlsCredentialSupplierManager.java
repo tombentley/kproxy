@@ -44,6 +44,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * The manager follows the per-cluster lifecycle and is closed when the virtual cluster is shut down.
  * {@link PluginConfigurationException} is thrown for invalid plugin configurations at startup.</p>
  */
+@SuppressWarnings("java:S1192") // ignore dupe string literals is due to logger keys
 public class TlsCredentialSupplierManager implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TlsCredentialSupplierManager.class);

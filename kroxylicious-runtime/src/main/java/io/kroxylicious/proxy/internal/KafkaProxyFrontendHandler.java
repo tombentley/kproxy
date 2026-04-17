@@ -89,6 +89,7 @@ import static io.kroxylicious.proxy.internal.ProxyChannelState.Connecting;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.Forwarding;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.SelectingServer;
 
+@SuppressWarnings("java:S1192") // ignore dupe string literals is due to logger keys
 public class KafkaProxyFrontendHandler
         extends ChannelInboundHandlerAdapter {
 

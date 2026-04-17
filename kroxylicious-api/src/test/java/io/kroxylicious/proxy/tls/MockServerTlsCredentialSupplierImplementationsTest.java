@@ -81,6 +81,7 @@ class MockServerTlsCredentialSupplierImplementationsTest {
 
         @Override
         public void close(SharedContext initializationData) {
+            // Do nothing
         }
     }
 

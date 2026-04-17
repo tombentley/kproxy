@@ -48,6 +48,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 /**
  * Utility class for TLS credential parsing and validation.
  */
+@SuppressWarnings("java:S1192") // ignore dupe string literals is due to logger keys
 public class TlsUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TlsUtil.class);
