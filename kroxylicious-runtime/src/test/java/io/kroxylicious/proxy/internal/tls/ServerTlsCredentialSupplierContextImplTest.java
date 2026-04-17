@@ -6,6 +6,7 @@
 
 package io.kroxylicious.proxy.internal.tls;
 
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -52,7 +53,8 @@ class ServerTlsCredentialSupplierContextImplTest {
     @Test
     void tlsCredentialsRejectsNullChain() {
         var ctx = new ServerTlsCredentialSupplierContextImpl(null);
-        assertThatThrownBy(() -> ctx.tlsCredentials(keyAndCert.privateKey(), null))
+        PrivateKey key = keyAndCert.privateKey();
+        assertThatThrownBy(() -> ctx.tlsCredentials(key, null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("certificateChain");
     }
@@ -60,7 +62,8 @@ class ServerTlsCredentialSupplierContextImplTest {
     @Test
     void tlsCredentialsRejectsEmptyChain() {
         var ctx = new ServerTlsCredentialSupplierContextImpl(null);
-        assertThatThrownBy(() -> ctx.tlsCredentials(keyAndCert.privateKey(), new X509Certificate[0]))
+        PrivateKey key = keyAndCert.privateKey();
+        assertThatThrownBy(() -> ctx.tlsCredentials(key, new X509Certificate[0]))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be empty");
     }
@@ -80,7 +83,9 @@ class ServerTlsCredentialSupplierContextImplTest {
         var ctx = new ServerTlsCredentialSupplierContextImpl(null);
         TestCertificateUtil.KeyAndCert other = TestCertificateUtil.generateKeyStoreAndCert("CN=other");
 
-        assertThatThrownBy(() -> ctx.tlsCredentials(other.privateKey(), new X509Certificate[]{ keyAndCert.cert() }))
+        PrivateKey key = other.privateKey();
+        X509Certificate[] certificateChain = { keyAndCert.cert() };
+        assertThatThrownBy(() -> ctx.tlsCredentials(key, certificateChain))
                 .isInstanceOf(BadTlsCredentialsException.class)
                 .hasMessageContaining("does not match");
     }

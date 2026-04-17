@@ -48,6 +48,7 @@ import io.kroxylicious.testing.kafka.junit5ext.Topic;
 import static io.kroxylicious.test.tester.KroxyliciousConfigUtils.defaultPortIdentifiesNodeGatewayBuilder;
 import static io.kroxylicious.test.tester.KroxyliciousTesters.kroxyliciousTester;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * Integration tests for TLS credential supplier plugin system with mock certificates.
@@ -267,19 +268,19 @@ class TlsCredentialSupplierIT extends AbstractTlsIT {
         // @formatter:on
 
         try (var tester = kroxyliciousTester(builder)) {
-            // Create multiple clients to trigger multiple supplier creations
-            for (int i = 0; i < 3; i++) {
-                try (Admin admin = tester.admin("demo",
-                        Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name,
-                                SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientTrustStore.toAbsolutePath().toString(),
-                                SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, proxyKeystorePassword))) {
-                    admin.listTopics().names().get();
+            assertThatCode(() -> {
+                // Create multiple clients to trigger multiple supplier creations
+                for (int i = 0; i < 3; i++) {
+                    try (Admin admin = tester.admin("demo",
+                            Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name,
+                                    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientTrustStore.toAbsolutePath().toString(),
+                                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, proxyKeystorePassword))) {
+                        admin.listTopics().names().get();
+                    }
                 }
-            }
-
-            // Factory should be created once, but create() may be called multiple times
-            // This verifies factory lifecycle management
-            assertThat(true).isTrue(); // Test passes if no exceptions thrown
+                // Factory should be created once, but create() may be called multiple times
+                // This verifies factory lifecycle management
+            }).doesNotThrowAnyException();
         }
     }
 
@@ -317,21 +318,23 @@ class TlsCredentialSupplierIT extends AbstractTlsIT {
                         .build());
         // @formatter:on
 
-        try (var tester = kroxyliciousTester(builder)) {
-            try (Producer<String, String> producer = tester.producer("demo",
-                    Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name,
-                            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientTrustStore.toAbsolutePath().toString(),
-                            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, proxyKeystorePassword))) {
+        assertThatCode(() -> {
 
-                // Send a message to trigger connection establishment
-                producer.send(new ProducerRecord<>(topic.name(), "key", "value")).get();
-                producer.flush();
+            try (var tester = kroxyliciousTester(builder)) {
+                try (Producer<String, String> producer = tester.producer("demo",
+                        Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name,
+                                SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, clientTrustStore.toAbsolutePath().toString(),
+                                SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, proxyKeystorePassword))) {
 
-                // Verify the credential supplier was invoked
-                // (In real test, we'd track this through shared state)
-                assertThat(true).isTrue(); // Test passes if connection succeeded
+                    // Send a message to trigger connection establishment
+                    producer.send(new ProducerRecord<>(topic.name(), "key", "value")).get();
+                    producer.flush();
+
+                    // send() did not throw => credential supplier was invoked
+                    // (In real test, we'd track this through shared state)
+                }
             }
-        }
+        }).doesNotThrowAnyException();
     }
 
     /**

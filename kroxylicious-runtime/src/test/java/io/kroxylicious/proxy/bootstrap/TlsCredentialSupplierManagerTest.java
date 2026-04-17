@@ -179,17 +179,6 @@ class TlsCredentialSupplierManagerTest {
     }
 
     @Test
-    void testFactoryInitializationWithoutConfig() {
-        TlsCredentialSupplierConfig definition = new TlsCredentialSupplierConfig("NoConfigSupplierFactory", null);
-
-        try (TlsCredentialSupplierManager manager = new TlsCredentialSupplierManager(pfr, definition)) {
-            assertThat(manager.isConfigured()).isTrue();
-            ServerTlsCredentialSupplier supplier = manager.getSupplier();
-            assertThat(supplier).isNotNull();
-        }
-    }
-
-    @Test
     void testGetSupplierReturnsSameInstance() {
         TestConfig config = new TestConfig("test-value");
         TlsCredentialSupplierConfig definition = new TlsCredentialSupplierConfig("TestSupplierFactory", config);

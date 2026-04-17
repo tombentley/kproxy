@@ -148,7 +148,9 @@ class TlsUtilTest {
         @Test
         void rejectsMismatchedKeyAndCert() throws Exception {
             TestCertificateUtil.KeyAndCert other = TestCertificateUtil.generateKeyStoreAndCert("CN=other");
-            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(other.privateKey(), keyAndCert.cert()))
+            PrivateKey privateKey = other.privateKey();
+            X509Certificate cert = keyAndCert.cert();
+            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(privateKey, cert))
                     .isInstanceOf(BadTlsCredentialsException.class)
                     .hasMessageContaining("does not match");
         }
@@ -157,7 +159,8 @@ class TlsUtilTest {
         void rejectsAlgorithmMismatch() {
             PrivateKey mockKey = mock(PrivateKey.class);
             when(mockKey.getAlgorithm()).thenReturn("DSA");
-            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(mockKey, keyAndCert.cert()))
+            X509Certificate cert = keyAndCert.cert();
+            assertThatThrownBy(() -> TlsUtil.validateKeyAndCertMatch(mockKey, cert))
                     .isInstanceOf(BadTlsCredentialsException.class)
                     .hasMessageContaining("does not match certificate public key algorithm");
         }
@@ -173,7 +176,8 @@ class TlsUtilTest {
 
         @Test
         void rejectsEmptyChain() {
-            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(keyAndCert.privateKey(), new X509Certificate[0]))
+            PrivateKey privateKey = keyAndCert.privateKey();
+            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(privateKey, new X509Certificate[0]))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("empty");
         }
@@ -181,7 +185,9 @@ class TlsUtilTest {
         @Test
         void rejectsKeyMismatch() throws Exception {
             TestCertificateUtil.KeyAndCert other = TestCertificateUtil.generateKeyStoreAndCert("CN=other");
-            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(other.privateKey(), new X509Certificate[]{ keyAndCert.cert() }))
+            PrivateKey privateKey = other.privateKey();
+            X509Certificate[] certChain = { keyAndCert.cert() };
+            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(privateKey, certChain))
                     .isInstanceOf(BadTlsCredentialsException.class)
                     .hasMessageContaining("does not match");
         }
@@ -201,7 +207,9 @@ class TlsUtilTest {
         @Test
         void rejectsCertWithServerAuthOnlyEku() throws Exception {
             TestCertificateUtil.KeyAndCert serverOnlyCert = TestCertificateUtil.generateKeyStoreAndCert("CN=serveronly", "eku=serverAuth");
-            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(serverOnlyCert.privateKey(), new X509Certificate[]{ serverOnlyCert.cert() }))
+            PrivateKey privateKey = serverOnlyCert.privateKey();
+            X509Certificate[] certChain = { serverOnlyCert.cert() };
+            assertThatThrownBy(() -> TlsUtil.validateCertificateChain(privateKey, certChain))
                     .isInstanceOf(BadTlsCredentialsException.class)
                     .hasMessageContaining("clientAuth");
         }

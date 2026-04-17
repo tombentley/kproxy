@@ -24,23 +24,6 @@ public final class TestCertificateUtil {
     private TestCertificateUtil() {
     }
 
-    /**
-     * Generates a self-signed X509 certificate and key pair using keytool.
-     */
-    static X509Certificate generateSelfSignedCert(KeyPair ignored) throws Exception {
-        return generateSelfSignedCert(ignored, "CN=localhost");
-    }
-
-    /**
-     * Generates a self-signed X509 certificate via keytool and returns it.
-     * The KeyPair parameter is used to generate a cert matching that key.
-     * NOTE: This creates a NEW key pair internally (keytool generates its own).
-     * For tests that need key/cert match, use {@link #generateKeyStoreAndCert()}.
-     */
-    static X509Certificate generateSelfSignedCert(KeyPair ignored, String dn) throws Exception {
-        return generateKeyStoreAndCert(dn).cert;
-    }
-
     public record KeyAndCert(PrivateKey privateKey, X509Certificate cert) {}
 
     /**

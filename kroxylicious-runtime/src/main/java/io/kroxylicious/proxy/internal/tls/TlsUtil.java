@@ -177,6 +177,7 @@ public class TlsUtil {
      * Converts PKCS#1 RSA private key bytes to PKCS#8 format by wrapping with the RSA AlgorithmIdentifier.
      * PKCS#8 = SEQUENCE { version INTEGER, algorithm AlgorithmIdentifier, privateKey OCTET STRING(PKCS#1) }
      */
+    @SuppressWarnings("java:S125") // it's the ASN.1 schema, not commented-out code,
     private static byte[] convertPkcs1ToPkcs8(byte[] pkcs1Bytes) {
         // RSA OID: 1.2.840.113549.1.1.1
         byte[] rsaOid = { 0x06, 0x09, 0x2a, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xf7, 0x0d, 0x01, 0x01, 0x01 };
