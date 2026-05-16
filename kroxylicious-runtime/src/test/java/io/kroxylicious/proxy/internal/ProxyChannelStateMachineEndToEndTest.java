@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -211,11 +212,26 @@ class ProxyChannelStateMachineEndToEndTest {
         assertThat(inboundChannel.<Object> readOutbound())
                 .describedAs("No response deferred until upstream connected")
                 .isNull();
-
-        assertThat(inboundChannel.config().isAutoRead()).isFalse();
         assertThat(inboundChannel.isWritable()).isTrue();
+        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
+        assertThat(proxyChannelStateMachine.clientSoftwareName())
+                .isEqualTo(firstMessage == ApiKeys.API_VERSIONS ? CLIENT_SOFTWARE_NAME : null);
+        assertThat(proxyChannelStateMachine.clientSoftwareVersion())
+                .isEqualTo(firstMessage == ApiKeys.API_VERSIONS ? CLIENT_SOFTWARE_VERSION : null);
 
-        assertHandlerInForwardingState(proxyChannelStateMachine, List.of(firstMessage));
+        if (haProxy) {
+            // forceState with latch=-1 means unblock never fires
+            assertThat(inboundChannel.config().isAutoRead()).isFalse();
+            assertThat(handler.bufferedMsgs)
+                    .asInstanceOf(InstanceOfAssertFactories.list(DecodedRequestFrame.class))
+                    .map(DecodedRequestFrame::apiKey).isEqualTo(List.of(firstMessage));
+        }
+        else {
+            // Both latch events fire (entering Forwarding + transport subject via runPendingTasks)
+            // so the client is unblocked and the request is forwarded to the SCSM
+            assertThat(inboundChannel.config().isAutoRead()).isTrue();
+            assertThat(handler.bufferedMsgs).isNull();
+        }
     }
 
     private ProxyChannelStateMachine buildHandlerInClientActiveState(boolean sni) {
@@ -262,7 +278,7 @@ class ProxyChannelStateMachineEndToEndTest {
                                                    Throwable serverException) {
         // Given
         var proxyChannelStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
-        final DecodedRequestFrame<ApiMessage> requestFrame = firstBufferedRequest();
+        final DecodedRequestFrame<ApiMessage> requestFrame = firstInitialRequest();
 
         // When
         outboundChannel.pipeline().fireExceptionCaught(serverException);
@@ -306,7 +322,6 @@ class ProxyChannelStateMachineEndToEndTest {
                                                 ApiKeys firstMessage) {
         // Given
         var proxyChannelStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
-        var firstRequest = firstBufferedRequest();
 
         // When
         outboundChannel.pipeline().fireChannelActive();
@@ -316,14 +331,9 @@ class ProxyChannelStateMachineEndToEndTest {
 
         assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
 
-        assertThat(handler.bufferedMsgs)
-                .asInstanceOf(InstanceOfAssertFactories.list(DecodedRequestFrame.class))
-                .singleElement()
-                .isEqualTo(firstRequest);
-
         assertThat(inboundChannel.config().isAutoRead())
-                .describedAs("Client autoread should be off while connecting to server")
-                .isFalse();
+                .describedAs("Client is already unblocked; SCSM buffers until TLS handshake completes")
+                .isTrue();
     }
 
     @ParameterizedTest
@@ -334,7 +344,7 @@ class ProxyChannelStateMachineEndToEndTest {
                           ApiKeys firstMessage) {
         // Given
         var proxyChannelStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
-        final DecodedRequestFrame<ApiMessage> requestFrame = firstBufferedRequest();
+        final DecodedRequestFrame<ApiMessage> requestFrame = firstInitialRequest();
         outboundChannel.pipeline().fireChannelActive();
 
         // When
@@ -345,10 +355,6 @@ class ProxyChannelStateMachineEndToEndTest {
         outboundChannel.checkException();
 
         assertNextClientResponseIsErrorFor(requestFrame);
-
-        assertThat(inboundChannel.config().isAutoRead())
-                .describedAs("Client autoread should be off while connecting to server")
-                .isFalse();
 
         assertEverythingClosed(proxyChannelStateMachine);
     }
@@ -605,18 +611,6 @@ class ProxyChannelStateMachineEndToEndTest {
                 null);
     }
 
-    private void assertHandlerInForwardingState(
-                                                ProxyChannelStateMachine proxyChannelStateMachine,
-                                                List<ApiKeys> expectedBufferedRequestTypes) {
-        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
-        assertThat(proxyChannelStateMachine.clientSoftwareName())
-                .isEqualTo(expectedBufferedRequestTypes.contains(ApiKeys.API_VERSIONS) ? CLIENT_SOFTWARE_NAME : null);
-        assertThat(proxyChannelStateMachine.clientSoftwareVersion())
-                .isEqualTo(expectedBufferedRequestTypes.contains(ApiKeys.API_VERSIONS) ? CLIENT_SOFTWARE_VERSION : null);
-        assertThat(handler.bufferedMsgs).asInstanceOf(InstanceOfAssertFactories.list(DecodedRequestFrame.class))
-                .map(DecodedRequestFrame::apiKey).isEqualTo(expectedBufferedRequestTypes);
-    }
-
     @SafeVarargs
     static List<Arguments> crossProduct(List<Arguments>... list) {
         if (list.length == 0) {
@@ -700,7 +694,9 @@ class ProxyChannelStateMachineEndToEndTest {
         inboundChannel.runPendingTasks();
 
         // Write the first client request to trigger the ClientActive → Forwarding transition.
-        // This creates a real SCSM and initiates the backend connection (without activating it).
+        // This creates a real SCSM, initiates the backend connection, and decrements the
+        // progressionLatch from 1 to 0 — triggering unblockClient(). The first request is
+        // forwarded through the filter chain to the SCSM, which buffers it (Connecting state).
         switch (firstMessage) {
             case API_VERSIONS -> writeInboundApiVersionsRequest();
             case SASL_HANDSHAKE -> writeSaslPlainHandshake();
@@ -714,8 +710,8 @@ class ProxyChannelStateMachineEndToEndTest {
 
     @SuppressWarnings("unchecked")
     @NonNull
-    private DecodedRequestFrame<ApiMessage> firstBufferedRequest() {
-        return (DecodedRequestFrame<ApiMessage>) handler.bufferedMsgs.get(0);
+    private DecodedRequestFrame<ApiMessage> firstInitialRequest() {
+        return (DecodedRequestFrame<ApiMessage>) Objects.requireNonNull(handler.initialRequestForError);
     }
 
     // TODO backpressure

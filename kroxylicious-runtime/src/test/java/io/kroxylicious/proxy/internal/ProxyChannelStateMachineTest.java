@@ -196,7 +196,7 @@ class ProxyChannelStateMachineTest {
     @Test
     void shouldTransitionToClosedOnServerExceptionInForwardingAwaitingBackend() {
         // Given
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
 
         // When
         proxyChannelStateMachine.onServerConnectionException(failure);
@@ -419,8 +419,8 @@ class ProxyChannelStateMachineTest {
     }
 
     @Test
-    void inForwardingShouldUnblockClientWhenOnServerActiveCalledAndLatchReachesZero() {
-        // Given — Forwarding state, latch at 1 (waiting only for backend)
+    void onServerActiveShouldNotUnblockClient() {
+        // Given — Forwarding state, latch at 1
         proxyChannelStateMachine.forceState(
                 new ProxyChannelState.Forwarding(),
                 frontendHandler,
@@ -431,35 +431,15 @@ class ProxyChannelStateMachineTest {
         // When
         proxyChannelStateMachine.onServerConnectionActive();
 
-        // Then
+        // Then — backend activation no longer participates in unblocking
         assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
-        verify(frontendHandler).unblockClient();
-        verifyNoInteractions(serverConnectionStateMachine);
-    }
-
-    @Test
-    void onServerActiveDoesNotUnblockClientIfWaitingForTransportSubject() {
-        // Given — Forwarding state, latch at 2 (waiting for both)
-        proxyChannelStateMachine.forceState(
-                new ProxyChannelState.Forwarding(),
-                frontendHandler,
-                serverConnectionStateMachine,
-                TEST_KAFKA_SESSION,
-                2);
-
-        // When
-        proxyChannelStateMachine.onServerConnectionActive();
-
-        // Then
-        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
-        verifyNoInteractions(frontendHandler);
-        verifyNoInteractions(serverConnectionStateMachine);
+        verify(frontendHandler, never()).unblockClient();
     }
 
     @Test
     void inForwardingShouldBufferRequestsWhenLatchNotZero() {
         // Given — Forwarding state with latch > 0 (backend not yet connected)
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
 
         // When
         DecodedRequestFrame<MetadataRequestData> msg = metadataRequest();
@@ -696,8 +676,8 @@ class ProxyChannelStateMachineTest {
                 }, false),
                 argumentSet("Ha Proxy TLS on", (Runnable) this::stateMachineInHaProxy, true),
                 argumentSet("Ha Proxy TLS off ", (Runnable) this::stateMachineInHaProxy, false),
-                argumentSet("Forwarding awaiting backend TLS on", (Runnable) this::stateMachineInForwardingAwaitingBackend, true),
-                argumentSet("Forwarding awaiting backend TLS off ", (Runnable) this::stateMachineInForwardingAwaitingBackend, false),
+                argumentSet("Forwarding awaiting backend TLS on", (Runnable) this::stateMachineInForwardingAwaitingTransportSubject, true),
+                argumentSet("Forwarding awaiting backend TLS off ", (Runnable) this::stateMachineInForwardingAwaitingTransportSubject, false),
                 argumentSet("Client Active TLS on", (Runnable) this::stateMachineInClientActive, true),
                 argumentSet("Client Active TLS off ", (Runnable) this::stateMachineInClientActive, false),
                 argumentSet("Forwarding TLS on", (Runnable) this::stateMachineInForwarding, true),
@@ -709,7 +689,7 @@ class ProxyChannelStateMachineTest {
     public Stream<Arguments> givenStates() {
         return Stream.of(
                 argumentSet("Ha Proxy", (Runnable) this::stateMachineInHaProxy),
-                argumentSet("Forwarding awaiting backend", (Runnable) this::stateMachineInForwardingAwaitingBackend),
+                argumentSet("Forwarding awaiting backend", (Runnable) this::stateMachineInForwardingAwaitingTransportSubject),
                 argumentSet("ClientActive ", (Runnable) this::stateMachineInClientActive),
                 argumentSet("Forwarding", (Runnable) this::stateMachineInForwarding),
                 argumentSet("Closed", (Runnable) this::stateMachineInClosed));
@@ -717,7 +697,7 @@ class ProxyChannelStateMachineTest {
 
     public Stream<Arguments> connectedStates() {
         return Stream.of(
-                argumentSet("Forwarding awaiting backend", (Runnable) this::stateMachineInForwardingAwaitingBackend),
+                argumentSet("Forwarding awaiting backend", (Runnable) this::stateMachineInForwardingAwaitingTransportSubject),
                 argumentSet("Forwarding", (Runnable) this::stateMachineInForwarding),
                 argumentSet("Closed", (Runnable) this::stateMachineInClosed));
     }
@@ -751,13 +731,13 @@ class ProxyChannelStateMachineTest {
         return forwarding;
     }
 
-    private void stateMachineInForwardingAwaitingBackend() {
+    private void stateMachineInForwardingAwaitingTransportSubject() {
         proxyChannelStateMachine.forceState(
                 new ProxyChannelState.Forwarding(),
                 frontendHandler,
                 serverConnectionStateMachine,
                 TEST_KAFKA_SESSION,
-                2);
+                1);
     }
 
     private void stateMachineInClosed() {
@@ -813,7 +793,7 @@ class ProxyChannelStateMachineTest {
     @Test
     void shouldRemainInForwardingWhenOnServerConnectionActive() {
         // Given
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
 
         // When
         proxyChannelStateMachine.onServerConnectionActive();
@@ -826,7 +806,7 @@ class ProxyChannelStateMachineTest {
     void shouldDecrementActiveConnectionsOnClosed() {
         // Given - establish both client and server connections
         proxyChannelStateMachine.onClientActive(frontendHandler);
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
         proxyChannelStateMachine.onServerConnectionActive();
 
         int initialClientCount = getVirtualNodeClientToProxyActiveConnections();
@@ -844,7 +824,7 @@ class ProxyChannelStateMachineTest {
     void shouldDecrementActiveConnectionsOnServerInactive() {
         // Given - establish both client and server connections
         proxyChannelStateMachine.onClientActive(frontendHandler);
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
         proxyChannelStateMachine.onServerConnectionActive();
 
         int initialClientCount = getVirtualNodeClientToProxyActiveConnections();
@@ -875,7 +855,7 @@ class ProxyChannelStateMachineTest {
     void shouldDecrementActiveConnectionsOnServerException() {
         // Given - establish both client and server connections
         proxyChannelStateMachine.onClientActive(frontendHandler);
-        stateMachineInForwardingAwaitingBackend();
+        stateMachineInForwardingAwaitingTransportSubject();
         proxyChannelStateMachine.onServerConnectionActive();
 
         int initialClientCount = getVirtualNodeClientToProxyActiveConnections();
