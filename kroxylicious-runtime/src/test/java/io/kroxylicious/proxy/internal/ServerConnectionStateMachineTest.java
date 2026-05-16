@@ -6,6 +6,7 @@
 package io.kroxylicious.proxy.internal;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,13 +15,18 @@ import org.mockito.ArgumentCaptor;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoop;
 import io.netty.channel.embedded.EmbeddedChannel;
 
+import io.kroxylicious.proxy.internal.codec.KafkaRequestEncoder;
+import io.kroxylicious.proxy.internal.codec.KafkaResponseDecoder;
 import io.kroxylicious.proxy.internal.tls.ServerTlsCredentialSupplierContextImpl;
 import io.kroxylicious.proxy.internal.tls.TestCertificateUtil;
 import io.kroxylicious.proxy.internal.tls.TlsCredentialsImpl;
@@ -188,6 +194,120 @@ class ServerConnectionStateMachineTest {
         }
         assertThat(channel.<Object> readOutbound()).isNull();
         assertThat(scsm.serverMessagesInFlightCount).isEqualTo(5);
+    }
+
+    // === connect() tests ===
+
+    private ServerConnectionStateMachine createConnectableScsm(ClientConnectionStateMachine ccsm,
+                                                               VirtualClusterModel virtualCluster,
+                                                               EmbeddedChannel[] outboundHolder) {
+        when(ccsm.sessionId()).thenReturn("test-session");
+        when(ccsm.clusterName()).thenReturn(CLUSTER_NAME);
+        when(virtualCluster.getUpstreamSslContext()).thenReturn(Optional.empty());
+        when(virtualCluster.usesDynamicTlsCredentials()).thenReturn(false);
+        when(virtualCluster.socketFrameMaxSizeBytes()).thenReturn(
+                io.kroxylicious.proxy.model.VirtualClusterModel.DEFAULT_SOCKET_FRAME_MAX_SIZE_BYTES);
+        return new ServerConnectionStateMachine(
+                REMOTE, ccsm, virtualCluster, CLUSTER_NAME, null,
+                mock(Counter.class), mock(Timer.class), mock(ActivationToken.class)) {
+            @Override
+            Bootstrap configureBootstrap(KafkaProxyBackendHandler backendHandler,
+                                         Channel inboundChannel) {
+                outboundHolder[0] = new EmbeddedChannel();
+                Bootstrap bootstrap = new Bootstrap();
+                bootstrap.group(outboundHolder[0].eventLoop())
+                        .channel(outboundHolder[0].getClass())
+                        .handler(backendHandler)
+                        .option(ChannelOption.AUTO_READ, true)
+                        .option(ChannelOption.TCP_NODELAY, true);
+                return bootstrap;
+            }
+
+            @Override
+            ChannelFuture initConnection(String remoteHost, int remotePort, Bootstrap bootstrap) {
+                outboundHolder[0].pipeline().addFirst(backendHandler());
+                return outboundHolder[0].newSucceededFuture();
+            }
+        };
+    }
+
+    @Test
+    void connectInWrongStateShouldCallIllegalState() {
+        var ccsm = mock(ClientConnectionStateMachine.class);
+        var virtualCluster = mock(VirtualClusterModel.class);
+        var scsm = createScsmWithMocks(ccsm, virtualCluster);
+
+        // Force to Active state
+        new EmbeddedChannel(scsm.backendHandler());
+        assertThat(scsm.state()).isInstanceOf(ServerConnectionState.Active.class);
+
+        // Calling connect() in Active state should trigger illegalState
+        scsm.connect(mock(Channel.class));
+
+        verify(ccsm).illegalState("connect() called while not in Connecting state");
+    }
+
+    @Test
+    void connectShouldAssemblePipelineInCorrectOrder() {
+        var ccsm = mock(ClientConnectionStateMachine.class);
+        var virtualCluster = mock(VirtualClusterModel.class);
+        var outboundHolder = new EmbeddedChannel[1];
+        var scsm = createConnectableScsm(ccsm, virtualCluster, outboundHolder);
+
+        scsm.connect(new EmbeddedChannel());
+
+        var pipeline = outboundHolder[0].pipeline();
+        List<String> handlerNames = pipeline.names().stream()
+                .filter(n -> !n.contains("DefaultChannelPipeline"))
+                .toList();
+
+        // Pipeline uses addFirst, so the order in the list is the reverse of insertion order.
+        // Expected from head to tail: networkLogger (absent), requestEncoder, responseDecoder,
+        // frameLogger (absent), backendHandler, then tail sentinel.
+        assertThat(handlerNames)
+                .filteredOn(n -> !n.equals("DefaultChannelPipeline$TailContext#0"))
+                .containsSubsequence("requestEncoder", "responseDecoder");
+        assertThat(pipeline.get(KafkaRequestEncoder.class)).isNotNull();
+        assertThat(pipeline.get(KafkaResponseDecoder.class)).isNotNull();
+    }
+
+    @Test
+    void connectTcpFailureShouldCallOnServerException() {
+        var ccsm = mock(ClientConnectionStateMachine.class);
+        var virtualCluster = mock(VirtualClusterModel.class);
+        when(ccsm.sessionId()).thenReturn("test-session");
+        when(ccsm.clusterName()).thenReturn(CLUSTER_NAME);
+        when(virtualCluster.getUpstreamSslContext()).thenReturn(Optional.empty());
+        when(virtualCluster.usesDynamicTlsCredentials()).thenReturn(false);
+        when(virtualCluster.socketFrameMaxSizeBytes()).thenReturn(
+                io.kroxylicious.proxy.model.VirtualClusterModel.DEFAULT_SOCKET_FRAME_MAX_SIZE_BYTES);
+        var tcpFailure = new RuntimeException("Connection refused");
+        var scsm = new ServerConnectionStateMachine(
+                REMOTE, ccsm, virtualCluster, CLUSTER_NAME, null,
+                mock(Counter.class), mock(Timer.class), mock(ActivationToken.class)) {
+            @Override
+            Bootstrap configureBootstrap(KafkaProxyBackendHandler backendHandler,
+                                         Channel inboundChannel) {
+                var ch = new EmbeddedChannel();
+                Bootstrap bootstrap = new Bootstrap();
+                bootstrap.group(ch.eventLoop())
+                        .channel(ch.getClass())
+                        .handler(backendHandler)
+                        .option(ChannelOption.AUTO_READ, true);
+                return bootstrap;
+            }
+
+            @Override
+            ChannelFuture initConnection(String remoteHost, int remotePort, Bootstrap bootstrap) {
+                var ch = new EmbeddedChannel();
+                return ch.newFailedFuture(tcpFailure);
+            }
+        };
+
+        scsm.connect(new EmbeddedChannel());
+
+        verify(ccsm).onServerConnectionException(scsm, tcpFailure);
+        assertThat(scsm.state()).isInstanceOf(ServerConnectionState.Closed.class);
     }
 
     // === TLS credential tests ===
