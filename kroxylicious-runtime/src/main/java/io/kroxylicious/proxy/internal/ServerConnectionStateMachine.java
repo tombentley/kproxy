@@ -6,6 +6,8 @@
 
 package io.kroxylicious.proxy.internal;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import org.slf4j.spi.LoggingEventBuilder;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
+import io.netty.util.ReferenceCountUtil;
 
 import io.kroxylicious.proxy.internal.util.ActivationToken;
 import io.kroxylicious.proxy.service.HostPort;
@@ -55,6 +58,9 @@ class ServerConnectionStateMachine {
     @VisibleForTesting
     @Nullable
     Timer.Sample serverBackpressureTimer;
+
+    @Nullable
+    private List<Object> pendingRequests;
 
     private final Counter proxyToServerConnectionCounter;
     private final Counter proxyToServerErrorCounter;
@@ -98,6 +104,7 @@ class ServerConnectionStateMachine {
         if (state instanceof ServerConnectionState.Connecting connecting) {
             setState(connecting.toActive());
             proxyToServerConnectionToken.acquire();
+            flushPendingRequests();
             pcsm.onServerConnectionActive();
         }
         else {
@@ -147,9 +154,27 @@ class ServerConnectionStateMachine {
     // === Called by ProxyChannelStateMachine ===
 
     void sendRequest(Object msg) {
+        if (state instanceof ServerConnectionState.Connecting) {
+            if (pendingRequests == null) {
+                pendingRequests = new ArrayList<>();
+            }
+            pendingRequests.add(msg);
+            return;
+        }
         serverMessagesInFlightCount++;
         backendHandler.forwardToServer(msg);
         backendHandler.flushToServer();
+    }
+
+    private void flushPendingRequests() {
+        if (pendingRequests != null) {
+            for (Object msg : pendingRequests) {
+                serverMessagesInFlightCount++;
+                backendHandler.forwardToServer(msg);
+            }
+            pendingRequests = null;
+            backendHandler.flushToServer();
+        }
     }
 
     void applyBackpressure() {
@@ -178,9 +203,19 @@ class ServerConnectionStateMachine {
     }
 
     private void toClosed() {
+        releasePendingRequests();
         setState(new ServerConnectionState.Closed());
         backendHandler.inClosed();
         proxyToServerConnectionToken.release();
+    }
+
+    private void releasePendingRequests() {
+        if (pendingRequests != null) {
+            for (Object msg : pendingRequests) {
+                ReferenceCountUtil.release(msg);
+            }
+            pendingRequests = null;
+        }
     }
 
     private void setState(ServerConnectionState newState) {
