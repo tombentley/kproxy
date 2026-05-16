@@ -662,14 +662,6 @@ public class ClientConnectionStateMachine {
     }
 
     /**
-     * Called by {@link KafkaProxyFrontendHandler} for connection setup errors that occur
-     * before the SCSM is active (TCP connect failures, TLS credential errors).
-     */
-    void onServerConnectionException(@Nullable Throwable cause) {
-        toClosed(cause);
-    }
-
-    /**
      * Callback from {@link ServerConnectionStateMachine} when something exceptional and
      * un-recoverable has happened on the upstream side.
      * @param cause the exception that triggered the issue
@@ -799,22 +791,28 @@ public class ClientConnectionStateMachine {
     private void toForwarding(Forwarding forwarding,
                               HostPort remote) {
         setState(forwarding);
-        boolean upstreamRequiresTls = virtualCluster().getUpstreamSslContext().isPresent();
-        var scsm = new ServerConnectionStateMachine(
-                remote,
-                upstreamRequiresTls,
-                this,
-                proxyToServerConnectionCounter,
-                proxyToServerErrorCounter,
-                serverToProxyBackpressureMeter,
-                proxyToServerConnectionToken);
+        proxyToServerConnectionCounter.increment();
+        var scsm = createServerConnection(remote);
         serverConnections.put(remote, scsm);
         var frontend = Objects.requireNonNull(frontendHandler);
-        frontend.initiateBackendConnect(remote, scsm.backendHandler());
+        scsm.connect(Objects.requireNonNull(frontend.clientChannel()));
         log(Level.DEBUG)
                 .addKeyValue("remote", remote)
                 .addKeyValue("clientAddress", () -> HostPort.asString(frontend.remoteHost(), frontend.remotePort()))
                 .log("Upstream connection initiated for client");
+    }
+
+    @VisibleForTesting
+    ServerConnectionStateMachine createServerConnection(HostPort remote) {
+        return new ServerConnectionStateMachine(
+                remote,
+                this,
+                virtualCluster(),
+                clusterName(),
+                nodeId(),
+                proxyToServerErrorCounter,
+                serverToProxyBackpressureMeter,
+                proxyToServerConnectionToken);
     }
 
     /**
