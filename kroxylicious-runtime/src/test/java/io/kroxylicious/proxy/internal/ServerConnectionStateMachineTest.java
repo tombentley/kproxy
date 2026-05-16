@@ -30,13 +30,13 @@ class ServerConnectionStateMachineTest {
     private static final HostPort REMOTE = new HostPort("broker", 9092);
 
     private ServerConnectionStateMachine createScsm(boolean upstreamTls) {
-        var pcsm = mock(ProxyChannelStateMachine.class);
-        when(pcsm.sessionId()).thenReturn("test-session");
-        when(pcsm.clusterName()).thenReturn("test-cluster");
+        var ccsm = mock(ClientConnectionStateMachine.class);
+        when(ccsm.sessionId()).thenReturn("test-session");
+        when(ccsm.clusterName()).thenReturn("test-cluster");
         return new ServerConnectionStateMachine(
                 REMOTE,
                 upstreamTls,
-                pcsm,
+                ccsm,
                 mock(Counter.class),
                 mock(Counter.class),
                 mock(Timer.class),
@@ -87,24 +87,24 @@ class ServerConnectionStateMachineTest {
 
     @Test
     void onServerActiveShouldFlushBeforePcsmCallback() {
-        var pcsm = mock(ProxyChannelStateMachine.class);
-        when(pcsm.sessionId()).thenReturn("test-session");
-        when(pcsm.clusterName()).thenReturn("test-cluster");
+        var ccsm = mock(ClientConnectionStateMachine.class);
+        when(ccsm.sessionId()).thenReturn("test-session");
+        when(ccsm.clusterName()).thenReturn("test-cluster");
         var scsm = new ServerConnectionStateMachine(
-                REMOTE, false, pcsm,
+                REMOTE, false, ccsm,
                 mock(Counter.class), mock(Counter.class),
                 mock(Timer.class), mock(ActivationToken.class));
 
         scsm.sendRequest("req-1");
-        verifyNoInteractions(pcsm);
+        verifyNoInteractions(ccsm);
 
-        // channelActive → onServerActive → flush pending → pcsm callback
+        // channelActive → onServerActive → flush pending → ccsm callback
         new EmbeddedChannel(scsm.backendHandler());
 
-        // At the point pcsm.onServerConnectionActive() was called,
+        // At the point ccsm.onServerConnectionActive() was called,
         // the pending requests had already been flushed
         assertThat(scsm.serverMessagesInFlightCount).isEqualTo(1);
-        verify(pcsm).onServerConnectionActive(scsm);
+        verify(ccsm).onServerConnectionActive(scsm);
     }
 
     @Test

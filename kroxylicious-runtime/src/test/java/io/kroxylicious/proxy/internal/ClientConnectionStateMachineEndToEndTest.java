@@ -83,7 +83,7 @@ import static org.mockito.Mockito.when;
 /**
  * Higher level test to ensure the statemachine and the channels interact as expected
  */
-class ProxyChannelStateMachineEndToEndTest {
+class ClientConnectionStateMachineEndToEndTest {
     public static final String SNI_HOSTNAME = "external.example.com";
     public static final String CLUSTER_HOST = "internal.example.org";
     public static final int CLUSTER_PORT = 9092;
@@ -106,9 +106,9 @@ class ProxyChannelStateMachineEndToEndTest {
     private KafkaProxyBackendHandler backendHandler;
     private boolean activateOutboundChannelAutomatically = true;
 
-    ProxyChannelStateMachine proxyChannelStateMachine(EndpointBinding binding) {
+    ClientConnectionStateMachine clientConnectionStateMachine(EndpointBinding binding) {
         var kafkaSession = new KafkaSession(KafkaSessionState.ESTABLISHING);
-        return new ProxyChannelStateMachine(binding, new DefaultSubjectBuilder(List.of()), kafkaSession);
+        return new ClientConnectionStateMachine(binding, new DefaultSubjectBuilder(List.of()), kafkaSession);
     }
 
     @AfterEach
@@ -124,59 +124,59 @@ class ProxyChannelStateMachineEndToEndTest {
     @Test
     void toClientActive() {
         // Given
-        ProxyChannelStateMachine proxyChannelStateMachine = buildFrontendHandler(false);
-        assertThat(proxyChannelStateMachine.state()).isExactlyInstanceOf(ProxyChannelState.Startup.class);
+        ClientConnectionStateMachine clientConnectionStateMachine = buildFrontendHandler(false);
+        assertThat(clientConnectionStateMachine.state()).isExactlyInstanceOf(ClientConnectionState.Startup.class);
         activateOutboundChannelAutomatically = false;
 
         // When
-        hClientConnect(proxyChannelStateMachine, handler);
+        hClientConnect(clientConnectionStateMachine, handler);
 
         // Then
         inboundChannel.checkException();
         assertThat(inboundChannel.config().isAutoRead()).isFalse();
         assertThat(inboundChannel.isWritable()).isTrue();
 
-        assertThat(proxyChannelStateMachine.state()).isExactlyInstanceOf(ProxyChannelState.ClientActive.class);
+        assertThat(clientConnectionStateMachine.state()).isExactlyInstanceOf(ClientConnectionState.ClientActive.class);
     }
 
     @ParameterizedTest
     @MethodSource("clientException")
     void toClientActiveThenException(Throwable clientException) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInClientActiveState(false);
+        var clientConnectionStateMachine = buildHandlerInClientActiveState(false);
 
         // When
         handler.exceptionCaught(inboundCtx, clientException);
 
         // Then
         inboundChannel.checkException();
-        assertClientConnectionClosedWithNoResponse(proxyChannelStateMachine);
+        assertClientConnectionClosedWithNoResponse(clientConnectionStateMachine);
     }
 
     @Test
     void toClientActiveThenUnexpectedMessage() {
         // Given
-        var proxyChannelStateMachine = buildHandlerInClientActiveState(false);
+        var clientConnectionStateMachine = buildHandlerInClientActiveState(false);
 
         // When
         inboundChannel.writeInbound("unexpected");
 
         // Then
         inboundChannel.checkException();
-        assertClientConnectionClosedWithNoResponse(proxyChannelStateMachine);
+        assertClientConnectionClosedWithNoResponse(clientConnectionStateMachine);
     }
 
     @Test
     void toClientActiveThenInactive() {
         // Given
-        var proxyChannelStateMachine = buildHandlerInClientActiveState(false);
+        var clientConnectionStateMachine = buildHandlerInClientActiveState(false);
 
         // When
         inboundChannel.close();
 
         // Then
         inboundChannel.checkException();
-        assertClientConnectionClosedWithNoResponse(proxyChannelStateMachine);
+        assertClientConnectionClosedWithNoResponse(clientConnectionStateMachine);
     }
 
     @ParameterizedTest
@@ -188,11 +188,11 @@ class ProxyChannelStateMachineEndToEndTest {
         // Given
         // Keeps the statemachine from automatically progressing so we can assert intermediate state
         activateOutboundChannelAutomatically = false;
-        var proxyChannelStateMachine = buildHandlerInClientActiveState(sni);
+        var clientConnectionStateMachine = buildHandlerInClientActiveState(sni);
 
         if (haProxy) {
-            proxyChannelStateMachine.forceState(
-                    new ProxyChannelState.HaProxy(),
+            clientConnectionStateMachine.forceState(
+                    new ClientConnectionState.HaProxy(),
                     handler,
                     java.util.Map.of(),
                     TEST_SESSION, false);
@@ -213,10 +213,10 @@ class ProxyChannelStateMachineEndToEndTest {
                 .describedAs("No response deferred until upstream connected")
                 .isNull();
         assertThat(inboundChannel.isWritable()).isTrue();
-        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
-        assertThat(proxyChannelStateMachine.clientSoftwareName())
+        assertThat(clientConnectionStateMachine.state()).isInstanceOf(ClientConnectionState.Forwarding.class);
+        assertThat(clientConnectionStateMachine.clientSoftwareName())
                 .isEqualTo(firstMessage == ApiKeys.API_VERSIONS ? CLIENT_SOFTWARE_NAME : null);
-        assertThat(proxyChannelStateMachine.clientSoftwareVersion())
+        assertThat(clientConnectionStateMachine.clientSoftwareVersion())
                 .isEqualTo(firstMessage == ApiKeys.API_VERSIONS ? CLIENT_SOFTWARE_VERSION : null);
 
         if (haProxy) {
@@ -234,16 +234,16 @@ class ProxyChannelStateMachineEndToEndTest {
         }
     }
 
-    private ProxyChannelStateMachine buildHandlerInClientActiveState(boolean sni) {
-        var proxyChannelStateMachine = buildFrontendHandler(false);
+    private ClientConnectionStateMachine buildHandlerInClientActiveState(boolean sni) {
+        var clientConnectionStateMachine = buildFrontendHandler(false);
         activateOutboundChannelAutomatically = false;
 
-        hClientConnect(proxyChannelStateMachine, handler);
-        assertThat(proxyChannelStateMachine.state()).isExactlyInstanceOf(ProxyChannelState.ClientActive.class);
+        hClientConnect(clientConnectionStateMachine, handler);
+        assertThat(clientConnectionStateMachine.state()).isExactlyInstanceOf(ClientConnectionState.ClientActive.class);
         if (sni) {
             inboundChannel.pipeline().fireUserEventTriggered(new SniCompletionEvent(SNI_HOSTNAME));
         }
-        return proxyChannelStateMachine;
+        return clientConnectionStateMachine;
     }
 
     @ParameterizedTest
@@ -253,7 +253,7 @@ class ProxyChannelStateMachineEndToEndTest {
                                                   boolean haProxy,
                                                   ApiKeys firstMessage) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
 
         // When
         outboundChannel.pipeline().fireChannelActive();
@@ -265,7 +265,7 @@ class ProxyChannelStateMachineEndToEndTest {
                 .describedAs("Buffered request should be forwarded to server")
                 .isNotNull();
 
-        assertProxyActive(proxyChannelStateMachine);
+        assertProxyActive(clientConnectionStateMachine);
         assertThat(handler.bufferedMsgs).isNull();
     }
 
@@ -277,7 +277,7 @@ class ProxyChannelStateMachineEndToEndTest {
                                                    ApiKeys firstMessage,
                                                    Throwable serverException) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
         final DecodedRequestFrame<ApiMessage> requestFrame = firstInitialRequest();
 
         // When
@@ -289,7 +289,7 @@ class ProxyChannelStateMachineEndToEndTest {
 
         assertNextClientResponseIsErrorFor(requestFrame);
         assertNoMoreResponses();
-        assertEverythingClosed(proxyChannelStateMachine);
+        assertEverythingClosed(clientConnectionStateMachine);
     }
 
     private void assertNoMoreResponses() {
@@ -303,7 +303,7 @@ class ProxyChannelStateMachineEndToEndTest {
                                                   boolean haProxy,
                                                   ApiKeys firstMessage) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, false, firstMessage);
 
         // When
         outboundChannel.pipeline().fireChannelInactive();
@@ -311,7 +311,7 @@ class ProxyChannelStateMachineEndToEndTest {
         // Then
         inboundChannel.checkException();
         outboundChannel.checkException();
-        assertClientConnectionClosedWithNoResponse(proxyChannelStateMachine);
+        assertClientConnectionClosedWithNoResponse(clientConnectionStateMachine);
     }
 
     @ParameterizedTest
@@ -321,7 +321,7 @@ class ProxyChannelStateMachineEndToEndTest {
                                                 boolean haProxy,
                                                 ApiKeys firstMessage) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
 
         // When
         outboundChannel.pipeline().fireChannelActive();
@@ -329,7 +329,7 @@ class ProxyChannelStateMachineEndToEndTest {
         // Then
         inboundChannel.checkException();
 
-        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Forwarding.class);
+        assertThat(clientConnectionStateMachine.state()).isInstanceOf(ClientConnectionState.Forwarding.class);
 
         assertThat(inboundChannel.config().isAutoRead())
                 .describedAs("Client is already unblocked; SCSM buffers until TLS handshake completes")
@@ -343,7 +343,7 @@ class ProxyChannelStateMachineEndToEndTest {
                           boolean haProxy,
                           ApiKeys firstMessage) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
         final DecodedRequestFrame<ApiMessage> requestFrame = firstInitialRequest();
         outboundChannel.pipeline().fireChannelActive();
 
@@ -356,7 +356,7 @@ class ProxyChannelStateMachineEndToEndTest {
 
         assertNextClientResponseIsErrorFor(requestFrame);
 
-        assertEverythingClosed(proxyChannelStateMachine);
+        assertEverythingClosed(clientConnectionStateMachine);
     }
 
     @ParameterizedTest
@@ -366,7 +366,7 @@ class ProxyChannelStateMachineEndToEndTest {
                              boolean haProxy,
                              ApiKeys firstMessage) {
         // Given
-        var proxyChannelStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
+        var clientConnectionStateMachine = buildHandlerInConnectingState(sni, true, firstMessage);
         outboundChannel.pipeline().fireChannelActive();
 
         // When
@@ -375,12 +375,12 @@ class ProxyChannelStateMachineEndToEndTest {
         // Then
         inboundChannel.checkException();
 
-        assertProxyActive(proxyChannelStateMachine);
+        assertProxyActive(clientConnectionStateMachine);
     }
 
-    private void assertProxyActive(ProxyChannelStateMachine proxyChannelStateMachine) {
-        assertThat(proxyChannelStateMachine.state())
-                .isInstanceOf(ProxyChannelState.Forwarding.class);
+    private void assertProxyActive(ClientConnectionStateMachine clientConnectionStateMachine) {
+        assertThat(clientConnectionStateMachine.state())
+                .isInstanceOf(ClientConnectionState.Forwarding.class);
 
         assertThat(inboundChannel.config().isAutoRead())
                 .describedAs("Client autoread should be on once connected to server")
@@ -439,7 +439,7 @@ class ProxyChannelStateMachineEndToEndTest {
     }
 
     private KafkaProxyFrontendHandler handler(
-                                              ProxyChannelStateMachine proxyChannelStateMachine,
+                                              ClientConnectionStateMachine clientConnectionStateMachine,
                                               DelegatingDecodePredicate dp) {
         var pfr = mock(PluginFactoryRegistry.class);
         return new KafkaProxyFrontendHandler(pfr,
@@ -449,11 +449,11 @@ class ProxyChannelStateMachineEndToEndTest {
                 new ApiVersionsServiceImpl(),
                 dp,
                 new DefaultSubjectBuilder(List.of()),
-                proxyChannelStateMachine, Optional.empty()) {
+                clientConnectionStateMachine, Optional.empty()) {
             @NonNull
             @Override
             Bootstrap configureBootstrap(@NonNull KafkaProxyBackendHandler capturedBackendHandler, @NonNull Channel inboundChannel) {
-                ProxyChannelStateMachineEndToEndTest.this.backendHandler = capturedBackendHandler;
+                ClientConnectionStateMachineEndToEndTest.this.backendHandler = capturedBackendHandler;
                 newOutboundChannel();
                 Bootstrap bootstrap = new Bootstrap();
                 bootstrap.group(outboundChannel.eventLoop())
@@ -471,9 +471,9 @@ class ProxyChannelStateMachineEndToEndTest {
                 // of a handler creating an outgoing connection and ends up
                 // trying to re-register the outbound channel => IllegalStateException
                 // So we override this method to short-circuit that
-                outboundChannel.pipeline().addFirst(ProxyChannelStateMachineEndToEndTest.this.backendHandler);
+                outboundChannel.pipeline().addFirst(ClientConnectionStateMachineEndToEndTest.this.backendHandler);
                 outboundChannel.pipeline().fireChannelRegistered();
-                if (ProxyChannelStateMachineEndToEndTest.this.activateOutboundChannelAutomatically) {
+                if (ClientConnectionStateMachineEndToEndTest.this.activateOutboundChannelAutomatically) {
                     outboundChannel.pipeline().fireChannelActive();
                 }
                 return outboundChannel.newPromise();
@@ -481,7 +481,7 @@ class ProxyChannelStateMachineEndToEndTest {
         };
     }
 
-    ProxyChannelStateMachine buildFrontendHandler(boolean tlsConfigured) {
+    ClientConnectionStateMachine buildFrontendHandler(boolean tlsConfigured) {
         this.inboundChannel = new EmbeddedChannel();
         this.correlationId = 0;
 
@@ -504,14 +504,14 @@ class ProxyChannelStateMachineEndToEndTest {
         }
         when(virtualClusterModel.getUpstreamSslContext()).thenReturn(sslContext);
         when(virtualClusterModel.getClusterName()).thenReturn("RandomCluster");
-        var proxyChannelStateMachine = proxyChannelStateMachine(endpointBinding);
+        var clientConnectionStateMachine = clientConnectionStateMachine(endpointBinding);
 
-        this.handler = handler(proxyChannelStateMachine, dp);
+        this.handler = handler(clientConnectionStateMachine, dp);
         this.inboundCtx = mock(ChannelHandlerContext.class);
         when(inboundCtx.channel()).thenReturn(inboundChannel);
         when(inboundCtx.pipeline()).thenReturn(inboundChannel.pipeline());
         when(inboundCtx.handler()).thenReturn(handler);
-        return proxyChannelStateMachine;
+        return clientConnectionStateMachine;
     }
 
     private void newOutboundChannel() {
@@ -527,15 +527,15 @@ class ProxyChannelStateMachineEndToEndTest {
 
     // transitions from each state
     // each of the events that can happen in that state
-    private void hClientConnect(ProxyChannelStateMachine proxyChannelStateMachine, KafkaProxyFrontendHandler handler) {
+    private void hClientConnect(ClientConnectionStateMachine clientConnectionStateMachine, KafkaProxyFrontendHandler handler) {
         final ChannelPipeline pipeline = inboundChannel.pipeline();
         if (pipeline.get(KafkaProxyFrontendHandler.class) == null) {
             pipeline.addLast(handler);
-            pipeline.addLast(new FilterChainCompletionHandler(proxyChannelStateMachine));
+            pipeline.addLast(new FilterChainCompletionHandler(clientConnectionStateMachine));
         }
-        assertThat(proxyChannelStateMachine.state()).isExactlyInstanceOf(ProxyChannelState.Startup.class);
+        assertThat(clientConnectionStateMachine.state()).isExactlyInstanceOf(ClientConnectionState.Startup.class);
         pipeline.fireChannelActive();
-        assertThat(proxyChannelStateMachine.state()).isExactlyInstanceOf(ProxyChannelState.ClientActive.class);
+        assertThat(clientConnectionStateMachine.state()).isExactlyInstanceOf(ClientConnectionState.ClientActive.class);
     }
 
     private void assertNoClientResponses() {
@@ -548,14 +548,14 @@ class ProxyChannelStateMachineEndToEndTest {
         }
     }
 
-    private void assertClientConnectionClosedWithNoResponse(ProxyChannelStateMachine proxyChannelStateMachine) {
+    private void assertClientConnectionClosedWithNoResponse(ClientConnectionStateMachine clientConnectionStateMachine) {
         assertNoClientResponses();
 
         assertThat(inboundChannel.isOpen())
                 .describedAs("Connection to client is closed")
                 .isFalse();
 
-        assertEverythingClosed(proxyChannelStateMachine);
+        assertEverythingClosed(clientConnectionStateMachine);
     }
 
     private <T extends ApiMessage> void assertClientResponse(int expectedCorrId,
@@ -679,14 +679,14 @@ class ProxyChannelStateMachineEndToEndTest {
         return crossProduct(bool(), bool(), apiKey(), serverException());
     }
 
-    private ProxyChannelStateMachine buildHandlerInConnectingState(
-                                                                   boolean sni,
-                                                                   boolean tlsConfigured,
-                                                                   ApiKeys firstMessage) {
+    private ClientConnectionStateMachine buildHandlerInConnectingState(
+                                                                       boolean sni,
+                                                                       boolean tlsConfigured,
+                                                                       ApiKeys firstMessage) {
         activateOutboundChannelAutomatically = false;
-        var proxyChannelStateMachine = buildFrontendHandler(tlsConfigured);
+        var clientConnectionStateMachine = buildFrontendHandler(tlsConfigured);
 
-        hClientConnect(proxyChannelStateMachine, handler);
+        hClientConnect(clientConnectionStateMachine, handler);
         if (sni) {
             inboundChannel.pipeline().fireUserEventTriggered(new SniCompletionEvent(SNI_HOSTNAME));
         }
@@ -706,7 +706,7 @@ class ProxyChannelStateMachineEndToEndTest {
             default -> throw new IllegalArgumentException();
         }
 
-        return proxyChannelStateMachine;
+        return clientConnectionStateMachine;
     }
 
     @SuppressWarnings("unchecked")
@@ -727,8 +727,8 @@ class ProxyChannelStateMachineEndToEndTest {
         }
     }
 
-    private void assertEverythingClosed(ProxyChannelStateMachine proxyChannelStateMachine) {
-        assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Closed.class);
+    private void assertEverythingClosed(ClientConnectionStateMachine clientConnectionStateMachine) {
+        assertThat(clientConnectionStateMachine.state()).isInstanceOf(ClientConnectionState.Closed.class);
         if (outboundChannel != null) {
             await("outboundClosed").atMost(BACKGROUND_TASK_TIMEOUT).untilTrue(outboundClosed);
             assertThat(outboundChannel.isActive()).isFalse();
@@ -738,7 +738,7 @@ class ProxyChannelStateMachineEndToEndTest {
         assertThat(inboundChannel.isOpen()).isFalse();
 
         await("transition to closed").atMost(BACKGROUND_TASK_TIMEOUT)
-                .untilAsserted(() -> assertThat(proxyChannelStateMachine.state()).isInstanceOf(ProxyChannelState.Closed.class));
+                .untilAsserted(() -> assertThat(clientConnectionStateMachine.state()).isInstanceOf(ClientConnectionState.Closed.class));
     }
 
     /**
@@ -756,10 +756,10 @@ class ProxyChannelStateMachineEndToEndTest {
     @Test
     void shouldMaintainCorrectHandlerOrderingAfterFiltersInstalled() {
         // Given - Build handler which will install filters during ClientActive transition
-        var proxyChannelStateMachine = buildFrontendHandler(false);
+        var clientConnectionStateMachine = buildFrontendHandler(false);
 
         // When - Transition to ClientActive state (this installs filters in the pipeline)
-        hClientConnect(proxyChannelStateMachine, handler);
+        hClientConnect(clientConnectionStateMachine, handler);
 
         // Then - Verify the pipeline ordering
         ChannelPipeline pipeline = inboundChannel.pipeline();

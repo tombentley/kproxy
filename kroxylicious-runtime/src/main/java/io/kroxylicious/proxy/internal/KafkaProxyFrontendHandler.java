@@ -57,8 +57,8 @@ import io.kroxylicious.proxy.config.tls.TrustProvider;
 import io.kroxylicious.proxy.frame.DecodedRequestFrame;
 import io.kroxylicious.proxy.frame.DecodedResponseFrame;
 import io.kroxylicious.proxy.frame.ResponseFrame;
-import io.kroxylicious.proxy.internal.ProxyChannelState.ClientActive;
-import io.kroxylicious.proxy.internal.ProxyChannelState.Closed;
+import io.kroxylicious.proxy.internal.ClientConnectionState.ClientActive;
+import io.kroxylicious.proxy.internal.ClientConnectionState.Closed;
 import io.kroxylicious.proxy.internal.codec.CorrelationManager;
 import io.kroxylicious.proxy.internal.codec.DecodePredicate;
 import io.kroxylicious.proxy.internal.codec.KafkaMessageListener;
@@ -98,7 +98,7 @@ public class KafkaProxyFrontendHandler
 
     private final EndpointReconciler endpointReconciler;
     private final DelegatingDecodePredicate dp;
-    private final ProxyChannelStateMachine proxyChannelStateMachine;
+    private final ClientConnectionStateMachine clientConnectionStateMachine;
     private final PluginFactoryRegistry pfr;
     private final FilterChainFactory filterChainFactory;
     private final List<NamedFilterDefinition> namedFilterDefinitions;
@@ -140,7 +140,7 @@ public class KafkaProxyFrontendHandler
                               ApiVersionsServiceImpl apiVersionsService,
                               DelegatingDecodePredicate dp,
                               TransportSubjectBuilder subjectBuilder,
-                              ProxyChannelStateMachine proxyChannelStateMachine,
+                              ClientConnectionStateMachine clientConnectionStateMachine,
                               Optional<NettySettings> proxyNettySettings) {
         this.pfr = pfr;
         this.filterChainFactory = filterChainFactory;
@@ -149,18 +149,18 @@ public class KafkaProxyFrontendHandler
         this.apiVersionsIntersectFilter = new ApiVersionsIntersectFilter(apiVersionsService);
         this.apiVersionsDowngradeFilter = new ApiVersionsDowngradeFilter(apiVersionsService);
         this.dp = dp;
-        this.proxyChannelStateMachine = proxyChannelStateMachine;
+        this.clientConnectionStateMachine = clientConnectionStateMachine;
         authenticatedIdleTimeMillis = getAuthenticatedIdleMillis(proxyNettySettings);
     }
 
     @Override
     public String toString() {
-        // Don't include proxyChannelStateMachine's toString here
-        // because proxyChannelStateMachine's toString will include the frontend's toString
+        // Don't include clientConnectionStateMachine's toString here
+        // because clientConnectionStateMachine's toString will include the frontend's toString
         // and we don't want a SOE.
         return "KafkaProxyFrontendHandler{"
                 + ", clientCtx=" + clientCtx
-                + ", proxyChannelState=" + this.proxyChannelStateMachine.currentState()
+                + ", proxyChannelState=" + this.clientConnectionStateMachine.currentState()
                 + ", number of bufferedMsgs=" + (bufferedMsgs == null ? 0 : bufferedMsgs.size())
                 + ", pendingClientFlushes=" + pendingClientFlushes
                 + ", sniHostname='" + sniHostname + '\''
@@ -192,11 +192,11 @@ public class KafkaProxyFrontendHandler
         }
         else if (event instanceof SslHandshakeCompletionEvent handshakeCompletionEvent
                 && handshakeCompletionEvent.isSuccess()) {
-            this.proxyChannelStateMachine.onClientTlsHandshakeSuccess(sslSession());
+            this.clientConnectionStateMachine.onClientTlsHandshakeSuccess(sslSession());
         }
         else if (event instanceof IdleStateEvent idleStateEvent && idleStateEvent.state() == IdleState.ALL_IDLE) {
             // No traffic has been observed on the channel for the configured period
-            proxyChannelStateMachine.onClientIdle();
+            clientConnectionStateMachine.onClientIdle();
         }
 
         super.userEventTriggered(ctx, event);
@@ -210,7 +210,7 @@ public class KafkaProxyFrontendHandler
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.clientCtx = ctx;
-        this.proxyChannelStateMachine.onClientActive(this);
+        this.clientConnectionStateMachine.onClientActive(this);
 
     }
 
@@ -223,11 +223,11 @@ public class KafkaProxyFrontendHandler
         LOGGER.atTrace()
                 .addKeyValue("channelId", () -> ctx.channel().toString())
                 .log("INACTIVE on inbound");
-        proxyChannelStateMachine.onClientInactive();
+        clientConnectionStateMachine.onClientInactive();
     }
 
     /**
-     * Propagates backpressure to the <em>upstream/server</em> connection by notifying the {@link ProxyChannelStateMachine} when the <em>downstream/client</em> connection
+     * Propagates backpressure to the <em>upstream/server</em> connection by notifying the {@link ClientConnectionStateMachine} when the <em>downstream/client</em> connection
      * blocks or unblocks.
      * @param ctx the handler context for downstream/client channel
      * @throws Exception If something went wrong
@@ -238,10 +238,10 @@ public class KafkaProxyFrontendHandler
             throws Exception {
         super.channelWritabilityChanged(ctx);
         if (ctx.channel().isWritable()) {
-            this.proxyChannelStateMachine.onClientWritable();
+            this.clientConnectionStateMachine.onClientWritable();
         }
         else {
-            this.proxyChannelStateMachine.onClientUnwritable();
+            this.clientConnectionStateMachine.onClientUnwritable();
         }
     }
 
@@ -254,11 +254,11 @@ public class KafkaProxyFrontendHandler
     public void channelRead(
                             ChannelHandlerContext ctx,
                             Object msg) {
-        proxyChannelStateMachine.onClientRequest(msg);
+        clientConnectionStateMachine.onClientRequest(msg);
     }
 
     /**
-     * Callback from the {@link ProxyChannelStateMachine} triggered when it wants to apply backpressure to the <em>downstream/client</em> connection
+     * Callback from the {@link ClientConnectionStateMachine} triggered when it wants to apply backpressure to the <em>downstream/client</em> connection
      */
     void applyBackpressure() {
         if (clientCtx != null) {
@@ -267,7 +267,7 @@ public class KafkaProxyFrontendHandler
     }
 
     /**
-     * Callback from the {@link ProxyChannelStateMachine} triggered when it wants to remove backpressure from the <em>downstream/client</em> connection
+     * Callback from the {@link ClientConnectionStateMachine} triggered when it wants to remove backpressure from the <em>downstream/client</em> connection
      */
     void relieveBackpressure() {
         if (clientCtx != null) {
@@ -276,7 +276,7 @@ public class KafkaProxyFrontendHandler
     }
 
     /**
-     * Called by the {@link ProxyChannelStateMachine} on entry to the {@link ClientActive} state.
+     * Called by the {@link ClientConnectionStateMachine} on entry to the {@link ClientActive} state.
      */
     void inClientActive() {
         Channel clientChannel = clientCtx().channel();
@@ -302,30 +302,31 @@ public class KafkaProxyFrontendHandler
         List<FilterAndInvoker> filterChain = filterChainFactory.createFilters(filterContext, this.namedFilterDefinitions);
         filterAndInvokers.addAll(filterChain);
 
-        if (proxyChannelStateMachine.endpointBinding().restrictUpstreamToMetadataDiscovery()) {
+        if (clientConnectionStateMachine.endpointBinding().restrictUpstreamToMetadataDiscovery()) {
             filterAndInvokers.addAll(FilterAndInvoker.build("EagerMetadataLearner (internal)", new EagerMetadataLearner()));
         }
-        filterAndInvokers.addAll(FilterAndInvoker.build("VirtualCluster TopicNameCache (internal)", proxyChannelStateMachine.virtualCluster().getTopicNameCacheFilter()));
+        filterAndInvokers
+                .addAll(FilterAndInvoker.build("VirtualCluster TopicNameCache (internal)", clientConnectionStateMachine.virtualCluster().getTopicNameCacheFilter()));
         List<FilterAndInvoker> brokerAddressFilters = FilterAndInvoker.build("BrokerAddress (internal)",
-                new BrokerAddressFilter(proxyChannelStateMachine.endpointGateway(), endpointReconciler));
+                new BrokerAddressFilter(clientConnectionStateMachine.endpointGateway(), endpointReconciler));
         filterAndInvokers.addAll(brokerAddressFilters);
 
         return filterAndInvokers;
     }
 
     /**
-     * Handles an exception in downstream/client pipeline by notifying {@link #proxyChannelStateMachine} of the issue.
+     * Handles an exception in downstream/client pipeline by notifying {@link #clientConnectionStateMachine} of the issue.
      * @param ctx The downstream context
      * @param cause The downstream exception
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        proxyChannelStateMachine.onClientException(cause);
+        clientConnectionStateMachine.onClientException(cause);
     }
 
     /**
      * Initiates the connection to a server.
-     * Called by the {@link ProxyChannelStateMachine} to initiate a backend connection.
+     * Called by the {@link ClientConnectionStateMachine} to initiate a backend connection.
      * Configures the backend channel pipeline and starts the TCP connection.
      * @param remote upstream broker target
      * @param backendHandler the handler for the backend channel
@@ -338,7 +339,7 @@ public class KafkaProxyFrontendHandler
         final Bootstrap bootstrap = configureBootstrap(backendHandler, inboundChannel);
 
         LOGGER.atDebug()
-                .addKeyValue("sessionId", this.proxyChannelStateMachine.sessionId())
+                .addKeyValue("sessionId", this.clientConnectionStateMachine.sessionId())
                 .addKeyValue("remote", remote)
                 .log("Connecting to outbound");
         ChannelFuture serverTcpConnectFuture = initConnection(remote.host(), remote.port(), bootstrap);
@@ -352,7 +353,7 @@ public class KafkaProxyFrontendHandler
         // the reverse order, from first to last. This is the opposite of how we configure a server pipeline like we do in KafkaProxyInitializer where the channel
         // reads Kafka requests, as the message flows are reversed. This is also the opposite of the order that Filters are declared in the Kroxylicious configuration
         // file. The Netty Channel pipeline documentation provides an illustration https://netty.io/4.0/api/io/netty/channel/ChannelPipeline.html
-        if (proxyChannelStateMachine.virtualCluster().isLogFrames()) {
+        if (clientConnectionStateMachine.virtualCluster().isLogFrames()) {
             pipeline.addFirst("frameLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamFrameLogger", LogLevel.INFO));
         }
 
@@ -360,20 +361,20 @@ public class KafkaProxyFrontendHandler
         var decoderListener = buildMetricsMessageListenerForDecode();
 
         pipeline.addFirst("responseDecoder",
-                new KafkaResponseDecoder(correlationManager, proxyChannelStateMachine.virtualCluster().socketFrameMaxSizeBytes(), decoderListener));
+                new KafkaResponseDecoder(correlationManager, clientConnectionStateMachine.virtualCluster().socketFrameMaxSizeBytes(), decoderListener));
         pipeline.addFirst("requestEncoder", new KafkaRequestEncoder(correlationManager, encoderListener));
-        if (proxyChannelStateMachine.virtualCluster().isLogNetwork()) {
+        if (clientConnectionStateMachine.virtualCluster().isLogNetwork()) {
             pipeline.addFirst("networkLogger", new LoggingHandler("io.kroxylicious.proxy.internal.UpstreamNetworkLogger", LogLevel.INFO));
         }
 
         // Check if we need to use dynamic TLS credential supplier
-        if (proxyChannelStateMachine.virtualCluster().usesDynamicTlsCredentials()) {
+        if (clientConnectionStateMachine.virtualCluster().usesDynamicTlsCredentials()) {
             // Dynamic credential supplier - invoke it asynchronously
             invokeTlsCredentialSupplier(remote, outboundChannel, pipeline);
         }
         else {
             // Static TLS configuration - use pre-built SslContext
-            proxyChannelStateMachine.virtualCluster().getUpstreamSslContext().ifPresent(sslContext -> {
+            clientConnectionStateMachine.virtualCluster().getUpstreamSslContext().ifPresent(sslContext -> {
                 final SslHandler handler = sslContext.newHandler(outboundChannel.alloc(), remote.host(), remote.port());
                 pipeline.addFirst("ssl", handler);
             });
@@ -392,7 +393,7 @@ public class KafkaProxyFrontendHandler
                 // That happens when the backend filter call #onUpstreamChannelActive(ChannelHandlerContext).
             }
             else {
-                proxyChannelStateMachine.onServerConnectionException(future.cause());
+                clientConnectionStateMachine.onServerConnectionException(future.cause());
             }
         });
     }
@@ -402,10 +403,10 @@ public class KafkaProxyFrontendHandler
      */
     private void invokeTlsCredentialSupplier(HostPort remote, Channel outboundChannel, ChannelPipeline pipeline) {
         try {
-            TlsCredentialSupplierManager manager = proxyChannelStateMachine.virtualCluster().getTlsCredentialSupplierManager();
+            TlsCredentialSupplierManager manager = clientConnectionStateMachine.virtualCluster().getTlsCredentialSupplierManager();
             ServerTlsCredentialSupplier supplier = manager.getSupplier();
 
-            ClientTlsContext clientCtx = proxyChannelStateMachine.clientTlsContext().orElse(null);
+            ClientTlsContext clientCtx = clientConnectionStateMachine.clientTlsContext().orElse(null);
             ServerTlsCredentialSupplierContextImpl supplierContext = new ServerTlsCredentialSupplierContextImpl(clientCtx);
 
             outboundChannel.eventLoop().execute(() -> requestTlsCredentials(supplier, supplierContext, remote, outboundChannel, pipeline));
@@ -417,7 +418,7 @@ public class KafkaProxyFrontendHandler
                     .setCause(LOGGER.isDebugEnabled() ? e : null)
                     .log("Error invoking TLS credential supplier{}",
                             LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
-            proxyChannelStateMachine.onServerConnectionException(e);
+            clientConnectionStateMachine.onServerConnectionException(e);
         }
     }
 
@@ -436,7 +437,7 @@ public class KafkaProxyFrontendHandler
             return;
         }
         if (credentials == null) {
-            proxyChannelStateMachine.onServerConnectionException(new IllegalStateException("TLS credential supplier returned null"));
+            clientConnectionStateMachine.onServerConnectionException(new IllegalStateException("TLS credential supplier returned null"));
             return;
         }
         applySslContextToChannel(credentials, remote, outboundChannel, pipeline);
@@ -449,7 +450,7 @@ public class KafkaProxyFrontendHandler
                 .setCause(LOGGER.isDebugEnabled() ? throwable : null)
                 .log("TLS credential supplier failed{}",
                         LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
-        proxyChannelStateMachine.onServerConnectionException(new IllegalStateException("Failed to obtain TLS credentials", throwable));
+        clientConnectionStateMachine.onServerConnectionException(new IllegalStateException("Failed to obtain TLS credentials", throwable));
     }
 
     /**
@@ -465,7 +466,7 @@ public class KafkaProxyFrontendHandler
             SslContextBuilder sslContextBuilder = SslContextBuilder.forClient()
                     .keyManager(credentialsImpl.privateKey(), credentialsImpl.certificateChain());
 
-            proxyChannelStateMachine.virtualCluster().targetCluster().tls().ifPresent(tls -> {
+            clientConnectionStateMachine.virtualCluster().targetCluster().tls().ifPresent(tls -> {
                 VirtualClusterModel.configureCipherSuites(sslContextBuilder, tls);
                 VirtualClusterModel.configureEnabledProtocols(sslContextBuilder, tls);
                 Optional.ofNullable(tls.trust())
@@ -495,13 +496,13 @@ public class KafkaProxyFrontendHandler
                     .setCause(LOGGER.isDebugEnabled() ? e : null)
                     .log("Error applying TLS credentials to channel{}",
                             LOGGER.isDebugEnabled() ? "" : " increase log level to DEBUG for stacktrace");
-            proxyChannelStateMachine.onServerConnectionException(e);
+            clientConnectionStateMachine.onServerConnectionException(e);
         }
     }
 
     private MetricEmittingKafkaMessageListener buildMetricsMessageListenerForEncode() {
-        var clusterName = this.proxyChannelStateMachine.clusterName();
-        var nodeId = proxyChannelStateMachine.nodeId();
+        var clusterName = this.clientConnectionStateMachine.clusterName();
+        var nodeId = clientConnectionStateMachine.nodeId();
         var proxyToServerMessageCounterProvider = Metrics.proxyToServerMessageCounterProvider(clusterName, nodeId);
         var proxyToServerMessageSizeDistributionProvider = Metrics.proxyToServerMessageSizeDistributionProvider(clusterName,
                 nodeId);
@@ -509,8 +510,8 @@ public class KafkaProxyFrontendHandler
     }
 
     private KafkaMessageListener buildMetricsMessageListenerForDecode() {
-        var clusterName = proxyChannelStateMachine.clusterName();
-        var nodeId = proxyChannelStateMachine.nodeId();
+        var clusterName = clientConnectionStateMachine.clusterName();
+        var nodeId = clientConnectionStateMachine.nodeId();
         var serverToProxyMessageCounterProvider = Metrics.serverToProxyMessageCounterProvider(clusterName, nodeId);
 
         var serverToProxyMessageSizeDistributionProvider = Metrics.serverToProxyMessageSizeDistributionProvider(clusterName,
@@ -537,7 +538,7 @@ public class KafkaProxyFrontendHandler
     }
 
     /**
-     * Called by the {@link ProxyChannelStateMachine} on entry to the {@link Closed} state.
+     * Called by the {@link ClientConnectionStateMachine} on entry to the {@link Closed} state.
      */
     void inClosed(@Nullable Throwable errorCodeEx) {
         Channel inboundChannel = clientCtx().channel();
@@ -555,7 +556,7 @@ public class KafkaProxyFrontendHandler
     }
 
     /**
-     * Called by the {@link ProxyChannelStateMachine} to propagate an RPC to the downstream client.
+     * Called by the {@link ClientConnectionStateMachine} to propagate an RPC to the downstream client.
      * @param msg the RPC to forward.
      */
     void forwardToClient(Object msg) {
@@ -571,7 +572,7 @@ public class KafkaProxyFrontendHandler
     }
 
     /**
-     * Called by the {@link ProxyChannelStateMachine} when the bach from the upstream/server side is complete.
+     * Called by the {@link ClientConnectionStateMachine} when the bach from the upstream/server side is complete.
      */
     void flushToClient() {
         final Channel inboundChannel = clientCtx().channel();
@@ -581,12 +582,12 @@ public class KafkaProxyFrontendHandler
         }
         if (!inboundChannel.isWritable()) {
             // TODO does duplicate the writeability change notification from netty? If it does is that a problem?
-            proxyChannelStateMachine.onClientUnwritable();
+            clientConnectionStateMachine.onClientUnwritable();
         }
     }
 
     /**
-     * Called by the {@link ProxyChannelStateMachine} when there is a requirement to buffer RPC's prior to forwarding to the upstream/server.
+     * Called by the {@link ClientConnectionStateMachine} when there is a requirement to buffer RPC's prior to forwarding to the upstream/server.
      * Generally this is expected to be when client requests are received before we have a connection to the upstream node.
      * @param msg the RPC to buffer.
      */
@@ -618,7 +619,7 @@ public class KafkaProxyFrontendHandler
                             20000,
                             sniHostname,
                             inboundChannel,
-                            proxyChannelStateMachine));
+                            clientConnectionStateMachine));
             addNextFilterAfter = handlerName;
         }
     }
@@ -627,7 +628,7 @@ public class KafkaProxyFrontendHandler
         var inboundChannel = clientCtx().channel();
         forwardBufferedMessages();
         inboundChannel.config().setAutoRead(true);
-        proxyChannelStateMachine.onClientWritable();
+        clientConnectionStateMachine.onClientWritable();
     }
 
     private void forwardBufferedMessages() {
@@ -645,7 +646,7 @@ public class KafkaProxyFrontendHandler
     }
 
     private ChannelHandlerContext clientCtx() {
-        return Objects.requireNonNull(this.clientCtx, "clientCtx was null while in state " + this.proxyChannelStateMachine.currentState());
+        return Objects.requireNonNull(this.clientCtx, "clientCtx was null while in state " + this.clientConnectionStateMachine.currentState());
     }
 
     /**

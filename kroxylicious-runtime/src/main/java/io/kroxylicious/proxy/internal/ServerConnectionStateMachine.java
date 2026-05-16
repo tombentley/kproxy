@@ -29,7 +29,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Manages the lifecycle of a single upstream (proxy-to-broker) TCP connection.
  * <p>
- * Extracted from {@link ProxyChannelStateMachine} to separate server-side connection
+ * Extracted from {@link ClientConnectionStateMachine} to separate server-side connection
  * concerns from the client session. The PCSM retains client-side state and delegates
  * server operations here.
  *
@@ -45,7 +45,7 @@ class ServerConnectionStateMachine {
 
     private ServerConnectionState state;
 
-    private final ProxyChannelStateMachine pcsm;
+    private final ClientConnectionStateMachine ccsm;
     private final KafkaProxyBackendHandler backendHandler;
     private final boolean upstreamRequiresTls;
 
@@ -70,14 +70,14 @@ class ServerConnectionStateMachine {
     ServerConnectionStateMachine(
                                  HostPort remote,
                                  boolean upstreamRequiresTls,
-                                 ProxyChannelStateMachine pcsm,
+                                 ClientConnectionStateMachine ccsm,
                                  Counter proxyToServerConnectionCounter,
                                  Counter proxyToServerErrorCounter,
                                  Timer serverToProxyBackpressureMeter,
                                  ActivationToken proxyToServerConnectionToken) {
         this.state = new ServerConnectionState.Connecting(remote);
         this.upstreamRequiresTls = upstreamRequiresTls;
-        this.pcsm = Objects.requireNonNull(pcsm);
+        this.ccsm = Objects.requireNonNull(ccsm);
         this.backendHandler = new KafkaProxyBackendHandler(this);
         this.proxyToServerConnectionCounter = proxyToServerConnectionCounter;
         this.proxyToServerErrorCounter = proxyToServerErrorCounter;
@@ -105,17 +105,17 @@ class ServerConnectionStateMachine {
             setState(connecting.toActive());
             proxyToServerConnectionToken.acquire();
             flushPendingRequests();
-            pcsm.onServerConnectionActive(this);
+            ccsm.onServerConnectionActive(this);
         }
         else {
-            pcsm.illegalState("Server became active while not in the connecting state");
+            ccsm.illegalState("Server became active while not in the connecting state");
         }
     }
 
     void onServerInactive() {
         if (!(state instanceof ServerConnectionState.Closed)) {
             toClosed();
-            pcsm.onServerConnectionClosed(this, ProxyChannelStateMachine.DisconnectCause.SERVER_CLOSED);
+            ccsm.onServerConnectionClosed(this, ClientConnectionStateMachine.DisconnectCause.SERVER_CLOSED);
         }
     }
 
@@ -130,28 +130,28 @@ class ServerConnectionStateMachine {
                             : "exception from server channel, increase log level to DEBUG for stacktrace");
             proxyToServerErrorCounter.increment();
             toClosed();
-            pcsm.onServerConnectionException(this, cause);
+            ccsm.onServerConnectionException(this, cause);
         }
     }
 
     void onMessageFromServer(Object msg) {
         serverMessagesInFlightCount = Math.max(0, serverMessagesInFlightCount - 1);
-        pcsm.onResponseFromServer(this, msg);
+        ccsm.onResponseFromServer(this, msg);
     }
 
     void serverReadComplete() {
-        pcsm.onServerReadComplete(this);
+        ccsm.onServerReadComplete(this);
     }
 
     void onServerUnwritable() {
-        pcsm.onServerUnwritable(this);
+        ccsm.onServerUnwritable(this);
     }
 
     void onServerWritable() {
-        pcsm.onServerWritable(this);
+        ccsm.onServerWritable(this);
     }
 
-    // === Called by ProxyChannelStateMachine ===
+    // === Called by ClientConnectionStateMachine ===
 
     void sendRequest(Object msg) {
         if (state instanceof ServerConnectionState.Connecting) {
@@ -234,8 +234,8 @@ class ServerConnectionStateMachine {
             case TRACE -> LOGGER.atTrace();
         };
         return builder
-                .addKeyValue("sessionId", pcsm.sessionId())
-                .addKeyValue("virtualCluster", pcsm.clusterName());
+                .addKeyValue("sessionId", ccsm.sessionId())
+                .addKeyValue("virtualCluster", ccsm.clusterName());
     }
 
     @Override

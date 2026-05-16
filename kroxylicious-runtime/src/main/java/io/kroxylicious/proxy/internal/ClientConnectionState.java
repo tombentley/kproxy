@@ -8,17 +8,17 @@ package io.kroxylicious.proxy.internal;
 
 import java.util.concurrent.CompletableFuture;
 
-import static io.kroxylicious.proxy.internal.ProxyChannelState.ClientActive;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Closed;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Draining;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Forwarding;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.HaProxy;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Startup;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.ClientActive;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.Closed;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.Draining;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.Forwarding;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.HaProxy;
+import static io.kroxylicious.proxy.internal.ClientConnectionState.Startup;
 
 /**
- * Root of a sealed class hierarchy representing the states of the {@link ProxyChannelStateMachine}.
+ * Root of a sealed class hierarchy representing the states of the {@link ClientConnectionStateMachine}.
  */
-sealed interface ProxyChannelState permits
+sealed interface ClientConnectionState permits
         Startup,
         ClientActive,
         HaProxy,
@@ -29,7 +29,7 @@ sealed interface ProxyChannelState permits
     /**
      * The statemachine has just been created.
      */
-    record Startup() implements ProxyChannelState {
+    record Startup() implements ClientConnectionState {
         public static final Startup STARTING_STATE = new Startup();
 
         public ClientActive toClientActive() {
@@ -41,7 +41,7 @@ sealed interface ProxyChannelState permits
      * The initial state, when a client has connected, but no messages
      * have been received yet.
      */
-    record ClientActive() implements ProxyChannelState {
+    record ClientActive() implements ClientConnectionState {
 
         /**
          * Transition to {@link HaProxy}, because a PROXY header has been received
@@ -67,7 +67,7 @@ sealed interface ProxyChannelState permits
      * {@link io.kroxylicious.proxy.internal.net.HaProxyContext}.
      */
     record HaProxy()
-            implements ProxyChannelState {
+            implements ClientConnectionState {
 
         /**
          * Transition to {@link Forwarding}, because a client request has been received
@@ -80,11 +80,11 @@ sealed interface ProxyChannelState permits
     }
 
     /**
-     * A backend connection has been initiated. The {@link ProxyChannelStateMachine#progressionLatch}
+     * A backend connection has been initiated. The {@link ClientConnectionStateMachine#progressionLatch}
      * gates client unblocking until both the transport subject is built and the backend
      * connection is active.
      */
-    record Forwarding() implements ProxyChannelState {}
+    record Forwarding() implements ClientConnectionState {}
 
     /**
      * Connections are being drained. autoRead is disabled on the client channel,
@@ -95,17 +95,17 @@ sealed interface ProxyChannelState permits
      * connection with {@code DisconnectCause.DRAIN_COMPLETED}).
      * <p>
      * {@code closedFuture} completes when this connection has fully closed. Callers of
-     * {@link ProxyChannelStateMachine#drain(java.time.Duration)} that arrive while the
+     * {@link ClientConnectionStateMachine#drain(java.time.Duration)} that arrive while the
      * connection is already draining chain their own promise to this future.
      */
-    record Draining(Runnable onDrained, CompletableFuture<Void> closedFuture) implements ProxyChannelState {
+    record Draining(Runnable onDrained, CompletableFuture<Void> closedFuture) implements ClientConnectionState {
 
     }
 
     /**
      * The final state, where there are no connections to either client or server
      */
-    record Closed() implements ProxyChannelState {
+    record Closed() implements ClientConnectionState {
 
     }
 
