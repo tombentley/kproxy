@@ -85,9 +85,6 @@ import io.kroxylicious.proxy.tls.TlsCredentials;
 import edu.umd.cs.findbugs.annotations.CheckReturnValue;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Connecting;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.SelectingServer;
-
 @SuppressWarnings("java:S1192") // ignore dupe string literals is due to logger keys
 public class KafkaProxyFrontendHandler
         extends ChannelInboundHandlerAdapter {
@@ -293,14 +290,6 @@ public class KafkaProxyFrontendHandler
         clientChannel.read();
     }
 
-    /**
-     * Called by the {@link ProxyChannelStateMachine} on entry to the {@link SelectingServer} state.
-     */
-    void inSelectingServer() {
-        var target = Objects.requireNonNull(proxyChannelStateMachine.endpointBinding().upstreamTarget());
-        initiateConnect(target);
-    }
-
     private List<FilterAndInvoker> buildFilters() {
         List<FilterAndInvoker> apiVersionFilters = FilterAndInvoker.build("ApiVersionsIntersect (internal)", apiVersionsIntersectFilter);
         var filterAndInvokers = new ArrayList<>(apiVersionFilters);
@@ -333,26 +322,14 @@ public class KafkaProxyFrontendHandler
 
     /**
      * Initiates the connection to a server.
-     * Changes {@link #proxyChannelStateMachine} from {@link SelectingServer} to {@link Connecting}
-     * Initializes the {@code backendHandler} and configures its pipeline
-     * with the given {@code filters}.
+     * Called by the {@link ProxyChannelStateMachine} to initiate a backend connection.
+     * Configures the backend channel pipeline and starts the TCP connection.
      * @param remote upstream broker target
+     * @param backendHandler the handler for the backend channel
      */
-    void initiateConnect(
-                         HostPort remote) {
-        LOGGER.atDebug()
-                .addKeyValue("sessionId", this.proxyChannelStateMachine.sessionId())
-                .addKeyValue("remote", remote)
-                .log("Connecting to backend broker");
-        this.proxyChannelStateMachine.onInitiateConnect(remote);
-    }
-
-    /**
-     * Called by the {@link ProxyChannelStateMachine} on entry to the {@link Connecting} state.
-     */
-    void inConnecting(
-                      HostPort remote,
-                      KafkaProxyBackendHandler backendHandler) {
+    void initiateBackendConnect(
+                                HostPort remote,
+                                KafkaProxyBackendHandler backendHandler) {
         final Channel inboundChannel = clientCtx().channel();
         // Start the upstream connection attempt.
         final Bootstrap bootstrap = configureBootstrap(backendHandler, inboundChannel);

@@ -6,24 +6,13 @@
 
 package io.kroxylicious.proxy.internal;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-
-import org.apache.kafka.common.message.ApiVersionsRequestData;
-
-import io.kroxylicious.proxy.frame.DecodedRequestFrame;
-import io.kroxylicious.proxy.internal.net.HaProxyContext;
-import io.kroxylicious.proxy.service.HostPort;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
 
 import static io.kroxylicious.proxy.internal.ProxyChannelState.ClientActive;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.Closed;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.Connecting;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.Draining;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.Forwarding;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.HaProxy;
-import static io.kroxylicious.proxy.internal.ProxyChannelState.SelectingServer;
 import static io.kroxylicious.proxy.internal.ProxyChannelState.Startup;
 
 /**
@@ -33,8 +22,6 @@ sealed interface ProxyChannelState permits
         Startup,
         ClientActive,
         HaProxy,
-        SelectingServer,
-        Connecting,
         Forwarding,
         Draining,
         Closed {
@@ -65,132 +52,39 @@ sealed interface ProxyChannelState permits
         }
 
         /**
-         * Transition to {@link SelectingServer}, because some non-ApiVersions request has been received
-         * @return The Connecting state
+         * Transition to {@link Forwarding}, because a client request has been received
+         * and a backend connection is being initiated.
+         * @return The Forwarding state
          */
-        public SelectingServer toSelectingServer(@Nullable DecodedRequestFrame<ApiVersionsRequestData> apiVersionsFrame) {
-            return new SelectingServer(
-                    apiVersionsFrame == null ? null : apiVersionsFrame.body().clientSoftwareName(),
-                    apiVersionsFrame == null ? null : apiVersionsFrame.body().clientSoftwareVersion());
+        public Forwarding toForwarding() {
+            return new Forwarding();
         }
     }
 
     /**
      * A PROXY protocol header has been received on the channel.
      * The connection metadata is captured in the {@link KafkaSession}'s
-     * {@link HaProxyContext}.
+     * {@link io.kroxylicious.proxy.internal.net.HaProxyContext}.
      */
     record HaProxy()
             implements ProxyChannelState {
 
         /**
-         * Transition to {@link SelectingServer}, because some non-ApiVersions request has been received
-         * @return The Connecting state
-         */
-        public SelectingServer toSelectingServer(@Nullable DecodedRequestFrame<ApiVersionsRequestData> apiVersionsFrame) {
-            return new SelectingServer(
-                    apiVersionsFrame == null ? null : apiVersionsFrame.body().clientSoftwareName(),
-                    apiVersionsFrame == null ? null : apiVersionsFrame.body().clientSoftwareVersion());
-        }
-    }
-
-    /**
-     * A channel to the server is now required.
-     * @param clientSoftwareName
-     * @param clientSoftwareVersion
-     */
-    record SelectingServer(@Nullable String clientSoftwareName,
-                           @Nullable String clientSoftwareVersion)
-            implements ProxyChannelState {
-
-        /**
-         * Transition to {@link Connecting}
-         * @return The Connecting state
-         */
-        public Connecting toConnecting(HostPort remote) {
-            return new Connecting(clientSoftwareName,
-                    clientSoftwareVersion, remote);
-        }
-    }
-
-    /**
-     * The connection has started but the channel to it is not yet active.
-     *
-     * @param clientSoftwareName
-     * @param clientSoftwareVersion
-     * @param remote
-     */
-    record Connecting(@Nullable String clientSoftwareName,
-                      @Nullable String clientSoftwareVersion,
-                      HostPort remote)
-            implements ProxyChannelState {
-
-        /**
-         * Transition to {@link Forwarding}
+         * Transition to {@link Forwarding}, because a client request has been received
+         * and a backend connection is being initiated.
          * @return The Forwarding state
          */
         public Forwarding toForwarding() {
-            return new Forwarding(
-                    clientSoftwareName,
-                    clientSoftwareVersion);
+            return new Forwarding();
         }
-
     }
 
     /**
-     * There's a KRPC-capable channel to the server
+     * A backend connection has been initiated. The {@link ProxyChannelStateMachine#progressionLatch}
+     * gates client unblocking until both the transport subject is built and the backend
+     * connection is active.
      */
-    final class Forwarding
-            implements ProxyChannelState {
-
-        @Nullable
-        private final String clientSoftwareName;
-        @Nullable
-        private final String clientSoftwareVersion;
-
-        Forwarding(
-                   @Nullable String clientSoftwareName,
-                   @Nullable String clientSoftwareVersion) {
-            this.clientSoftwareName = clientSoftwareName;
-            this.clientSoftwareVersion = clientSoftwareVersion;
-        }
-
-        @Nullable
-        public String clientSoftwareName() {
-            return clientSoftwareName;
-        }
-
-        @Nullable
-        public String clientSoftwareVersion() {
-            return clientSoftwareVersion;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj == null || obj.getClass() != this.getClass()) {
-                return false;
-            }
-            var that = (Forwarding) obj;
-            return Objects.equals(this.clientSoftwareName, that.clientSoftwareName) &&
-                    Objects.equals(this.clientSoftwareVersion, that.clientSoftwareVersion);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(clientSoftwareName, clientSoftwareVersion);
-        }
-
-        @Override
-        public String toString() {
-            return "Forwarding[" +
-                    "clientSoftwareName=" + clientSoftwareName + ", " +
-                    "clientSoftwareVersion=" + clientSoftwareVersion + ']';
-        }
-
-    }
+    record Forwarding() implements ProxyChannelState {}
 
     /**
      * Connections are being drained. autoRead is disabled on the client channel,
