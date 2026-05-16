@@ -194,7 +194,7 @@ class ProxyChannelStateMachineEndToEndTest {
             proxyChannelStateMachine.forceState(
                     new ProxyChannelState.HaProxy(),
                     handler,
-                    null,
+                    java.util.Map.of(),
                     TEST_SESSION, -1);
         }
 

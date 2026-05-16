@@ -105,7 +105,7 @@ class ServerConnectionStateMachine {
             setState(connecting.toActive());
             proxyToServerConnectionToken.acquire();
             flushPendingRequests();
-            pcsm.onServerConnectionActive();
+            pcsm.onServerConnectionActive(this);
         }
         else {
             pcsm.illegalState("Server became active while not in the connecting state");
@@ -115,7 +115,7 @@ class ServerConnectionStateMachine {
     void onServerInactive() {
         if (!(state instanceof ServerConnectionState.Closed)) {
             toClosed();
-            pcsm.onServerConnectionClosed(ProxyChannelStateMachine.DisconnectCause.SERVER_CLOSED);
+            pcsm.onServerConnectionClosed(this, ProxyChannelStateMachine.DisconnectCause.SERVER_CLOSED);
         }
     }
 
@@ -130,25 +130,25 @@ class ServerConnectionStateMachine {
                             : "exception from server channel, increase log level to DEBUG for stacktrace");
             proxyToServerErrorCounter.increment();
             toClosed();
-            pcsm.onServerConnectionException(cause);
+            pcsm.onServerConnectionException(this, cause);
         }
     }
 
     void onMessageFromServer(Object msg) {
         serverMessagesInFlightCount = Math.max(0, serverMessagesInFlightCount - 1);
-        pcsm.onResponseFromServer(msg);
+        pcsm.onResponseFromServer(this, msg);
     }
 
     void serverReadComplete() {
-        pcsm.onServerReadComplete();
+        pcsm.onServerReadComplete(this);
     }
 
     void onServerUnwritable() {
-        pcsm.onServerUnwritable();
+        pcsm.onServerUnwritable(this);
     }
 
     void onServerWritable() {
-        pcsm.onServerWritable();
+        pcsm.onServerWritable(this);
     }
 
     // === Called by ProxyChannelStateMachine ===

@@ -104,7 +104,7 @@ class ServerConnectionStateMachineTest {
         // At the point pcsm.onServerConnectionActive() was called,
         // the pending requests had already been flushed
         assertThat(scsm.serverMessagesInFlightCount).isEqualTo(1);
-        verify(pcsm).onServerConnectionActive();
+        verify(pcsm).onServerConnectionActive(scsm);
     }
 
     @Test
