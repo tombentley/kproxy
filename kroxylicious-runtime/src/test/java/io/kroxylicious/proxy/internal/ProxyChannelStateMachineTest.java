@@ -421,13 +421,13 @@ class ProxyChannelStateMachineTest {
 
     @Test
     void onServerActiveShouldNotUnblockClient() {
-        // Given — Forwarding state, latch at 1
+        // Given — Forwarding state, transport subject not yet ready
         proxyChannelStateMachine.forceState(
                 new ProxyChannelState.Forwarding(),
                 frontendHandler,
                 Map.of(BROKER_ADDRESS, serverConnectionStateMachine),
                 TEST_KAFKA_SESSION,
-                1);
+                false);
 
         // When
         proxyChannelStateMachine.onServerConnectionActive(serverConnectionStateMachine);
@@ -438,7 +438,7 @@ class ProxyChannelStateMachineTest {
     }
 
     @Test
-    void inForwardingShouldBufferRequestsWhenLatchNotZero() {
+    void inForwardingShouldBufferRequestsWhenTransportSubjectNotReady() {
         // Given — Forwarding state with latch > 0 (backend not yet connected)
         stateMachineInForwardingAwaitingTransportSubject();
 
@@ -709,7 +709,7 @@ class ProxyChannelStateMachineTest {
                 frontendHandler,
                 Map.of(),
                 TEST_KAFKA_SESSION,
-                -1);
+                true);
     }
 
     private void stateMachineInHaProxy() {
@@ -718,7 +718,7 @@ class ProxyChannelStateMachineTest {
                 frontendHandler,
                 Map.of(),
                 TEST_KAFKA_SESSION,
-                -1);
+                true);
     }
 
     private ProxyChannelState.Forwarding stateMachineInForwarding() {
@@ -728,7 +728,7 @@ class ProxyChannelStateMachineTest {
                 frontendHandler,
                 Map.of(BROKER_ADDRESS, serverConnectionStateMachine),
                 TEST_KAFKA_SESSION,
-                -1);
+                true);
         return forwarding;
     }
 
@@ -738,7 +738,7 @@ class ProxyChannelStateMachineTest {
                 frontendHandler,
                 Map.of(BROKER_ADDRESS, serverConnectionStateMachine),
                 TEST_KAFKA_SESSION,
-                1);
+                false);
     }
 
     private void stateMachineInClosed() {
@@ -747,7 +747,7 @@ class ProxyChannelStateMachineTest {
                 frontendHandler,
                 Map.of(BROKER_ADDRESS, serverConnectionStateMachine),
                 TEST_KAFKA_SESSION,
-                -1);
+                true);
     }
 
     private static DecodedRequestFrame<ApiVersionsRequestData> apiVersionsRequest() {
@@ -1131,7 +1131,7 @@ class ProxyChannelStateMachineTest {
         @Test
         void drainWhenStateIsNotForwardingStillCompletesFuture() {
             // Given — PCSM stuck in HaProxy state (not Forwarding)
-            proxyChannelStateMachine.forceState(new ProxyChannelState.HaProxy(), frontendHandler, Map.of(), TEST_KAFKA_SESSION, -1);
+            proxyChannelStateMachine.forceState(new ProxyChannelState.HaProxy(), frontendHandler, Map.of(), TEST_KAFKA_SESSION, true);
 
             // When
             CompletableFuture<Void> closedFuture = proxyChannelStateMachine.drain(DRAIN_TIMEOUT);
