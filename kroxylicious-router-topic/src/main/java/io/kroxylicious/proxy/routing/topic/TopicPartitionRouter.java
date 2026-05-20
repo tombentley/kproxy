@@ -6,6 +6,7 @@
 package io.kroxylicious.proxy.routing.topic;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -704,7 +705,7 @@ class TopicPartitionRouter implements Router {
     private static void logMergedMetadata(RoutingContext context,
                                           MetadataResponseData merged) {
         if (LOGGER.isDebugEnabled()) {
-            var topicSummary = new java.util.ArrayList<String>();
+            var topicSummary = new ArrayList<String>();
             for (var topic : merged.topics()) {
                 short errorCode = topic.errorCode();
                 if (errorCode != 0) {
@@ -894,7 +895,7 @@ class TopicPartitionRouter implements Router {
         String expectedRoute = consumerGroupRouteForSubject(context.authenticatedSubject());
 
         var errorResponse = new OffsetCommitResponseData();
-        var routableTopics = new java.util.ArrayList<OffsetCommitRequestData.OffsetCommitRequestTopic>();
+        var routableTopics = new ArrayList<OffsetCommitRequestData.OffsetCommitRequestTopic>();
 
         for (var topic : request.topics()) {
             String route = routingTable.routeForTopic(topic.name());
@@ -1191,7 +1192,7 @@ class TopicPartitionRouter implements Router {
                                                                     RoutingContext context) {
         String expectedRoute = transactionRouteForSubject(context.authenticatedSubject());
         var topics = request.v3AndBelowTopics();
-        var errorTopics = new java.util.ArrayList<AddPartitionsToTxnTopicResult>();
+        var errorTopics = new ArrayList<AddPartitionsToTxnTopicResult>();
         boolean hasRoutableTopic = false;
 
         for (var topic : topics) {
