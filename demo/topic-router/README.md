@@ -35,39 +35,47 @@ transactions and consumer groups. User `bob` is mapped to `route-b` for both.
 ## Prerequisites
 
 - **Java 21+**
+- **Apache Kafka** (for CLI tools)
+  - Download from https://kafka.apache.org/downloads and add `bin/` to PATH, or
+  - Install via Homebrew: `brew install kafka`
 - **Docker** (or Podman) with Docker Compose
-
-All Kafka CLI commands in this demo run inside the Kafka Docker image,
-so you do not need a local Kafka installation.
 
 All commands below assume you are in the repository root.
 
 Throughout this guide, replace `podman` with `docker` if you use Docker.
 
-## Helper alias
+## Shell setup
 
-To avoid repeating the full `podman run` invocation, define a shell function:
+Define Kafka CLI tool names based on your installation:
 
 ```bash
-kafka-cmd() {
-  podman run --rm --network host docker.io/apache/kafka:4.2.0 \
-    /opt/kafka/bin/"$@"
-}
+# For manual installations (download from kafka.apache.org):
+KAFKA_TOPICS=kafka-topics.sh
+KAFKA_CONSOLE_PRODUCER=kafka-console-producer.sh
+KAFKA_CONSOLE_CONSUMER=kafka-console-consumer.sh
+KAFKA_PRODUCER_PERF_TEST=kafka-producer-perf-test.sh
+KAFKA_CONSUMER_GROUPS=kafka-consumer-groups.sh
+
+# For Homebrew installations (macOS), uncomment these instead:
+# KAFKA_TOPICS=kafka-topics
+# KAFKA_CONSOLE_PRODUCER=kafka-console-producer
+# KAFKA_CONSOLE_CONSUMER=kafka-console-consumer
+# KAFKA_PRODUCER_PERF_TEST=kafka-producer-perf-test
+# KAFKA_CONSUMER_GROUPS=kafka-consumer-groups
 ```
 
-Commands that go through the proxy need SASL credentials. Define helpers
-for each user:
+Define helper functions for authenticated commands to avoid repeating SASL credentials:
 
 ```bash
 kafka-cmd-alice() {
-  kafka-cmd "$1" "${@:2}" \
+  "$@" \
     --command-property security.protocol=SASL_PLAINTEXT \
     --command-property sasl.mechanism=PLAIN \
     --command-property 'sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="alice" password="alice-secret";'
 }
 
 kafka-cmd-bob() {
-  kafka-cmd "$1" "${@:2}" \
+  "$@" \
     --command-property security.protocol=SASL_PLAINTEXT \
     --command-property sasl.mechanism=PLAIN \
     --command-property 'sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="bob" password="bob-secret";'
@@ -79,7 +87,7 @@ kafka-cmd-bob() {
 ### 1. Build Kroxylicious
 
 ```bash
-mvn clean package -Pdist -Dquick
+mvn clean package -Pdist -Dquick -Dmaven.source.skip=true
 ```
 
 ### 2. Start Kafka clusters
@@ -92,10 +100,10 @@ Wait for both clusters to be ready (may take 15-20 seconds):
 
 ```bash
 # Cluster A (PLAINTEXT listener on port 19192)
-kafka-cmd kafka-topics.sh --bootstrap-server localhost:19192 --list
+$KAFKA_TOPICS --bootstrap-server localhost:19192 --list
 
 # Cluster B (PLAINTEXT listener on port 29092)
-kafka-cmd kafka-topics.sh --bootstrap-server localhost:29092 --list
+$KAFKA_TOPICS --bootstrap-server localhost:29092 --list
 ```
 
 Both commands should return without error (empty list is fine).
@@ -105,10 +113,10 @@ Both commands should return without error (empty list is fine).
 Create topics directly on each cluster via their PLAINTEXT listeners:
 
 ```bash
-kafka-cmd kafka-topics.sh --bootstrap-server localhost:19192 \
+$KAFKA_TOPICS --bootstrap-server localhost:19192 \
   --create --topic a.orders --partitions 3
 
-kafka-cmd kafka-topics.sh --bootstrap-server localhost:29092 \
+$KAFKA_TOPICS --bootstrap-server localhost:29092 \
   --create --topic b.analytics --partitions 3
 ```
 
@@ -134,12 +142,12 @@ Records land on different backend clusters.
 
 ```bash
 # Produce to a.orders -- routes to cluster-a
-echo "order-1" | kafka-cmd-alice kafka-console-producer.sh \
+echo "order-1" | kafka-cmd-alice $KAFKA_CONSOLE_PRODUCER \
   --bootstrap-server localhost:9192 \
   --topic a.orders
 
 # Produce to b.analytics -- routes to cluster-b
-echo "event-1" | kafka-cmd-alice kafka-console-producer.sh \
+echo "event-1" | kafka-cmd-alice $KAFKA_CONSOLE_PRODUCER \
   --bootstrap-server localhost:9192 \
   --topic b.analytics
 ```
@@ -148,11 +156,11 @@ Verify directly on each cluster (PLAINTEXT, no authentication needed):
 
 ```bash
 # Records on cluster-a
-kafka-cmd kafka-console-consumer.sh --bootstrap-server localhost:19192 \
+$KAFKA_CONSOLE_CONSUMER --bootstrap-server localhost:19192 \
   --topic a.orders --from-beginning --max-messages 1
 
 # Records on cluster-b
-kafka-cmd kafka-console-consumer.sh --bootstrap-server localhost:29092 \
+$KAFKA_CONSOLE_CONSUMER --bootstrap-server localhost:29092 \
   --topic b.analytics --from-beginning --max-messages 1
 ```
 
@@ -163,7 +171,7 @@ Use `group.protocol=consumer` (KIP-848) because the classic consumer group proto
 coordinator APIs are statically routed to the default cluster.
 
 ```bash
-kafka-cmd-alice kafka-console-consumer.sh \
+kafka-cmd-alice $KAFKA_CONSOLE_CONSUMER \
   --bootstrap-server localhost:9192 \
   --include "a.orders|b.analytics" \
   --from-beginning --max-messages 2 \
@@ -176,25 +184,24 @@ User `bob` is mapped to `route-b` for transactions, so his transaction
 coordinator lives on cluster-b.
 
 ```bash
-podman run --rm --network host docker.io/apache/kafka:4.2.0 sh -c '
-cat > /tmp/bob-txn.properties << '\''PROPS'\''
+cat > /tmp/bob-txn.properties << PROPS
 bootstrap.servers=localhost:9192
 security.protocol=SASL_PLAINTEXT
 sasl.mechanism=PLAIN
 sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="bob" password="bob-secret";
 transactional.id=demo-txn
 PROPS
-/opt/kafka/bin/kafka-producer-perf-test.sh \
+$KAFKA_PRODUCER_PERF_TEST \
   --topic b.analytics \
+  --bootstrap-server localhost:9192 \
   --throughput 1 --num-records 5 --record-size 100 \
   --command-config /tmp/bob-txn.properties
-'
 ```
 
 Verify with a `read_committed` consumer directly on cluster-b:
 
 ```bash
-kafka-cmd kafka-console-consumer.sh --bootstrap-server localhost:29092 \
+$KAFKA_CONSOLE_CONSUMER --bootstrap-server localhost:29092 \
   --topic b.analytics --from-beginning \
   --isolation-level read_committed
 ```
@@ -209,7 +216,7 @@ His consumer group coordinator routes to cluster-b
 (via `consumerGroupUserRoutes` in the proxy config).
 
 ```bash
-kafka-cmd-bob kafka-console-consumer.sh \
+kafka-cmd-bob $KAFKA_CONSOLE_CONSUMER \
   --bootstrap-server localhost:9192 \
   --topic b.analytics --from-beginning \
   --group bob-consumer-group \
@@ -223,11 +230,11 @@ Verify the consumer group exists on cluster-b but not cluster-a:
 
 ```bash
 # Group exists on cluster-b
-kafka-cmd kafka-consumer-groups.sh --bootstrap-server localhost:29092 \
+$KAFKA_CONSUMER_GROUPS --bootstrap-server localhost:29092 \
   --describe --group bob-consumer-group
 
 # Group does NOT exist on cluster-a
-kafka-cmd kafka-consumer-groups.sh --bootstrap-server localhost:19192 \
+$KAFKA_CONSUMER_GROUPS --bootstrap-server localhost:19192 \
   --describe --group bob-consumer-group
 ```
 
