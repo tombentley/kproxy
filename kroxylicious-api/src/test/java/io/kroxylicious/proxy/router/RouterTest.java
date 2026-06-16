@@ -24,7 +24,7 @@ class RouterTest {
 
     private final Router router = new Router() {
         @Override
-        public CompletionStage<RouterResponse> onRequest(short apiVersion, ApiKeys apiKey,
+        public CompletionStage<RouterResponse> onRequest(ApiKeys apiKey, short apiVersion,
                                                          RequestHeaderData header, ApiMessage request,
                                                          RouterContext context) {
             return CompletableFuture.completedFuture(STUB_RESULT);
