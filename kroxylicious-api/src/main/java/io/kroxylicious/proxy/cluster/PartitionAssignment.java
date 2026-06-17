@@ -13,7 +13,10 @@ import java.util.Set;
  */
 public interface PartitionAssignment {
 
-    /** Total number of partitions in this assignment. */
+    /**
+     * Returns the total number of partitions in this assignment.
+     * @return the partition count
+     */
     int partitionCount();
 
     /**

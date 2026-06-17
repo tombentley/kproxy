@@ -11,12 +11,19 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
-/** A member of the proxy cluster. */
+/**
+ * A member of the proxy cluster.
+ *
+ * @param nodeId the node identifier
+ * @param rackId the rack identifier, or null if not rack-aware
+ * @param endpoints the network endpoints for reaching this member
+ */
 public record ProxyClusterMember(
                                  int nodeId,
                                  @Nullable String rackId,
                                  List<ProxyClusterEndpoint> endpoints) {
 
+    /** Validates the member parameters. */
     public ProxyClusterMember {
         if (nodeId < 1) {
             throw new IllegalArgumentException("nodeId must be positive, got " + nodeId);

@@ -13,6 +13,12 @@ import static java.util.Objects.requireNonNull;
 /**
  * Per-partition metadata within a {@link PartitionAssignment}.
  * Models the leader, replicas, in-sync replicas, and leader epoch for a single partition.
+ *
+ * @param partitionIndex the partition index
+ * @param leaderEpoch the leader epoch
+ * @param leader the leader node ID, or empty if no leader is elected
+ * @param replicas the replica node IDs
+ * @param isr the in-sync replica node IDs
  */
 public record PartitionInfo(
                             int partitionIndex,
@@ -21,6 +27,7 @@ public record PartitionInfo(
                             List<Integer> replicas,
                             List<Integer> isr) {
 
+    /** Validates the partition info parameters. */
     public PartitionInfo {
         if (partitionIndex < 0) {
             throw new IllegalArgumentException("partitionIndex must be non-negative, got " + partitionIndex);

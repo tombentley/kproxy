@@ -7,6 +7,8 @@ package io.kroxylicious.proxy.cluster;
 
 /** Transport protocol for a proxy cluster endpoint. */
 public enum Transport {
+    /** Plaintext TCP transport. */
     TCP,
+    /** TLS-encrypted transport. */
     TLS
 }

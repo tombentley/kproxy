@@ -31,13 +31,22 @@ import java.util.Set;
  */
 public interface ProxyCluster {
 
-    /** The node ID of this proxy instance. */
+    /**
+     * Returns the node ID of this proxy instance.
+     * @return the local node ID
+     */
     int localNodeId();
 
-    /** The cluster member record for this proxy instance. */
+    /**
+     * Returns the cluster member record for this proxy instance.
+     * @return the local member
+     */
     ProxyClusterMember localMember();
 
-    /** All current members of the cluster. */
+    /**
+     * Returns all current members of the cluster.
+     * @return the set of cluster members
+     */
     Set<ProxyClusterMember> members();
 
     /**

@@ -7,12 +7,19 @@ package io.kroxylicious.proxy.cluster;
 
 import static java.util.Objects.requireNonNull;
 
-/** Network endpoint for reaching a proxy cluster member. */
+/**
+ * Network endpoint for reaching a proxy cluster member.
+ *
+ * @param host the hostname or IP address
+ * @param port the port number
+ * @param transport the transport protocol
+ */
 public record ProxyClusterEndpoint(
                                    String host,
                                    int port,
                                    Transport transport) {
 
+    /** Validates the endpoint parameters. */
     public ProxyClusterEndpoint {
         requireNonNull(host, "host");
         if (host.isBlank()) {
