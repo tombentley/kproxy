@@ -233,6 +233,27 @@ class TopicPartitionRouter implements Router {
     private static final short INTERNAL_METADATA_API_VERSION = 12;
     private static final short FIND_COORDINATOR_API_VERSION = 3;
 
+    TopicPartitionRouter(PrefixTopicRoutingTable routingTable,
+                         String defaultRoute,
+                         Map<String, String> subjectRoutes,
+                         ProducerIdManager producerIdManager,
+                         FetchSessionCache fetchSessionCache,
+                         Clock clock,
+                         String virtualClusterName,
+                         String routerName) {
+        this(
+                routingTable,
+                new GroupRoutingTableImpl(Map.of(), defaultRoute),
+                defaultRoute,
+                subjectRoutes,
+                producerIdManager,
+                fetchSessionCache,
+                clock,
+                virtualClusterName,
+                routerName
+        );
+    }
+
     /**
      * @param routingTable determines which route owns each topic
      * @param defaultRoute route used for topics that match no prefix and for non-PRODUCE API keys
@@ -296,6 +317,16 @@ class TopicPartitionRouter implements Router {
 
         // if findcoordinator api, then find which route to forward from the config
         // other group coordination APIs, just forward to virtualNode
+        if (apiKey == ApiKeys.FIND_COORDINATOR) {
+            FindCoordinatorRequestData findCoordinatorRequestData = new FindCoordinatorRequestData();
+            Map<String, String> groupRoutes = getGroupCoordinatorRoutes(apiKey, request);
+            // send to these routes
+        }
+
+        if (isGroupCoordinationApi(apiKey)) {
+            context.sendRequestToNode(context.virtualNodeId().orElse(context.anyNodeId(defaultRoute)), header, request)
+                    .thenApply(response -> context.respondWith(response).build());
+        }
 
         // Non-subject-routed users: topic-addressed requests are decomposed across routes,
         // coordinator-bound requests go to the default route.
@@ -363,7 +394,7 @@ class TopicPartitionRouter implements Router {
                 .thenApply(response -> context.respondWith(response).build());
     }
 
-    private String getGroupCoordinatorRoute(ApiKeys apiKey, ApiMessage message) {
+    private Map<String, String> getGroupCoordinatorRoutes(ApiKeys apiKey, ApiMessage message) {
         if (apiKey != ApiKeys.FIND_COORDINATOR) {
             throw new IllegalArgumentException("Invalid api key: " + apiKey);
         }
@@ -376,13 +407,15 @@ class TopicPartitionRouter implements Router {
         // get groups or get group
         Map<String, String> findCoordinatorRoutes = new HashMap<>();
         if (findCoordinatorRequestData.key() != null) {
-            findCoordinatorRoutes.put(findCoordinatorRequestData.key(), findCoordinatorRequestData.key());
+            findCoordinatorRoutes.put(findCoordinatorRequestData.key(), groupRoutingTable.getRouteFor(findCoordinatorRequestData.key()));
         }
         if (findCoordinatorRequestData.coordinatorKeys() != null) {
             for (String key : findCoordinatorRequestData.coordinatorKeys()) {
-                findCoordinatorRoutes.put(key, key);
+                findCoordinatorRoutes.put(key, groupRoutingTable.getRouteFor(key));
             }
         }
+
+        return findCoordinatorRoutes;
     }
 
     private boolean isGroupCoordinationApi(ApiKeys apiKey) {
