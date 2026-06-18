@@ -182,11 +182,21 @@ class TopicPartitionRouter implements Router {
             ApiKeys.CONSUMER_GROUP_HEARTBEAT,
             ApiKeys.CONSUMER_GROUP_DESCRIBE);
 
+    private static final Set<ApiKeys> GROUP_COORDINATION_API_KEYS = Set.of(
+            ApiKeys.JOIN_GROUP,
+            ApiKeys.SYNC_GROUP,
+            ApiKeys.HEARTBEAT,
+            ApiKeys.OFFSET_COMMIT,
+            ApiKeys.OFFSET_FETCH,
+            ApiKeys.OFFSET_FOR_LEADER_EPOCH
+    );
+
     static final String REJECTED_ASSIGNMENTS_METRIC = "kroxylicious_routing_rejected_assignments_total";
     static final String VIRTUAL_CLUSTER_TAG = "virtual_cluster";
     static final String ROUTER_TAG = "router";
 
     private final PrefixTopicRoutingTable routingTable;
+    private final GroupRoutingTable groupRoutingTable;
     private final String defaultRoute;
     private final Map<ApiKeys, String> staticRoutes;
     private final ApiVersionsResponseTransformer versionCapper;
@@ -233,6 +243,7 @@ class TopicPartitionRouter implements Router {
      * @param fetchSessionCache shared cache bounding the total number of client-side fetch sessions
      */
     TopicPartitionRouter(PrefixTopicRoutingTable routingTable,
+                         GroupRoutingTable groupRoutingTable,
                          String defaultRoute,
                          Map<String, String> subjectRoutes,
                          ProducerIdManager producerIdManager,
@@ -241,6 +252,7 @@ class TopicPartitionRouter implements Router {
                          String virtualClusterName,
                          String routerName) {
         this.routingTable = routingTable;
+        this.groupRoutingTable = groupRoutingTable;
         this.defaultRoute = defaultRoute;
         this.subjectRoutes = subjectRoutes;
         this.producerIdManager = producerIdManager;
@@ -282,6 +294,9 @@ class TopicPartitionRouter implements Router {
             return forwardToRoute(subjectRoute, header, request, context);
         }
 
+        // if findcoordinator api, then find which route to forward from the config
+        // other group coordination APIs, just forward to virtualNode
+
         // Non-subject-routed users: topic-addressed requests are decomposed across routes,
         // coordinator-bound requests go to the default route.
         if (apiKey == ApiKeys.API_VERSIONS) {
@@ -302,15 +317,9 @@ class TopicPartitionRouter implements Router {
         if (apiKey == ApiKeys.LIST_OFFSETS) {
             return handleListOffsets(apiVersion, header, (ListOffsetsRequestData) request, context);
         }
-        if (apiKey == ApiKeys.OFFSET_FOR_LEADER_EPOCH) {
-            return handleOffsetForLeaderEpoch(header, (OffsetForLeaderEpochRequestData) request, context);
-        }
-        if (apiKey == ApiKeys.OFFSET_COMMIT) {
-            return handleOffsetCommit(apiVersion, header, (OffsetCommitRequestData) request, context);
-        }
-        if (apiKey == ApiKeys.OFFSET_FETCH) {
-            return handleOffsetFetch(apiVersion, header, (OffsetFetchRequestData) request, context);
-        }
+
+
+
         if (apiKey == ApiKeys.CREATE_TOPICS) {
             return handleCreateTopics(apiVersion, header, (CreateTopicsRequestData) request, context);
         }
@@ -341,10 +350,7 @@ class TopicPartitionRouter implements Router {
         if (apiKey == ApiKeys.FIND_COORDINATOR) {
             return handleFindCoordinator(header, request, context);
         }
-        if (apiKey == ApiKeys.CONSUMER_GROUP_HEARTBEAT) {
-            return handleConsumerGroupHeartbeat(header,
-                    (ConsumerGroupHeartbeatRequestData) request, context);
-        }
+
         if (apiKey == ApiKeys.CONSUMER_GROUP_DESCRIBE) {
             return handleConsumerGroupDescribe(header,
                     (ConsumerGroupDescribeRequestData) request, context);
@@ -355,6 +361,32 @@ class TopicPartitionRouter implements Router {
 
         return context.sendRequestToNode(context.anyNodeId(defaultRoute), header, request)
                 .thenApply(response -> context.respondWith(response).build());
+    }
+
+    private String getGroupCoordinatorRoute(ApiKeys apiKey, ApiMessage message) {
+        if (apiKey != ApiKeys.FIND_COORDINATOR) {
+            throw new IllegalArgumentException("Invalid api key: " + apiKey);
+        }
+
+        FindCoordinatorRequestData findCoordinatorRequestData = (FindCoordinatorRequestData) message;
+        if (findCoordinatorRequestData.keyType() != 0) {
+            throw new IllegalArgumentException("Invalid key type: " + findCoordinatorRequestData.keyType());
+        }
+
+        // get groups or get group
+        Map<String, String> findCoordinatorRoutes = new HashMap<>();
+        if (findCoordinatorRequestData.key() != null) {
+            findCoordinatorRoutes.put(findCoordinatorRequestData.key(), findCoordinatorRequestData.key());
+        }
+        if (findCoordinatorRequestData.coordinatorKeys() != null) {
+            for (String key : findCoordinatorRequestData.coordinatorKeys()) {
+                findCoordinatorRoutes.put(key, key);
+            }
+        }
+    }
+
+    private boolean isGroupCoordinationApi(ApiKeys apiKey) {
+        return GROUP_COORDINATION_API_KEYS.contains(apiKey);
     }
 
     private CompletionStage<RouterResponse> handleApiVersions(
