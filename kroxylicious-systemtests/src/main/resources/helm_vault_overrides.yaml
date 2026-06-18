@@ -1,0 +1,30 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+# Helm Overrides File for HashiCorp Vault used by the system tests.
+server:
+  image:
+    repository: "mirror.gcr.io/hashicorp/vault"
+    tag: 2.0.1@sha256:7553550027156b8f04e81f61a98c3f53a7bce57104f2a400e2012c851f66ac19
+  dev:
+    enabled: true
+  ha:
+    enabled: false
+  updateStrategyType: RollingUpdate
+  service:
+    type: NodePort
+  # Workaround for Vault 2.x in rootless containers (IPC_LOCK capability unavailable). Acceptable for development/testing.
+  statefulSet:
+    securityContext:
+      container:
+        capabilities:
+          add:
+            - IPC_LOCK
+  extraEnvironmentVars:
+    VAULT_FORMAT: json
+injector:
+  enabled: false
+
