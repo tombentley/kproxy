@@ -324,7 +324,8 @@ class TopicPartitionRouter implements Router {
         }
 
         if (isGroupCoordinationApi(apiKey)) {
-            context.sendRequestToNode(context.virtualNodeId().orElse(context.anyNodeId(defaultRoute)), header, request)
+            var targetNode = context.virtualNodeId().orElse(context.anyNodeId(defaultRoute));
+            return context.sendRequestToNode(targetNode, header, request)
                     .thenApply(response -> context.respondWith(response).build());
         }
 
