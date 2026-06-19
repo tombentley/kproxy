@@ -188,6 +188,22 @@ public interface TopologyService {
     Optional<BrokerInfo> brokerInfo(VirtualNode node);
 
     /**
+     * Returns whether the given virtual node ID can serve as a broker
+     * for the specified route.
+     *
+     * <p>In a dedicated node mapping where each virtual node corresponds
+     * to exactly one backend broker, this returns {@code true} only when
+     * the node maps to the given route. In configurations where a single
+     * node can serve multiple routes, this may return {@code true} for
+     * more than one route.</p>
+     *
+     * @param virtualNodeId the virtual node ID from a protocol message
+     * @param route the route name to check
+     * @return {@code true} if the node can serve the route
+     */
+    boolean canServeRoute(int virtualNodeId, String route);
+
+    /**
      * Coarse invalidation: clears all partition info, coordinators,
      * broker info, and topic ID to name mappings for a route.
      *

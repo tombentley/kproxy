@@ -21,6 +21,9 @@ import io.kroxylicious.proxy.config.PluginFactoryRegistry;
 import io.kroxylicious.proxy.config.RouteDefinition;
 import io.kroxylicious.proxy.config.RouterDefinition;
 import io.kroxylicious.proxy.config.VirtualCluster;
+import io.kroxylicious.proxy.internal.routing.BijectiveNodeIdMapping;
+import io.kroxylicious.proxy.internal.routing.IdentityNodeIdMapping;
+import io.kroxylicious.proxy.internal.routing.NodeIdMapping;
 import io.kroxylicious.proxy.internal.routing.TopologyCache;
 import io.kroxylicious.proxy.internal.routing.TopologyServiceImpl;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
@@ -48,7 +51,7 @@ public class RouterChainFactory implements AutoCloseable {
      * {@link TopologyServiceImpl} that should be used by its
      * {@link io.kroxylicious.proxy.internal.routing.RoutingDecisionHandler}.
      */
-    public record RouterAndTopology(Router router, @Nullable TopologyServiceImpl topologyService) {}
+    public record RouterAndTopology(Router router, @Nullable TopologyServiceImpl topologyService, NodeIdMapping nodeIdMapping) {}
 
     private static final class Wrapper {
 
@@ -218,11 +221,20 @@ public class RouterChainFactory implements AutoCloseable {
                     "No router definition found for name: " + routerName
                             + " in virtual cluster: " + virtualClusterName);
         }
+        NodeIdMapping nodeIdMapping = createNodeIdMapping(wrapper.routerDefinition);
         TopologyCache cache = topologyCaches.get(key);
-        TopologyServiceImpl perConnectionTs = cache != null ? new TopologyServiceImpl(cache) : null;
-        InitContext context = createContextForCreate(virtualClusterName, wrapper.routerDefinition, perConnectionTs);
+        TopologyServiceImpl perConnectionTs = cache != null ? new TopologyServiceImpl(cache, nodeIdMapping) : null;
+        InitContext context = createContextForCreate(virtualClusterName, wrapper.routerDefinition, perConnectionTs, nodeIdMapping);
         Router router = wrapper.create(context);
-        return new RouterAndTopology(router, context.createdTopologyService());
+        return new RouterAndTopology(router, context.createdTopologyService(), nodeIdMapping);
+    }
+
+    private static NodeIdMapping createNodeIdMapping(RouterDefinition rd) {
+        var routeIds = rd.routes().stream()
+                .collect(Collectors.toMap(RouteDefinition::name, RouteDefinition::id));
+        return routeIds.size() > 1
+                ? new BijectiveNodeIdMapping(routeIds, routeIds.size())
+                : new IdentityNodeIdMapping(routeIds.keySet().iterator().next());
     }
 
     private static final class InitContext implements RouterFactoryContext {
@@ -233,18 +245,21 @@ public class RouterChainFactory implements AutoCloseable {
         private final PluginFactoryRegistry pfr;
         private final Map<VcRouter, TopologyCache> topologyCaches;
         private final @Nullable TopologyServiceImpl perConnectionTopologyService;
+        private final @Nullable NodeIdMapping nodeIdMapping;
         private boolean sharedClusterTargetsAllowed;
         private @Nullable TopologyServiceImpl createdTopologyService;
 
         private InitContext(String vcName, RouterDefinition rd,
                             PluginFactoryRegistry pfr,
                             Map<VcRouter, TopologyCache> topologyCaches,
-                            @Nullable TopologyServiceImpl perConnectionTopologyService) {
+                            @Nullable TopologyServiceImpl perConnectionTopologyService,
+                            @Nullable NodeIdMapping nodeIdMapping) {
             this.vcName = vcName;
             this.rd = rd;
             this.pfr = pfr;
             this.topologyCaches = topologyCaches;
             this.perConnectionTopologyService = perConnectionTopologyService;
+            this.nodeIdMapping = nodeIdMapping;
             this.routeNames = rd.routes().stream()
                     .map(RouteDefinition::name)
                     .collect(Collectors.toUnmodifiableSet());
@@ -282,10 +297,11 @@ public class RouterChainFactory implements AutoCloseable {
                 createdTopologyService = perConnectionTopologyService;
                 return perConnectionTopologyService;
             }
+            NodeIdMapping mapping = nodeIdMapping != null ? nodeIdMapping : createNodeIdMapping(rd);
             TopologyCache cache = topologyCaches.computeIfAbsent(
                     new VcRouter(vcName, rd.name()),
                     k -> new TopologyCache());
-            var svc = new TopologyServiceImpl(cache);
+            var svc = new TopologyServiceImpl(cache, mapping);
             createdTopologyService = svc;
             return svc;
         }
@@ -306,12 +322,13 @@ public class RouterChainFactory implements AutoCloseable {
     }
 
     private InitContext createContext(String vcName, RouterDefinition rd) {
-        return new InitContext(vcName, rd, pfr, topologyCaches, null);
+        return new InitContext(vcName, rd, pfr, topologyCaches, null, null);
     }
 
     private InitContext createContextForCreate(String vcName, RouterDefinition rd,
-                                               @Nullable TopologyServiceImpl perConnectionTs) {
-        return new InitContext(vcName, rd, pfr, topologyCaches, perConnectionTs);
+                                               @Nullable TopologyServiceImpl perConnectionTs,
+                                               NodeIdMapping nodeIdMapping) {
+        return new InitContext(vcName, rd, pfr, topologyCaches, perConnectionTs, nodeIdMapping);
     }
 
     /**

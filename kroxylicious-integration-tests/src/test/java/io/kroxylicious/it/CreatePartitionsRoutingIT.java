@@ -121,8 +121,8 @@ class CreatePartitionsRoutingIT extends TopicPartitionRoutingBaseIT {
                         .setName(topicWithAssign)
                         .setCount(3)
                         .setAssignments(List.of(
-                                new CreatePartitionsAssignment().setBrokerIds(List.of(0)),
-                                new CreatePartitionsAssignment().setBrokerIds(List.of(0)))));
+                                new CreatePartitionsAssignment().setBrokerIds(List.of(1)),
+                                new CreatePartitionsAssignment().setBrokerIds(List.of(1)))));
                 request.topics().add(new CreatePartitionsTopic()
                         .setName(topicAutoAssign)
                         .setCount(3)

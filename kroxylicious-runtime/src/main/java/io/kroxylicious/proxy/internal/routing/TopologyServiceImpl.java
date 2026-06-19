@@ -55,6 +55,7 @@ public class TopologyServiceImpl implements TopologyService {
     private static final short FIND_COORDINATOR_API_VERSION = 3;
 
     private final TopologyCache cache;
+    private final NodeIdMapping nodeIdMapping;
     private RequestSender requestSender;
 
     /**
@@ -66,8 +67,9 @@ public class TopologyServiceImpl implements TopologyService {
         CompletionStage<ApiMessage> send(String route, RequestHeaderData header, ApiMessage request);
     }
 
-    public TopologyServiceImpl(TopologyCache cache) {
+    public TopologyServiceImpl(TopologyCache cache, NodeIdMapping nodeIdMapping) {
         this.cache = Objects.requireNonNull(cache);
+        this.nodeIdMapping = Objects.requireNonNull(nodeIdMapping);
     }
 
     TopologyCache cache() {
@@ -241,6 +243,11 @@ public class TopologyServiceImpl implements TopologyService {
             return Optional.empty();
         }
         return Optional.of(new BrokerInfo(info.host(), info.port(), info.rack()));
+    }
+
+    @Override
+    public boolean canServeRoute(int virtualNodeId, String route) {
+        return nodeIdMapping.fromVirtual(virtualNodeId).route().equals(route);
     }
 
     @Override

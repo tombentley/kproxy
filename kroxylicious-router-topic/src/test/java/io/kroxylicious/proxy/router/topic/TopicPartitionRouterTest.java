@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,6 +62,8 @@ import org.apache.kafka.common.message.OffsetCommitRequestData.OffsetCommitReque
 import org.apache.kafka.common.message.OffsetCommitResponseData;
 import org.apache.kafka.common.message.OffsetCommitResponseData.OffsetCommitResponsePartition;
 import org.apache.kafka.common.message.OffsetCommitResponseData.OffsetCommitResponseTopic;
+import org.apache.kafka.common.message.OffsetForLeaderEpochRequestData;
+import org.apache.kafka.common.message.OffsetForLeaderEpochResponseData;
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.message.ProduceRequestData.PartitionProduceData;
 import org.apache.kafka.common.message.ProduceRequestData.TopicProduceData;
@@ -106,6 +109,7 @@ class TopicPartitionRouterTest {
 
         private final Map<String, Map<Integer, VirtualNode>> leaders = new HashMap<>();
         private final Map<String, VirtualNode> coordinatorMap = new HashMap<>();
+        private final Set<String> invalidatedRoutes = new LinkedHashSet<>();
 
         void primeLeader(String topicName, int partition, VirtualNode leader) {
             leaders.computeIfAbsent(topicName, k -> new HashMap<>()).put(partition, leader);
@@ -148,8 +152,17 @@ class TopicPartitionRouterTest {
         }
 
         @Override
+        public boolean canServeRoute(int virtualNodeId, String route) {
+            return true;
+        }
+
+        Set<String> invalidatedRoutes() {
+            return invalidatedRoutes;
+        }
+
+        @Override
         public void invalidateRoute(String route) {
-            // no-op in tests
+            invalidatedRoutes.add(route);
         }
     }
 
@@ -1645,7 +1658,98 @@ class TopicPartitionRouterTest {
         return response;
     }
 
+    // --- staleness invalidation ---
+
+    @Test
+    void shouldInvalidateRouteOnProduceNotLeaderOrFollower() {
+        var request = produceRequest("orders.uk");
+        var backendResp = produceResponse("orders.uk", 0, Errors.NOT_LEADER_OR_FOLLOWER);
+
+        primeLeaderCache(router, 1, "orders.uk");
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(1, backendResp));
+        ctx.captureResult(router.onRequest(ApiKeys.PRODUCE, (short) 12, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
+
+        assertThat(testTopologyService.invalidatedRoutes()).contains("cluster-a");
+    }
+
+    @Test
+    void shouldNotInvalidateRouteOnProduceSuccess() {
+        var request = produceRequest("orders.uk");
+        var backendResp = produceResponse("orders.uk", 0, Errors.NONE);
+
+        primeLeaderCache(router, 1, "orders.uk");
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(1, backendResp));
+        ctx.captureResult(router.onRequest(ApiKeys.PRODUCE, (short) 12, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
+
+        assertThat(testTopologyService.invalidatedRoutes()).isEmpty();
+    }
+
+    @Test
+    void shouldInvalidateRouteOnFetchNotLeaderOrFollower() {
+        var request = fetchRequest("orders.uk");
+        var backendResp = fetchResponse("orders.uk", 0, Errors.NOT_LEADER_OR_FOLLOWER);
+
+        primeLeaderCache(router, 1, "orders.uk");
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(1, backendResp));
+        ctx.captureResult(router.onRequest(ApiKeys.FETCH, (short) 12, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
+
+        assertThat(testTopologyService.invalidatedRoutes()).contains("cluster-a");
+    }
+
+    @Test
+    void shouldNotInvalidateRouteOnFetchSuccess() {
+        var request = fetchRequest("orders.uk");
+        var backendResp = fetchResponse("orders.uk", 0, Errors.NONE);
+
+        primeLeaderCache(router, 1, "orders.uk");
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(1, backendResp));
+        ctx.captureResult(router.onRequest(ApiKeys.FETCH, (short) 12, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
+
+        assertThat(testTopologyService.invalidatedRoutes()).isEmpty();
+    }
+
+    @Test
+    void shouldInvalidateRouteOnOffsetForLeaderEpochNotLeaderOrFollower() {
+        var request = offsetForLeaderEpochRequest("orders.uk");
+        var backendResp = offsetForLeaderEpochResponse("orders.uk", 0, Errors.NOT_LEADER_OR_FOLLOWER);
+
+        primeLeaderCache(router, 1, "orders.uk");
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(1, backendResp));
+        ctx.captureResult(router.onRequest(ApiKeys.OFFSET_FOR_LEADER_EPOCH, (short) 4, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
+
+        assertThat(testTopologyService.invalidatedRoutes()).contains("cluster-a");
+    }
+
     // --- helpers ---
+
+    private static OffsetForLeaderEpochRequestData offsetForLeaderEpochRequest(String... topicNames) {
+        var request = new OffsetForLeaderEpochRequestData();
+        for (var name : topicNames) {
+            var topic = new OffsetForLeaderEpochRequestData.OffsetForLeaderTopic().setTopic(name);
+            topic.partitions().add(new OffsetForLeaderEpochRequestData.OffsetForLeaderPartition()
+                    .setPartition(0)
+                    .setLeaderEpoch(0));
+            request.topics().add(topic);
+        }
+        return request;
+    }
+
+    private static OffsetForLeaderEpochResponseData offsetForLeaderEpochResponse(String topicName,
+                                                                                 int partition,
+                                                                                 Errors error) {
+        var resp = new OffsetForLeaderEpochResponseData();
+        var topic = new OffsetForLeaderEpochResponseData.OffsetForLeaderTopicResult().setTopic(topicName);
+        topic.partitions().add(new OffsetForLeaderEpochResponseData.EpochEndOffset()
+                .setPartition(partition)
+                .setErrorCode(error.code()));
+        resp.topics().add(topic);
+        return resp;
+    }
 
     private static DescribeClusterResponseData describeClusterResponse(String clusterId,
                                                                        int controllerId,

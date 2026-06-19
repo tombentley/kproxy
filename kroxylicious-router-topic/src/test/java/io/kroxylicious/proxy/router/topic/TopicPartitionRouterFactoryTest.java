@@ -251,6 +251,11 @@ class TopicPartitionRouterFactoryTest {
         }
 
         @Override
+        public boolean canServeRoute(int virtualNodeId, String route) {
+            return true;
+        }
+
+        @Override
         public void invalidateRoute(String route) {
         }
     }

@@ -114,7 +114,7 @@ class CreateTopicsRoutingIT extends TopicPartitionRoutingBaseIT {
                         .setReplicationFactor((short) -1);
                 topicWithAssignments.assignments().add(new CreatableReplicaAssignment()
                         .setPartitionIndex(0)
-                        .setBrokerIds(List.of(0)));
+                        .setBrokerIds(List.of(1)));
                 var topicWithoutAssignments = new CreatableTopic()
                         .setName("a.auto-topic")
                         .setNumPartitions(1)

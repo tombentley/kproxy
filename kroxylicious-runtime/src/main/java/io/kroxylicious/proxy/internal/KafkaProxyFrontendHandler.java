@@ -375,11 +375,7 @@ public class KafkaProxyFrontendHandler
         // Create Router and per-connection TopologyServiceImpl
         var routerAndTopology = routerChainFactory.createRouter(routerName, vc.getClusterName());
         Router router = routerAndTopology.router();
-        var routeIds = routeDescriptors.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().id()));
-        NodeIdMapping nodeIdMapping = routeIds.size() > 1
-                ? new BijectiveNodeIdMapping(routeIds, routeIds.size())
-                : new IdentityNodeIdMapping(routeIds.keySet().iterator().next());
+        NodeIdMapping nodeIdMapping = routerAndTopology.nodeIdMapping();
 
         // Compose the virtual ID translator for this level
         IntUnaryOperator translator = parentTranslator;

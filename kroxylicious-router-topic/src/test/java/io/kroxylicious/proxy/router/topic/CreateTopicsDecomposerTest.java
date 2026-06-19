@@ -5,7 +5,6 @@
  */
 package io.kroxylicious.proxy.router.topic;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,7 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CreateTopicsDecomposerTest {
 
-    private final CreateTopicsDecomposer decomposer = CreateTopicsDecomposer.INSTANCE;
+    // route-a owns even node IDs (0, 2, 4, ...), route-b owns odd (1, 3, 5, ...)
+    private final CreateTopicsDecomposer decomposer = new CreateTopicsDecomposer(
+            (nodeId, route) -> {
+                boolean isEven = nodeId % 2 == 0;
+                return (isEven && "route-a".equals(route)) || (!isEven && "route-b".equals(route));
+            });
 
     private final TopicRoutingTable table = new TopicRoutingTable() {
         @Override
@@ -198,12 +202,24 @@ class CreateTopicsDecomposerTest {
         assertThat(error.topics()).isEmpty();
     }
 
-    // --- assignment rejection ---
+    // --- assignment validation ---
 
     @Test
-    void shouldExcludeTopicsWithExplicitAssignments() {
+    void shouldIncludeTopicsWithSameRouteAssignments() {
         var request = new CreateTopicsRequestData();
-        request.topics().add(topicWithAssignments("a.orders"));
+        request.topics().add(topicWithAssignments("a.orders", 0, 2, 4));
+
+        var parts = decomposer.decompose(request, table, (short) 0);
+
+        assertThat(parts).containsOnlyKeys("route-a");
+        assertThat(parts.get("route-a").topics()).extracting("name")
+                .containsExactly("a.orders");
+    }
+
+    @Test
+    void shouldExcludeTopicsWithCrossRouteAssignments() {
+        var request = new CreateTopicsRequestData();
+        request.topics().add(topicWithAssignments("a.orders", 0, 1, 2));
         request.topics().add(new CreatableTopic().setName("a.payments")
                 .setNumPartitions(1).setReplicationFactor((short) 1));
 
@@ -215,9 +231,9 @@ class CreateTopicsDecomposerTest {
     }
 
     @Test
-    void shouldReturnEmptyMapWhenAllTopicsHaveAssignments() {
+    void shouldReturnEmptyMapWhenAllTopicsHaveCrossRouteAssignments() {
         var request = new CreateTopicsRequestData();
-        request.topics().add(topicWithAssignments("a.orders"));
+        request.topics().add(topicWithAssignments("a.orders", 1, 3));
 
         var parts = decomposer.decompose(request, table, (short) 0);
 
@@ -225,11 +241,11 @@ class CreateTopicsDecomposerTest {
     }
 
     @Test
-    void shouldSynthesiseErrorForTopicsWithAssignments() {
+    void shouldSynthesiseErrorForCrossRouteAssignments() {
         var request = new CreateTopicsRequestData();
-        request.topics().add(topicWithAssignments("a.orders"));
+        request.topics().add(topicWithAssignments("a.orders", 0, 1, 2));
 
-        var error = CreateTopicsDecomposer.errorResponseForTopicsWithAssignments(request, table);
+        var error = decomposer.errorResponseForInvalidAssignments(request, table);
 
         assertThat(error.topics()).hasSize(1);
         var topicResult = error.topics().iterator().next();
@@ -237,14 +253,24 @@ class CreateTopicsDecomposerTest {
         assertThat(topicResult.errorCode())
                 .isEqualTo(Errors.INVALID_REPLICA_ASSIGNMENT.code());
         assertThat(topicResult.errorMessage())
-                .isEqualTo(CreateTopicsDecomposer.ASSIGNMENTS_NOT_SUPPORTED_MESSAGE);
+                .isEqualTo(CreateTopicsDecomposer.CROSS_ROUTE_ASSIGNMENTS_MESSAGE);
+    }
+
+    @Test
+    void shouldNotErrorSameRouteAssignments() {
+        var request = new CreateTopicsRequestData();
+        request.topics().add(topicWithAssignments("a.orders", 0, 2, 4));
+
+        var error = decomposer.errorResponseForInvalidAssignments(request, table);
+
+        assertThat(error.topics()).isEmpty();
     }
 
     @Test
     void shouldNotErrorRoutableTopicsWithoutAssignments() {
         var request = createTopicsRequest("a.orders", "b.logs");
 
-        var error = CreateTopicsDecomposer.errorResponseForTopicsWithAssignments(request, table);
+        var error = decomposer.errorResponseForInvalidAssignments(request, table);
 
         assertThat(error.topics()).isEmpty();
     }
@@ -252,9 +278,9 @@ class CreateTopicsDecomposerTest {
     @Test
     void shouldNotErrorUnroutableTopicsWithAssignments() {
         var request = new CreateTopicsRequestData();
-        request.topics().add(topicWithAssignments("unknown.topic"));
+        request.topics().add(topicWithAssignments("unknown.topic", 0, 1));
 
-        var error = CreateTopicsDecomposer.errorResponseForTopicsWithAssignments(request, table);
+        var error = decomposer.errorResponseForInvalidAssignments(request, table);
 
         assertThat(error.topics()).isEmpty();
     }
@@ -272,14 +298,18 @@ class CreateTopicsDecomposerTest {
         return request;
     }
 
-    private static CreatableTopic topicWithAssignments(String name) {
+    private static CreatableTopic topicWithAssignments(String name, int... brokerIds) {
         var topic = new CreatableTopic()
                 .setName(name)
                 .setNumPartitions(-1)
                 .setReplicationFactor((short) -1);
+        var ids = new java.util.ArrayList<Integer>();
+        for (int id : brokerIds) {
+            ids.add(id);
+        }
         topic.assignments().add(new CreatableReplicaAssignment()
                 .setPartitionIndex(0)
-                .setBrokerIds(List.of(0, 1, 2)));
+                .setBrokerIds(ids));
         return topic;
     }
 

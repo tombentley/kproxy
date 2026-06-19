@@ -34,13 +34,16 @@ class TopologyServiceImplTest {
     private static final String ROUTE_A = "route-a";
     private static final String ROUTE_B = "route-b";
 
+    private static final NodeIdMapping NODE_ID_MAPPING = new BijectiveNodeIdMapping(
+            Map.of(ROUTE_A, 0, ROUTE_B, 1), 2);
+
     private TopologyCache cache;
     private TopologyServiceImpl service;
 
     @BeforeEach
     void setUp() {
         cache = new TopologyCache();
-        service = new TopologyServiceImpl(cache);
+        service = new TopologyServiceImpl(cache, NODE_ID_MAPPING);
     }
 
     @Nested
@@ -391,6 +394,23 @@ class TopologyServiceImplTest {
 
             // Then
             assertThat(cache.leaderFor("orders", 0)).isNull();
+        }
+    }
+
+    @Nested
+    class CanServeRoute {
+
+        @Test
+        void shouldReturnTrueWhenNodeBelongsToRoute() {
+            // BijectiveNodeIdMapping: virtual 0 = route-a (id 0), virtual 1 = route-b (id 1)
+            assertThat(service.canServeRoute(0, ROUTE_A)).isTrue();
+            assertThat(service.canServeRoute(1, ROUTE_B)).isTrue();
+        }
+
+        @Test
+        void shouldReturnFalseWhenNodeBelongsToDifferentRoute() {
+            assertThat(service.canServeRoute(0, ROUTE_B)).isFalse();
+            assertThat(service.canServeRoute(1, ROUTE_A)).isFalse();
         }
     }
 

@@ -207,9 +207,9 @@ class TopicPartitionRouter implements Router {
     private final ListOffsetsDecomposer listOffsetsDecomposer = ListOffsetsDecomposer.INSTANCE;
     private final OffsetCommitDecomposer offsetCommitDecomposer = OffsetCommitDecomposer.INSTANCE;
     private final OffsetFetchDecomposer offsetFetchDecomposer = OffsetFetchDecomposer.INSTANCE;
-    private final CreateTopicsDecomposer createTopicsDecomposer = CreateTopicsDecomposer.INSTANCE;
+    private final CreateTopicsDecomposer createTopicsDecomposer;
     private final DeleteTopicsDecomposer deleteTopicsDecomposer = DeleteTopicsDecomposer.INSTANCE;
-    private final CreatePartitionsDecomposer createPartitionsDecomposer = CreatePartitionsDecomposer.INSTANCE;
+    private final CreatePartitionsDecomposer createPartitionsDecomposer;
     private final DeleteRecordsDecomposer deleteRecordsDecomposer = DeleteRecordsDecomposer.INSTANCE;
     private final Map<String, String> subjectRoutes;
     private final ProducerIdManager producerIdManager;
@@ -245,6 +245,8 @@ class TopicPartitionRouter implements Router {
         this.producerIdManager = producerIdManager;
         this.fetchSessionManager = new FetchSessionManager(fetchSessionCache, clock);
         this.topologyService = topologyService;
+        this.createTopicsDecomposer = new CreateTopicsDecomposer(topologyService::canServeRoute);
+        this.createPartitionsDecomposer = new CreatePartitionsDecomposer(topologyService::canServeRoute);
         this.staticRoutes = Arrays.stream(ApiKeys.values())
                 .filter(k -> !DYNAMICALLY_ROUTED.contains(k))
                 .collect(Collectors.toUnmodifiableMap(k -> k, k -> defaultRoute));
@@ -437,6 +439,7 @@ class TopicPartitionRouter implements Router {
                                 (ProduceResponseData) entry.getValue());
                     }
                     ProduceResponseData merged = mergeWithErrors(bodies, capturedErrors, request, apiVersion);
+                    invalidateStaleLeaderRoutes(merged);
                     return syntheticResult(context, merged);
                 });
             });
@@ -810,6 +813,7 @@ class TopicPartitionRouter implements Router {
                     for (var tr : capturedErrors.responses()) {
                         merged.responses().add(tr.duplicate());
                     }
+                    invalidateStaleLeaderRoutes(merged);
                     var clientResponse = fetchSessionManager.computeClientResponse(merged);
                     return syntheticResult(context, clientResponse);
                 });
@@ -963,6 +967,7 @@ class TopicPartitionRouter implements Router {
                 for (var tr : capturedErrors.topics()) {
                     merged.topics().add(tr.duplicate());
                 }
+                invalidateStaleLeaderRoutes(merged);
                 return syntheticResult(context, merged);
             });
         });
@@ -1117,7 +1122,7 @@ class TopicPartitionRouter implements Router {
         return resolveTopicNames(request).thenCompose(topicNameResolver -> {
             CreateTopicsResponseData errorResponse = CreateTopicsDecomposer.errorResponseForUnroutableTopics(
                     request, routingTable);
-            CreateTopicsResponseData assignmentErrors = CreateTopicsDecomposer.errorResponseForTopicsWithAssignments(
+            CreateTopicsResponseData assignmentErrors = createTopicsDecomposer.errorResponseForInvalidAssignments(
                     request, routingTable);
             for (var tr : List.copyOf(assignmentErrors.topics())) {
                 errorResponse.topics().add(tr.duplicate());
@@ -1234,7 +1239,7 @@ class TopicPartitionRouter implements Router {
         return resolveTopicNames(request).thenCompose(topicNameResolver -> {
             CreatePartitionsResponseData errorResponse = CreatePartitionsDecomposer.errorResponseForUnroutableTopics(
                     request, routingTable);
-            CreatePartitionsResponseData assignmentErrors = CreatePartitionsDecomposer.errorResponseForTopicsWithAssignments(
+            CreatePartitionsResponseData assignmentErrors = createPartitionsDecomposer.errorResponseForInvalidAssignments(
                     request, routingTable);
             for (var tr : assignmentErrors.results()) {
                 errorResponse.results().add(tr.duplicate());
@@ -1331,7 +1336,7 @@ class TopicPartitionRouter implements Router {
                     for (var tr : capturedErrors.topics()) {
                         merged.topics().add(tr.duplicate());
                     }
-                    invalidateStaleLeaderRoutesDeleteRecords(merged);
+                    invalidateStaleLeaderRoutes(merged);
                     return syntheticResult(context, merged);
                 });
             });
@@ -2292,7 +2297,61 @@ class TopicPartitionRouter implements Router {
      * and if so, invalidates the affected routes in the topology service.
      * The client drives the refresh via its own METADATA request.
      */
-    private void invalidateStaleLeaderRoutesDeleteRecords(DeleteRecordsResponseData response) {
+    private void invalidateStaleLeaderRoutes(ProduceResponseData response) {
+        Set<String> staleRoutes = new HashSet<>();
+        for (var topic : response.responses()) {
+            for (var partition : topic.partitionResponses()) {
+                if (partition.errorCode() == Errors.NOT_LEADER_OR_FOLLOWER.code()) {
+                    String route = routingTable.routeForTopic(topic.name());
+                    if (route != null) {
+                        staleRoutes.add(route);
+                    }
+                    break;
+                }
+            }
+        }
+        for (String route : staleRoutes) {
+            topologyService.invalidateRoute(route);
+        }
+    }
+
+    private void invalidateStaleLeaderRoutes(FetchResponseData response) {
+        Set<String> staleRoutes = new HashSet<>();
+        for (var topic : response.responses()) {
+            for (var partition : topic.partitions()) {
+                if (partition.errorCode() == Errors.NOT_LEADER_OR_FOLLOWER.code()) {
+                    String route = routingTable.routeForTopic(topic.topic());
+                    if (route != null) {
+                        staleRoutes.add(route);
+                    }
+                    break;
+                }
+            }
+        }
+        for (String route : staleRoutes) {
+            topologyService.invalidateRoute(route);
+        }
+    }
+
+    private void invalidateStaleLeaderRoutes(OffsetForLeaderEpochResponseData response) {
+        Set<String> staleRoutes = new HashSet<>();
+        for (var topic : response.topics()) {
+            for (var partition : topic.partitions()) {
+                if (partition.errorCode() == Errors.NOT_LEADER_OR_FOLLOWER.code()) {
+                    String route = routingTable.routeForTopic(topic.topic());
+                    if (route != null) {
+                        staleRoutes.add(route);
+                    }
+                    break;
+                }
+            }
+        }
+        for (String route : staleRoutes) {
+            topologyService.invalidateRoute(route);
+        }
+    }
+
+    private void invalidateStaleLeaderRoutes(DeleteRecordsResponseData response) {
         Set<String> staleRoutes = new HashSet<>();
         for (var topic : response.topics()) {
             for (var partition : topic.partitions()) {

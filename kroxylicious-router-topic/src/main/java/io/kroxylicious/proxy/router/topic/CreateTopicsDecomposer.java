@@ -7,10 +7,12 @@ package io.kroxylicious.proxy.router.topic;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.message.CreateTopicsRequestData;
+import org.apache.kafka.common.message.CreateTopicsRequestData.CreatableTopic;
 import org.apache.kafka.common.message.CreateTopicsResponseData;
 import org.apache.kafka.common.message.CreateTopicsResponseData.CreatableTopicResult;
 import org.apache.kafka.common.protocol.Errors;
@@ -21,12 +23,13 @@ import org.apache.kafka.common.protocol.Errors;
  */
 class CreateTopicsDecomposer implements RequestDecomposer<CreateTopicsRequestData, CreateTopicsResponseData> {
 
-    static final CreateTopicsDecomposer INSTANCE = new CreateTopicsDecomposer();
+    static final String CROSS_ROUTE_ASSIGNMENTS_MESSAGE = "Replica assignment references brokers from a route other than the topic's owning route";
 
-    private CreateTopicsDecomposer() {
+    private final BiPredicate<Integer, String> canServeRoute;
+
+    CreateTopicsDecomposer(BiPredicate<Integer, String> canServeRoute) {
+        this.canServeRoute = canServeRoute;
     }
-
-    static final String ASSIGNMENTS_NOT_SUPPORTED_MESSAGE = "Explicit replica assignments are not supported by the topic router";
 
     @Override
     public Map<String, CreateTopicsRequestData> decompose(CreateTopicsRequestData request,
@@ -36,7 +39,7 @@ class CreateTopicsDecomposer implements RequestDecomposer<CreateTopicsRequestDat
         var result = new LinkedHashMap<String, CreateTopicsRequestData>();
         for (var topic : request.topics()) {
             String route = table.routeForTopic(topic.name());
-            if (route != null && topic.assignments().isEmpty()) {
+            if (route != null && !hasInvalidAssignments(topic, route)) {
                 result.computeIfAbsent(route, k -> copyEnvelope(request))
                         .topics().add(topic.duplicate());
             }
@@ -74,20 +77,35 @@ class CreateTopicsDecomposer implements RequestDecomposer<CreateTopicsRequestDat
         return errorResponse;
     }
 
-    static CreateTopicsResponseData errorResponseForTopicsWithAssignments(
-                                                                          CreateTopicsRequestData request,
-                                                                          TopicRoutingTable table) {
+    CreateTopicsResponseData errorResponseForInvalidAssignments(
+                                                                CreateTopicsRequestData request,
+                                                                TopicRoutingTable table) {
         var errorResponse = new CreateTopicsResponseData();
         for (var topic : request.topics()) {
-            if (table.isRoutable(topic.name()) && !topic.assignments().isEmpty()) {
+            String route = table.routeForTopic(topic.name());
+            if (route != null && hasInvalidAssignments(topic, route)) {
                 errorResponse.topics().add(
                         new CreatableTopicResult()
                                 .setName(topic.name())
                                 .setErrorCode(Errors.INVALID_REPLICA_ASSIGNMENT.code())
-                                .setErrorMessage(ASSIGNMENTS_NOT_SUPPORTED_MESSAGE));
+                                .setErrorMessage(CROSS_ROUTE_ASSIGNMENTS_MESSAGE));
             }
         }
         return errorResponse;
+    }
+
+    private boolean hasInvalidAssignments(CreatableTopic topic, String owningRoute) {
+        if (topic.assignments().isEmpty()) {
+            return false;
+        }
+        for (var assignment : topic.assignments()) {
+            for (int brokerId : assignment.brokerIds()) {
+                if (!canServeRoute.test(brokerId, owningRoute)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static CreateTopicsRequestData copyEnvelope(CreateTopicsRequestData original) {
