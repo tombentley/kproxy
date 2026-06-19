@@ -181,17 +181,8 @@ class TopicPartitionRouter implements Router {
             ApiKeys.CONSUMER_GROUP_HEARTBEAT,
             ApiKeys.CONSUMER_GROUP_DESCRIBE);
 
-    private static final Set<ApiKeys> SUBJECT_ROUTED_API_KEYS = Set.of(
-            ApiKeys.FIND_COORDINATOR,
-            ApiKeys.INIT_PRODUCER_ID,
-            ApiKeys.ADD_PARTITIONS_TO_TXN,
-            ApiKeys.ADD_OFFSETS_TO_TXN,
-            ApiKeys.TXN_OFFSET_COMMIT,
-            ApiKeys.END_TXN,
-            ApiKeys.OFFSET_COMMIT,
-            ApiKeys.OFFSET_FETCH,
-            ApiKeys.CONSUMER_GROUP_HEARTBEAT,
-            ApiKeys.CONSUMER_GROUP_DESCRIBE);
+    private static final Set<ApiKeys> SUBJECT_ROUTED_TO_ANY_NODE = Set.of(
+            ApiKeys.FIND_COORDINATOR);
 
     static final String REJECTED_ASSIGNMENTS_METRIC = "kroxylicious_routing_rejected_assignments_total";
     static final String VIRTUAL_CLUSTER_TAG = "virtual_cluster";
@@ -275,16 +266,18 @@ class TopicPartitionRouter implements Router {
                                                      RequestHeaderData header,
                                                      ApiMessage request,
                                                      RouterContext context) {
-        // Subject-routed users have coordinator-bound operations forwarded to their
-        // assigned route. Topic-addressed ops (PRODUCE, FETCH, etc.) still go through
-        // the normal handlers for leader-based router. METADATA and admin ops fan out.
+        // Subject-routed users have their coordinator route pinned to the
+        // assigned route. Non-subject-routed users use the default route.
         String subjectRoute = subjectRouteFor(context.authenticatedSubject());
-        if (subjectRoute != null && SUBJECT_ROUTED_API_KEYS.contains(apiKey)) {
+        String coordinatorRoute = subjectRoute != null ? subjectRoute : defaultRoute;
+
+        // FIND_COORDINATOR can go to any broker — forward directly.
+        if (subjectRoute != null && SUBJECT_ROUTED_TO_ANY_NODE.contains(apiKey)) {
             return forwardToRoute(subjectRoute, header, request, context);
         }
 
-        // Non-subject-routed users: topic-addressed requests are decomposed across routes,
-        // coordinator-bound requests go to the default route.
+        // All other APIs go through per-API handlers which use coordinatorRoute
+        // for coordinator discovery and defaultRoute for topic-addressed ops.
         if (apiKey == ApiKeys.API_VERSIONS) {
             return handleApiVersions(header, request, context);
         }
@@ -292,7 +285,7 @@ class TopicPartitionRouter implements Router {
             return handleProduce(apiVersion, header, (ProduceRequestData) request, context);
         }
         if (apiKey == ApiKeys.INIT_PRODUCER_ID) {
-            return handleInitProducerId(header, (InitProducerIdRequestData) request, context);
+            return handleInitProducerId(header, (InitProducerIdRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.METADATA) {
             return handleMetadata(header, (MetadataRequestData) request, context);
@@ -307,10 +300,10 @@ class TopicPartitionRouter implements Router {
             return handleOffsetForLeaderEpoch(header, (OffsetForLeaderEpochRequestData) request, context);
         }
         if (apiKey == ApiKeys.OFFSET_COMMIT) {
-            return handleOffsetCommit(apiVersion, header, (OffsetCommitRequestData) request, context);
+            return handleOffsetCommit(apiVersion, header, (OffsetCommitRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.OFFSET_FETCH) {
-            return handleOffsetFetch(apiVersion, header, (OffsetFetchRequestData) request, context);
+            return handleOffsetFetch(apiVersion, header, (OffsetFetchRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.CREATE_TOPICS) {
             return handleCreateTopics(apiVersion, header, (CreateTopicsRequestData) request, context);
@@ -326,29 +319,29 @@ class TopicPartitionRouter implements Router {
         }
         if (apiKey == ApiKeys.ADD_PARTITIONS_TO_TXN) {
             return handleAddPartitionsToTxn(header,
-                    (AddPartitionsToTxnRequestData) request, context);
+                    (AddPartitionsToTxnRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.ADD_OFFSETS_TO_TXN) {
             return handleAddOffsetsToTxn(header,
-                    (AddOffsetsToTxnRequestData) request, context);
+                    (AddOffsetsToTxnRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.TXN_OFFSET_COMMIT) {
             return handleTxnOffsetCommit(header,
-                    (TxnOffsetCommitRequestData) request, context);
+                    (TxnOffsetCommitRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.END_TXN) {
-            return handleEndTxn(header, (EndTxnRequestData) request, context);
+            return handleEndTxn(header, (EndTxnRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.FIND_COORDINATOR) {
-            return handleFindCoordinator(header, request, context);
+            return handleFindCoordinator(header, request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.CONSUMER_GROUP_HEARTBEAT) {
             return handleConsumerGroupHeartbeat(header,
-                    (ConsumerGroupHeartbeatRequestData) request, context);
+                    (ConsumerGroupHeartbeatRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.CONSUMER_GROUP_DESCRIBE) {
             return handleConsumerGroupDescribe(header,
-                    (ConsumerGroupDescribeRequestData) request, context);
+                    (ConsumerGroupDescribeRequestData) request, coordinatorRoute, context);
         }
         if (apiKey == ApiKeys.DESCRIBE_CLUSTER) {
             return handleDescribeCluster(header, request, context);
@@ -449,6 +442,7 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleInitProducerId(
                                                                  RequestHeaderData header,
                                                                  InitProducerIdRequestData request,
+                                                                 String coordinatorRoute,
                                                                  RouterContext context) {
         Set<String> allRoutes = routingTable.allRoutes();
         boolean isTransactional = request.transactionalId() != null
@@ -462,9 +456,8 @@ class TopicPartitionRouter implements Router {
         }
 
         if (isTransactional) {
-            String txnRoute = defaultRoute;
             return discoverCoordinatorAndInitProducerId(
-                    header, request, txnRoute, context);
+                    header, request, coordinatorRoute, context);
         }
 
         return fanOutInitProducerId(header, request, allRoutes, context);
@@ -990,9 +983,10 @@ class TopicPartitionRouter implements Router {
                                                                short apiVersion,
                                                                RequestHeaderData header,
                                                                OffsetCommitRequestData request,
+                                                               String coordinatorRoute,
                                                                RouterContext context) {
         if (!subjectRoutes.isEmpty()) {
-            return handleGroupRoutedOffsetCommit(header, request, context);
+            return handleGroupRoutedOffsetCommit(header, request, coordinatorRoute, context);
         }
 
         return resolveTopicNames(request).thenCompose(topicNameResolver -> {
@@ -1046,8 +1040,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleGroupRoutedOffsetCommit(
                                                                           RequestHeaderData header,
                                                                           OffsetCommitRequestData request,
+                                                                          String coordinatorRoute,
                                                                           RouterContext context) {
-        String expectedRoute = defaultRoute;
+        String expectedRoute = coordinatorRoute;
 
         var errorResponse = new OffsetCommitResponseData();
         var routableTopics = new ArrayList<OffsetCommitRequestData.OffsetCommitRequestTopic>();
@@ -1346,8 +1341,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleAddPartitionsToTxn(
                                                                      RequestHeaderData header,
                                                                      AddPartitionsToTxnRequestData request,
+                                                                     String coordinatorRoute,
                                                                      RouterContext context) {
-        String expectedRoute = defaultRoute;
+        String expectedRoute = coordinatorRoute;
         var topics = request.v3AndBelowTopics();
         var errorTopics = new ArrayList<AddPartitionsToTxnTopicResult>();
         boolean hasRoutableTopic = false;
@@ -1388,8 +1384,9 @@ class TopicPartitionRouter implements Router {
 
         activeTransactionRoute = expectedRoute;
 
+        boolean subjectRouted = subjectRouteFor(context.authenticatedSubject()) != null;
         long clientPid = request.v3AndBelowProducerId();
-        if (!expectedRoute.equals(defaultRoute)) {
+        if (!subjectRouted && !expectedRoute.equals(defaultRoute)) {
             Map<String, ProducerIdEpoch> mapping = producerIdManager.get(clientPid);
             if (mapping == null) {
                 LOGGER.atDebug()
@@ -1490,8 +1487,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleAddOffsetsToTxn(
                                                                   RequestHeaderData header,
                                                                   AddOffsetsToTxnRequestData request,
+                                                                  String coordinatorRoute,
                                                                   RouterContext context) {
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
                 .thenCompose(coordinators -> {
@@ -1537,8 +1535,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleTxnOffsetCommit(
                                                                   RequestHeaderData header,
                                                                   TxnOffsetCommitRequestData request,
+                                                                  String coordinatorRoute,
                                                                   RouterContext context) {
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         LOGGER.atDebug()
                 .addKeyValue("sessionId", context.sessionId())
@@ -1576,8 +1575,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleEndTxn(
                                                          RequestHeaderData header,
                                                          EndTxnRequestData request,
+                                                         String coordinatorRoute,
                                                          RouterContext context) {
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
                 .thenCompose(coordinators -> {
@@ -1644,9 +1644,10 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleFindCoordinator(
                                                                   RequestHeaderData header,
                                                                   ApiMessage request,
+                                                                  String coordinatorRoute,
                                                                   RouterContext context) {
         var findCoordReq = (FindCoordinatorRequestData) request;
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         LOGGER.atDebug()
                 .addKeyValue("sessionId", context.sessionId())
@@ -1663,8 +1664,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleConsumerGroupHeartbeat(
                                                                          RequestHeaderData header,
                                                                          ConsumerGroupHeartbeatRequestData request,
+                                                                         String coordinatorRoute,
                                                                          RouterContext context) {
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         return topologyService.coordinators(route, (byte) 0, Set.of(request.groupId()))
                 .thenCompose(coordinators -> {
@@ -1721,8 +1723,9 @@ class TopicPartitionRouter implements Router {
     private CompletionStage<RouterResponse> handleConsumerGroupDescribe(
                                                                         RequestHeaderData header,
                                                                         ConsumerGroupDescribeRequestData request,
+                                                                        String coordinatorRoute,
                                                                         RouterContext context) {
-        String route = defaultRoute;
+        String route = coordinatorRoute;
 
         LOGGER.atDebug()
                 .addKeyValue("sessionId", context.sessionId())
@@ -1758,8 +1761,9 @@ class TopicPartitionRouter implements Router {
                                                               short apiVersion,
                                                               RequestHeaderData header,
                                                               OffsetFetchRequestData request,
+                                                              String coordinatorRoute,
                                                               RouterContext context) {
-        String cgRoute = defaultRoute;
+        String cgRoute = coordinatorRoute;
         if (!subjectRoutes.isEmpty()) {
             LOGGER.atDebug()
                     .addKeyValue("sessionId", context.sessionId())

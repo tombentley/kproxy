@@ -535,13 +535,15 @@ class TopicPartitionRouterTest {
 
         var initResp = initProducerIdResponse(100L, (short) 0);
 
-        var ctx = new CapturingRouterContext(Map.of("cluster-a", initResp))
+        testTopologyService.primeCoordinator("cluster-a", (byte) 1, "my-txn-id", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, initResp))
                 .withSubject(TXN_SUBJECT);
         ctx.captureResult(txnRouter.onRequest(
                 ApiKeys.INIT_PRODUCER_ID, (short) 5, new RequestHeaderData(), request, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests()).hasSize(1);
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-a");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         var response = (InitProducerIdResponseData) ctx.sentResponseBody();
         assertThat(response).isNotNull();
         assertThat(response.producerId()).isEqualTo(100L);
@@ -1273,13 +1275,15 @@ class TopicPartitionRouterTest {
                 "orders.uk");
         var backendResp = addPartitionsToTxnResponse("orders.uk", 0, Errors.NONE);
 
-        var ctx = new CapturingRouterContext(Map.of("cluster-a", backendResp))
+        testTopologyService.primeCoordinator("cluster-a", (byte) 1, "my-txn-id", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, backendResp))
                 .withSubject(TXN_SUBJECT);
         ctx.captureResult(txnRouter.onRequest(ApiKeys.ADD_PARTITIONS_TO_TXN, (short) 3,
                 new RequestHeaderData(), request, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests()).hasSize(1);
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-a");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         assertThat(ctx.sentResponseBody())
                 .isInstanceOf(AddPartitionsToTxnResponseData.class);
         txnRouter.close();
@@ -1364,14 +1368,16 @@ class TopicPartitionRouterTest {
                 .setMemberEpoch(1)
                 .setHeartbeatIntervalMs(5000);
 
-        var ctx = new CapturingRouterContext(Map.of("cluster-b", heartbeatResp))
+        testTopologyService.primeCoordinator("cluster-b", (byte) 0, "my-group", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, heartbeatResp))
                 .withSubject(CG_SUBJECT);
 
         ctx.captureResult(cgRouter.onRequest(ApiKeys.CONSUMER_GROUP_HEARTBEAT, (short) 0,
                 new RequestHeaderData(), heartbeatReq, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests()).hasSize(1);
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-b");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         assertThat(ctx.sentResponseBody()).isNotNull();
         var respBody = (ConsumerGroupHeartbeatResponseData) ctx.sentResponseBody();
         assertThat(respBody.memberId()).isEqualTo("member-1");
@@ -1409,14 +1415,17 @@ class TopicPartitionRouterTest {
         var describeReq = new ConsumerGroupDescribeRequestData();
         describeReq.groupIds().add("my-group");
 
-        var ctx = new CapturingRouterContext(
-                Map.of("cluster-b", new org.apache.kafka.common.message.ConsumerGroupDescribeResponseData()))
+        var describeResp = new org.apache.kafka.common.message.ConsumerGroupDescribeResponseData();
+        testTopologyService.primeCoordinator("cluster-b", (byte) 0, "my-group", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, describeResp))
                 .withSubject(CG_SUBJECT);
 
         ctx.captureResult(cgRouter.onRequest(ApiKeys.CONSUMER_GROUP_DESCRIBE, (short) 0,
                 new RequestHeaderData(), describeReq, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-b");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         cgRouter.close();
     }
 
@@ -1483,18 +1492,21 @@ class TopicPartitionRouterTest {
                                 .setPartitionIndex(0)
                                 .setErrorCode(Errors.NONE.code()))));
 
-        var ctx = new CapturingRouterContext(Map.of("cluster-a", backendResp))
+        testTopologyService.primeCoordinator("cluster-a", (byte) 0, "my-group", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, backendResp))
                 .withSubject(CG_SUBJECT);
 
         ctx.captureResult(cgRouter.onRequest(ApiKeys.OFFSET_COMMIT, (short) 9,
                 new RequestHeaderData(), commitReq, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-a");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         cgRouter.close();
     }
 
     @Test
-    void shouldForwardOffsetCommitToSubjectRouteForCrossRouteTopics() {
+    void shouldRejectOffsetCommitForCrossRouteTopics() {
         var cgRouter = createCgRouter("cluster-a");
 
         var commitReq = new OffsetCommitRequestData()
@@ -1508,15 +1520,18 @@ class TopicPartitionRouterTest {
                                 .setPartitionIndex(0)
                                 .setCommittedOffset(50))));
 
-        var backendResp = new OffsetCommitResponseData();
-        var ctx = new CapturingRouterContext(Map.of("cluster-a", backendResp))
+        testTopologyService.primeCoordinator("cluster-a", (byte) 0, "my-group", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
                 .withSubject(CG_SUBJECT);
 
         ctx.captureResult(cgRouter.onRequest(ApiKeys.OFFSET_COMMIT, (short) 9,
                 new RequestHeaderData(), commitReq, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests()).hasSize(1);
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-a");
+        var response = (OffsetCommitResponseData) ctx.sentResponseBody();
+        assertThat(response.topics()).hasSize(1);
+        assertThat(response.topics().get(0).name()).isEqualTo("logs.errors");
+        assertThat(response.topics().get(0).partitions().get(0).errorCode())
+                .isEqualTo(Errors.UNKNOWN_TOPIC_OR_PARTITION.code());
         cgRouter.close();
     }
 
@@ -1534,13 +1549,16 @@ class TopicPartitionRouterTest {
 
         var backendResp = new org.apache.kafka.common.message.OffsetFetchResponseData();
 
-        var ctx = new CapturingRouterContext(Map.of("cluster-b", backendResp))
+        testTopologyService.primeCoordinator("cluster-b", (byte) 0, "my-group", new TestVirtualNode(10));
+        var ctx = new CapturingRouterContext(Map.of())
+                .withNodeResponses(Map.of(10, backendResp))
                 .withSubject(CG_SUBJECT);
 
         ctx.captureResult(cgRouter.onRequest(ApiKeys.OFFSET_FETCH, (short) 7,
                 new RequestHeaderData(), fetchReq, ctx).toCompletableFuture().join());
 
-        assertThat(ctx.sentRequests().get(0).route()).isEqualTo("cluster-b");
+        assertThat(ctx.sentNodeRequests()).isNotEmpty();
+        assertThat(ctx.sentNodeRequests().get(0).virtualNodeId()).isEqualTo(10);
         cgRouter.close();
     }
 
