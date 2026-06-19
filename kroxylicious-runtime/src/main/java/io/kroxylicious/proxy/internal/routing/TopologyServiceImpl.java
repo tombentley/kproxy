@@ -24,6 +24,8 @@ import org.apache.kafka.common.message.RequestHeaderData;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.protocol.ApiMessage;
 import org.apache.kafka.common.protocol.Errors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kroxylicious.proxy.topology.BrokerInfo;
 import io.kroxylicious.proxy.topology.Coordinators;
@@ -51,6 +53,7 @@ import io.kroxylicious.proxy.topology.VirtualNode;
  */
 public class TopologyServiceImpl implements TopologyService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TopologyServiceImpl.class);
     private static final short INTERNAL_METADATA_API_VERSION = 12;
     private static final short FIND_COORDINATOR_API_VERSION = 3;
 
@@ -146,12 +149,22 @@ public class TopologyServiceImpl implements TopologyService {
     public CompletionStage<Coordinators> coordinators(String route, byte keyType, Set<String> keys) {
         RequestSender sender = requireSender();
 
+        LOGGER.atDebug()
+                .addKeyValue("route", route)
+                .addKeyValue("keyType", keyType)
+                .addKeyValue("keys", keys)
+                .log("Coordinator discovery starting");
+
         var mdHeader = new RequestHeaderData()
                 .setRequestApiKey(ApiKeys.METADATA.id)
                 .setRequestApiVersion(INTERNAL_METADATA_API_VERSION);
         var mdReq = new MetadataRequestData();
 
         return sender.send(route, mdHeader, mdReq).thenCompose(mdResponse -> {
+            LOGGER.atDebug()
+                    .addKeyValue("route", route)
+                    .log("Coordinator discovery: METADATA response received");
+
             var fcHeader = new RequestHeaderData()
                     .setRequestApiKey(ApiKeys.FIND_COORDINATOR.id)
                     .setRequestApiVersion(FIND_COORDINATOR_API_VERSION);
@@ -170,10 +183,26 @@ public class TopologyServiceImpl implements TopologyService {
             return sender.send(route, fcHeader, fcReq);
         }).thenApply(coordResponse -> {
             var resp = (FindCoordinatorResponseData) coordResponse;
+            LOGGER.atDebug()
+                    .addKeyValue("route", route)
+                    .addKeyValue("errorCode", resp.errorCode())
+                    .addKeyValue("nodeId", resp.nodeId())
+                    .log("Coordinator discovery: FIND_COORDINATOR response received");
             if (resp.errorCode() != Errors.NONE.code()) {
                 throw new CoordinatorDiscoveryException(Errors.forCode(resp.errorCode()));
             }
             return snapshotCoordinators(route, keyType, keys);
+        }).exceptionally(ex -> {
+            LOGGER.atWarn()
+                    .addKeyValue("route", route)
+                    .addKeyValue("keyType", keyType)
+                    .addKeyValue("keys", keys)
+                    .setCause(LOGGER.isDebugEnabled() ? ex : null)
+                    .addKeyValue("error", ex.getMessage())
+                    .log(LOGGER.isDebugEnabled()
+                            ? "Coordinator discovery failed"
+                            : "Coordinator discovery failed, increase log level to DEBUG for stacktrace");
+            throw ex instanceof RuntimeException re ? re : new RuntimeException(ex);
         });
     }
 

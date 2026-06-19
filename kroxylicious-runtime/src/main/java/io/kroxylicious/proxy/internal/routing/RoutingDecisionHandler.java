@@ -112,7 +112,21 @@ public class RoutingDecisionHandler extends ChannelDuplexHandler implements Pend
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) {
+        failPendingResponses();
         router.close();
+    }
+
+    private void failPendingResponses() {
+        if (!pendingResponses.isEmpty()) {
+            var exception = new org.apache.kafka.common.errors.DisconnectException("Backend connection closed");
+            for (var pending : pendingResponses.values()) {
+                pending.future().completeExceptionally(exception);
+                if (topologyService != null) {
+                    topologyService.invalidateRoute(pending.route());
+                }
+            }
+            pendingResponses.clear();
+        }
     }
 
     // --- Inbound (request) path ---
@@ -125,6 +139,12 @@ public class RoutingDecisionHandler extends ChannelDuplexHandler implements Pend
         }
         RoutingContext rc = routingContextOf(msg);
         if (rc == null || !activationRoute.equals(rc.route())) {
+            LOGGER.atDebug()
+                    .addKeyValue("sessionId", ccsm.sessionId())
+                    .addKeyValue("apiKey", ApiKeys.forId(frame.apiKeyId()))
+                    .addKeyValue("activationRoute", activationRoute)
+                    .addKeyValue("requestRoute", rc != null ? rc.route() : "null")
+                    .log("Request bypassing router (route mismatch)");
             ctx.fireChannelRead(msg);
             return;
         }
