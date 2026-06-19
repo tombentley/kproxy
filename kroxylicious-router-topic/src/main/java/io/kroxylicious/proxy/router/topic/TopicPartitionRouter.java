@@ -1493,17 +1493,6 @@ class TopicPartitionRouter implements Router {
                                                                   RouterContext context) {
         String route = defaultRoute;
 
-        if (!route.equals(defaultRoute)) {
-            Map<String, ProducerIdEpoch> mapping = producerIdManager.get(request.producerId());
-            if (mapping != null) {
-                ProducerIdEpoch routeIds = mapping.get(route);
-                if (routeIds != null) {
-                    request.setProducerId(routeIds.producerId());
-                    request.setProducerEpoch(routeIds.producerEpoch());
-                }
-            }
-        }
-
         return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
                 .thenCompose(coordinators -> {
                     VirtualNode coordinatorNode = coordinators.coordinatorFor(request.transactionalId()).orElse(null);
@@ -1525,7 +1514,10 @@ class TopicPartitionRouter implements Router {
                             .log("ADD_OFFSETS_TO_TXN routed to transaction coordinator");
 
                     return context.sendRequest(coordinatorNode, header, request)
-                            .<RouterResponse> thenApply(r -> context.respondWith(r).build());
+                            .<RouterResponse> thenApply(r -> {
+                                invalidateOnNotCoordinator(r, route);
+                                return context.respondWith(r).build();
+                            });
                 }).exceptionally(ex -> {
                     LOGGER.atWarn()
                             .addKeyValue("sessionId", context.sessionId())
@@ -1547,17 +1539,6 @@ class TopicPartitionRouter implements Router {
                                                                   TxnOffsetCommitRequestData request,
                                                                   RouterContext context) {
         String route = defaultRoute;
-
-        if (!route.equals(defaultRoute)) {
-            Map<String, ProducerIdEpoch> mapping = producerIdManager.get(request.producerId());
-            if (mapping != null) {
-                ProducerIdEpoch routeIds = mapping.get(route);
-                if (routeIds != null) {
-                    request.setProducerId(routeIds.producerId());
-                    request.setProducerEpoch(routeIds.producerEpoch());
-                }
-            }
-        }
 
         LOGGER.atDebug()
                 .addKeyValue("sessionId", context.sessionId())
@@ -1598,23 +1579,6 @@ class TopicPartitionRouter implements Router {
                                                          RouterContext context) {
         String route = defaultRoute;
 
-        long clientPid = request.producerId();
-        short clientEpoch = request.producerEpoch();
-        short preRewriteRouteEpoch = -1;
-
-        if (!route.equals(defaultRoute)) {
-            Map<String, ProducerIdEpoch> mapping = producerIdManager.get(clientPid);
-            if (mapping != null) {
-                ProducerIdEpoch routeIds = mapping.get(route);
-                if (routeIds != null) {
-                    preRewriteRouteEpoch = routeIds.producerEpoch();
-                    request.setProducerId(routeIds.producerId());
-                    request.setProducerEpoch(routeIds.producerEpoch());
-                }
-            }
-        }
-
-        short capturedPreRewriteEpoch = preRewriteRouteEpoch;
         return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
                 .thenCompose(coordinators -> {
                     VirtualNode coordinatorNode = coordinators.coordinatorFor(request.transactionalId()).orElse(null);
@@ -1636,32 +1600,7 @@ class TopicPartitionRouter implements Router {
 
                     return context.sendRequest(coordinatorNode, header, request)
                             .<RouterResponse> thenApply(response -> {
-                                var endTxnResp = (EndTxnResponseData) response;
-
-                                if (endTxnResp.producerId() != -1
-                                        && !route.equals(defaultRoute)) {
-                                    producerIdManager.updateRouteEpoch(clientPid, route,
-                                            new ProducerIdEpoch(
-                                                    endTxnResp.producerId(),
-                                                    endTxnResp.producerEpoch()));
-
-                                    short newClientEpoch = capturedPreRewriteEpoch >= 0
-                                            ? (short) (clientEpoch
-                                                    + (endTxnResp.producerEpoch()
-                                                            - capturedPreRewriteEpoch))
-                                            : clientEpoch;
-                                    endTxnResp.setProducerId(clientPid);
-                                    endTxnResp.setProducerEpoch(newClientEpoch);
-
-                                    LOGGER.atDebug()
-                                            .addKeyValue("sessionId", context.sessionId())
-                                            .addKeyValue("route", route)
-                                            .addKeyValue("clientEpoch", newClientEpoch)
-                                            .addKeyValue("routeEpoch",
-                                                    endTxnResp.producerEpoch())
-                                            .log("END_TXN epoch bump rewritten");
-                                }
-
+                                invalidateOnNotCoordinator(response, route);
                                 activeTransactionRoute = null;
                                 return context.respondWith(response).build();
                             });
@@ -1707,16 +1646,7 @@ class TopicPartitionRouter implements Router {
                                                                   ApiMessage request,
                                                                   RouterContext context) {
         var findCoordReq = (FindCoordinatorRequestData) request;
-        String route;
-        if (findCoordReq.keyType() == 1) {
-            route = defaultRoute;
-        }
-        else if (findCoordReq.keyType() == 0) {
-            route = defaultRoute;
-        }
-        else {
-            route = defaultRoute;
-        }
+        String route = defaultRoute;
 
         LOGGER.atDebug()
                 .addKeyValue("sessionId", context.sessionId())
@@ -1782,7 +1712,10 @@ class TopicPartitionRouter implements Router {
                 .log("Consumer group request forwarded to coordinator");
 
         return context.sendRequest(coordinatorNode, header, request)
-                .thenApply(r -> context.respondWith(r).build());
+                .thenApply(r -> {
+                    invalidateOnNotCoordinator(r, route);
+                    return context.respondWith(r).build();
+                });
     }
 
     private CompletionStage<RouterResponse> handleConsumerGroupDescribe(
@@ -2089,7 +2022,11 @@ class TopicPartitionRouter implements Router {
                         return CompletableFuture.<ApiMessage> failedFuture(
                                 new IllegalStateException("Coordinator not available for key: " + key));
                     }
-                    return context.sendRequest(coordinator, header, request);
+                    return context.sendRequest(coordinator, header, request)
+                            .thenApply(response -> {
+                                invalidateOnNotCoordinator(response, route);
+                                return response;
+                            });
                 });
     }
 
@@ -2292,11 +2229,33 @@ class TopicPartitionRouter implements Router {
         return t;
     }
 
-    /**
-     * Checks if any partition in the response has NOT_LEADER_OR_FOLLOWER
-     * and if so, invalidates the affected routes in the topology service.
-     * The client drives the refresh via its own METADATA request.
-     */
+    private void invalidateOnNotCoordinator(ApiMessage response, String route) {
+        short errorCode = -1;
+        if (response instanceof AddOffsetsToTxnResponseData r) {
+            errorCode = r.errorCode();
+        }
+        else if (response instanceof EndTxnResponseData r) {
+            errorCode = r.errorCode();
+        }
+        else if (response instanceof ConsumerGroupHeartbeatResponseData r) {
+            errorCode = r.errorCode();
+        }
+        else if (response instanceof OffsetFetchResponseData r) {
+            errorCode = r.errorCode();
+        }
+        else if (response instanceof ConsumerGroupDescribeResponseData r) {
+            for (var group : r.groups()) {
+                if (group.errorCode() == Errors.NOT_COORDINATOR.code()) {
+                    errorCode = group.errorCode();
+                    break;
+                }
+            }
+        }
+        if (errorCode == Errors.NOT_COORDINATOR.code()) {
+            topologyService.invalidateRoute(route);
+        }
+    }
+
     private void invalidateStaleLeaderRoutes(ProduceResponseData response) {
         Set<String> staleRoutes = new HashSet<>();
         for (var topic : response.responses()) {
