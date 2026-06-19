@@ -181,9 +181,6 @@ class TopicPartitionRouter implements Router {
             ApiKeys.CONSUMER_GROUP_HEARTBEAT,
             ApiKeys.CONSUMER_GROUP_DESCRIBE);
 
-    private static final Set<ApiKeys> SUBJECT_ROUTED_TO_ANY_NODE = Set.of(
-            ApiKeys.FIND_COORDINATOR);
-
     static final String REJECTED_ASSIGNMENTS_METRIC = "kroxylicious_routing_rejected_assignments_total";
     static final String VIRTUAL_CLUSTER_TAG = "virtual_cluster";
     static final String ROUTER_TAG = "router";
@@ -271,12 +268,7 @@ class TopicPartitionRouter implements Router {
         String subjectRoute = subjectRouteFor(context.authenticatedSubject());
         String coordinatorRoute = subjectRoute != null ? subjectRoute : defaultRoute;
 
-        // FIND_COORDINATOR can go to any broker — forward directly.
-        if (subjectRoute != null && SUBJECT_ROUTED_TO_ANY_NODE.contains(apiKey)) {
-            return forwardToRoute(subjectRoute, header, request, context);
-        }
-
-        // All other APIs go through per-API handlers which use coordinatorRoute
+        // All APIs go through per-API handlers which use coordinatorRoute
         // for coordinator discovery and defaultRoute for topic-addressed ops.
         if (apiKey == ApiKeys.API_VERSIONS) {
             return handleApiVersions(header, request, context);
@@ -1629,16 +1621,6 @@ class TopicPartitionRouter implements Router {
         return subject.uniquePrincipalOfType(User.class)
                 .map(user -> subjectRoutes.get(user.name()))
                 .orElse(null);
-    }
-
-    private CompletionStage<RouterResponse> forwardToRoute(String route,
-                                                           RequestHeaderData header,
-                                                           ApiMessage request,
-                                                           RouterContext context) {
-        return context.sendRequest(context.anyNode(route), header, request)
-                .thenApply(response -> {
-                    return context.respondWith(response).build();
-                });
     }
 
     private CompletionStage<RouterResponse> handleFindCoordinator(
