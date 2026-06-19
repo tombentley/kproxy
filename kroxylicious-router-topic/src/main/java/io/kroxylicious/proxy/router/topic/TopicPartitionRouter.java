@@ -1483,19 +1483,8 @@ class TopicPartitionRouter implements Router {
                                                                   RouterContext context) {
         String route = coordinatorRoute;
 
-        return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
-                .thenCompose(coordinators -> {
-                    VirtualNode coordinatorNode = coordinators.coordinatorFor(request.transactionalId()).orElse(null);
-                    if (coordinatorNode == null) {
-                        LOGGER.atWarn()
-                                .addKeyValue("sessionId", context.sessionId())
-                                .addKeyValue("route", route)
-                                .log("No coordinator available for route during ADD_OFFSETS_TO_TXN");
-                        return CompletableFuture.<RouterResponse> completedFuture(syntheticResult(context,
-                                new AddOffsetsToTxnResponseData()
-                                        .setErrorCode(Errors.COORDINATOR_NOT_AVAILABLE.code())));
-                    }
-
+        return discoverCoordinatorOrFallback(route, (byte) 1, request.transactionalId(), context)
+                .thenCompose(coordinatorNode -> {
                     LOGGER.atDebug()
                             .addKeyValue("sessionId", context.sessionId())
                             .addKeyValue("route", route)
@@ -1571,17 +1560,8 @@ class TopicPartitionRouter implements Router {
                                                          RouterContext context) {
         String route = coordinatorRoute;
 
-        return topologyService.coordinators(route, (byte) 1, Set.of(request.transactionalId()))
-                .thenCompose(coordinators -> {
-                    VirtualNode coordinatorNode = coordinators.coordinatorFor(request.transactionalId()).orElse(null);
-                    if (coordinatorNode == null) {
-                        return context.sendRequest(context.anyNode(route), header, request)
-                                .<RouterResponse> thenApply(response -> {
-                                    activeTransactionRoute = null;
-                                    return context.respondWith(response).build();
-                                });
-                    }
-
+        return discoverCoordinatorOrFallback(route, (byte) 1, request.transactionalId(), context)
+                .thenCompose(coordinatorNode -> {
                     LOGGER.atDebug()
                             .addKeyValue("sessionId", context.sessionId())
                             .addKeyValue("route", route)
@@ -1650,23 +1630,10 @@ class TopicPartitionRouter implements Router {
                                                                          RouterContext context) {
         String route = coordinatorRoute;
 
-        return topologyService.coordinators(route, (byte) 0, Set.of(request.groupId()))
-                .thenCompose(coordinators -> {
-                    VirtualNode coordinatorNode = coordinators.coordinatorFor(request.groupId()).orElse(null);
-                    if (coordinatorNode == null) {
-                        LOGGER.atWarn()
-                                .addKeyValue("sessionId", context.sessionId())
-                                .addKeyValue("route", route)
-                                .addKeyValue("groupId", request.groupId())
-                                .log("No coordinator available for CONSUMER_GROUP_HEARTBEAT");
-                        return CompletableFuture.<RouterResponse> completedFuture(syntheticResult(context,
-                                new ConsumerGroupHeartbeatResponseData()
-                                        .setErrorCode(Errors.COORDINATOR_NOT_AVAILABLE.code())));
-                    }
-
-                    return forwardToConsumerGroupCoordinator(
-                            coordinatorNode, route, header, request, context);
-                }).exceptionally(ex -> {
+        return discoverCoordinatorOrFallback(route, (byte) 0, request.groupId(), context)
+                .thenCompose(coordinatorNode -> forwardToConsumerGroupCoordinator(
+                        coordinatorNode, route, header, request, context))
+                .exceptionally(ex -> {
                     LOGGER.atWarn()
                             .addKeyValue("sessionId", context.sessionId())
                             .addKeyValue("route", route)
@@ -1991,6 +1958,27 @@ class TopicPartitionRouter implements Router {
     }
 
     /**
+     * Discovers the coordinator for the given key, falling back to anyNode
+     * if discovery fails (e.g. COORDINATOR_NOT_AVAILABLE).
+     */
+    private CompletionStage<VirtualNode> discoverCoordinatorOrFallback(
+                                                                       String route,
+                                                                       byte keyType,
+                                                                       String key,
+                                                                       RouterContext context) {
+        return topologyService.coordinators(route, keyType, Set.of(key))
+                .thenApply(coordinators -> coordinators.coordinatorFor(key)
+                        .orElseGet(() -> context.anyNode(route)))
+                .exceptionally(ex -> {
+                    LOGGER.atDebug()
+                            .addKeyValue("route", route)
+                            .addKeyValue("key", key)
+                            .log("Coordinator discovery failed, falling back to anyNode");
+                    return context.anyNode(route);
+                });
+    }
+
+    /**
      * Sends a request to a coordinator, discovering it via the topology service
      * if not already cached.
      */
@@ -2001,19 +1989,12 @@ class TopicPartitionRouter implements Router {
                                                                     RequestHeaderData header,
                                                                     ApiMessage request,
                                                                     RouterContext context) {
-        return topologyService.coordinators(route, keyType, Set.of(key))
-                .thenCompose(coordinators -> {
-                    VirtualNode coordinator = coordinators.coordinatorFor(key).orElse(null);
-                    if (coordinator == null) {
-                        return CompletableFuture.<ApiMessage> failedFuture(
-                                new IllegalStateException("Coordinator not available for key: " + key));
-                    }
-                    return context.sendRequest(coordinator, header, request)
-                            .thenApply(response -> {
-                                invalidateOnNotCoordinator(response, route);
-                                return response;
-                            });
-                });
+        return discoverCoordinatorOrFallback(route, keyType, key, context)
+                .thenCompose(coordinator -> context.sendRequest(coordinator, header, request)
+                        .thenApply(response -> {
+                            invalidateOnNotCoordinator(response, route);
+                            return response;
+                        }));
     }
 
     private Map<VirtualNode, String> mapLeadersToRoutes(Map<String, ? extends ApiMessage> subRequestsByRoute, PartitionLeaders leaders) {
