@@ -97,7 +97,7 @@ class CoordinatorChangeResilienceIT {
     void shouldCommitTransactionAfterCoordinatorChange(
                                                        @SaslMechanism(value = "PLAIN", principals = {
                                                                @SaslMechanism.Principal(user = SASL_USERNAME, password = SASL_PASSWORD)
-                                                       }) @BrokerConfig(name = "transaction.state.log.replication.factor", value = "3") @BrokerConfig(name = "transaction.state.log.min.isr", value = "2") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
+                                                       }) @BrokerConfig(name = "transaction.state.log.replication.factor", value = "3") @BrokerConfig(name = "transaction.state.log.min.isr", value = "2") @BrokerConfig(name = "offsets.topic.replication.factor", value = "3") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
                                                        @BrokerCluster(numBrokers = 3) KafkaCluster clusterB)
             throws Exception {
         String topic = "a.txn-coord-test";
@@ -160,7 +160,7 @@ class CoordinatorChangeResilienceIT {
     void shouldRebalanceNewConsumerGroupAfterCoordinatorChange(
                                                                @SaslMechanism(value = "PLAIN", principals = {
                                                                        @SaslMechanism.Principal(user = SASL_USERNAME, password = SASL_PASSWORD)
-                                                               }) @BrokerConfig(name = "offsets.topic.replication.factor", value = "3") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
+                                                               }) @BrokerConfig(name = "offsets.topic.replication.factor", value = "3") @BrokerConfig(name = "offsets.topic.num.partitions", value = "10") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
                                                                @BrokerCluster(numBrokers = 3) KafkaCluster clusterB)
             throws Exception {
         shouldRebalanceConsumerGroupAfterCoordinatorChange(saslClusterA, clusterB, "consumer");
@@ -172,7 +172,7 @@ class CoordinatorChangeResilienceIT {
     void shouldRebalanceClassicConsumerGroupAfterCoordinatorChange(
                                                                    @SaslMechanism(value = "PLAIN", principals = {
                                                                            @SaslMechanism.Principal(user = SASL_USERNAME, password = SASL_PASSWORD)
-                                                                   }) @BrokerConfig(name = "offsets.topic.replication.factor", value = "3") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
+                                                                   }) @BrokerConfig(name = "offsets.topic.replication.factor", value = "3") @BrokerConfig(name = "offsets.topic.num.partitions", value = "10") @BrokerCluster(numBrokers = 3) KafkaCluster saslClusterA,
                                                                    @BrokerCluster(numBrokers = 3) KafkaCluster clusterB)
             throws Exception {
         shouldRebalanceConsumerGroupAfterCoordinatorChange(saslClusterA, clusterB, "classic");
