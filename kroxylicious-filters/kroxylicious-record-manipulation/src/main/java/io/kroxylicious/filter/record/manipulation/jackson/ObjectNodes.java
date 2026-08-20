@@ -39,7 +39,7 @@ public class ObjectNodes {
      * @return a function that replaces each property present in {@code map} with the result of applying its function,
      *         leaving other properties unchanged
      */
-    public Function<ObjectNode, ObjectNode> mapProperties(Map<String, Function<? super JsonNode, ? extends JsonNode>> map) {
+    public Function<ObjectNode, ObjectNode> mapProperties(Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> map) {
         return new JsonNodePropertiesFunction(map);
     }
 
@@ -48,11 +48,12 @@ public class ObjectNodes {
      * @param map the per-property suppliers, keyed by property name
      * @return a supplier that builds a new object with one property per entry in {@code map}, populated by calling the supplier
      */
-    public Supplier<ObjectNode> mapProperties2(Map<String, Supplier<? extends JsonNode>> map) {
+    public Supplier<ObjectNode> mapProperties2(Map<String, ? extends Supplier<? extends JsonNode>> map) {
         return new JsonNodePropertiesSupplier(nodeFactory, map);
     }
 
-    private record JsonNodePropertiesFunction(Map<String, Function<? super JsonNode, ? extends JsonNode>> propertyFns) implements Function<ObjectNode, ObjectNode> {
+    private record JsonNodePropertiesFunction(Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> propertyFns)
+            implements Function<ObjectNode, ObjectNode> {
 
         @Override
         public ObjectNode apply(ObjectNode object) {
@@ -67,7 +68,7 @@ public class ObjectNodes {
     }
 
     private record JsonNodePropertiesSupplier(JsonNodeFactory nodeFactory,
-                                              Map<String, Supplier<? extends JsonNode>> map)
+                                              Map<String, ? extends Supplier<? extends JsonNode>> map)
             implements Supplier<ObjectNode> {
         @Override
         public ObjectNode get() {

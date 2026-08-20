@@ -19,6 +19,8 @@ import io.leangen.geantyref.GenericTypeReflector;
  */
 public class Pipeline {
 
+    private final List<Function<?, ?>> functions;
+
     /**
      * Validates and creates a pipeline.
      * @param functions the functions to validate, in composition order
@@ -37,6 +39,23 @@ public class Pipeline {
                         + ", the parameter type of function at index " + i);
             }
         }
+        this.functions = functions;
+    }
+
+    /**
+     * Runs the pipeline, feeding {@code input} to the first function and the result of each function to the next.
+     * @param input the input to the first function
+     * @return the result of the last function, or {@code input} itself if the pipeline is empty
+     * @param <T> the input type
+     * @param <R> the result type
+     */
+    @SuppressWarnings("unchecked")
+    public <T, R> R apply(T input) {
+        Object result = input;
+        for (Function<?, ?> function : functions) {
+            result = ((Function<Object, Object>) function).apply(result);
+        }
+        return (R) result;
     }
 
     private static Type[] functionTypeArguments(Function<?, ?> function) {
