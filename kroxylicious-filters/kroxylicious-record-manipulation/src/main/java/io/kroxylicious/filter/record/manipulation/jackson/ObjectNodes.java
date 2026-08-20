@@ -25,14 +25,29 @@ public class ObjectNodes {
 
     private final JsonNodeFactory nodeFactory;
 
+    /**
+     * Creates an instance.
+     * @param nodeFactory the factory used to build result nodes
+     */
     public ObjectNodes(JsonNodeFactory nodeFactory) {
         this.nodeFactory = nodeFactory;
     }
 
+    /**
+     * Maps selected properties of an object.
+     * @param map the per-property functions, keyed by property name
+     * @return a function that replaces each property present in {@code map} with the result of applying its function,
+     *         leaving other properties unchanged
+     */
     public Function<ObjectNode, ObjectNode> mapProperties(Map<String, Function<? super JsonNode, ? extends JsonNode>> map) {
         return new JsonNodePropertiesFunction(map);
     }
 
+    /**
+     * Generates an object from a set of per-property suppliers.
+     * @param map the per-property suppliers, keyed by property name
+     * @return a supplier that builds a new object with one property per entry in {@code map}, populated by calling the supplier
+     */
     public Supplier<ObjectNode> mapProperties2(Map<String, Supplier<? extends JsonNode>> map) {
         return new JsonNodePropertiesSupplier(nodeFactory, map);
     }

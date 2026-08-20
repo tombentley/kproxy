@@ -23,12 +23,19 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * HMAC and symmetric encrypt/decrypt operations on strings, using a raw key supplied by the caller.
+ */
 public class Strings {
 
     private final byte[] key;
     Mac mac;
     Cipher cipher;
 
+    /**
+     * Creates an instance.
+     * @param key the raw key used for both HMAC and AES/GCM operations
+     */
     public Strings(byte[] key) {
         this.key = key;
         try {
@@ -41,12 +48,20 @@ public class Strings {
         }
     }
 
+    /**
+     * Computes an HMAC.
+     * @return a function computing the Base64-encoded HMAC-SHA256 of its input
+     */
     public Function<String, String> hmac() {
         return value -> Base64.getEncoder().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static final int IV_LENGTH = 12;
 
+    /**
+     * Encrypts a value.
+     * @return a function encrypting its input with AES/GCM, returning a Base64-encoded ciphertext with the IV appended
+     */
     public Function<String, String> encrypt() {
         return value -> {
             try {
@@ -73,6 +88,10 @@ public class Strings {
         };
     }
 
+    /**
+     * Decrypts a value.
+     * @return a function decrypting a Base64-encoded ciphertext produced by {@link #encrypt()}
+     */
     public Function<String, String> decrypt() {
         return value -> {
             try {

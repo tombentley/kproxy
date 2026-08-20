@@ -16,10 +16,17 @@ import org.apache.kafka.common.utils.ByteBufferOutputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Serializes a {@link JsonNode} to a {@link ByteBuffer} ready to be read.
+ */
 public class JacksonSerializer implements Function<JsonNode, ByteBuffer> {
 
     private final ObjectMapper mapper;
 
+    /**
+     * Creates a serializer.
+     * @param mapper the mapper used to write the node's contents
+     */
     public JacksonSerializer(ObjectMapper mapper) {
         this.mapper = mapper;
     }

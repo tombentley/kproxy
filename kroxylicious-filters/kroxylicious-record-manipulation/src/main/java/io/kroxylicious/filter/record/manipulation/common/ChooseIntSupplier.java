@@ -10,10 +10,18 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.IntSupplier;
 
+/**
+ * A supplier that returns an {@code int} drawn at random from a fixed set.
+ */
 public class ChooseIntSupplier implements IntSupplier {
     private final Random prng;
     private final int[] values;
 
+    /**
+     * Creates a supplier.
+     * @param prng the source of randomness
+     * @param from the set of values to choose from
+     */
     public ChooseIntSupplier(Random prng, Set<Integer> from) {
         this.prng = prng;
         values = from.stream().mapToInt(i -> i).toArray();
