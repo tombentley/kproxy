@@ -26,6 +26,8 @@ import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Strings;
 import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link MaskConfig} tree.
  * <p>
@@ -41,7 +43,13 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
      * @param maskTree the mask config tree
      * @return a function transforming an input {@link JsonNode} according to {@code maskTree}
      */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately not SecureRandom: we want control over "
+            + "the seed (e.g. derived from topic/partition/offset) so masking can eventually have repeatable-read semantics on the Fetch path")
     static JacksonFunction buildMask(MaskConfig maskTree) {
+        return buildMask(maskTree, new Random());
+    }
+
+    private static JacksonFunction buildMask(MaskConfig maskTree, Random random) {
         byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
         switch (maskTree.type()) {
@@ -52,24 +60,24 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
                 }
                 else if (maskTree.random() != null) {
                     var supplier = Jackson.convertString(
-                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
+                            new RandomStringSupplier(random, maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
                     return ignored -> supplier.get();
                 }
                 else if (maskTree.choose() != null) {
                     Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-                    var supplier = Jackson.convertString(new ChooseStringSupplier(new Random(), from));
+                    var supplier = Jackson.convertString(new ChooseStringSupplier(random, from));
                     return ignored -> supplier.get();
                 }
                 else if (maskTree.hmac() != null) {
-                    var fn = Jackson.convertString(new Strings(key).hmac());
+                    var fn = Jackson.convertString(new Strings(key, random).hmac());
                     return fn::apply;
                 }
                 else if (maskTree.encrypt() != null) {
-                    var fn = Jackson.convertString(new Strings(key).encrypt());
+                    var fn = Jackson.convertString(new Strings(key, random).encrypt());
                     return fn::apply;
                 }
                 else if (maskTree.decrypt() != null) {
-                    var fn = Jackson.convertString(new Strings(key).decrypt());
+                    var fn = Jackson.convertString(new Strings(key, random).decrypt());
                     return fn::apply;
                 }
                 else {
@@ -82,12 +90,12 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
                     return ignored -> supplier.get();
                 }
                 else if (maskTree.random() != null) {
-                    var supplier = Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max()));
+                    var supplier = Jackson.convertInt(new RandomIntSupplier(random, maskTree.random().min(), maskTree.random().max()));
                     return ignored -> supplier.get();
                 }
                 else if (maskTree.choose() != null) {
                     Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-                    var supplier = Jackson.convertInt(new ChooseIntSupplier(new Random(), from));
+                    var supplier = Jackson.convertInt(new ChooseIntSupplier(random, from));
                     return ignored -> supplier.get();
                 }
                 else {
@@ -96,7 +104,7 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
             }
             case "array" -> {
                 if (maskTree.items() != null) {
-                    var fn = new ArrayNodes(JsonNodeFactory.instance).items(buildMask(maskTree.items()));
+                    var fn = new ArrayNodes(JsonNodeFactory.instance).items(buildMask(maskTree.items(), random));
                     return node -> fn.apply((ArrayNode) node);
                 }
                 else {
@@ -106,7 +114,7 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
             case "object" -> {
                 if (maskTree.properties() != null) {
                     Map<String, JacksonFunction> mapping = maskTree.properties().entrySet().stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue())));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), random)));
                     var fn = new ObjectNodes(JsonNodeFactory.instance).mapProperties(mapping);
                     return node -> fn.apply((ObjectNode) node);
                 }
