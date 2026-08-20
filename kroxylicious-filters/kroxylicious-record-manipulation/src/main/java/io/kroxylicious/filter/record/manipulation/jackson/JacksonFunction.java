@@ -49,7 +49,14 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
         return buildMask(maskTree, new Random());
     }
 
-    private static JacksonFunction buildMask(MaskConfig maskTree, Random random) {
+    /**
+     * Builds a mask function from a {@link MaskConfig} tree, drawing all randomness (random/choose values,
+     * encryption IVs) from the given {@code random} instance, threaded through every recursive call.
+     * @param maskTree the mask config tree
+     * @param random the source of randomness for this mask tree and all its nested masks
+     * @return a function transforming an input {@link JsonNode} according to {@code maskTree}
+     */
+    static JacksonFunction buildMask(MaskConfig maskTree, Random random) {
         byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
         switch (maskTree.type()) {
