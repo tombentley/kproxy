@@ -11,7 +11,6 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-import org.apache.kafka.common.utils.ByteBufferInputStream;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 import com.fasterxml.jackson.databind.JsonNode;
