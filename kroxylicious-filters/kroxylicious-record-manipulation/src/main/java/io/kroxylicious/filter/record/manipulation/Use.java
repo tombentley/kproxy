@@ -9,6 +9,8 @@ package io.kroxylicious.filter.record.manipulation;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -26,8 +28,14 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.leangen.geantyref.GenericTypeReflector;
 import io.leangen.geantyref.TypeFactory;
 
-import io.kroxylicious.filter.record.manipulation.common.Ints;
+import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ConstantIntSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ConstantStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.Functional;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
+import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Strings;
 import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.ArrayNodes;
@@ -54,6 +62,44 @@ public class Use {
 
         var dataTree = MAPPER.readTree(data);
 
+        /*
+        TODO what is `type`? If it were really JSON Schema's `type` then we should be able to write this:
+
+        properties:
+          creditCardNumber:
+            type: [integer, string]
+            value: 0000000000000000
+
+        What would this mean?
+
+        Or is `type` really a guard on the node type. In that case we should be able to write
+
+        properties:
+          creditCardNumber:
+            - type: integer
+              value: 0000000000000000
+            - type: string
+              value: 0000 0000 0000 0000
+
+        Which if more flexible and enumerates the cases.
+
+        Or we reify the type into the `value` property name (i.e. all masks fan out by the json types):
+        properties:
+          creditCardNumber:
+            type: [integer, string]
+            integerValue: 0000000000000000
+            stringValue: 0000 0000 0000 0000
+
+        But we only use type when constructing the mask Function. That's good, in the sense that once we've constructed
+        a mask function we can be reasonably sure that it will result in something that's structurally correct.
+        Indeed, it seems to be more or less necessary for _generation_ (well, I suppose we could infer the allowed types
+        from the keywords)
+
+        But the alternative would be to figure it out at application-time.
+        If we see an `object` node then we apply the relevant masks for objects
+        If we see an `array` node then honour `items` etc.
+        But what about masks like choose -- should we filter those for the runtime type?
+        */
         var maskContent = """
         type: object
         properties:
@@ -119,23 +165,24 @@ public class Use {
 
     }
 
-    static <R, T> Function<T, R> toFn(Supplier<R> s) {
-        return (T t) -> s.get();
-    }
-
     private static Supplier<? extends JsonNode> buildGenerator(MaskConfig maskTree) {
         byte[] key = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6};
         // TODO Key Mgmt
         switch (maskTree.type()) {
+            // TODO "null", "boolean", "number"
             case "string" -> {
                 if (maskTree.value() !=  null) {
-                    return Jackson.convertString(new Strings(key).value(maskTree.value().textValue()));
+                    new Strings(key);
+                    return Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue()));
                 }
                 else if (maskTree.random() != null) {
-                    return Jackson.convertString(new Strings(key).random(maskTree.random().minLength(), maskTree.random().maxLength(), maskTree.random().alphabet()));
+                    new Strings(key);
+                    return Jackson.convertString(
+                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
                 }
                 else if (maskTree.choose() != null) {
-                    return Jackson.convertString(new Strings(key).choose(maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet())));
+                    Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
+                    return Jackson.convertString(new ChooseStringSupplier(new Random(), from));
                 }
                 else {
                     return () -> new TextNode("");
@@ -143,13 +190,14 @@ public class Use {
             }
             case "integer" -> {
                 if (maskTree.value() !=  null) {
-                    return Jackson.convertInt(new Ints().value(maskTree.value().intValue()));
+                    return Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue()));
                 }
                 else if (maskTree.random() != null) {
-                    return Jackson.convertInt(new Ints().random(maskTree.random().min(), maskTree.random().max()));
+                    return Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max()));
                 }
                 else if (maskTree.choose() != null) {
-                    return Jackson.convertInt(new Ints().choose(maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet())));
+                    Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
+                    return Jackson.convertInt(new ChooseIntSupplier(new Random(), from));
                 }
                 else {
                     return () -> new IntNode(0);
@@ -184,13 +232,15 @@ public class Use {
         switch (maskTree.type()) {
             case "string" -> {
                 if (maskTree.value() !=  null) {
-                    return toFn(Jackson.convertString(new Strings(key).value(maskTree.value().textValue())));
+                    return Functional.asFunction(Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue())));
                 }
                 else if (maskTree.random() != null) {
-                    return toFn(Jackson.convertString(new Strings(key).random(maskTree.random().minLength(), maskTree.random().maxLength(), maskTree.random().alphabet())));
+                    return Functional.asFunction(Jackson.convertString(
+                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength())));
                 }
                 else if (maskTree.choose() != null) {
-                    return toFn(Jackson.convertString(new Strings(key).choose(maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet()))));
+                    Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
+                    return Functional.asFunction(Jackson.convertString(new ChooseStringSupplier(new Random(), from)));
                 }
                 else if (maskTree.hmac() != null) {
                     return Jackson.convertString(new Strings(key).hmac());
@@ -207,13 +257,14 @@ public class Use {
             }
             case "integer" -> {
                 if (maskTree.value() !=  null) {
-                    return toFn(Jackson.convertInt(new Ints().value(maskTree.value().intValue())));
+                    return Functional.asFunction(Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue())));
                 }
                 else if (maskTree.random() != null) {
-                    return toFn(Jackson.convertInt(new Ints().random(maskTree.random().min(), maskTree.random().max())));
+                    return Functional.asFunction(Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max())));
                 }
                 else if (maskTree.choose() != null) {
-                    return toFn(Jackson.convertInt(new Ints().choose(maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet()))));
+                    Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
+                    return Functional.asFunction(Jackson.convertInt(new ChooseIntSupplier(new Random(), from)));
                 }
                 else {
                     return Function.identity();
