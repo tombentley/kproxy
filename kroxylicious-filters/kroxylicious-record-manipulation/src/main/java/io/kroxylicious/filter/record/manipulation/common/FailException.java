@@ -10,6 +10,10 @@ package io.kroxylicious.filter.record.manipulation.common;
  * A failed assertion
  */
 public class FailException extends RuntimeException {
+    /**
+     * Creates a {@link FailException}.
+     * @param message the failure message
+     */
     public FailException(String message) {
         super(message);
     }

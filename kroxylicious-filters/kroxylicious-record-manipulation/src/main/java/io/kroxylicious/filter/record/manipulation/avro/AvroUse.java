@@ -8,8 +8,18 @@ package io.kroxylicious.filter.record.manipulation.avro;
 
 import org.apache.avro.Schema;
 
+/**
+ * A sketch of what a mask syntax for Avro-encoded records might look like.
+ */
 public class AvroUse {
 
+    private AvroUse() {
+    }
+
+    /**
+     * Runs the demo.
+     * @param a unused
+     */
     public static void main(String[] a) {
         var avroSchemaYaml = """
                 {"namespace": "example.avro",

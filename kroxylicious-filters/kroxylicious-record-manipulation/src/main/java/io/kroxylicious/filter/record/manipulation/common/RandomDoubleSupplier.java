@@ -9,11 +9,20 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.Random;
 import java.util.function.DoubleSupplier;
 
+/**
+ * A supplier that returns a {@code double} drawn at random from a range.
+ */
 public class RandomDoubleSupplier implements DoubleSupplier {
     private final Random prng;
     private final double minInclusive;
     private final double maxExclusive;
 
+    /**
+     * Creates a supplier.
+     * @param prng the source of randomness
+     * @param minInclusive the minimum value (inclusive)
+     * @param maxExclusive the maximum value (exclusive)
+     */
     public RandomDoubleSupplier(Random prng, double minInclusive, double maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
