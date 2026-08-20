@@ -7,6 +7,7 @@
 package io.kroxylicious.filter.record.manipulation;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -75,7 +76,8 @@ public class Use {
                   city: Hogsmead
                 """;
 
-        var dataTree = MAPPER.readTree(data);
+        Function<ByteBuffer, JsonNode> deserializer = new JacksonDeserializer(MAPPER);
+        var dataTree = deserializer.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
 
         /*
          * TODO what is `type`? If it were really JSON Schema's `type` then we should be able to write this:
@@ -158,7 +160,6 @@ public class Use {
         MaskConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), MaskConfig.class);
 
         Function<Record, ByteBuffer> keyExtractor = new KafkaRecordKeyExtractor();
-        Function<ByteBuffer, JsonNode> deserializer = new JacksonDeserializer(MAPPER);
         Function<? super JsonNode, ? extends JsonNode> maskFn = buildMask(maskTree);
         var c = GenericTypeReflector.getExactReturnType(Use.class.getDeclaredMethod("buildMask", MaskConfig.class), Use.class);
         TypeFactory.parameterizedClass(Function.class, JsonNode.class, JsonNode.class);
