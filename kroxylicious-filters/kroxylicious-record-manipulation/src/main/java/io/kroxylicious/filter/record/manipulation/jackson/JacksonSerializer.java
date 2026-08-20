@@ -29,7 +29,9 @@ public class JacksonSerializer implements Function<JsonNode, ByteBuffer> {
         // TODO buffer recycling
         try (var is = new ByteBufferOutputStream(10000)) {
             mapper.writeValue(is, node);
-            return is.buffer();
+            ByteBuffer buffer = is.buffer();
+            buffer.flip();
+            return buffer;
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
