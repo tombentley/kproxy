@@ -49,7 +49,14 @@ public interface JacksonSupplier extends Supplier<JsonNode> {
         return buildGenerator(maskTree, new Random());
     }
 
-    private static JacksonSupplier buildGenerator(MaskConfig maskTree, Random random) {
+    /**
+     * Builds a generator of {@link JsonNode}s from a {@link MaskConfig} tree, drawing all randomness from
+     * the given {@code random} instance, threaded through every recursive call.
+     * @param maskTree the mask config tree
+     * @param random the source of randomness for this mask tree and all its nested masks
+     * @return a supplier generating a new {@link JsonNode} matching the shape described by {@code maskTree}
+     */
+    static JacksonSupplier buildGenerator(MaskConfig maskTree, Random random) {
         // TODO Key Mgmt
         switch (maskTree.type()) {
             // TODO "null", "boolean", "number"
