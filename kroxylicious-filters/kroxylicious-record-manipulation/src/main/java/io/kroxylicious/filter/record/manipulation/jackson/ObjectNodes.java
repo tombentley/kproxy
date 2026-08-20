@@ -52,7 +52,8 @@ public class ObjectNodes {
     }
 
     private record JsonNodePropertiesSupplier(JsonNodeFactory nodeFactory,
-                                              Map<String, Supplier<? extends JsonNode>> map) implements Supplier<ObjectNode> {
+                                              Map<String, Supplier<? extends JsonNode>> map)
+            implements Supplier<ObjectNode> {
         @Override
         public ObjectNode get() {
             var result = nodeFactory.objectNode();

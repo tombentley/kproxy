@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-public record HmacMaskConfig(String keyId) {
-}
+public record HmacMaskConfig(String keyId) {}

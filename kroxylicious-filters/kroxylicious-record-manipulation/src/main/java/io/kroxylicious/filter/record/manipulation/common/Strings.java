@@ -12,7 +12,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Random;
 import java.util.function.Function;
 
 import javax.crypto.BadPaddingException;
@@ -53,7 +52,7 @@ public class Strings {
             try {
                 byte[] iv = new byte[IV_LENGTH];
                 new SecureRandom().nextBytes(iv);
-                //System.out.println("encrypt: " + Arrays.toString(iv));
+                // System.out.println("encrypt: " + Arrays.toString(iv));
                 cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
                 // TODO encode the iv
                 byte[] plaintext = value.getBytes(StandardCharsets.UTF_8);
@@ -63,9 +62,9 @@ public class Strings {
                 if (i != ciphertextSize) {
                     throw new RuntimeException("Invalid");
                 }
-                //System.out.println("encrypt: " + Arrays.toString(output));
+                // System.out.println("encrypt: " + Arrays.toString(output));
                 System.arraycopy(iv, 0, output, ciphertextSize, IV_LENGTH);
-                //System.out.println("encrypt: " + Arrays.toString(output));
+                // System.out.println("encrypt: " + Arrays.toString(output));
                 return Base64.getEncoder().encodeToString(output);
             }
             catch (IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | ShortBufferException e) {
@@ -80,9 +79,9 @@ public class Strings {
                 // TODO read the IV
                 byte[] iv = new byte[IV_LENGTH];
                 byte[] ciphertextAndIv = Base64.getDecoder().decode(value);
-                //System.out.println("decrypt: " + Arrays.toString(ciphertextAndIv));
+                // System.out.println("decrypt: " + Arrays.toString(ciphertextAndIv));
                 System.arraycopy(ciphertextAndIv, ciphertextAndIv.length - IV_LENGTH, iv, 0, IV_LENGTH);
-                //System.out.println("decrypt: " + Arrays.toString(iv));
+                // System.out.println("decrypt: " + Arrays.toString(iv));
 
                 cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
                 return new String(cipher.doFinal(ciphertextAndIv, 0, ciphertextAndIv.length - iv.length), StandardCharsets.UTF_8);

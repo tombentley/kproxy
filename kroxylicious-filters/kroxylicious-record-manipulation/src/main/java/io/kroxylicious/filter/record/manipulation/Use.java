@@ -16,6 +16,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.common.record.Record;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,6 +47,7 @@ import io.kroxylicious.filter.record.manipulation.jackson.ObjectNodes;
 
 public class Use {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Use.class);
     private static final YAMLMapper MAPPER = new YAMLMapper();
 
     public static void main(String[] args) throws JsonProcessingException, NoSuchMethodException {
@@ -63,79 +66,79 @@ public class Use {
         var dataTree = MAPPER.readTree(data);
 
         /*
-        TODO what is `type`? If it were really JSON Schema's `type` then we should be able to write this:
-
-        properties:
-          creditCardNumber:
-            type: [integer, string]
-            value: 0000000000000000
-
-        What would this mean?
-
-        Or is `type` really a guard on the node type. In that case we should be able to write
-
-        properties:
-          creditCardNumber:
-            - type: integer
-              value: 0000000000000000
-            - type: string
-              value: 0000 0000 0000 0000
-
-        Which if more flexible and enumerates the cases.
-
-        Or we reify the type into the `value` property name (i.e. all masks fan out by the json types):
-        properties:
-          creditCardNumber:
-            type: [integer, string]
-            integerValue: 0000000000000000
-            stringValue: 0000 0000 0000 0000
-
-        But we only use type when constructing the mask Function. That's good, in the sense that once we've constructed
-        a mask function we can be reasonably sure that it will result in something that's structurally correct.
-        Indeed, it seems to be more or less necessary for _generation_ (well, I suppose we could infer the allowed types
-        from the keywords)
-
-        But the alternative would be to figure it out at application-time.
-        If we see an `object` node then we apply the relevant masks for objects
-        If we see an `array` node then honour `items` etc.
-        But what about masks like choose -- should we filter those for the runtime type?
-        */
+         * TODO what is `type`? If it were really JSON Schema's `type` then we should be able to write this:
+         *
+         * properties:
+         * creditCardNumber:
+         * type: [integer, string]
+         * value: 0000000000000000
+         *
+         * What would this mean?
+         *
+         * Or is `type` really a guard on the node type. In that case we should be able to write
+         *
+         * properties:
+         * creditCardNumber:
+         * - type: integer
+         * value: 0000000000000000
+         * - type: string
+         * value: 0000 0000 0000 0000
+         *
+         * Which if more flexible and enumerates the cases.
+         *
+         * Or we reify the type into the `value` property name (i.e. all masks fan out by the json types):
+         * properties:
+         * creditCardNumber:
+         * type: [integer, string]
+         * integerValue: 0000000000000000
+         * stringValue: 0000 0000 0000 0000
+         *
+         * But we only use type when constructing the mask Function. That's good, in the sense that once we've constructed
+         * a mask function we can be reasonably sure that it will result in something that's structurally correct.
+         * Indeed, it seems to be more or less necessary for _generation_ (well, I suppose we could infer the allowed types
+         * from the keywords)
+         *
+         * But the alternative would be to figure it out at application-time.
+         * If we see an `object` node then we apply the relevant masks for objects
+         * If we see an `array` node then honour `items` etc.
+         * But what about masks like choose -- should we filter those for the runtime type?
+         */
         var maskContent = """
-        type: object
-        properties:
-          firstName:
-            type: string
-            value: "REDACTED"
-          #surname:
-          #  type: string
-          #  choose:
-          #    - Smith
-          #    - Jones
-          aliases:
-            type: array
-            items:
-              type: string
-              random:
-                minLength: 3
-                maxLength: 15
-                alphabet: abcdef ghijklmnopqrst uvwxyz
-          ageYears:
-            type: integer
-            random:
-              min: 18
-              max: 100
-          address:
-            type: object
-            properties:
-              streetAddress:
-                type: string
-                hmac:
-                  keyId: FOO
-              city:
-                type: string
-                encrypt:
-                  keyId: FOO
-        """;
+                type: object
+                properties:
+                  firstName:
+                    type: string
+                    value: "REDACTED"
+                  #surname:
+                  #  type: string
+                  #  choose:
+                  #    - Smith
+                  #    - Jones
+                  aliases:
+                    type: array
+                    items:
+                      type: string
+                      random:
+                        minLength: 3
+                        maxLength: 15
+                        alphabet: abcdef ghijklmnopqrst uvwxyz
+                  ageYears:
+                    type: integer
+                    random:
+                      min: 18
+                      max: 100
+                  address:
+                    type: object
+                    properties:
+                      streetAddress:
+                        type: string
+                        hmac:
+                          keyId: FOO
+                      city:
+                        type: string
+                        encrypt:
+                          keyId: FOO
+                """;
         // The above assumes that every node has a singular `type`.
         // That's fine so long as things like `random` work with multiple types
         // TODO How do we model deletion of property (or addition if it's not already present)?
@@ -151,27 +154,28 @@ public class Use {
         // TODO serializer that works with Kafka records
 
         var result = maskFn.apply(dataTree);
-        String x = MAPPER.writeValueAsString(result);
-        System.out.println(x);
+        String masked = MAPPER.writeValueAsString(result);
+        LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
 
         Function<? super JsonNode, ? extends JsonNode> unmaskFn = buildMask(unmaskTree);
         var result2 = unmaskFn.apply(result);
-        String y = MAPPER.writeValueAsString(result2);
-        System.out.println(y);
+        String unmasked = MAPPER.writeValueAsString(result2);
+        LOGGER.atInfo().addKeyValue("unmasked", unmasked).log("applied unmask");
 
         Supplier<? extends JsonNode> supplierFn = buildGenerator(maskTree);
         var generatedResult = supplierFn.get();
-        System.out.println(MAPPER.writeValueAsString(generatedResult));
+        String generated = MAPPER.writeValueAsString(generatedResult);
+        LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
 
     }
 
     private static Supplier<? extends JsonNode> buildGenerator(MaskConfig maskTree) {
-        byte[] key = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6};
+        byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
         // TODO Key Mgmt
         switch (maskTree.type()) {
             // TODO "null", "boolean", "number"
             case "string" -> {
-                if (maskTree.value() !=  null) {
+                if (maskTree.value() != null) {
                     new Strings(key);
                     return Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue()));
                 }
@@ -189,7 +193,7 @@ public class Use {
                 }
             }
             case "integer" -> {
-                if (maskTree.value() !=  null) {
+                if (maskTree.value() != null) {
                     return Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue()));
                 }
                 else if (maskTree.random() != null) {
@@ -212,7 +216,7 @@ public class Use {
                 }
             }
             case "object" -> {
-                if (maskTree.properties() !=  null) {
+                if (maskTree.properties() != null) {
                     var mapping = maskTree.properties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> buildGenerator(e.getValue())));
                     return new ObjectNodes(MAPPER.getNodeFactory()).mapProperties2((Map) mapping);
                 }
@@ -227,11 +231,11 @@ public class Use {
     }
 
     private static Function<? super JsonNode, ? extends JsonNode> buildMask(MaskConfig maskTree) {
-        byte[] key = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6};
+        byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
         switch (maskTree.type()) {
             case "string" -> {
-                if (maskTree.value() !=  null) {
+                if (maskTree.value() != null) {
                     return Functional.asFunction(Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue())));
                 }
                 else if (maskTree.random() != null) {
@@ -256,7 +260,7 @@ public class Use {
                 }
             }
             case "integer" -> {
-                if (maskTree.value() !=  null) {
+                if (maskTree.value() != null) {
                     return Functional.asFunction(Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue())));
                 }
                 else if (maskTree.random() != null) {
@@ -279,7 +283,7 @@ public class Use {
                 }
             }
             case "object" -> {
-                if (maskTree.properties() !=  null) {
+                if (maskTree.properties() != null) {
                     var mapping = maskTree.properties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue())));
                     return new ObjectNodes(MAPPER.getNodeFactory()).mapProperties((Map) mapping);
                 }
@@ -291,7 +295,7 @@ public class Use {
                 throw new IllegalArgumentException("Invalid mask type: " + maskTree.type());
             }
         }
-        //throw new IllegalArgumentException("Invalid mask type: " + maskTree);
+        // throw new IllegalArgumentException("Invalid mask type: " + maskTree);
     }
 
     private static class KafkaRecordKeyExtractor implements Function<Record, ByteBuffer> {

@@ -15,6 +15,9 @@ public class RandomDoubleSupplier implements DoubleSupplier {
     private final double maxExclusive;
 
     public RandomDoubleSupplier(Random prng, double minInclusive, double maxExclusive) {
+        if (minInclusive >= maxExclusive) {
+            throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
+        }
         this.prng = prng;
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;

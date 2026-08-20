@@ -11,17 +11,20 @@ import java.util.function.IntSupplier;
 
 public class RandomIntSupplier implements IntSupplier {
     private final Random prng;
-    private final int min;
-    private final int max;
+    private final int minInclusive;
+    private final int maxExclusive;
 
-    public RandomIntSupplier(Random prng, int min, int max) {
+    public RandomIntSupplier(Random prng, int minInclusive, int maxExclusive) {
+        if (minInclusive >= maxExclusive) {
+            throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
+        }
         this.prng = prng;
-        this.min = min;
-        this.max = max;
+        this.minInclusive = minInclusive;
+        this.maxExclusive = maxExclusive;
     }
 
     @Override
     public int getAsInt() {
-        return prng.nextInt(min, max + 1);
+        return prng.nextInt(minInclusive, maxExclusive);
     }
 }
