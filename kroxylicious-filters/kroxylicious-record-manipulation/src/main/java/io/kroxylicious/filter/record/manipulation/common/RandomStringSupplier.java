@@ -30,6 +30,12 @@ public class RandomStringSupplier implements Supplier<String> {
      * @return A random string
      */
     public RandomStringSupplier(Random prng, String alphabet, int minLengthInclusive, int maxLengthExclusive) {
+        if (minLengthInclusive < 0) {
+            throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be >= 0");
+        }
+        if (minLengthInclusive >= maxLengthExclusive) {
+            throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be < maxLengthExclusive (" + maxLengthExclusive + ")");
+        }
         this.prng = prng;
         this.alphabet = alphabet;
         this.minLengthInclusive = minLengthInclusive;

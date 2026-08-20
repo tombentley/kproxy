@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-public record DecryptMaskConfig(String keyId) {
-}
+public record DecryptMaskConfig(String keyId) {}

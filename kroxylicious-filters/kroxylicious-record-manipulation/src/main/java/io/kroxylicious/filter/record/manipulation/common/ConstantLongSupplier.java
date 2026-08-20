@@ -9,9 +9,9 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.function.LongSupplier;
 
 public class ConstantLongSupplier implements LongSupplier {
-    private final int value;
+    private final long value;
 
-    public ConstantLongSupplier(int value) {
+    public ConstantLongSupplier(long value) {
         this.value = value;
     }
 

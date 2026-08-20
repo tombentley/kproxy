@@ -17,7 +17,8 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 public class Jackson {
-    private Jackson() {}
+    private Jackson() {
+    }
 
     public static Supplier<TextNode> convertString(Supplier<String> s) {
         return () -> new TextNode(s.get());

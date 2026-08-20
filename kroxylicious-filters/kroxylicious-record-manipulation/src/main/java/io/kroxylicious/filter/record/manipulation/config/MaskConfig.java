@@ -12,14 +12,14 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record MaskConfig(String type,
-                  Map<String, MaskConfig> properties,
-                  MaskConfig items,
-                  JsonNode value,
-                  List<Object> choose,
-                  RandomMaskConfig random,
-                  HmacMaskConfig hmac,
-                  EncryptMaskConfig encrypt,
-                  DecryptMaskConfig decrypt) {
+                         Map<String, MaskConfig> properties,
+                         MaskConfig items,
+                         JsonNode value,
+                         List<Object> choose,
+                         RandomMaskConfig random,
+                         HmacMaskConfig hmac,
+                         EncryptMaskConfig encrypt,
+                         DecryptMaskConfig decrypt) {
     // TODO some way to represent the identity function
     // TODO some way to fail/throw
 }
