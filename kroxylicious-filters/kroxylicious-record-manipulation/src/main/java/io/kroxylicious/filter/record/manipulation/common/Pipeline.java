@@ -13,8 +13,17 @@ import java.util.function.Function;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
+/**
+ * Validates that a list of functions compose: that the return type of each function is
+ * assignable to the parameter type of the next.
+ */
 public class Pipeline {
 
+    /**
+     * Validates and creates a pipeline.
+     * @param functions the functions to validate, in composition order
+     * @throws RuntimeException if consecutive functions do not compose
+     */
     public Pipeline(List<Function<?, ?>> functions) {
         for (int i = 1; i < functions.size(); i++) {
             Function<?, ?> last = functions.get(i - 1);

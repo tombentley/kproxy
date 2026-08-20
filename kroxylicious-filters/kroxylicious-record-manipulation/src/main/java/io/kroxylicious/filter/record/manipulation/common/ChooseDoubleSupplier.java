@@ -10,10 +10,18 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.DoubleSupplier;
 
+/**
+ * A supplier that returns a {@code double} drawn at random from a fixed set.
+ */
 public class ChooseDoubleSupplier implements DoubleSupplier {
     private final Random prng;
     private final double[] values;
 
+    /**
+     * Creates a supplier.
+     * @param prng the source of randomness
+     * @param from the set of values to choose from
+     */
     public ChooseDoubleSupplier(Random prng, Set<Double> from) {
         this.prng = prng;
         values = from.stream().mapToDouble(i -> i).toArray();

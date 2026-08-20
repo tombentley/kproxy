@@ -8,9 +8,16 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.function.LongSupplier;
 
+/**
+ * A supplier that always returns the same {@code long}.
+ */
 public class ConstantLongSupplier implements LongSupplier {
     private final long value;
 
+    /**
+     * Creates a supplier.
+     * @param value the value to always return
+     */
     public ConstantLongSupplier(long value) {
         this.value = value;
     }

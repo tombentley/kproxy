@@ -6,4 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+/**
+ * Configuration for computing an HMAC of a value with the key identified by {@code keyId}.
+ * @param keyId the identifier of the HMAC key
+ */
 public record HmacMaskConfig(String keyId) {}

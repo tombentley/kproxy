@@ -45,11 +45,23 @@ import io.kroxylicious.filter.record.manipulation.jackson.Jackson;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.ObjectNodes;
 
+/**
+ * A demo of building a JSON mask/generator {@link Function} or {@link Supplier} from a {@link MaskConfig} tree.
+ */
 public class Use {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Use.class);
     private static final YAMLMapper MAPPER = new YAMLMapper();
 
+    private Use() {
+    }
+
+    /**
+     * Runs the demo.
+     * @param args unused
+     * @throws JsonProcessingException if the demo YAML content cannot be parsed
+     * @throws NoSuchMethodException if reflection on {@link #buildMask(MaskConfig)} fails
+     */
     public static void main(String[] args) throws JsonProcessingException, NoSuchMethodException {
         var data = """
                 firstName: Harry
