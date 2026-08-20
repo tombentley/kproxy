@@ -11,12 +11,9 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -30,7 +27,6 @@ import javax.crypto.spec.SecretKeySpec;
 public class Strings {
 
     private final byte[] key;
-    Random prng = new Random();
     Mac mac;
     Cipher cipher;
 
@@ -46,26 +42,6 @@ public class Strings {
         }
     }
 
-    public Supplier<String> value(String value) {
-        return () -> value;
-    }
-
-    public Supplier<String> choose(Set<String> from) {
-        var values = from.toArray(String[]::new);
-        return () -> values[prng.nextInt(0, from.size())];
-    }
-
-    public Supplier<String> random(int minLength, int maxLength, String alphabet) {
-        return () -> {
-            var length = prng.nextInt(minLength, maxLength + 1);
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < length; i++) {
-                sb.append(alphabet.charAt(prng.nextInt(alphabet.length())));
-            }
-            return sb.toString();
-        };
-    }
-
     public Function<String, String> hmac() {
         return value -> Base64.getEncoder().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
     }
@@ -77,7 +53,7 @@ public class Strings {
             try {
                 byte[] iv = new byte[IV_LENGTH];
                 new SecureRandom().nextBytes(iv);
-                System.out.println("encrypt: " + Arrays.toString(iv));
+                //System.out.println("encrypt: " + Arrays.toString(iv));
                 cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
                 // TODO encode the iv
                 byte[] plaintext = value.getBytes(StandardCharsets.UTF_8);
@@ -87,9 +63,9 @@ public class Strings {
                 if (i != ciphertextSize) {
                     throw new RuntimeException("Invalid");
                 }
-                System.out.println("encrypt: " + Arrays.toString(output));
+                //System.out.println("encrypt: " + Arrays.toString(output));
                 System.arraycopy(iv, 0, output, ciphertextSize, IV_LENGTH);
-                System.out.println("encrypt: " + Arrays.toString(output));
+                //System.out.println("encrypt: " + Arrays.toString(output));
                 return Base64.getEncoder().encodeToString(output);
             }
             catch (IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | ShortBufferException e) {
@@ -104,9 +80,9 @@ public class Strings {
                 // TODO read the IV
                 byte[] iv = new byte[IV_LENGTH];
                 byte[] ciphertextAndIv = Base64.getDecoder().decode(value);
-                System.out.println("decrypt: " + Arrays.toString(ciphertextAndIv));
+                //System.out.println("decrypt: " + Arrays.toString(ciphertextAndIv));
                 System.arraycopy(ciphertextAndIv, ciphertextAndIv.length - IV_LENGTH, iv, 0, IV_LENGTH);
-                System.out.println("decrypt: " + Arrays.toString(iv));
+                //System.out.println("decrypt: " + Arrays.toString(iv));
 
                 cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
                 return new String(cipher.doFinal(ciphertextAndIv, 0, ciphertextAndIv.length - iv.length), StandardCharsets.UTF_8);
