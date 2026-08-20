@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-public record RandomMaskConfig(int min, int max, int minLength, int maxLength, String alphabet) {
-}
+public record RandomMaskConfig(int min, int max, int minLength, int maxLength, String alphabet) {}

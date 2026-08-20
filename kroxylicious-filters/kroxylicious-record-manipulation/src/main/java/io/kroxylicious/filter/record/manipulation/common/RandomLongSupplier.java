@@ -11,10 +11,13 @@ import java.util.function.LongSupplier;
 
 public class RandomLongSupplier implements LongSupplier {
     private final Random prng;
-    private final int minInclusive;
-    private final int maxExclusive;
+    private final long minInclusive;
+    private final long maxExclusive;
 
-    public RandomLongSupplier(Random prng, int minInclusive, int maxExclusive) {
+    public RandomLongSupplier(Random prng, long minInclusive, long maxExclusive) {
+        if (minInclusive >= maxExclusive) {
+            throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
+        }
         this.prng = prng;
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;

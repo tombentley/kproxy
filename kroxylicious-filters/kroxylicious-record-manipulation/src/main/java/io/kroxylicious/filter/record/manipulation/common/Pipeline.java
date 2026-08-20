@@ -16,7 +16,7 @@ import io.leangen.geantyref.GenericTypeReflector;
 public class Pipeline {
 
     public Pipeline(List<Function<?, ?>> functions) {
-        for (int i = 1;  i < functions.size(); i++) {
+        for (int i = 1; i < functions.size(); i++) {
             Function<?, ?> last = functions.get(i - 1);
             Function<?, ?> next = functions.get(i);
             Type returnType = functionReturnType(last);

@@ -49,30 +49,30 @@ public class ArrayNodes {
     }
 
     /*
-
-
-    when: // list (OR) of records (AND)
-    - topicName:
-        equals: foo
-      subject:
-        contains:
-          type: User
-          name: Bob
-      clientId:
-        matches: foo.*
-      keySchemaId:
-        equals: 123
-        location: prefix
-    operations:
-      - signatureValidation:
-      - schemaValidation:
-      - manipulation:  // e.g. field encryption because we can encrypt multiple times if needed we can assume encryptions only need one key
-      - manipulation:  // e.g. masking/redaction
-      - encryption:
-      - compression:
-
-      onException (for produce vs for consume) -> DLQ, Reject, replace with empty
-
-
+     *
+     *
+     * when: // list (OR) of records (AND)
+     * - topicName:
+     * equals: foo
+     * subject:
+     * contains:
+     * type: User
+     * name: Bob
+     * clientId:
+     * matches: foo.*
+     * keySchemaId:
+     * equals: 123
+     * location: prefix
+     * operations:
+     * - signatureValidation:
+     * - schemaValidation:
+     * - manipulation: // e.g. field encryption because we can encrypt multiple times if needed we can assume encryptions only need one key
+     * - manipulation: // e.g. masking/redaction
+     * - encryption:
+     * - compression:
+     *
+     * onException (for produce vs for consume) -> DLQ, Reject, replace with empty
+     *
+     *
      */
 }

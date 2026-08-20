@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class JacksonDeserializer implements Function<ByteBuffer, JsonNode> {
 
     private final ObjectMapper mapper;
+
     public JacksonDeserializer(ObjectMapper mapper) {
         this.mapper = mapper;
     }
