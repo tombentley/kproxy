@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.kafka.common.record.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,17 +158,4 @@ public class Use {
 
     }
 
-    private static class KafkaRecordKeyExtractor implements Function<Record, ByteBuffer> {
-        @Override
-        public ByteBuffer apply(Record r) {
-            return r.key();
-        }
-    }
-
-    private static class KafkaRecordValueExtractor implements Function<Record, ByteBuffer> {
-        @Override
-        public ByteBuffer apply(Record r) {
-            return r.value();
-        }
-    }
 }
