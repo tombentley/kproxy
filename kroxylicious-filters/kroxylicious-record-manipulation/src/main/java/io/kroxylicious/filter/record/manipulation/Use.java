@@ -9,12 +9,8 @@ package io.kroxylicious.filter.record.manipulation;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.common.record.Record;
 import org.slf4j.Logger;
@@ -22,29 +18,14 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import io.leangen.geantyref.GenericTypeReflector;
-import io.leangen.geantyref.TypeFactory;
-
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ConstantIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ConstantStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.Functional;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
-import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.Strings;
 import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
-import io.kroxylicious.filter.record.manipulation.jackson.ArrayNodes;
-import io.kroxylicious.filter.record.manipulation.jackson.Jackson;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
-import io.kroxylicious.filter.record.manipulation.jackson.ObjectNodes;
+import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
+import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
+import io.kroxylicious.filter.record.manipulation.jackson.JacksonSupplier;
 
 /**
  * A demo of building a JSON mask/generator {@link Function} or {@link Supplier} from a {@link MaskConfig} tree.
@@ -61,9 +42,8 @@ public class Use {
      * Runs the demo.
      * @param args unused
      * @throws JsonProcessingException if the demo YAML content cannot be parsed
-     * @throws NoSuchMethodException if reflection on {@link #buildMask(MaskConfig)} fails
      */
-    public static void main(String[] args) throws JsonProcessingException, NoSuchMethodException {
+    public static void main(String[] args) throws JsonProcessingException {
         var data = """
                 firstName: Harry
                 surname: Potter
@@ -77,7 +57,6 @@ public class Use {
                 """;
 
         Function<ByteBuffer, JsonNode> deserializer = new JacksonDeserializer(MAPPER);
-        var dataTree = deserializer.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
 
         /*
          * TODO what is `type`? If it were really JSON Schema's `type` then we should be able to write this:
@@ -159,156 +138,25 @@ public class Use {
         MaskConfig maskTree = MAPPER.readValue(maskContent, MaskConfig.class);
         MaskConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), MaskConfig.class);
 
-        Function<Record, ByteBuffer> keyExtractor = new KafkaRecordKeyExtractor();
-        Function<? super JsonNode, ? extends JsonNode> maskFn = buildMask(maskTree);
-        var c = GenericTypeReflector.getExactReturnType(Use.class.getDeclaredMethod("buildMask", MaskConfig.class), Use.class);
-        TypeFactory.parameterizedClass(Function.class, JsonNode.class, JsonNode.class);
-        new Pipeline(List.of(keyExtractor, deserializer));
-        // TODO serializer that works with Kafka records
+        Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
 
-        var result = maskFn.apply(dataTree);
-        String masked = MAPPER.writeValueAsString(result);
+        JacksonFunction maskFn = JacksonFunction.buildMask(maskTree);
+        Pipeline maskPipeline = new Pipeline(List.of(deserializer, maskFn, serializer));
+        ByteBuffer result = maskPipeline.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
+        String masked = StandardCharsets.UTF_8.decode(result.duplicate()).toString();
         LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
 
-        Function<? super JsonNode, ? extends JsonNode> unmaskFn = buildMask(unmaskTree);
-        var result2 = unmaskFn.apply(result);
-        String unmasked = MAPPER.writeValueAsString(result2);
+        JacksonFunction unmaskFn = JacksonFunction.buildMask(unmaskTree);
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, unmaskFn, serializer));
+        ByteBuffer result2 = unmaskPipeline.apply(result);
+        String unmasked = StandardCharsets.UTF_8.decode(result2.duplicate()).toString();
         LOGGER.atInfo().addKeyValue("unmasked", unmasked).log("applied unmask");
 
-        Supplier<? extends JsonNode> supplierFn = buildGenerator(maskTree);
+        JacksonSupplier supplierFn = JacksonSupplier.buildGenerator(maskTree);
         var generatedResult = supplierFn.get();
         String generated = MAPPER.writeValueAsString(generatedResult);
         LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
 
-    }
-
-    private static Supplier<? extends JsonNode> buildGenerator(MaskConfig maskTree) {
-        byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
-        // TODO Key Mgmt
-        switch (maskTree.type()) {
-            // TODO "null", "boolean", "number"
-            case "string" -> {
-                if (maskTree.value() != null) {
-                    new Strings(key);
-                    return Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue()));
-                }
-                else if (maskTree.random() != null) {
-                    new Strings(key);
-                    return Jackson.convertString(
-                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
-                }
-                else if (maskTree.choose() != null) {
-                    Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-                    return Jackson.convertString(new ChooseStringSupplier(new Random(), from));
-                }
-                else {
-                    return () -> new TextNode("");
-                }
-            }
-            case "integer" -> {
-                if (maskTree.value() != null) {
-                    return Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue()));
-                }
-                else if (maskTree.random() != null) {
-                    return Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max()));
-                }
-                else if (maskTree.choose() != null) {
-                    Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-                    return Jackson.convertInt(new ChooseIntSupplier(new Random(), from));
-                }
-                else {
-                    return () -> new IntNode(0);
-                }
-            }
-            case "array" -> {
-                if (maskTree.items() != null) {
-                    return new ArrayNodes(MAPPER.getNodeFactory()).items2(buildGenerator(maskTree.items()));
-                }
-                else {
-                    return () -> new ArrayNode(null);
-                }
-            }
-            case "object" -> {
-                if (maskTree.properties() != null) {
-                    var mapping = maskTree.properties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> buildGenerator(e.getValue())));
-                    return new ObjectNodes(MAPPER.getNodeFactory()).mapProperties2((Map) mapping);
-                }
-                else {
-                    return () -> new ObjectNode(null);
-                }
-            }
-            default -> {
-                throw new IllegalArgumentException("Invalid mask type: " + maskTree.type());
-            }
-        }
-    }
-
-    private static Function<? super JsonNode, ? extends JsonNode> buildMask(MaskConfig maskTree) {
-        byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
-
-        switch (maskTree.type()) {
-            case "string" -> {
-                if (maskTree.value() != null) {
-                    return Functional.asFunction(Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue())));
-                }
-                else if (maskTree.random() != null) {
-                    return Functional.asFunction(Jackson.convertString(
-                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength())));
-                }
-                else if (maskTree.choose() != null) {
-                    Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-                    return Functional.asFunction(Jackson.convertString(new ChooseStringSupplier(new Random(), from)));
-                }
-                else if (maskTree.hmac() != null) {
-                    return Jackson.convertString(new Strings(key).hmac());
-                }
-                else if (maskTree.encrypt() != null) {
-                    return Jackson.convertString(new Strings(key).encrypt());
-                }
-                else if (maskTree.decrypt() != null) {
-                    return Jackson.convertString(new Strings(key).decrypt());
-                }
-                else {
-                    return Function.identity();
-                }
-            }
-            case "integer" -> {
-                if (maskTree.value() != null) {
-                    return Functional.asFunction(Jackson.convertInt(new ConstantIntSupplier(maskTree.value().intValue())));
-                }
-                else if (maskTree.random() != null) {
-                    return Functional.asFunction(Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max())));
-                }
-                else if (maskTree.choose() != null) {
-                    Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-                    return Functional.asFunction(Jackson.convertInt(new ChooseIntSupplier(new Random(), from)));
-                }
-                else {
-                    return Function.identity();
-                }
-            }
-            case "array" -> {
-                if (maskTree.items() != null) {
-                    return new ArrayNodes(MAPPER.getNodeFactory()).items((Function) buildMask(maskTree.items()));
-                }
-                else {
-                    return Function.identity();
-                }
-            }
-            case "object" -> {
-                if (maskTree.properties() != null) {
-                    var mapping = maskTree.properties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue())));
-                    return new ObjectNodes(MAPPER.getNodeFactory()).mapProperties((Map) mapping);
-                }
-                else {
-                    return Function.identity();
-                }
-            }
-            default -> {
-                throw new IllegalArgumentException("Invalid mask type: " + maskTree.type());
-            }
-        }
-        // throw new IllegalArgumentException("Invalid mask type: " + maskTree);
     }
 
     private static class KafkaRecordKeyExtractor implements Function<Record, ByteBuffer> {
