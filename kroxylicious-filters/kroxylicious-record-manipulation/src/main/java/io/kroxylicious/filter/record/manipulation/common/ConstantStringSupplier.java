@@ -8,9 +8,16 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.function.Supplier;
 
+/**
+ * A supplier that always returns the same {@link String}.
+ */
 public class ConstantStringSupplier implements Supplier<String> {
     private final String value;
 
+    /**
+     * Creates a supplier.
+     * @param value the value to always return
+     */
     public ConstantStringSupplier(String value) {
         this.value = value;
     }

@@ -6,10 +6,17 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+/**
+ * A {@link Runnable} that always throws a {@link FailException} with a fixed message.
+ */
 public class Fail implements Runnable {
 
     private final String message;
 
+    /**
+     * Creates a runnable.
+     * @param message the message of the {@link FailException} thrown by {@link #run()}
+     */
     public Fail(String message) {
         this.message = message;
     }

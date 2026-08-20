@@ -11,6 +11,19 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * A JSON-Schema-like description of how a JSON value should be masked or generated,
+ * recursively describing nested {@code properties} and array {@code items}.
+ * @param type the JSON type this mask applies to, e.g. {@code object}, {@code array}, {@code string}, {@code integer}
+ * @param properties for {@code type: object}, the mask for each named property
+ * @param items for {@code type: array}, the mask applied to each element
+ * @param value a fixed replacement/generated value
+ * @param choose a set of values to choose a replacement/generated value from
+ * @param random configuration for generating a random replacement/generated value
+ * @param hmac configuration for replacing the value with its HMAC
+ * @param encrypt configuration for replacing the value with its ciphertext
+ * @param decrypt configuration for replacing the value with its plaintext
+ */
 public record MaskConfig(String type,
                          Map<String, MaskConfig> properties,
                          MaskConfig items,

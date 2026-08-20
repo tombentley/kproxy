@@ -15,10 +15,17 @@ import org.apache.kafka.common.utils.ByteBufferInputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link JsonNode}.
+ */
 public class JacksonDeserializer implements Function<ByteBuffer, JsonNode> {
 
     private final ObjectMapper mapper;
 
+    /**
+     * Creates a deserializer.
+     * @param mapper the mapper used to parse the buffer's contents
+     */
     public JacksonDeserializer(ObjectMapper mapper) {
         this.mapper = mapper;
     }

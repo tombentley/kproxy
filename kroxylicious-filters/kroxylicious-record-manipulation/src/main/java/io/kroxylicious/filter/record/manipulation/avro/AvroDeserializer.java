@@ -14,7 +14,17 @@ import java.util.function.Function;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 
+/**
+ * Deserializes a {@link ByteBuffer} to Avro {@link GenericData}.
+ */
 public class AvroDeserializer implements Function<ByteBuffer, GenericData> {
+
+    /**
+     * Creates a deserializer.
+     */
+    public AvroDeserializer() {
+    }
+
     @Override
     public GenericData apply(ByteBuffer byteBuffer) {
         GenericDatumReader<GenericData> datumReader = new GenericDatumReader<>();

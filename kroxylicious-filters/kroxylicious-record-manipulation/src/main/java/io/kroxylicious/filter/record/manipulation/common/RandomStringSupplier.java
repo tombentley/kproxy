@@ -24,10 +24,10 @@ public class RandomStringSupplier implements Supplier<String> {
      * A provider of strings of a random length
      * between {@code minLengthInclusive} and {@code maxLengthExclusive} composed of
      * codepoints taken at random from the given {@code alphabet}
+     * @param prng The source of randomness
+     * @param alphabet The codepoints to pick from
      * @param minLengthInclusive The minimum length of the string (inclusive)
      * @param maxLengthExclusive The maximum length of the string (exclusive)
-     * @param alphabet The codepoints to pick from
-     * @return A random string
      */
     public RandomStringSupplier(Random prng, String alphabet, int minLengthInclusive, int maxLengthExclusive) {
         if (minLengthInclusive < 0) {

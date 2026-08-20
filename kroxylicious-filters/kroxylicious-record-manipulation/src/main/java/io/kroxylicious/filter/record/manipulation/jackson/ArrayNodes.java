@@ -25,10 +25,19 @@ public class ArrayNodes {
 
     private final JsonNodeFactory nodeFactory;
 
+    /**
+     * Creates an instance.
+     * @param nodeFactory the factory used to build result nodes
+     */
     public ArrayNodes(JsonNodeFactory nodeFactory) {
         this.nodeFactory = nodeFactory;
     }
 
+    /**
+     * Maps the elements of an array.
+     * @param itemsFn the function applied to each element of the array
+     * @return a function mapping an {@link ArrayNode} to a new array with {@code itemsFn} applied to each element
+     */
     public Function<ArrayNode, JsonNode> items(Function<? super JsonNode, ? extends JsonNode> itemsFn) {
         return arrayNode -> {
             ArrayNode result = arrayNode.arrayNode(arrayNode.size());
@@ -37,6 +46,11 @@ public class ArrayNodes {
         };
     }
 
+    /**
+     * Generates an array of elements.
+     * @param itemsFn the supplier invoked to generate each element
+     * @return a supplier generating a new array populated by repeated calls to {@code itemsFn}
+     */
     public Supplier<JsonNode> items2(Supplier<? extends JsonNode> itemsFn) {
         return () -> {
             int length = 2; // TODO a random length
