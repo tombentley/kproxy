@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Random;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -26,7 +27,7 @@ class StringsTest {
     @Test
     void hmacMatchesIndependentlyComputedHmacSha256() throws Exception {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
         Mac oracle = Mac.getInstance("HmacSHA256");
         oracle.init(new SecretKeySpec(KEY, "HmacSHA256"));
         String expected = Base64.getEncoder().encodeToString(oracle.doFinal("hello".getBytes(StandardCharsets.UTF_8)));
@@ -41,7 +42,7 @@ class StringsTest {
     @Test
     void hmacIsDeterministicForTheSameInput() {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
 
         // When
         String first = strings.hmac().apply("hello");
@@ -54,7 +55,7 @@ class StringsTest {
     @Test
     void hmacDiffersForDifferentInput() {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
 
         // When
         String helloHmac = strings.hmac().apply("hello");
@@ -68,7 +69,7 @@ class StringsTest {
     @ValueSource(strings = { "", "hello world", "unicode: héllo wörld 日本語" })
     void decryptReversesEncrypt(String plaintext) {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
 
         // When
         String ciphertext = strings.encrypt().apply(plaintext);
@@ -81,7 +82,7 @@ class StringsTest {
     @Test
     void encryptingTheSamePlaintextTwiceProducesDifferentCiphertext() {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
 
         // When
         String first = strings.encrypt().apply("hello");
@@ -94,7 +95,7 @@ class StringsTest {
     @Test
     void decryptingATamperedCiphertextFails() {
         // Given
-        Strings strings = new Strings(KEY);
+        Strings strings = new Strings(KEY, new Random());
         String ciphertext = strings.encrypt().apply("hello");
         byte[] tampered = Base64.getDecoder().decode(ciphertext);
         tampered[0] ^= 0xFF;

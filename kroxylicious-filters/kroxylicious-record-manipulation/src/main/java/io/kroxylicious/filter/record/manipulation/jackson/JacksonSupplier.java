@@ -25,8 +25,9 @@ import io.kroxylicious.filter.record.manipulation.common.ConstantIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.ConstantStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.Strings;
 import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A generator of {@link JsonNode}s, built from a {@link MaskConfig} tree.
@@ -42,26 +43,29 @@ public interface JacksonSupplier extends Supplier<JsonNode> {
      * @param maskTree the mask config tree
      * @return a supplier generating a new {@link JsonNode} matching the shape described by {@code maskTree}
      */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately not SecureRandom: we want control over "
+            + "the seed (e.g. derived from topic/partition/offset) so masking can eventually have repeatable-read semantics on the Fetch path")
     static JacksonSupplier buildGenerator(MaskConfig maskTree) {
-        byte[] key = new byte[]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+        return buildGenerator(maskTree, new Random());
+    }
+
+    private static JacksonSupplier buildGenerator(MaskConfig maskTree, Random random) {
         // TODO Key Mgmt
         switch (maskTree.type()) {
             // TODO "null", "boolean", "number"
             case "string" -> {
                 if (maskTree.value() != null) {
-                    new Strings(key);
                     var supplier = Jackson.convertString(new ConstantStringSupplier(maskTree.value().textValue()));
                     return supplier::get;
                 }
                 else if (maskTree.random() != null) {
-                    new Strings(key);
                     var supplier = Jackson.convertString(
-                            new RandomStringSupplier(new Random(), maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
+                            new RandomStringSupplier(random, maskTree.random().alphabet(), maskTree.random().minLength(), maskTree.random().maxLength()));
                     return supplier::get;
                 }
                 else if (maskTree.choose() != null) {
                     Set<String> from = maskTree.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-                    var supplier = Jackson.convertString(new ChooseStringSupplier(new Random(), from));
+                    var supplier = Jackson.convertString(new ChooseStringSupplier(random, from));
                     return supplier::get;
                 }
                 else {
@@ -74,12 +78,12 @@ public interface JacksonSupplier extends Supplier<JsonNode> {
                     return supplier::get;
                 }
                 else if (maskTree.random() != null) {
-                    var supplier = Jackson.convertInt(new RandomIntSupplier(new Random(), maskTree.random().min(), maskTree.random().max()));
+                    var supplier = Jackson.convertInt(new RandomIntSupplier(random, maskTree.random().min(), maskTree.random().max()));
                     return supplier::get;
                 }
                 else if (maskTree.choose() != null) {
                     Set<Integer> from = maskTree.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-                    var supplier = Jackson.convertInt(new ChooseIntSupplier(new Random(), from));
+                    var supplier = Jackson.convertInt(new ChooseIntSupplier(random, from));
                     return supplier::get;
                 }
                 else {
@@ -88,7 +92,7 @@ public interface JacksonSupplier extends Supplier<JsonNode> {
             }
             case "array" -> {
                 if (maskTree.items() != null) {
-                    var supplier = new ArrayNodes(JsonNodeFactory.instance).items2(buildGenerator(maskTree.items()));
+                    var supplier = new ArrayNodes(JsonNodeFactory.instance).items2(buildGenerator(maskTree.items(), random));
                     return supplier::get;
                 }
                 else {
@@ -98,7 +102,7 @@ public interface JacksonSupplier extends Supplier<JsonNode> {
             case "object" -> {
                 if (maskTree.properties() != null) {
                     Map<String, JacksonSupplier> mapping = maskTree.properties().entrySet().stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildGenerator(e.getValue())));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildGenerator(e.getValue(), random)));
                     var supplier = new ObjectNodes(JsonNodeFactory.instance).mapProperties2(mapping);
                     return supplier::get;
                 }

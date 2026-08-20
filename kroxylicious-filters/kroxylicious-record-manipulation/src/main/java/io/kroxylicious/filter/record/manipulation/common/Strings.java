@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Random;
 import java.util.function.Function;
 
 import javax.crypto.BadPaddingException;
@@ -23,21 +23,26 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * HMAC and symmetric encrypt/decrypt operations on strings, using a raw key supplied by the caller.
  */
 public class Strings {
 
     private final byte[] key;
+    private final Random random;
     Mac mac;
     Cipher cipher;
 
     /**
      * Creates an instance.
      * @param key the raw key used for both HMAC and AES/GCM operations
+     * @param random the source of randomness used to generate AES/GCM initialization vectors
      */
-    public Strings(byte[] key) {
+    public Strings(byte[] key, Random random) {
         this.key = key;
+        this.random = random;
         try {
             mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(key, "HmacSHA256"));
@@ -62,11 +67,13 @@ public class Strings {
      * Encrypts a value.
      * @return a function encrypting its input with AES/GCM, returning a Base64-encoded ciphertext with the IV appended
      */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately injected rather than SecureRandom, "
+            + "so that masking can eventually be made to have repeatable-read semantics (e.g. seeded from topic/partition/offset)")
     public Function<String, String> encrypt() {
         return value -> {
             try {
                 byte[] iv = new byte[IV_LENGTH];
-                new SecureRandom().nextBytes(iv);
+                random.nextBytes(iv);
                 // System.out.println("encrypt: " + Arrays.toString(iv));
                 cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
                 // TODO encode the iv
