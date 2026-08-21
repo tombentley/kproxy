@@ -11,8 +11,6 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Random;
-import java.util.function.Function;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -25,41 +23,30 @@ import javax.crypto.spec.SecretKeySpec;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Encrypts a string with AES/GCM, using a raw key supplied by the caller, returning a
- * Base64-encoded ciphertext with the IV appended.
+ * Encrypts a string with AES/GCM, using a raw key drawn from the invocation's {@link Context}, returning a
+ * Base64-encoded ciphertext with the IV appended. A fresh {@link Cipher} is created per invocation - the key
+ * isn't known until then, and a shared, cached instance would not be safe to reuse across concurrent
+ * invocations regardless.
  */
-public class EncryptStringFunction implements Function<String, String> {
+public class EncryptStringFunction implements StringOp {
 
     private static final int IV_LENGTH = 12;
 
-    private final byte[] key;
-    private final Random random;
-    private final Cipher cipher;
-
     /**
      * Creates an instance.
-     * @param key the raw key used for the AES/GCM operation
-     * @param random the source of randomness used to generate AES/GCM initialization vectors
      */
-    public EncryptStringFunction(byte[] key, Random random) {
-        this.key = key;
-        this.random = random;
-        try {
-            cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        }
-        catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            throw new RuntimeException(e);
-        }
+    public EncryptStringFunction() {
     }
 
     @Override
     @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately injected rather than SecureRandom, "
             + "so that masking can eventually be made to have repeatable-read semantics (e.g. seeded from topic/partition/offset)")
-    public String apply(String value) {
+    public String apply(String value, Context context) {
         try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             byte[] iv = new byte[IV_LENGTH];
-            random.nextBytes(iv);
-            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(96, iv));
+            context.random().nextBytes(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(context.key(), "AES"), new GCMParameterSpec(96, iv));
             byte[] plaintext = value.getBytes(StandardCharsets.UTF_8);
             int ciphertextSize = cipher.getOutputSize(plaintext.length);
             byte[] output = new byte[ciphertextSize + IV_LENGTH];
@@ -70,7 +57,8 @@ public class EncryptStringFunction implements Function<String, String> {
             System.arraycopy(iv, 0, output, ciphertextSize, IV_LENGTH);
             return Base64.getEncoder().encodeToString(output);
         }
-        catch (IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | ShortBufferException e) {
+        catch (NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | InvalidKeyException
+                | InvalidAlgorithmParameterException | ShortBufferException e) {
             throw new RuntimeException(e);
         }
     }

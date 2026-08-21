@@ -9,30 +9,37 @@ package io.kroxylicious.filter.record.manipulation;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
-import io.kroxylicious.filter.record.manipulation.jackson.JacksonSupplier;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * A demo of building a JSON mask/generator {@link Function} or {@link Supplier} from a {@link SchemaConfig} tree.
+ * A demo of building a JSON mask/generator {@link JacksonFunction} from a {@link SchemaConfig} tree.
  */
+@SuppressFBWarnings(value = "HARD_CODE_KEY", justification = "Use is a main()-based demo, not production wiring - this module has no Filter "
+        + "integration yet (see module README), so there's no real key-management path to source key material from. The literal here is an "
+        + "illustrative placeholder standing in for a Context built from a real key at call sites that do exist.")
 public class Use {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Use.class);
     private static final YAMLMapper MAPPER = new YAMLMapper();
+    private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
     private Use() {
     }
@@ -42,6 +49,9 @@ public class Use {
      * @param args unused
      * @throws JsonProcessingException if the demo YAML content cannot be parsed
      */
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately injected rather than SecureRandom, "
+            + "so that masking can eventually be made to have repeatable-read semantics (e.g. seeded from topic/partition/offset) - "
+            + "see EncryptStringFunction, which carries the same justification for the same reason.")
     public static void main(String[] args) throws JsonProcessingException {
         var data = """
                 firstName: Harry
@@ -144,20 +154,23 @@ public class Use {
 
         Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
 
+        Context maskContext = new Context(new Random(), KEY);
         JacksonFunction maskFn = JacksonFunction.buildMask(maskTree);
-        Pipeline maskPipeline = new Pipeline(List.of(deserializer, maskFn, serializer));
+        Pipeline maskPipeline = new Pipeline(List.of(deserializer, maskFn.bind(maskContext), serializer));
         ByteBuffer result = maskPipeline.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
         String masked = StandardCharsets.UTF_8.decode(result.duplicate()).toString();
         LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
 
+        Context unmaskContext = new Context(new Random(), KEY);
         JacksonFunction unmaskFn = JacksonFunction.buildMask(unmaskTree);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, unmaskFn, serializer));
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, unmaskFn.bind(unmaskContext), serializer));
         ByteBuffer result2 = unmaskPipeline.apply(result);
         String unmasked = StandardCharsets.UTF_8.decode(result2.duplicate()).toString();
         LOGGER.atInfo().addKeyValue("unmasked", unmasked).log("applied unmask");
 
-        JacksonSupplier supplierFn = JacksonSupplier.buildGenerator(maskTree);
-        var generatedResult = supplierFn.get();
+        // Root-level generation is just this same traversal, started from MissingNode instead of a real value.
+        Context generateContext = new Context(new Random(), KEY);
+        JsonNode generatedResult = JacksonFunction.buildMask(maskTree).apply(MissingNode.getInstance(), generateContext);
         String generated = MAPPER.writeValueAsString(generatedResult);
         LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
 

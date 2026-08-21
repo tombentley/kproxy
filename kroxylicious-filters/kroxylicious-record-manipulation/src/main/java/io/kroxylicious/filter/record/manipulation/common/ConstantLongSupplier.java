@@ -6,16 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.LongSupplier;
+import java.util.function.ToLongFunction;
 
 /**
- * A supplier that always returns the same {@code long}.
+ * A function that always returns the same {@code long}, regardless of context.
  */
-public class ConstantLongSupplier implements LongSupplier {
+public class ConstantLongSupplier implements ToLongFunction<Context> {
     private final long value;
 
     /**
-     * Creates a supplier.
+     * Creates an instance.
      * @param value the value to always return
      */
     public ConstantLongSupplier(long value) {
@@ -23,7 +23,7 @@ public class ConstantLongSupplier implements LongSupplier {
     }
 
     @Override
-    public long getAsLong() {
+    public long applyAsLong(Context context) {
         return value;
     }
 }

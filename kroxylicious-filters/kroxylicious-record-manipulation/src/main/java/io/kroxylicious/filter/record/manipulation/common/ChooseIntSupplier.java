@@ -6,30 +6,26 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
 import java.util.Set;
-import java.util.function.IntSupplier;
+import java.util.function.ToIntFunction;
 
 /**
- * A supplier that returns an {@code int} drawn at random from a fixed set.
+ * A function that returns an {@code int} drawn at random from a fixed set.
  */
-public class ChooseIntSupplier implements IntSupplier {
-    private final Random prng;
+public class ChooseIntSupplier implements ToIntFunction<Context> {
     private final int[] values;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseIntSupplier(Random prng, Set<Integer> from) {
-        this.prng = prng;
+    public ChooseIntSupplier(Set<Integer> from) {
         values = from.stream().mapToInt(i -> i).toArray();
     }
 
     @Override
-    public int getAsInt() {
-        int index = prng.nextInt(0, values.length);
+    public int applyAsInt(Context context) {
+        int index = context.random().nextInt(0, values.length);
         return values[index];
     }
 }

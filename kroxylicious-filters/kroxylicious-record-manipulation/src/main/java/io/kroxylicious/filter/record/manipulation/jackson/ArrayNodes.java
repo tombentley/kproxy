@@ -6,12 +6,12 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
+import io.kroxylicious.filter.record.manipulation.common.Context;
 
 /**
  * https://json-schema.org/understanding-json-schema/reference/array
@@ -23,14 +23,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
  */
 public class ArrayNodes {
 
-    private final JsonNodeFactory nodeFactory;
-
-    /**
-     * Creates an instance.
-     * @param nodeFactory the factory used to build result nodes
-     */
-    public ArrayNodes(JsonNodeFactory nodeFactory) {
-        this.nodeFactory = nodeFactory;
+    private ArrayNodes() {
     }
 
     /**
@@ -38,26 +31,10 @@ public class ArrayNodes {
      * @param itemsFn the function applied to each element of the array
      * @return a function mapping an {@link ArrayNode} to a new array with {@code itemsFn} applied to each element
      */
-    public Function<ArrayNode, JsonNode> items(Function<? super JsonNode, ? extends JsonNode> itemsFn) {
-        return arrayNode -> {
+    public static BiFunction<ArrayNode, Context, JsonNode> items(BiFunction<? super JsonNode, Context, ? extends JsonNode> itemsFn) {
+        return (arrayNode, context) -> {
             ArrayNode result = arrayNode.arrayNode(arrayNode.size());
-            arrayNode.valueStream().map(itemsFn).forEach(result::add);
-            return result;
-        };
-    }
-
-    /**
-     * Generates an array of elements.
-     * @param itemsFn the supplier invoked to generate each element
-     * @return a supplier generating a new array populated by repeated calls to {@code itemsFn}
-     */
-    public Supplier<JsonNode> items2(Supplier<? extends JsonNode> itemsFn) {
-        return () -> {
-            int length = 2; // TODO a random length
-            ArrayNode result = nodeFactory.arrayNode(length);
-            for (int i = 0; i < length; i++) {
-                result.add(itemsFn.get());
-            }
+            arrayNode.valueStream().map(node -> itemsFn.apply(node, context)).forEach(result::add);
             return result;
         };
     }

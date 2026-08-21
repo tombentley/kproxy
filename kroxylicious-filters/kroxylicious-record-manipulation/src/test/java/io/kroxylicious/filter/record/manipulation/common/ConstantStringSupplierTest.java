@@ -6,11 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantStringSupplierTest {
+
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -18,8 +22,8 @@ class ConstantStringSupplierTest {
         ConstantStringSupplier supplier = new ConstantStringSupplier("REDACTED");
 
         // When
-        String first = supplier.get();
-        String second = supplier.get();
+        String first = supplier.apply(CONTEXT);
+        String second = supplier.apply(CONTEXT);
 
         // Then
         assertThat(first).isEqualTo("REDACTED");

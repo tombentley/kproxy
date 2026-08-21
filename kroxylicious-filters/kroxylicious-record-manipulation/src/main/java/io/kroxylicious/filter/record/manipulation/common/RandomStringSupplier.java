@@ -7,15 +7,14 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.Random;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * A provider of strings of a random length composed of
  * codepoints taken at random from a given alphabet.
  */
-public class RandomStringSupplier implements Supplier<String> {
+public class RandomStringSupplier implements Function<Context, String> {
 
-    private final Random prng;
     private final String alphabet;
     private final int minLengthInclusive;
     private final int maxLengthExclusive;
@@ -24,26 +23,25 @@ public class RandomStringSupplier implements Supplier<String> {
      * A provider of strings of a random length
      * between {@code minLengthInclusive} and {@code maxLengthExclusive} composed of
      * codepoints taken at random from the given {@code alphabet}
-     * @param prng The source of randomness
      * @param alphabet The codepoints to pick from
      * @param minLengthInclusive The minimum length of the string (inclusive)
      * @param maxLengthExclusive The maximum length of the string (exclusive)
      */
-    public RandomStringSupplier(Random prng, String alphabet, int minLengthInclusive, int maxLengthExclusive) {
+    public RandomStringSupplier(String alphabet, int minLengthInclusive, int maxLengthExclusive) {
         if (minLengthInclusive < 0) {
             throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be >= 0");
         }
         if (minLengthInclusive >= maxLengthExclusive) {
             throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be < maxLengthExclusive (" + maxLengthExclusive + ")");
         }
-        this.prng = prng;
         this.alphabet = alphabet;
         this.minLengthInclusive = minLengthInclusive;
         this.maxLengthExclusive = maxLengthExclusive;
     }
 
     @Override
-    public String get() {
+    public String apply(Context context) {
+        Random prng = context.random();
         var codePoints = alphabet.codePoints().toArray();
         // TODO this should really be using codepoints, not chars
         var length = prng.nextInt(minLengthInclusive, maxLengthExclusive);
