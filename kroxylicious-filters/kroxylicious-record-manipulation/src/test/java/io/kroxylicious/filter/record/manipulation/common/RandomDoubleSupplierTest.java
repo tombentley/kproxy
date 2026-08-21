@@ -17,13 +17,18 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomDoubleSupplierTest {
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void valuesFallWithinRange() {
         // Given
-        RandomDoubleSupplier supplier = new RandomDoubleSupplier(new Random(0), 10.0, 20.0);
+        RandomDoubleSupplier supplier = new RandomDoubleSupplier(10.0, 20.0);
+        Context context = contextWithSeed(0);
 
         // When
-        double[] values = IntStream.range(0, 500).mapToDouble(i -> supplier.getAsDouble()).toArray();
+        double[] values = IntStream.range(0, 500).mapToDouble(i -> supplier.applyAsDouble(context)).toArray();
 
         // Then
         assertThat(DoubleStream.of(values).allMatch(value -> value >= 10.0 && value < 20.0)).isTrue();
@@ -31,20 +36,14 @@ class RandomDoubleSupplierTest {
 
     @Test
     void rejectsMinGreaterThanMax() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomDoubleSupplier(prng, 10.0, 5.0));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomDoubleSupplier(10.0, 5.0));
     }
 
     @Test
     void rejectsMinEqualToMax() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomDoubleSupplier(prng, 5.0, 5.0));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomDoubleSupplier(5.0, 5.0));
     }
 
 }

@@ -16,13 +16,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseStringSupplierTest {
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void singleElementSetAlwaysReturnsThatElement() {
         // Given
-        ChooseStringSupplier supplier = new ChooseStringSupplier(new Random(), Set.of("only"));
+        ChooseStringSupplier supplier = new ChooseStringSupplier(Set.of("only"));
 
         // When
-        String value = supplier.get();
+        String value = supplier.apply(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo("only");
@@ -32,10 +36,11 @@ class ChooseStringSupplierTest {
     void everyDrawIsAMemberOfTheSuppliedSet() {
         // Given
         Set<String> from = Set.of("a", "b", "c");
-        ChooseStringSupplier supplier = new ChooseStringSupplier(new Random(0), from);
+        ChooseStringSupplier supplier = new ChooseStringSupplier(from);
+        Context context = contextWithSeed(0);
 
         // When
-        boolean allMembers = Stream.generate(supplier).limit(200).allMatch(from::contains);
+        boolean allMembers = Stream.generate(() -> supplier.apply(context)).limit(200).allMatch(from::contains);
 
         // Then
         assertThat(allMembers).isTrue();

@@ -6,34 +6,30 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
-import java.util.function.DoubleSupplier;
+import java.util.function.ToDoubleFunction;
 
 /**
- * A supplier that returns a {@code double} drawn at random from a range.
+ * A function that returns a {@code double} drawn at random from a range.
  */
-public class RandomDoubleSupplier implements DoubleSupplier {
-    private final Random prng;
+public class RandomDoubleSupplier implements ToDoubleFunction<Context> {
     private final double minInclusive;
     private final double maxExclusive;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param minInclusive the minimum value (inclusive)
      * @param maxExclusive the maximum value (exclusive)
      */
-    public RandomDoubleSupplier(Random prng, double minInclusive, double maxExclusive) {
+    public RandomDoubleSupplier(double minInclusive, double maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
         }
-        this.prng = prng;
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
     }
 
     @Override
-    public double getAsDouble() {
-        return prng.nextDouble(minInclusive, maxExclusive);
+    public double applyAsDouble(Context context) {
+        return context.random().nextDouble(minInclusive, maxExclusive);
     }
 }

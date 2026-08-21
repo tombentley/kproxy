@@ -6,34 +6,30 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
-import java.util.function.IntSupplier;
+import java.util.function.ToIntFunction;
 
 /**
- * A supplier that returns an {@code int} drawn at random from a range.
+ * A function that returns an {@code int} drawn at random from a range.
  */
-public class RandomIntSupplier implements IntSupplier {
-    private final Random prng;
+public class RandomIntSupplier implements ToIntFunction<Context> {
     private final int minInclusive;
     private final int maxExclusive;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param minInclusive the minimum value (inclusive)
      * @param maxExclusive the maximum value (exclusive)
      */
-    public RandomIntSupplier(Random prng, int minInclusive, int maxExclusive) {
+    public RandomIntSupplier(int minInclusive, int maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
         }
-        this.prng = prng;
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
     }
 
     @Override
-    public int getAsInt() {
-        return prng.nextInt(minInclusive, maxExclusive);
+    public int applyAsInt(Context context) {
+        return context.random().nextInt(minInclusive, maxExclusive);
     }
 }

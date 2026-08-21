@@ -15,13 +15,19 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomStringSupplierTest {
 
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void maxLengthIsExclusive() {
         // Given
-        RandomStringSupplier supplier = new RandomStringSupplier(new Random(), "abc", 3, 4);
+        RandomStringSupplier supplier = new RandomStringSupplier("abc", 3, 4);
 
         // When
-        String value = supplier.get();
+        String value = supplier.apply(CONTEXT);
 
         // Then
         assertThat(value).hasSize(3);
@@ -30,10 +36,10 @@ class RandomStringSupplierTest {
     @Test
     void minLengthIsInclusive() {
         // Given
-        RandomStringSupplier supplier = new RandomStringSupplier(new Random(), "abc", 0, 1);
+        RandomStringSupplier supplier = new RandomStringSupplier("abc", 0, 1);
 
         // When
-        String value = supplier.get();
+        String value = supplier.apply(CONTEXT);
 
         // Then
         assertThat(value).isEmpty();
@@ -42,10 +48,10 @@ class RandomStringSupplierTest {
     @Test
     void everyCharacterIsDrawnFromAlphabet() {
         // Given
-        RandomStringSupplier supplier = new RandomStringSupplier(new Random(0), "xyz", 20, 21);
+        RandomStringSupplier supplier = new RandomStringSupplier("xyz", 20, 21);
 
         // When
-        String value = supplier.get();
+        String value = supplier.apply(contextWithSeed(0));
 
         // Then
         assertThat(value.chars().allMatch(c -> c == 'x' || c == 'y' || c == 'z')).isTrue();
@@ -54,10 +60,10 @@ class RandomStringSupplierTest {
     @Test
     void singleCharacterAlphabetProducesRepeatsOfThatCharacter() {
         // Given
-        RandomStringSupplier supplier = new RandomStringSupplier(new Random(0), "q", 5, 6);
+        RandomStringSupplier supplier = new RandomStringSupplier("q", 5, 6);
 
         // When
-        String value = supplier.get();
+        String value = supplier.apply(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo("qqqqq");
@@ -65,29 +71,20 @@ class RandomStringSupplierTest {
 
     @Test
     void rejectsNegativeMinLength() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier(prng, "abc", -1, 5));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier("abc", -1, 5));
     }
 
     @Test
     void rejectsMinLengthGreaterThanMaxLength() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier(prng, "abc", 5, 3));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier("abc", 5, 3));
     }
 
     @Test
     void rejectsMinLengthEqualToMaxLength() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier(prng, "abc", 5, 5));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomStringSupplier("abc", 5, 5));
     }
 
 }

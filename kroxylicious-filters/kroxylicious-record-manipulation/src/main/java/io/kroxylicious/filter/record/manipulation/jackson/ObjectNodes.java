@@ -9,13 +9,14 @@ package io.kroxylicious.filter.record.manipulation.jackson;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.kroxylicious.filter.record.manipulation.common.Context;
 
 /**
  * TODO patternProperties (invocation order wrt properties)
@@ -37,7 +38,10 @@ public class ObjectNodes {
     }
 
     /**
-     * Maps selected properties of an object, and can also delete or insert properties.
+     * Maps selected properties of an object, and can also delete or insert properties. Serves both masking
+     * (an object genuinely present in the data) and generation (an object node started from
+     * {@link MissingNode#getInstance()} - see {@code JacksonFunction.buildStructural}'s object case) via the
+     * same mechanism.
      * <p>
      * Builds a fresh object (the input is never mutated): each property present in the input is passed
      * through its mapped function if one exists in {@code map} (or carried over unchanged otherwise); each
@@ -56,31 +60,23 @@ public class ObjectNodes {
      * @param map the per-property functions, keyed by property name
      * @return a function building a fresh object per the rules above
      */
-    public Function<ObjectNode, ObjectNode> mapProperties(Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> map) {
+    public BiFunction<ObjectNode, Context, ObjectNode> mapProperties(
+                                                                     Map<String, ? extends BiFunction<? super JsonNode, Context, ? extends JsonNode>> map) {
         return new JsonNodePropertiesFunction(nodeFactory, map);
     }
 
-    /**
-     * Generates an object from a set of per-property suppliers.
-     * @param map the per-property suppliers, keyed by property name
-     * @return a supplier that builds a new object with one property per entry in {@code map}, populated by calling the supplier
-     */
-    public Supplier<ObjectNode> mapProperties2(Map<String, ? extends Supplier<? extends JsonNode>> map) {
-        return new JsonNodePropertiesSupplier(nodeFactory, map);
-    }
-
     private record JsonNodePropertiesFunction(JsonNodeFactory nodeFactory,
-                                              Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> propertyFns)
-            implements Function<ObjectNode, ObjectNode> {
+                                              Map<String, ? extends BiFunction<? super JsonNode, Context, ? extends JsonNode>> propertyFns)
+            implements BiFunction<ObjectNode, Context, ObjectNode> {
 
         @Override
-        public ObjectNode apply(ObjectNode object) {
+        public ObjectNode apply(ObjectNode object, Context context) {
             ObjectNode result = nodeFactory.objectNode();
             Set<String> handled = new HashSet<>();
             for (var property : object.properties()) {
                 handled.add(property.getKey());
                 var mapFn = propertyFns.get(property.getKey());
-                JsonNode mapped = mapFn != null ? mapFn.apply(property.getValue()) : property.getValue();
+                JsonNode mapped = mapFn != null ? mapFn.apply(property.getValue(), context) : property.getValue();
                 if (!mapped.isMissingNode()) {
                     result.set(property.getKey(), mapped);
                 }
@@ -89,24 +85,10 @@ public class ObjectNodes {
                 if (handled.contains(entry.getKey())) {
                     continue;
                 }
-                JsonNode mapped = entry.getValue().apply(MissingNode.getInstance());
+                JsonNode mapped = entry.getValue().apply(MissingNode.getInstance(), context);
                 if (!mapped.isMissingNode()) {
                     result.set(entry.getKey(), mapped);
                 }
-            }
-            return result;
-        }
-    }
-
-    private record JsonNodePropertiesSupplier(JsonNodeFactory nodeFactory,
-                                              Map<String, ? extends Supplier<? extends JsonNode>> map)
-            implements Supplier<ObjectNode> {
-        @Override
-        public ObjectNode get() {
-            var result = nodeFactory.objectNode();
-            for (var property : map.entrySet()) {
-                var mapFn = property.getValue();
-                result.set(property.getKey(), mapFn.get());
             }
             return result;
         }

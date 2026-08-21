@@ -6,30 +6,26 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
 import java.util.Set;
-import java.util.function.LongSupplier;
+import java.util.function.ToLongFunction;
 
 /**
- * A supplier that returns a {@code long} drawn at random from a fixed set.
+ * A function that returns a {@code long} drawn at random from a fixed set.
  */
-public class ChooseLongSupplier implements LongSupplier {
-    private final Random prng;
+public class ChooseLongSupplier implements ToLongFunction<Context> {
     private final long[] values;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseLongSupplier(Random prng, Set<Long> from) {
-        this.prng = prng;
+    public ChooseLongSupplier(Set<Long> from) {
         values = from.stream().mapToLong(i -> i).toArray();
     }
 
     @Override
-    public long getAsLong() {
-        int index = prng.nextInt(0, values.length);
+    public long applyAsLong(Context context) {
+        int index = context.random().nextInt(0, values.length);
         return values[index];
     }
 }
