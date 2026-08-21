@@ -20,14 +20,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
-import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
+import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSupplier;
 
 /**
- * A demo of building a JSON mask/generator {@link Function} or {@link Supplier} from a {@link MaskConfig} tree.
+ * A demo of building a JSON mask/generator {@link Function} or {@link Supplier} from a {@link SchemaConfig} tree.
  */
 public class Use {
 
@@ -100,42 +100,48 @@ public class Use {
                 properties:
                   firstName:
                     type: string
-                    value: "REDACTED"
+                    apply:
+                      - value: "REDACTED"
                   #surname:
                   #  type: string
-                  #  choose:
-                  #    - Smith
-                  #    - Jones
+                  #  apply:
+                  #    - choose:
+                  #        - Smith
+                  #        - Jones
                   aliases:
                     type: array
                     items:
                       type: string
-                      random:
-                        minLength: 3
-                        maxLength: 15
-                        alphabet: abcdef ghijklmnopqrst uvwxyz
+                      apply:
+                        - random:
+                            minLength: 3
+                            maxLength: 15
+                            alphabet: abcdef ghijklmnopqrst uvwxyz
                   ageYears:
                     type: integer
-                    random:
-                      min: 18
-                      max: 100
+                    apply:
+                      - random:
+                          min: 18
+                          max: 100
                   address:
                     type: object
                     properties:
                       streetAddress:
                         type: string
-                        hmac:
-                          keyId: FOO
+                        apply:
+                          - hmac:
+                              keyId: FOO
                       city:
                         type: string
-                        encrypt:
-                          keyId: FOO
+                        apply:
+                          - encrypt:
+                              keyId: FOO
                 """;
         // The above assumes that every node has a singular `type`.
         // That's fine so long as things like `random` work with multiple types
         // TODO How do we model deletion of property (or addition if it's not already present)?
-        MaskConfig maskTree = MAPPER.readValue(maskContent, MaskConfig.class);
-        MaskConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), MaskConfig.class);
+        SchemaConfig maskTree = MAPPER.readValue(maskContent, SchemaConfig.class);
+        SchemaConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), SchemaConfig.class);
 
         Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
 
