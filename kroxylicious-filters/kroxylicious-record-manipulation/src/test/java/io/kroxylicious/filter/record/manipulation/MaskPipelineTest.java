@@ -125,6 +125,44 @@ class MaskPipelineTest {
                   - value: "REDACTED"
             """;
 
+    private static final String DELETE_AND_INSERT_CONTENT = """
+            type: object
+            properties:
+              surname:
+                type: string
+                apply:
+                  - delete: true
+              nickname:
+                type: string
+                apply:
+                  - value: "Wizard"
+            """;
+
+    private static final String INSERT_NESTED_OBJECT_CONTENT = """
+            type: object
+            properties:
+              guardian:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    apply:
+                      - value: "Dumbledore"
+            """;
+
+    private static final String DOES_NOT_INSERT_NESTED_OBJECT_CONTENT = """
+            type: object
+            properties:
+              guardian:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    apply:
+                      - hmac:
+                          keyId: FOO
+            """;
+
     /** A fixed seed, chosen arbitrarily, that pins every "random"/"choose" mask and every encryption IV drawn below. */
     private static final long SEED = 42L;
 
@@ -260,6 +298,43 @@ class MaskPipelineTest {
 
         // Then
         assertThat(masked.get("firstName").asText()).isEqualTo("REDACTED");
+    }
+
+    @Test
+    void applyDeleteRemovesAnExistingPropertyAndApplyValueInsertsAMissingOne() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(DELETE_AND_INSERT_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        assertThat(masked.has("surname")).isFalse();
+        assertThat(masked.get("nickname").asText()).isEqualTo("Wizard");
+    }
+
+    @Test
+    void applyValueInsertsANestedObjectThatIsEntirelyAbsentFromTheData() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(INSERT_NESTED_OBJECT_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        assertThat(masked.get("guardian").get("name").asText()).isEqualTo("Dumbledore");
+    }
+
+    @Test
+    void applyHmacDoesNotInsertANestedObjectThatIsEntirelyAbsentFromTheData() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(DOES_NOT_INSERT_NESTED_OBJECT_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        assertThat(masked.has("guardian")).isFalse();
     }
 
 }
