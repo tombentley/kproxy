@@ -139,7 +139,6 @@ public class Use {
                 """;
         // The above assumes that every node has a singular `type`.
         // That's fine so long as things like `random` work with multiple types
-        // TODO How do we model deletion of property (or addition if it's not already present)?
         SchemaConfig maskTree = MAPPER.readValue(maskContent, SchemaConfig.class);
         SchemaConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), SchemaConfig.class);
 

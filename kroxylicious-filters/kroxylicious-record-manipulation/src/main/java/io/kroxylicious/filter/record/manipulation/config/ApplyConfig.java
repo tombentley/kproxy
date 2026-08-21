@@ -19,13 +19,16 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @param hmac configuration for replacing the value with its HMAC
  * @param encrypt configuration for replacing the value with its ciphertext
  * @param decrypt configuration for replacing the value with its plaintext
+ * @param delete when {@code true}, removes this property/element instead of replacing it. Type-agnostic,
+ *               unlike every other operation here.
  */
 public record ApplyConfig(JsonNode value,
                           List<Object> choose,
                           RandomMaskConfig random,
                           HmacMaskConfig hmac,
                           EncryptMaskConfig encrypt,
-                          DecryptMaskConfig decrypt) {
+                          DecryptMaskConfig decrypt,
+                          Boolean delete) {
     // TODO some way to represent the identity function
     // TODO some way to fail/throw
 }
