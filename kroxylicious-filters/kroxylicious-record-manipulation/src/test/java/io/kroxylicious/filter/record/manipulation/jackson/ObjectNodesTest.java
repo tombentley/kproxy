@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
@@ -43,32 +44,59 @@ class ObjectNodesTest {
     }
 
     @Test
-    void mapPropertiesMutatesAndReturnsTheSameObjectInstance() {
+    void mapPropertiesDoesNotMutateTheInputObject() {
         // Given
         ObjectNode input = JsonNodeFactory.instance.objectNode();
         input.set("a", new IntNode(1));
         Function<JsonNode, JsonNode> incrementFn = node -> new IntNode(node.asInt() + 1);
 
         // When
-        ObjectNode result = objectNodes.mapProperties(Map.of("a", incrementFn)).apply(input);
+        var unused = objectNodes.mapProperties(Map.of("a", incrementFn)).apply(input);
 
         // Then
-        assertThat(result).isSameAs(input);
+        assertThat(input.get("a")).isEqualTo(new IntNode(1));
     }
 
     @Test
-    void mapPropertiesIgnoresMapEntriesForPropertiesNotPresentOnTheObject() {
+    void mapPropertiesLeavesAPropertyAbsentWhenItsFunctionDeclinesToInsert() {
         // Given
         ObjectNode input = JsonNodeFactory.instance.objectNode();
         input.set("a", new IntNode(1));
-        Function<JsonNode, JsonNode> incrementFn = node -> new IntNode(node.asInt() + 1);
+        Function<JsonNode, JsonNode> incrementUnlessMissing = node -> node.isMissingNode() ? node : new IntNode(node.asInt() + 1);
 
         // When
-        ObjectNode result = objectNodes.mapProperties(Map.of("a", incrementFn, "z", incrementFn)).apply(input);
+        ObjectNode result = objectNodes.mapProperties(Map.of("a", incrementUnlessMissing, "z", incrementUnlessMissing)).apply(input);
 
         // Then
         assertThat(result.properties()).hasSize(1);
         assertThat(result.get("a")).isEqualTo(new IntNode(2));
+    }
+
+    @Test
+    void mapPropertiesInsertsAPropertyDeclaredInTheMapButAbsentFromTheObject() {
+        // Given
+        ObjectNode input = JsonNodeFactory.instance.objectNode();
+        Function<JsonNode, JsonNode> insertFn = ignored -> new IntNode(42);
+
+        // When
+        ObjectNode result = objectNodes.mapProperties(Map.of("z", insertFn)).apply(input);
+
+        // Then
+        assertThat(result.get("z")).isEqualTo(new IntNode(42));
+    }
+
+    @Test
+    void mapPropertiesRemovesAPropertyWhenItsFunctionReturnsMissingNode() {
+        // Given
+        ObjectNode input = JsonNodeFactory.instance.objectNode();
+        input.set("a", new IntNode(1));
+        Function<JsonNode, JsonNode> deleteFn = ignored -> MissingNode.getInstance();
+
+        // When
+        ObjectNode result = objectNodes.mapProperties(Map.of("a", deleteFn)).apply(input);
+
+        // Then
+        assertThat(result.properties()).isEmpty();
     }
 
     @Test
