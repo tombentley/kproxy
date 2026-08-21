@@ -6,11 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantIntSupplierTest {
+
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -18,8 +22,8 @@ class ConstantIntSupplierTest {
         ConstantIntSupplier supplier = new ConstantIntSupplier(42);
 
         // When
-        int first = supplier.getAsInt();
-        int second = supplier.getAsInt();
+        int first = supplier.applyAsInt(CONTEXT);
+        int second = supplier.applyAsInt(CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(42);

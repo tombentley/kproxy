@@ -6,8 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Random;
+import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,21 +16,23 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.kroxylicious.filter.record.manipulation.common.Context;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayNodesTest {
 
-    private final ArrayNodes arrayNodes = new ArrayNodes(JsonNodeFactory.instance);
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
 
     @Test
     void itemsAppliesTheFunctionToEachElementInOrder() {
         // Given
         ArrayNode input = JsonNodeFactory.instance.arrayNode();
         input.add(1).add(2).add(3);
-        Function<JsonNode, JsonNode> incrementFn = node -> new IntNode(node.asInt() + 1);
+        BiFunction<JsonNode, Context, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
 
         // When
-        JsonNode result = arrayNodes.items(incrementFn).apply(input);
+        JsonNode result = ArrayNodes.items(incrementFn).apply(input, CONTEXT);
 
         // Then
         assertThat(result).isEqualTo(JsonNodeFactory.instance.arrayNode().add(2).add(3).add(4));
@@ -41,10 +43,10 @@ class ArrayNodesTest {
         // Given
         ArrayNode input = JsonNodeFactory.instance.arrayNode();
         input.add(1).add(2).add(3);
-        Function<JsonNode, JsonNode> incrementFn = node -> new IntNode(node.asInt() + 1);
+        BiFunction<JsonNode, Context, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
 
         // When
-        var unused = arrayNodes.items(incrementFn).apply(input);
+        var unused = ArrayNodes.items(incrementFn).apply(input, CONTEXT);
 
         // Then
         assertThat(input).isEqualTo(JsonNodeFactory.instance.arrayNode().add(1).add(2).add(3));
@@ -54,25 +56,13 @@ class ArrayNodesTest {
     void itemsOnAnEmptyArrayReturnsAnEmptyArray() {
         // Given
         ArrayNode input = JsonNodeFactory.instance.arrayNode();
-        Function<JsonNode, JsonNode> incrementFn = node -> new IntNode(node.asInt() + 1);
+        BiFunction<JsonNode, Context, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
 
         // When
-        JsonNode result = arrayNodes.items(incrementFn).apply(input);
+        JsonNode result = ArrayNodes.items(incrementFn).apply(input, CONTEXT);
 
         // Then
         assertThat(result).isEqualTo(JsonNodeFactory.instance.arrayNode());
-    }
-
-    @Test
-    void items2GeneratesAnArrayPopulatedFromTheSupplier() {
-        // Given
-        Supplier<JsonNode> constantSupplier = () -> new IntNode(7);
-
-        // When
-        JsonNode result = arrayNodes.items2(constantSupplier).get();
-
-        // Then
-        assertThat(result).isEqualTo(JsonNodeFactory.instance.arrayNode().add(7).add(7));
     }
 
 }

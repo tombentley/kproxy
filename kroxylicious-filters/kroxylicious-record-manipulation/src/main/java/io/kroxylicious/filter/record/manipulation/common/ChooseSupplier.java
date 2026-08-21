@@ -6,32 +6,28 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
- * A supplier that returns a value drawn at random from a fixed set.
+ * A function that returns a value drawn at random from a fixed set.
  *
  * @param <T> the type of the values
  */
-public class ChooseSupplier<T> implements Supplier<T> {
-    private final Random prng;
+public class ChooseSupplier<T> implements Function<Context, T> {
     private final Object[] values;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseSupplier(Random prng, Set<T> from) {
-        this.prng = prng;
+    public ChooseSupplier(Set<T> from) {
         values = from.toArray(Object[]::new);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public T get() {
-        return (T) values[prng.nextInt(0, values.length)];
+    public T apply(Context context) {
+        return (T) values[context.random().nextInt(0, values.length)];
     }
 }

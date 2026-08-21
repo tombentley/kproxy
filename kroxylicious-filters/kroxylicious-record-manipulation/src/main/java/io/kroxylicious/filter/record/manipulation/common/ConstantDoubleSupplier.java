@@ -6,16 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.DoubleSupplier;
+import java.util.function.ToDoubleFunction;
 
 /**
- * A supplier that always returns the same {@code double}.
+ * A function that always returns the same {@code double}, regardless of context.
  */
-public class ConstantDoubleSupplier implements DoubleSupplier {
+public class ConstantDoubleSupplier implements ToDoubleFunction<Context> {
     private final double value;
 
     /**
-     * Creates a supplier.
+     * Creates an instance.
      * @param value the value to always return
      */
     public ConstantDoubleSupplier(double value) {
@@ -23,7 +23,7 @@ public class ConstantDoubleSupplier implements DoubleSupplier {
     }
 
     @Override
-    public double getAsDouble() {
+    public double applyAsDouble(Context context) {
         return value;
     }
 }

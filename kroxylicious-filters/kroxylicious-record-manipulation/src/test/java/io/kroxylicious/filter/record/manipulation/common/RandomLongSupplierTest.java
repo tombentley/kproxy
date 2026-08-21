@@ -16,13 +16,17 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomLongSupplierTest {
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void maxIsExclusive() {
         // Given
-        RandomLongSupplier supplier = new RandomLongSupplier(new Random(), 5, 6);
+        RandomLongSupplier supplier = new RandomLongSupplier(5, 6);
 
         // When
-        long value = supplier.getAsLong();
+        long value = supplier.applyAsLong(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(5L);
@@ -31,10 +35,11 @@ class RandomLongSupplierTest {
     @Test
     void valuesFallWithinRange() {
         // Given
-        RandomLongSupplier supplier = new RandomLongSupplier(new Random(0), 10, 20);
+        RandomLongSupplier supplier = new RandomLongSupplier(10, 20);
+        Context context = contextWithSeed(0);
 
         // When
-        long[] values = LongStream.range(0, 500).map(i -> supplier.getAsLong()).toArray();
+        long[] values = LongStream.range(0, 500).map(i -> supplier.applyAsLong(context)).toArray();
 
         // Then
         assertThat(LongStream.of(values).allMatch(value -> value >= 10 && value < 20)).isTrue();
@@ -44,10 +49,10 @@ class RandomLongSupplierTest {
     void supportsBoundsOutsideTheIntRange() {
         // Given
         long min = Long.MAX_VALUE - 1;
-        RandomLongSupplier supplier = new RandomLongSupplier(new Random(0), min, Long.MAX_VALUE);
+        RandomLongSupplier supplier = new RandomLongSupplier(min, Long.MAX_VALUE);
 
         // When
-        long value = supplier.getAsLong();
+        long value = supplier.applyAsLong(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(min);
@@ -55,20 +60,14 @@ class RandomLongSupplierTest {
 
     @Test
     void rejectsMinGreaterThanMax() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomLongSupplier(prng, 10, 5));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomLongSupplier(10, 5));
     }
 
     @Test
     void rejectsMinEqualToMax() {
-        // Given
-        Random prng = new Random();
-
         // When/Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new RandomLongSupplier(prng, 5, 5));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RandomLongSupplier(5, 5));
     }
 
 }

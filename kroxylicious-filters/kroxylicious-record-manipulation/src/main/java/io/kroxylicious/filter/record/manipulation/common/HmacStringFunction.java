@@ -10,34 +10,32 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.function.Function;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Computes the Base64-encoded HMAC-SHA256 of a string, using a raw key supplied by the caller.
+ * Computes the Base64-encoded HMAC-SHA256 of a string, using a raw key drawn from the invocation's
+ * {@link Context}. A fresh {@link Mac} is created per invocation - the key isn't known until then, and a
+ * shared, cached instance would not be safe to reuse across concurrent invocations regardless.
  */
-public class HmacStringFunction implements Function<String, String> {
-
-    private final Mac mac;
+public class HmacStringFunction implements StringOp {
 
     /**
      * Creates an instance.
-     * @param key the raw key used for the HMAC-SHA256 operation
      */
-    public HmacStringFunction(byte[] key) {
+    public HmacStringFunction() {
+    }
+
+    @Override
+    public String apply(String value, Context context) {
         try {
-            mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(key, "HmacSHA256"));
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(context.key(), "HmacSHA256"));
+            return Base64.getEncoder().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
         }
         catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public String apply(String value) {
-        return Base64.getEncoder().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
     }
 }

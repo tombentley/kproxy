@@ -6,16 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.IntSupplier;
+import java.util.function.ToIntFunction;
 
 /**
- * A supplier that always returns the same {@code int}.
+ * A function that always returns the same {@code int}, regardless of context.
  */
-public class ConstantIntSupplier implements IntSupplier {
+public class ConstantIntSupplier implements ToIntFunction<Context> {
     private final int value;
 
     /**
-     * Creates a supplier.
+     * Creates an instance.
      * @param value the value to always return
      */
     public ConstantIntSupplier(int value) {
@@ -23,7 +23,7 @@ public class ConstantIntSupplier implements IntSupplier {
     }
 
     @Override
-    public int getAsInt() {
+    public int applyAsInt(Context context) {
         return value;
     }
 }

@@ -6,30 +6,26 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
 import java.util.Set;
-import java.util.function.DoubleSupplier;
+import java.util.function.ToDoubleFunction;
 
 /**
- * A supplier that returns a {@code double} drawn at random from a fixed set.
+ * A function that returns a {@code double} drawn at random from a fixed set.
  */
-public class ChooseDoubleSupplier implements DoubleSupplier {
-    private final Random prng;
+public class ChooseDoubleSupplier implements ToDoubleFunction<Context> {
     private final double[] values;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseDoubleSupplier(Random prng, Set<Double> from) {
-        this.prng = prng;
+    public ChooseDoubleSupplier(Set<Double> from) {
         values = from.stream().mapToDouble(i -> i).toArray();
     }
 
     @Override
-    public double getAsDouble() {
-        int index = prng.nextInt(0, values.length);
+    public double applyAsDouble(Context context) {
+        int index = context.random().nextInt(0, values.length);
         return values[index];
     }
 }

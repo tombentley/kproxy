@@ -6,23 +6,29 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
+import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import io.kroxylicious.filter.record.manipulation.common.Context;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JacksonTest {
 
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+
     @Test
-    void convertStringSupplierWrapsSuppliedValueInTextNode() {
+    void convertStringGeneratorWrapsSuppliedValueInTextNode() {
         // Given
-        var supplier = Jackson.convertString(() -> "hello");
+        var generator = Jackson.convertString(context -> "hello");
 
         // When
-        TextNode node = supplier.get();
+        TextNode node = generator.apply(CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new TextNode("hello"));
@@ -31,35 +37,35 @@ class JacksonTest {
     @Test
     void convertStringFunctionAppliesFunctionToNodeTextAndWrapsResult() {
         // Given
-        var function = Jackson.convertString(String::toUpperCase);
+        var function = Jackson.convertString((String s, Context context) -> s.toUpperCase());
         TextNode input = new TextNode("hello");
 
         // When
-        TextNode result = function.apply(input);
+        TextNode result = function.apply(input, CONTEXT);
 
         // Then
         assertThat(result).isEqualTo(new TextNode("HELLO"));
     }
 
     @Test
-    void convertIntSupplierWrapsSuppliedValueInIntNode() {
+    void convertIntGeneratorWrapsSuppliedValueInIntNode() {
         // Given
-        var supplier = Jackson.convertInt(() -> 42);
+        var generator = Jackson.convertInt(context -> 42);
 
         // When
-        IntNode node = supplier.get();
+        IntNode node = generator.apply(CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new IntNode(42));
     }
 
     @Test
-    void convertLongSupplierWrapsSuppliedValueInLongNode() {
+    void convertLongGeneratorWrapsSuppliedValueInLongNode() {
         // Given
-        var supplier = Jackson.convertLong(() -> 42L);
+        var generator = Jackson.convertLong(context -> 42L);
 
         // When
-        LongNode node = supplier.get();
+        LongNode node = generator.apply(CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new LongNode(42L));

@@ -16,13 +16,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseLongSupplierTest {
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void singleElementSetAlwaysReturnsThatElement() {
         // Given
-        ChooseLongSupplier supplier = new ChooseLongSupplier(new Random(), Set.of(7L));
+        ChooseLongSupplier supplier = new ChooseLongSupplier(Set.of(7L));
 
         // When
-        long value = supplier.getAsLong();
+        long value = supplier.applyAsLong(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(7L);
@@ -32,10 +36,11 @@ class ChooseLongSupplierTest {
     void everyDrawIsAMemberOfTheSuppliedSet() {
         // Given
         Set<Long> from = Set.of(1L, 2L, 3L);
-        ChooseLongSupplier supplier = new ChooseLongSupplier(new Random(0), from);
+        ChooseLongSupplier supplier = new ChooseLongSupplier(from);
+        Context context = contextWithSeed(0);
 
         // When
-        long[] drawn = LongStream.range(0, 200).map(i -> supplier.getAsLong()).toArray();
+        long[] drawn = LongStream.range(0, 200).map(i -> supplier.applyAsLong(context)).toArray();
 
         // Then
         assertThat(LongStream.of(drawn).allMatch(from::contains)).isTrue();

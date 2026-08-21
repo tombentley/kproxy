@@ -6,11 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantLongSupplierTest {
+
+    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -18,8 +22,8 @@ class ConstantLongSupplierTest {
         ConstantLongSupplier supplier = new ConstantLongSupplier(42);
 
         // When
-        long first = supplier.getAsLong();
-        long second = supplier.getAsLong();
+        long first = supplier.applyAsLong(CONTEXT);
+        long second = supplier.applyAsLong(CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(42L);
@@ -32,7 +36,7 @@ class ConstantLongSupplierTest {
         ConstantLongSupplier supplier = new ConstantLongSupplier(Long.MAX_VALUE);
 
         // When
-        long value = supplier.getAsLong();
+        long value = supplier.applyAsLong(CONTEXT);
 
         // Then
         assertThat(value).isEqualTo(Long.MAX_VALUE);
