@@ -16,11 +16,14 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
@@ -163,26 +166,50 @@ class MaskPipelineTest {
                           keyId: FOO
             """;
 
+    private static final String GENERATE_COMPOSED_CONTENT = """
+            type: object
+            properties:
+              city:
+                type: string
+                apply:
+                  - random:
+                      minLength: 3
+                      maxLength: 15
+                      alphabet: abcdefghijklmnopqrstuvwxyz
+                  - hmac:
+                      keyId: FOO
+              plain:
+                type: string
+            """;
+
     /** A fixed seed, chosen arbitrarily, that pins every "random"/"choose" mask and every encryption IV drawn below. */
     private static final long SEED = 42L;
 
-    /** Matches the (currently hard-coded) key {@link JacksonFunction} uses for hmac/encrypt/decrypt. */
+    /** Matches the (currently hard-coded) key {@link Use} uses for hmac/encrypt/decrypt. */
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
     private final Function<ByteBuffer, JsonNode> deserializer = new JacksonDeserializer(MAPPER);
     private final Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), KEY);
+    }
+
     private JsonNode deserializeResult(ByteBuffer buffer) {
         return deserializer.apply(buffer.duplicate());
     }
 
-    private ByteBuffer mask(SchemaConfig maskTree, Random random) {
-        Pipeline pipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(maskTree, random), serializer));
+    private ByteBuffer mask(SchemaConfig maskTree, Context context) {
+        Pipeline pipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(maskTree).bind(context), serializer));
         return pipeline.apply(ByteBuffer.wrap(DATA.getBytes(StandardCharsets.UTF_8)));
     }
 
+    private JsonNode generate(SchemaConfig schema, Context context) {
+        return JacksonFunction.buildMask(schema).apply(MissingNode.getInstance(), context);
+    }
+
     private static String hmacOf(String plaintext) {
-        return new HmacStringFunction(KEY).apply(plaintext);
+        return new HmacStringFunction().apply(plaintext, contextWithSeed(0));
     }
 
     @Test
@@ -191,7 +218,7 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(masked.get("firstName").asText()).isEqualTo("REDACTED");
@@ -209,8 +236,8 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
-        JsonNode second = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode first = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
+        JsonNode second = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(second).isEqualTo(first);
@@ -222,8 +249,8 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
-        JsonNode second = deserializeResult(mask(maskTree, new Random(SEED + 1)));
+        JsonNode first = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
+        JsonNode second = deserializeResult(mask(maskTree, contextWithSeed(SEED + 1)));
 
         // Then
         assertThat(second.get("ageYears")).isNotEqualTo(first.get("ageYears"));
@@ -235,10 +262,10 @@ class MaskPipelineTest {
         // Given
         SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
         SchemaConfig unmaskTree = MAPPER.readValue(MASK_CONTENT.replace("encrypt", "decrypt"), SchemaConfig.class);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(unmaskTree, new Random(SEED)), serializer));
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(unmaskTree).bind(contextWithSeed(SEED)), serializer));
 
         // When
-        ByteBuffer masked = mask(maskTree, new Random(SEED));
+        ByteBuffer masked = mask(maskTree, contextWithSeed(SEED));
         JsonNode unmaskedTree = deserializeResult(unmaskPipeline.apply(masked));
 
         // Then
@@ -253,10 +280,10 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(ENCRYPT_THEN_HMAC_CITY, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
-        String encryptedFirst = new EncryptStringFunction(KEY, new Random(SEED)).apply("Hogsmead");
+        String encryptedFirst = new EncryptStringFunction().apply("Hogsmead", contextWithSeed(SEED));
         assertThat(masked.get("address").get("city").asText()).isEqualTo(hmacOf(encryptedFirst));
     }
 
@@ -267,8 +294,8 @@ class MaskPipelineTest {
         SchemaConfig hmacThenEncrypt = MAPPER.readValue(HMAC_THEN_ENCRYPT_CITY, SchemaConfig.class);
 
         // When
-        JsonNode encryptFirstResult = deserializeResult(mask(encryptThenHmac, new Random(SEED)));
-        JsonNode hmacFirstResult = deserializeResult(mask(hmacThenEncrypt, new Random(SEED)));
+        JsonNode encryptFirstResult = deserializeResult(mask(encryptThenHmac, contextWithSeed(SEED)));
+        JsonNode hmacFirstResult = deserializeResult(mask(hmacThenEncrypt, contextWithSeed(SEED)));
 
         // Then
         assertThat(encryptFirstResult.get("address").get("city").asText())
@@ -281,8 +308,8 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(ENCRYPT_THEN_HMAC_CITY, SchemaConfig.class);
 
         // When
-        JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
-        JsonNode second = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode first = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
+        JsonNode second = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(second).isEqualTo(first);
@@ -294,7 +321,7 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(SCHEMA_WITH_UNRECOGNISED_KEYWORD, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(masked.get("firstName").asText()).isEqualTo("REDACTED");
@@ -306,7 +333,7 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(DELETE_AND_INSERT_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(masked.has("surname")).isFalse();
@@ -319,7 +346,7 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(INSERT_NESTED_OBJECT_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(masked.get("guardian").get("name").asText()).isEqualTo("Dumbledore");
@@ -331,10 +358,48 @@ class MaskPipelineTest {
         SchemaConfig maskTree = MAPPER.readValue(DOES_NOT_INSERT_NESTED_OBJECT_CONTENT, SchemaConfig.class);
 
         // When
-        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode masked = deserializeResult(mask(maskTree, contextWithSeed(SEED)));
 
         // Then
         assertThat(masked.has("guardian")).isFalse();
+    }
+
+    @Test
+    void generationProducesAWholeRecordStartingFromMissingNode() throws JsonProcessingException {
+        // Given
+        SchemaConfig schema = MAPPER.readValue(GENERATE_COMPOSED_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode generated = generate(schema, contextWithSeed(SEED));
+
+        // Then
+        String randomFirst = new RandomStringSupplier("abcdefghijklmnopqrstuvwxyz", 3, 15).apply(contextWithSeed(SEED));
+        assertThat(generated.get("city").asText()).isEqualTo(hmacOf(randomFirst));
+    }
+
+    @Test
+    void generationOmitsAPropertyWithNoApplyRatherThanDefaultingIt() throws JsonProcessingException {
+        // Given
+        SchemaConfig schema = MAPPER.readValue(GENERATE_COMPOSED_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode generated = generate(schema, contextWithSeed(SEED));
+
+        // Then
+        assertThat(generated.has("plain")).isFalse();
+    }
+
+    @Test
+    void generationWithTheSameContextIsRepeatable() throws JsonProcessingException {
+        // Given
+        SchemaConfig schema = MAPPER.readValue(GENERATE_COMPOSED_CONTENT, SchemaConfig.class);
+
+        // When
+        JsonNode first = generate(schema, contextWithSeed(SEED));
+        JsonNode second = generate(schema, contextWithSeed(SEED));
+
+        // Then
+        assertThat(second).isEqualTo(first);
     }
 
 }

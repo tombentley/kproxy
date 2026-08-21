@@ -6,34 +6,30 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.Random;
-import java.util.function.LongSupplier;
+import java.util.function.ToLongFunction;
 
 /**
- * A supplier that returns a {@code long} drawn at random from a range.
+ * A function that returns a {@code long} drawn at random from a range.
  */
-public class RandomLongSupplier implements LongSupplier {
-    private final Random prng;
+public class RandomLongSupplier implements ToLongFunction<Context> {
     private final long minInclusive;
     private final long maxExclusive;
 
     /**
-     * Creates a supplier.
-     * @param prng the source of randomness
+     * Creates an instance.
      * @param minInclusive the minimum value (inclusive)
      * @param maxExclusive the maximum value (exclusive)
      */
-    public RandomLongSupplier(Random prng, long minInclusive, long maxExclusive) {
+    public RandomLongSupplier(long minInclusive, long maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
         }
-        this.prng = prng;
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
     }
 
     @Override
-    public long getAsLong() {
-        return prng.nextLong(minInclusive, maxExclusive);
+    public long applyAsLong(Context context) {
+        return context.random().nextLong(minInclusive, maxExclusive);
     }
 }

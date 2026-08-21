@@ -16,13 +16,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseIntSupplierTest {
 
+    private static Context contextWithSeed(long seed) {
+        return new Context(new Random(seed), new byte[0]);
+    }
+
     @Test
     void singleElementSetAlwaysReturnsThatElement() {
         // Given
-        ChooseIntSupplier supplier = new ChooseIntSupplier(new Random(), Set.of(7));
+        ChooseIntSupplier supplier = new ChooseIntSupplier(Set.of(7));
 
         // When
-        int value = supplier.getAsInt();
+        int value = supplier.applyAsInt(contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(7);
@@ -32,10 +36,11 @@ class ChooseIntSupplierTest {
     void everyDrawIsAMemberOfTheSuppliedSet() {
         // Given
         Set<Integer> from = Set.of(1, 2, 3);
-        ChooseIntSupplier supplier = new ChooseIntSupplier(new Random(0), from);
+        ChooseIntSupplier supplier = new ChooseIntSupplier(from);
+        Context context = contextWithSeed(0);
 
         // When
-        int[] drawn = IntStream.range(0, 200).map(i -> supplier.getAsInt()).toArray();
+        int[] drawn = IntStream.range(0, 200).map(i -> supplier.applyAsInt(context)).toArray();
 
         // Then
         assertThat(IntStream.of(drawn).allMatch(from::contains)).isTrue();

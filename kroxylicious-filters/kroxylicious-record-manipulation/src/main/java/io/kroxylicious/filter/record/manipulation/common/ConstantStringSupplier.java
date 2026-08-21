@@ -6,16 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
- * A supplier that always returns the same {@link String}.
+ * A function that always returns the same {@link String}, regardless of context.
  */
-public class ConstantStringSupplier implements Supplier<String> {
+public class ConstantStringSupplier implements Function<Context, String> {
     private final String value;
 
     /**
-     * Creates a supplier.
+     * Creates an instance.
      * @param value the value to always return
      */
     public ConstantStringSupplier(String value) {
@@ -23,7 +23,7 @@ public class ConstantStringSupplier implements Supplier<String> {
     }
 
     @Override
-    public String get() {
+    public String apply(Context context) {
         return value;
     }
 }

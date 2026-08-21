@@ -19,11 +19,12 @@ class EncryptStringFunctionTest {
     @Test
     void encryptingTheSamePlaintextTwiceProducesDifferentCiphertext() {
         // Given
-        EncryptStringFunction encrypt = new EncryptStringFunction(KEY, new Random());
+        EncryptStringFunction encrypt = new EncryptStringFunction();
+        Context context = new Context(new Random(), KEY);
 
         // When
-        String first = encrypt.apply("hello");
-        String second = encrypt.apply("hello");
+        String first = encrypt.apply("hello", context);
+        String second = encrypt.apply("hello", context);
 
         // Then
         assertThat(first).isNotEqualTo(second);
