@@ -18,9 +18,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
+import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
-import io.kroxylicious.filter.record.manipulation.common.Strings;
-import io.kroxylicious.filter.record.manipulation.config.MaskConfig;
+import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
@@ -52,31 +53,76 @@ class MaskPipelineTest {
             properties:
               firstName:
                 type: string
-                value: "REDACTED"
+                apply:
+                  - value: "REDACTED"
               aliases:
                 type: array
                 items:
                   type: string
-                  random:
-                    minLength: 3
-                    maxLength: 15
-                    alphabet: abcdefghijklmnopqrstuvwxyz
+                  apply:
+                    - random:
+                        minLength: 3
+                        maxLength: 15
+                        alphabet: abcdefghijklmnopqrstuvwxyz
               ageYears:
                 type: integer
-                random:
-                  min: 18
-                  max: 100
+                apply:
+                  - random:
+                      min: 18
+                      max: 100
               address:
                 type: object
                 properties:
                   streetAddress:
                     type: string
-                    hmac:
-                      keyId: FOO
+                    apply:
+                      - hmac:
+                          keyId: FOO
                   city:
                     type: string
-                    encrypt:
-                      keyId: FOO
+                    apply:
+                      - encrypt:
+                          keyId: FOO
+            """;
+
+    private static final String ENCRYPT_THEN_HMAC_CITY = """
+            type: object
+            properties:
+              address:
+                type: object
+                properties:
+                  city:
+                    type: string
+                    apply:
+                      - encrypt:
+                          keyId: FOO
+                      - hmac:
+                          keyId: FOO
+            """;
+
+    private static final String HMAC_THEN_ENCRYPT_CITY = """
+            type: object
+            properties:
+              address:
+                type: object
+                properties:
+                  city:
+                    type: string
+                    apply:
+                      - hmac:
+                          keyId: FOO
+                      - encrypt:
+                          keyId: FOO
+            """;
+
+    private static final String SCHEMA_WITH_UNRECOGNISED_KEYWORD = """
+            type: object
+            properties:
+              firstName:
+                type: string
+                pattern: "^[A-Z]"
+                apply:
+                  - value: "REDACTED"
             """;
 
     /** A fixed seed, chosen arbitrarily, that pins every "random"/"choose" mask and every encryption IV drawn below. */
@@ -92,19 +138,19 @@ class MaskPipelineTest {
         return deserializer.apply(buffer.duplicate());
     }
 
-    private ByteBuffer mask(MaskConfig maskTree, Random random) {
+    private ByteBuffer mask(SchemaConfig maskTree, Random random) {
         Pipeline pipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(maskTree, random), serializer));
         return pipeline.apply(ByteBuffer.wrap(DATA.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static String hmacOf(String plaintext) {
-        return new Strings(KEY, new Random()).hmac().apply(plaintext);
+        return new HmacStringFunction(KEY).apply(plaintext);
     }
 
     @Test
     void pipelineDeserializesMasksAndReserializesARecordDeterministically() throws JsonProcessingException {
         // Given
-        MaskConfig maskTree = MAPPER.readValue(MASK_CONTENT, MaskConfig.class);
+        SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
         JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
@@ -122,7 +168,7 @@ class MaskPipelineTest {
     @Test
     void maskingWithTheSameSeedIsRepeatable() throws JsonProcessingException {
         // Given
-        MaskConfig maskTree = MAPPER.readValue(MASK_CONTENT, MaskConfig.class);
+        SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
         JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
@@ -135,7 +181,7 @@ class MaskPipelineTest {
     @Test
     void maskingWithADifferentSeedProducesDifferentRandomValues() throws JsonProcessingException {
         // Given
-        MaskConfig maskTree = MAPPER.readValue(MASK_CONTENT, MaskConfig.class);
+        SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
 
         // When
         JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
@@ -149,8 +195,8 @@ class MaskPipelineTest {
     @Test
     void maskThenUnmaskPipelineRoundTripsTheEncryptedFieldButNotTheHmacedField() throws JsonProcessingException {
         // Given
-        MaskConfig maskTree = MAPPER.readValue(MASK_CONTENT, MaskConfig.class);
-        MaskConfig unmaskTree = MAPPER.readValue(MASK_CONTENT.replace("encrypt", "decrypt"), MaskConfig.class);
+        SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
+        SchemaConfig unmaskTree = MAPPER.readValue(MASK_CONTENT.replace("encrypt", "decrypt"), SchemaConfig.class);
         Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(unmaskTree, new Random(SEED)), serializer));
 
         // When
@@ -161,6 +207,59 @@ class MaskPipelineTest {
         assertThat(unmaskedTree.get("address").get("city").asText()).isEqualTo("Hogsmead");
         // hmac has no inverse, so the unmask pass re-hmacs the already-masked value rather than recovering "Hogwarts".
         assertThat(unmaskedTree.get("address").get("streetAddress").asText()).isEqualTo(hmacOf(hmacOf("Hogwarts")));
+    }
+
+    @Test
+    void composedApplyChainAppliesOperationsInDeclaredOrder() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(ENCRYPT_THEN_HMAC_CITY, SchemaConfig.class);
+
+        // When
+        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        String encryptedFirst = new EncryptStringFunction(KEY, new Random(SEED)).apply("Hogsmead");
+        assertThat(masked.get("address").get("city").asText()).isEqualTo(hmacOf(encryptedFirst));
+    }
+
+    @Test
+    void composedApplyChainIsOrderSensitive() throws JsonProcessingException {
+        // Given
+        SchemaConfig encryptThenHmac = MAPPER.readValue(ENCRYPT_THEN_HMAC_CITY, SchemaConfig.class);
+        SchemaConfig hmacThenEncrypt = MAPPER.readValue(HMAC_THEN_ENCRYPT_CITY, SchemaConfig.class);
+
+        // When
+        JsonNode encryptFirstResult = deserializeResult(mask(encryptThenHmac, new Random(SEED)));
+        JsonNode hmacFirstResult = deserializeResult(mask(hmacThenEncrypt, new Random(SEED)));
+
+        // Then
+        assertThat(encryptFirstResult.get("address").get("city").asText())
+                .isNotEqualTo(hmacFirstResult.get("address").get("city").asText());
+    }
+
+    @Test
+    void maskingWithTheSameSeedIsRepeatableForAComposedApplyChain() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(ENCRYPT_THEN_HMAC_CITY, SchemaConfig.class);
+
+        // When
+        JsonNode first = deserializeResult(mask(maskTree, new Random(SEED)));
+        JsonNode second = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        assertThat(second).isEqualTo(first);
+    }
+
+    @Test
+    void schemaWithUnrecognisedJsonSchemaKeywordStillParsesAndMasks() throws JsonProcessingException {
+        // Given
+        SchemaConfig maskTree = MAPPER.readValue(SCHEMA_WITH_UNRECOGNISED_KEYWORD, SchemaConfig.class);
+
+        // When
+        JsonNode masked = deserializeResult(mask(maskTree, new Random(SEED)));
+
+        // Then
+        assertThat(masked.get("firstName").asText()).isEqualTo("REDACTED");
     }
 
 }
