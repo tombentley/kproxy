@@ -79,9 +79,20 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
     `random`/`choose`/`value`: produce their own field's type), so there's no way to build a chain that
     fails the check. This is an accepted simplification, not a gap to fix speculatively — it starts doing
     real work the day an operation that changes type is added.
-  - Deleting or inserting a property, and `patternProperties`/`additionalProperties` selection (and what
-    order they'd run in relative to `properties`, given operations are order-sensitive), are still open;
-    neither has a config representation yet.
+  - Deletion and insertion of an object property are supported: `apply: [{delete: true}]` removes an
+    existing property, and a generator-shaped `apply` entry (`value`/`random`/`choose`) on a property
+    absent from the data inserts it (see `MaskPipelineTest`'s delete/insert tests). Insertion works at any
+    depth, not just one level — a leaf several levels below an entirely-absent chain of ancestor objects
+    still materializes, via `JacksonFunction.buildStructural`'s speculative recursion into a fresh empty
+    object, collapsing back to absent only if nothing real came of it (so a genuinely-present object that
+    ends up empty, e.g. from deleting all its properties, is never silently discarded — only a
+    speculatively-materialized one is). `ObjectNodes.mapProperties` was reworked to build a fresh object
+    rather than mutate in place, using Jackson's `MissingNode` as the "no value here" sentinel in both
+    directions: fed to a declared-but-absent property's function (to support insertion), and returned by a
+    function to mean "remove this" (to support deletion).
+  - Still open: array element insertion/deletion (arrays have no per-slot generator concept to insert
+    into), and `patternProperties`/`additionalProperties` selection (and what order they'd run in relative
+    to `properties`, given operations are order-sensitive).
 - **Avro** (`avro/`): sketch only. No config model or builder yet — `AvroUse.java` just explores what the
   mask syntax might look like. Avro's requirement that data stay decodable under a schema, and its built-in
   union/nullable types, mean the open questions above will need a proper Avro-specific answer, not just a
@@ -94,6 +105,43 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   directly as `Pipeline` stages — `Pipeline` needs each stage's *concrete* generic type to reflect on, which
   a named class reliably provides and a bundled method returning a lambda does not. This is the part of the
   module with the most unit test coverage so far.
+
+## Termination
+
+Masking a record, or generating one, must be guaranteed to terminate — a malformed or adversarial record
+should never be able to hang the proxy. For the literal question "does it ever halt", that guarantee rests
+on exactly two conditions, and they are both necessary and sufficient:
+
+1. **None of the functions this module defines contain an unbounded loop or unbounded recursion.** Every
+   primitive in `common` either does fixed-size work (a single HMAC/cipher operation) or loops a number of
+   times bounded by a config-declared, finite quantity (`random`'s `min`/`max`/`minLength`/`maxLength`,
+   `choose`'s finite set, `Pipeline`'s fixed-size stage list). The only *recursion* anywhere is
+   `JacksonFunction`/`JacksonSupplier` following the `SchemaConfig` tree's own `properties`/`items`
+   structure, and `ObjectNodes`/`ArrayNodes` iterating the data actually present at each node — both bounded
+   by whatever they're recursing over, never by anything unbounded. This has to stay true for every future
+   operation added to `common`: a new op must never take a config-declared parameter that could drive an
+   unbounded internal loop.
+2. **The input being walked is a genuine tree — finite, and free of cycles.** For plain JSON this is true by
+   construction: the JSON grammar has no way for one part of a document to reference another, so a parsed
+   `JsonNode` tree's size is always linear in its own serialized length. This is what matters for the record
+   *data* this module masks, which is exactly why that data should always be parsed as plain JSON rather
+   than YAML (see the caveat below) — with condition 1 already holding, a finite, acyclic input is what
+   makes `buildMask`'s recursion over the schema, and the built function's later recursion over the data,
+   both terminate. Nothing added for delete/insert changes this: the speculative-materialization recursion
+   (`JacksonFunction.buildStructural`'s object case) only ever visits the schema's own declared properties,
+   the same bound that already applied.
+
+**Caveat: "finite and acyclic" is necessary but not automatically cheap.** YAML (used for config in this
+module's demos, via `YAMLMapper`) supports anchors and aliases, which let a small amount of text expand into
+an enormous — but still finite and acyclic — in-memory tree (the same "billion laughs" pattern well known
+from XML). That satisfies condition 2 to the letter while defeating its purpose: the process would still
+technically halt, just not within any useful time or memory. Plain JSON has no equivalent construct, so this
+risk doesn't apply to record data parsed as JSON; it's specifically a YAML-authored-config concern, worth
+remembering if config authoring or distribution ever becomes less trusted than "whoever operates the proxy."
+A related but distinct practical concern: this is a plain recursive-descent implementation with no depth
+limit or trampolining, so a finite, non-exploding but very *deeply nested* document (e.g. arrays nested tens
+of thousands of levels deep) can still exhaust the JVM stack — not non-termination in the strict sense, but
+the same practical failure mode.
 
 ## Key management
 
