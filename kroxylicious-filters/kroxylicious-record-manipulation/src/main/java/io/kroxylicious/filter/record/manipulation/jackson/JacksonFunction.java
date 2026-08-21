@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
@@ -83,7 +85,9 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
             case "array" -> {
                 if (schema.items() != null) {
                     var fn = new ArrayNodes(JsonNodeFactory.instance).items(buildMask(schema.items(), random));
-                    yield node -> fn.apply((ArrayNode) node);
+                    // No speculative materialization for arrays: items() maps whatever elements already
+                    // exist, and there's no concept of synthesizing new elements from nothing yet.
+                    yield node -> node.isMissingNode() ? node : fn.apply((ArrayNode) node);
                 }
                 else {
                     yield node -> node;
@@ -92,9 +96,18 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
             case "object" -> {
                 if (schema.properties() != null) {
                     Map<String, JacksonFunction> mapping = schema.properties().entrySet().stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), random)));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), random), (a, b) -> a, LinkedHashMap::new));
                     var fn = new ObjectNodes(JsonNodeFactory.instance).mapProperties(mapping);
-                    yield node -> fn.apply((ObjectNode) node);
+                    // Speculatively recurse into a fresh empty object even when this node itself is
+                    // missing, so a generator-shaped apply chain on a declared child (at any depth) still
+                    // gets a chance to insert. Collapse back to missing if nothing real came of it, but
+                    // only when this node was already missing - a genuinely-present object that ends up
+                    // empty (e.g. every property deleted) must never be silently discarded.
+                    yield node -> {
+                        ObjectNode input = node.isMissingNode() ? JsonNodeFactory.instance.objectNode() : (ObjectNode) node;
+                        ObjectNode result = fn.apply(input);
+                        return result.isEmpty() && node.isMissingNode() ? MissingNode.getInstance() : result;
+                    };
                 }
                 else {
                     yield node -> node;
@@ -115,6 +128,10 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
     }
 
     private static JacksonFunction buildOp(String type, ApplyConfig op, byte[] key, Random random) {
+        if (Boolean.TRUE.equals(op.delete())) {
+            // Type-agnostic, unlike every other op, so it's checked before dispatching by type.
+            return node -> MissingNode.getInstance();
+        }
         return switch (type) {
             case "string" -> buildStringOp(op, key, random);
             case "integer" -> buildIntegerOp(op, random);
@@ -139,15 +156,19 @@ public interface JacksonFunction extends Function<JsonNode, JsonNode> {
         }
         else if (op.hmac() != null) {
             var fn = Jackson.convertString(new HmacStringFunction(key));
-            return fn::apply;
+            // hmac/encrypt/decrypt are transformers requiring a real prior value, unlike the generators
+            // above (which already ignore their input unconditionally): a MissingNode input means "there
+            // is nothing here to transform", so pass it straight through rather than treating it as an
+            // empty string.
+            return node -> node.isMissingNode() ? node : fn.apply(node);
         }
         else if (op.encrypt() != null) {
             var fn = Jackson.convertString(new EncryptStringFunction(key, random));
-            return fn::apply;
+            return node -> node.isMissingNode() ? node : fn.apply(node);
         }
         else if (op.decrypt() != null) {
             var fn = Jackson.convertString(new DecryptStringFunction(key));
-            return fn::apply;
+            return node -> node.isMissingNode() ? node : fn.apply(node);
         }
         else {
             return node -> node;

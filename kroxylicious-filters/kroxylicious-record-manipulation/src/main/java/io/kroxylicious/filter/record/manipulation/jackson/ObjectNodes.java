@@ -6,12 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -34,13 +37,27 @@ public class ObjectNodes {
     }
 
     /**
-     * Maps selected properties of an object.
+     * Maps selected properties of an object, and can also delete or insert properties.
+     * <p>
+     * Builds a fresh object (the input is never mutated): each property present in the input is passed
+     * through its mapped function if one exists in {@code map} (or carried over unchanged otherwise); each
+     * key present in {@code map} but absent from the input is additionally invoked, with
+     * {@link MissingNode#getInstance()} as its input, to support inserting a property that didn't
+     * previously exist. In both cases, a function result that {@link JsonNode#isMissingNode()} is omitted
+     * from the result rather than written back - this is how a function signals "delete this property" (if
+     * it was present) or "decline to insert" (if it wasn't).
+     * <p>
+     * <b>Contract:</b> functions passed here must treat a {@code MissingNode} input as "there is no prior
+     * value" and return {@code MissingNode} themselves if they decline to produce a value from nothing -
+     * e.g. an operation that requires transforming an existing value, rather than generating a fresh one.
+     * A function that doesn't account for this (e.g. one that just does {@code node.asInt() + 1}) will
+     * silently misbehave when invoked on an absent property (Jackson's {@code MissingNode.asInt()}
+     * defaults to {@code 0}) rather than erroring.
      * @param map the per-property functions, keyed by property name
-     * @return a function that replaces each property present in {@code map} with the result of applying its function,
-     *         leaving other properties unchanged
+     * @return a function building a fresh object per the rules above
      */
     public Function<ObjectNode, ObjectNode> mapProperties(Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> map) {
-        return new JsonNodePropertiesFunction(map);
+        return new JsonNodePropertiesFunction(nodeFactory, map);
     }
 
     /**
@@ -52,18 +69,32 @@ public class ObjectNodes {
         return new JsonNodePropertiesSupplier(nodeFactory, map);
     }
 
-    private record JsonNodePropertiesFunction(Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> propertyFns)
+    private record JsonNodePropertiesFunction(JsonNodeFactory nodeFactory,
+                                              Map<String, ? extends Function<? super JsonNode, ? extends JsonNode>> propertyFns)
             implements Function<ObjectNode, ObjectNode> {
 
         @Override
         public ObjectNode apply(ObjectNode object) {
+            ObjectNode result = nodeFactory.objectNode();
+            Set<String> handled = new HashSet<>();
             for (var property : object.properties()) {
+                handled.add(property.getKey());
                 var mapFn = propertyFns.get(property.getKey());
-                if (mapFn != null) {
-                    object.replace(property.getKey(), mapFn.apply(property.getValue()));
+                JsonNode mapped = mapFn != null ? mapFn.apply(property.getValue()) : property.getValue();
+                if (!mapped.isMissingNode()) {
+                    result.set(property.getKey(), mapped);
                 }
             }
-            return object;
+            for (var entry : propertyFns.entrySet()) {
+                if (handled.contains(entry.getKey())) {
+                    continue;
+                }
+                JsonNode mapped = entry.getValue().apply(MissingNode.getInstance());
+                if (!mapped.isMissingNode()) {
+                    result.set(entry.getKey(), mapped);
+                }
+            }
+            return result;
         }
     }
 
