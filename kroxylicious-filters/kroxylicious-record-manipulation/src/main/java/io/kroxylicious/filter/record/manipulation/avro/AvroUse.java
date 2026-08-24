@@ -32,6 +32,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * explored ({@code address}/{@code favorite_color} typed as {@code [..., "null"]}) down to plain required
  * types - see the module README's "Current state" section for why unions are a separate piece of work.
  */
+@SuppressFBWarnings(value = "HARD_CODE_KEY", justification = "AvroUse is a main()-based demo, not production wiring - this module has no Filter "
+        + "integration yet (see module README), so there's no real key-management path to source key material from. The literal here is an "
+        + "illustrative placeholder standing in for a Context built from a real key at call sites that do exist.")
 public class AvroUse {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AvroUse.class);
