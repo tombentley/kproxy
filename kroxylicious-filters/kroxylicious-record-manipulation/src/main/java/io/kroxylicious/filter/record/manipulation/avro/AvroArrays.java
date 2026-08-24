@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.ListElements;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.ArrayNodes} for Avro array values.
@@ -25,6 +26,6 @@ public class AvroArrays {
      * @return a function mapping an array to a new array with {@code itemsFn} applied to each element
      */
     public static BiFunction<List<Object>, Context, List<Object>> items(BiFunction<Object, Context, Object> itemsFn) {
-        return (array, context) -> new AvroArrayElements().modifyAll(array, itemsFn, context);
+        return (array, context) -> new ListElements().modifyAll(array, itemsFn, context);
     }
 }

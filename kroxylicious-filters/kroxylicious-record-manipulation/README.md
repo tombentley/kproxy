@@ -114,6 +114,41 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
     makes for type-unions.
   - Every other Avro type: `map`, `enum`, `fixed`, `bytes`, `boolean`, `long`, `float`, `double`.
   - Generation and delete/insert, once union/default support exists to make them meaningful.
+- **Protobuf** (`protobuf/`): `ProtoFunction.buildMask` masks `message`/`repeated`/`string`/`int32` values,
+  built from a `Descriptors.Descriptor` obtained from raw `.proto` IDL text via `ProtoSchemaParser`, which
+  reuses `io.apicurio:apicurio-registry-protobuf-schema-utilities` (already a dependency of
+  `kroxylicious-record-validation`, for the same "turn `.proto` text into a real descriptor" problem) rather
+  than writing a `.proto` parser of our own — see `ProtoSchemaParser`'s javadoc for why depending on that
+  over Square Wire directly, or writing a custom ANTLR grammar, was the better tradeoff here. Unlike Avro,
+  Apicurio's conversion doesn't carry a custom option like `apply` through to the built descriptor (it only
+  translates a fixed list of well-known protobuf option names), so `ProtoSchemaParser` separately walks the
+  same parsed AST itself to read `apply` off a field's/message's `option (apply) = {...}` declaration,
+  keeping the result alongside the descriptor in a `ParsedProtoSchema`.
+  Protobuf's `repeated` fields have no separate node to hang a per-element `apply` chain off the way Avro's
+  array `items` schema does (repeated-ness and element type live on one `FieldDescriptor`), so `apply` on a
+  repeated field is deliberately interpreted as per-element, not whole-list — a Protobuf-specific choice
+  forced by its schema shape, documented on `ProtoFunction`.
+  A real, non-obvious gotcha worth knowing before extending this: `DynamicMessage.getField(FieldDescriptor)`
+  is checked against the exact `Descriptor` build a `FieldDescriptor` came from, unlike Avro's
+  name-based `GenericRecord.get(String)` — a deserializer and the mask function it feeds must be built from
+  the *same* `ParsedProtoSchema`, even when two schemas are structurally identical (e.g. a mask schema and
+  its `encrypt`→`decrypt` unmask counterpart), or every field access throws `IllegalArgumentException`
+  ("FieldDescriptor does not match message type"). See `ProtoUse`'s comment for a worked example.
+  Masking only, like Avro, and for the same underlying reason once you look past the surface difference:
+  Protobuf fields *do* track presence (`FieldDescriptor.hasPresence()`/`DynamicMessage.hasField()`) far more
+  naturally than Avro's always-required fields do, so `ProtoMessages` already carries an absent field through
+  as absent rather than manufacturing a false presence — but delete/insert still isn't wired up, since no
+  operation for it exists in `common` yet.
+  Still open:
+  - `oneof` (individual member fields already work like ordinary optional fields, since `DynamicMessage`
+    doesn't distinguish oneof membership at the reflection API level used here — but nothing yet models the
+    "exactly one of" semantics as a concept), `map<K,V>` (desugars to a synthetic `repeated MapEntry`
+    message at the descriptor level, so this is "don't special-case it away" more than new plumbing),
+    every other scalar type (`int64`, `bool`, `bytes`, `double`, `float`, fixed variants), enums,
+    `google.protobuf.Any`/well-known wrapper types, extensions, multi-file `import` (Apicurio's utilities
+    support a `dependencies` map for this; unused so far), the newer "Editions" syntax (not supported by
+    Apicurio's parser as of this writing).
+  - Delete/insert, once an operation for it exists in `common`.
 - **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
   values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
   `DecryptStringFunction`), plus `Pipeline`, which validates that a list of functions compose and then runs
@@ -187,7 +222,12 @@ KMS integration (`kroxylicious-kms`) if/when this module needs real key manageme
     - Generation and delete/insert of fields — meaningless without union/default support first,
       so currently fail loudly rather than silently producing non-conforming records.
     - Wiring into a real `Filter` (see "Theme: An actual Filter" below) — applies equally to JSON.
-- We need to avoid taking decisions which won't work for protobuf, or at least not without awareness that we're making such a decision.
+- Protobuf: `message`/`repeated`/`string`/`int32` masking now works (`protobuf/ProtoFunction`, built from a
+  real `com.google.protobuf.Descriptors.Descriptor` parsed from raw `.proto` text via `ProtoSchemaParser` -
+  see the module README's "Current state" section for the design, including the deliberate departures from
+  the Avro precedent that Protobuf's schema shape forced). Still open: `oneof`, `map`, every other scalar
+  type, enums, `Any`/well-known wrappers, extensions, multi-file `import`, Editions syntax, delete/insert -
+  see "Current state" for why each is deferred rather than merely unimplemented.
 - Make data formats a pluggable abstraction.
 
 ### Theme: An actual Filter
