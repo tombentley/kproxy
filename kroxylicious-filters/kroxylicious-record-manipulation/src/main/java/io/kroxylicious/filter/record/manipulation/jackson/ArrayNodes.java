@@ -32,11 +32,7 @@ public class ArrayNodes {
      * @return a function mapping an {@link ArrayNode} to a new array with {@code itemsFn} applied to each element
      */
     public static BiFunction<ArrayNode, Context, JsonNode> items(BiFunction<? super JsonNode, Context, ? extends JsonNode> itemsFn) {
-        return (arrayNode, context) -> {
-            ArrayNode result = arrayNode.arrayNode(arrayNode.size());
-            arrayNode.valueStream().map(node -> itemsFn.apply(node, context)).forEach(result::add);
-            return result;
-        };
+        return (arrayNode, context) -> new ArrayItems().modifyAll(arrayNode, itemsFn::apply, context);
     }
 
     /*
