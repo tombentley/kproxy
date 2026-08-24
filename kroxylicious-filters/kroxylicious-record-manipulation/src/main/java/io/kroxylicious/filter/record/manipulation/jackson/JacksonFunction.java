@@ -30,6 +30,7 @@ import io.kroxylicious.filter.record.manipulation.common.DecryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
+import io.kroxylicious.filter.record.manipulation.common.Maybe;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
@@ -88,6 +89,19 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
     }
 
     /**
+     * Adapts this function to the {@link Maybe}-based convention {@link ObjectNodes#mapProperties} uses, from
+     * this interface's own {@link MissingNode}-sentinel convention.
+     * @return an equivalent {@code BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>>}
+     */
+    default BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>> asMaybe() {
+        return (maybe, context) -> {
+            JsonNode input = maybe instanceof Maybe.Some<JsonNode> some ? some.value() : MissingNode.getInstance();
+            JsonNode output = apply(input, context);
+            return output.isMissingNode() ? Maybe.none() : Maybe.some(output);
+        };
+    }
+
+    /**
      * A concrete (non-lambda) {@link Function} binding a fixed {@link Context} to a {@link JacksonFunction}.
      * Concrete classes are reflectable via their own declaration regardless of whether they implement a
      * fixed-type marker interface; only lambdas need one (a bare {@code node -> fn.apply(node, context)}
@@ -122,8 +136,8 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
             }
             case "object" -> {
                 if (schema.properties() != null) {
-                    Map<String, JacksonFunction> mapping = schema.properties().entrySet().stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), requirements), (a, b) -> a, LinkedHashMap::new));
+                    Map<String, BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>>> mapping = schema.properties().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), requirements).asMaybe(), (a, b) -> a, LinkedHashMap::new));
                     var fn = new ObjectNodes(JsonNodeFactory.instance).mapProperties(mapping);
                     // Speculatively recurse into a fresh empty object even when this node itself is
                     // missing, so a generator-shaped apply chain on a declared child (at any depth) still
