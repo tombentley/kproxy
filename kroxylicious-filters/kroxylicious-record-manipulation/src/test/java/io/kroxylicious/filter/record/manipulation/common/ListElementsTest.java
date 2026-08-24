@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.avro;
+package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.List;
 import java.util.Random;
@@ -12,21 +12,19 @@ import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
-class AvroArrayElementsTest {
+class ListElementsTest {
 
     private static final Context CONTEXT = new Context(new Random(), new byte[0]);
 
     @Test
     void getAllReturnsTheElementsInOrder() {
         // Given
-        List<Object> array = List.of(1, 2, 3);
+        List<Object> list = List.of(1, 2, 3);
 
         // When
-        List<Object> result = new AvroArrayElements().getAll(array);
+        List<Object> result = new ListElements().getAll(list);
 
         // Then
         assertThat(result).containsExactly(1, 2, 3);
@@ -35,27 +33,27 @@ class AvroArrayElementsTest {
     @Test
     void modifyAllAppliesTheFunctionToEveryElement() {
         // Given
-        List<Object> array = List.of(1, 2, 3);
+        List<Object> list = List.of(1, 2, 3);
         BiFunction<Object, Context, Object> incrementFn = (value, context) -> (Integer) value + 1;
 
         // When
-        List<Object> result = new AvroArrayElements().modifyAll(array, incrementFn, CONTEXT);
+        List<Object> result = new ListElements().modifyAll(list, incrementFn, CONTEXT);
 
         // Then
         assertThat(result).containsExactly(2, 3, 4);
     }
 
     @Test
-    void modifyAllDoesNotMutateTheInputArray() {
+    void modifyAllDoesNotMutateTheInputList() {
         // Given
-        List<Object> array = List.of(1, 2, 3);
+        List<Object> list = List.of(1, 2, 3);
         BiFunction<Object, Context, Object> incrementFn = (value, context) -> (Integer) value + 1;
 
         // When
-        var unused = new AvroArrayElements().modifyAll(array, incrementFn, CONTEXT);
+        var unused = new ListElements().modifyAll(list, incrementFn, CONTEXT);
 
         // Then
-        assertThat(array).containsExactly(1, 2, 3);
+        assertThat(list).containsExactly(1, 2, 3);
     }
 
 }
