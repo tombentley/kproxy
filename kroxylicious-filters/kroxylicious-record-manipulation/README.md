@@ -93,10 +93,27 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   - Still open: array element insertion/deletion (arrays have no per-slot generator concept to insert
     into), and `patternProperties`/`additionalProperties` selection (and what order they'd run in relative
     to `properties`, given operations are order-sensitive).
-- **Avro** (`avro/`): sketch only. No config model or builder yet — `AvroUse.java` just explores what the
-  mask syntax might look like. Avro's requirement that data stay decodable under a schema, and its built-in
-  union/nullable types, mean the open questions above will need a proper Avro-specific answer, not just a
-  JSON-shaped one.
+- **Avro** (`avro/`): `AvroFunction.buildMask` masks `record`/`array`/`string`/`int` values, built directly
+  from a real `org.apache.avro.Schema` rather than a shadow config model — `Schema`/`Schema.Field` already
+  preserve unrecognised JSON properties (`getObjectProp`), so the non-standard `apply` keyword round-trips
+  through `Schema.Parser` for free (see `AvroSchemas`), exactly as `AvroUse.java` originally sketched
+  ("let's just reuse the Avro schema... but add our own keywords"). `apply` sits as a sibling of a field's
+  own `type`, or directly on a bare schema (e.g. an array's `items`, which is itself a schema and can carry
+  its own extra properties). `AvroBinaryDeserializer`/`AvroBinarySerializer` and `AvroJsonDeserializer`/
+  `AvroJsonSerializer` are the Avro equivalents of `jackson/JacksonDeserializer`/`JacksonSerializer`, for
+  Avro's binary and JSON encodings respectively — unlike JSON, Avro binary data isn't self-describing, so
+  both require a `Schema` up front.
+  Masking only, unlike JSON's `JacksonFunction` (no generation-from-nothing): Avro requires every declared
+  field to be present in a conforming record, so there's no "absent" starting point equivalent to Jackson's
+  `MissingNode` to generate from — that needs Avro's union/default mechanism first, which is also why
+  `delete` isn't supported yet (it fails loudly rather than silently producing a record that no longer
+  conforms to its schema).
+  Still open:
+  - Unions and nullable fields (`type: [..., "null"]`) — `buildStructural`/`buildApplyChain` only handle a
+    single concrete `Schema.Type` per node, the same simplification JSON's `SchemaConfig.type` currently
+    makes for type-unions.
+  - Every other Avro type: `map`, `enum`, `fixed`, `bytes`, `boolean`, `long`, `float`, `double`.
+  - Generation and delete/insert, once union/default support exists to make them meaningful.
 - **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
   values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
   `DecryptStringFunction`), plus `Pipeline`, which validates that a list of functions compose and then runs
