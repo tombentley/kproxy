@@ -6,80 +6,110 @@
 
 package io.kroxylicious.filter.record.manipulation.avro;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Random;
+import java.util.function.Function;
+
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * A sketch of what a mask syntax for Avro-encoded records might look like.
+ * A demo of building an Avro mask/generator {@link AvroFunction} from a {@link Schema} tree, reusing the
+ * Avro schema's own JSON syntax plus the non-standard {@code apply} keyword - the Avro equivalent of
+ * {@link io.kroxylicious.filter.record.manipulation.Use}.
+ * <p>
+ * Scoped to what {@link AvroFunction} currently supports: {@code record}/{@code array}/{@code string}/
+ * {@code int}. In particular this drops the union/nullable fields the original sketch of this class
+ * explored ({@code address}/{@code favorite_color} typed as {@code [..., "null"]}) down to plain required
+ * types - see the module README's "Current state" section for why unions are a separate piece of work.
  */
 public class AvroUse {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AvroUse.class);
+    private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
     private AvroUse() {
     }
 
     /**
      * Runs the demo.
-     * @param a unused
+     * @param args unused
      */
-    public static void main(String[] a) {
-        var avroSchemaYaml = """
-                {"namespace": "example.avro",
-                    "type": "record",
-                    "name": "User",
-                    "fields": [
-                        {"name": "firstName", "type": "string"},
-                        {"name": "surname", "type": "string"},
-                        {"name": "ageYears", "type": "int"},
-                        {"name": "aliases", "type": "int",
-                            "items": "string"
-                        },
-                        {"name": "address",  "type": [{
-                            "type": "record",
-                            "name": "Address",
-                            "fields": [
-                                {"name": "streetAddress", "type": "string"},
-                                {"name": "city", "type": "string"}
-                            ]
-                        }, "null"]},
-                        {"name": "favorite_color", "type": ["string", "null"]}
-                    ]
-                }
-                    """;
-
-        Schema.Parser parser = new Schema.Parser();
-        Schema schema = parser.parse(avroSchemaYaml);
-
-        // Basically, let's just reuse the Avro schema schema, but add our own keywords (apply)
-        var maskContent = """
-                {"namespace": "example.avro",
-                    "type": "record",
-                    "name": "User",
+    @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "See Use.main(), which carries the same justification for the same reason.")
+    public static void main(String[] args) {
+        // Basically, let's just reuse the Avro schema schema, but add our own keyword (apply): a field's
+        // apply chain sits as a sibling of its own "type" (e.g. "firstName" below), while an apply chain
+        // for an array's elements sits directly on the "items" schema (e.g. "aliases" below), since
+        // Schema and Schema.Field both already preserve arbitrary extra JSON properties - see AvroSchemas.
+        var maskSchemaJson = """
+                {"type": "record", "name": "User", "namespace": "example.avro",
                     "fields": [
                         {"name": "firstName", "type": "string", "apply": [
-                            {"op": "random",
-                             "minLength": 3,
-                             "maxLength": 5
-                            }
+                            {"random": {"alphabet": "abcdefghijklmnopqrstuvwxyz", "minLength": 3, "maxLength": 5}}
                         ]},
                         {"name": "surname", "type": "string", "apply": [
-                            {"op": "choose",
-                             "from": ["Smith", "Jones"]
-                            }
+                            {"choose": ["Smith", "Jones"]}
                         ]},
-                        {"name": "ageYears", "type": "int"},
-                        {"name": "aliases", "type": "int",
-                            "items": "string"
-                        },
-                        {"name": "address",  "type": [{
-                            "type": "record",
-                            "name": "Address",
-                            "fields": [
-                                {"name": "streetAddress", "type": "string"},
-                                {"name": "city", "type": "string"}
-                            ]
-                        }, "null"]},
-                        {"name": "favorite_color", "type": ["string", "null"]}
+                        {"name": "ageYears", "type": "int", "apply": [
+                            {"random": {"min": 18, "max": 100}}
+                        ]},
+                        {"name": "aliases", "type": {"type": "array", "items": {"type": "string", "apply": [
+                            {"random": {"alphabet": "abcdefghijklmnopqrstuvwxyz", "minLength": 3, "maxLength": 15}}
+                        ]}}},
+                        {"name": "address", "type": {"type": "record", "name": "Address", "fields": [
+                            {"name": "streetAddress", "type": "string", "apply": [
+                                {"hmac": {"keyId": "FOO"}}
+                            ]},
+                            {"name": "city", "type": "string", "apply": [
+                                {"encrypt": {"keyId": "FOO"}}
+                            ]}
+                        ]}}
                     ]
                 }
-                    """;
+                """;
+
+        Schema maskSchema = new Schema.Parser().parse(maskSchemaJson);
+        Schema unmaskSchema = new Schema.Parser().parse(maskSchemaJson.replace("encrypt", "decrypt"));
+
+        GenericRecord address = new GenericData.Record(maskSchema.getField("address").schema());
+        address.put("streetAddress", "Hogwarts");
+        address.put("city", "Hogsmead");
+        GenericRecord user = new GenericData.Record(maskSchema);
+        user.put("firstName", "Harry");
+        user.put("surname", "Potter");
+        user.put("ageYears", 17);
+        user.put("aliases", List.of("Vernon Dudley", "Barny Weasley"));
+        user.put("address", address);
+
+        Function<ByteBuffer, GenericRecord> deserializer = new AvroBinaryDeserializer(maskSchema);
+        Function<GenericRecord, ByteBuffer> serializer = new AvroBinarySerializer(maskSchema);
+        ByteBuffer data = serializer.apply(user);
+
+        Context maskContext = new Context(new Random(), KEY);
+        Pipeline maskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(maskSchema).bindRecord(maskContext), serializer));
+        ByteBuffer masked = maskPipeline.apply(data.duplicate());
+        LOGGER.atInfo().addKeyValue("masked", deserializer.apply(masked.duplicate())).log("applied mask");
+
+        Context unmaskContext = new Context(new Random(), KEY);
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(unmaskSchema).bindRecord(unmaskContext), serializer));
+        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
+        LOGGER.atInfo().addKeyValue("unmasked", deserializer.apply(unmasked.duplicate())).log("applied unmask");
+
+        // The same mask, applied via Avro's JSON encoding rather than its binary encoding.
+        Function<ByteBuffer, GenericRecord> jsonDeserializer = new AvroJsonDeserializer(maskSchema);
+        Function<GenericRecord, ByteBuffer> jsonSerializer = new AvroJsonSerializer(maskSchema);
+        Pipeline jsonMaskPipeline = new Pipeline(
+                List.of(jsonDeserializer, AvroFunction.buildMask(maskSchema).bindRecord(new Context(new Random(), KEY)), jsonSerializer));
+        ByteBuffer jsonMasked = jsonMaskPipeline.apply(jsonSerializer.apply(user));
+        LOGGER.atInfo().addKeyValue("jsonMasked", jsonDeserializer.apply(jsonMasked.duplicate())).log("applied mask via Avro JSON encoding");
     }
 }
