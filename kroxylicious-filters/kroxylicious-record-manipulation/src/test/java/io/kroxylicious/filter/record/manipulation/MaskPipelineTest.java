@@ -24,10 +24,11 @@ import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
-import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
+import io.kroxylicious.filter.record.manipulation.jackson.SchemaConfig;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
+import io.kroxylicious.filter.record.manipulation.jackson.Use;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -19,13 +19,14 @@ import org.slf4j.LoggerFactory;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.jackson.Use;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A demo of building an Avro mask/generator {@link AvroFunction} from a {@link Schema} tree, reusing the
  * Avro schema's own JSON syntax plus the non-standard {@code apply} keyword - the Avro equivalent of
- * {@link io.kroxylicious.filter.record.manipulation.Use}.
+ * {@link Use}.
  * <p>
  * Scoped to what {@link AvroFunction} currently supports: {@code record}/{@code array}/{@code string}/
  * {@code int}. In particular this drops the union/nullable fields the original sketch of this class

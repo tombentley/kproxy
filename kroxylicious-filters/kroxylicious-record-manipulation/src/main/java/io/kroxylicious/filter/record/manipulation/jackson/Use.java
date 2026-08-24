@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation;
+package io.kroxylicious.filter.record.manipulation.jackson;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -22,10 +22,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
-import io.kroxylicious.filter.record.manipulation.config.SchemaConfig;
-import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
-import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
-import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
