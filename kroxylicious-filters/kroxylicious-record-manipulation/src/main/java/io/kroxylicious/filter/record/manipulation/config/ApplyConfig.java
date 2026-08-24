@@ -11,8 +11,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * A single operation appearing in a {@link SchemaConfig}'s {@code apply} list, describing how a value
- * should be masked or generated.
+ * A single operation to be applied, describing how a value should be masked or generated.
  * @param value a fixed replacement/generated value
  * @param choose a set of values to choose a replacement/generated value from
  * @param random configuration for generating a random replacement/generated value
