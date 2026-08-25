@@ -113,7 +113,9 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
     single concrete `Schema.Type` per node, the same simplification JSON's `SchemaConfig.type` currently
     makes for type-unions.
   - Every other Avro type: `map`, `enum`, `fixed`, `bytes`, `boolean`, `long`, `float`, `double`.
-  - Generation and delete/insert, once union/default support exists to make them meaningful.
+  - Generation and delete/insert, once union/default support exists to make them meaningful — or, an
+    alternative to union/default support entirely: see "Divergent output schemas" below, which would make
+    `delete` meaningful without either.
 - **Protobuf** (`protobuf/`): `ProtoFunction.buildMask` masks `message`/`repeated`/`string`/`int32` values,
   built from a `Descriptors.Descriptor` obtained from raw `.proto` IDL text via `ProtoSchemaParser`, which
   reuses `io.apicurio:apicurio-registry-protobuf-schema-utilities` (already a dependency of
@@ -148,7 +150,9 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
     `google.protobuf.Any`/well-known wrapper types, extensions, multi-file `import` (Apicurio's utilities
     support a `dependencies` map for this; unused so far), the newer "Editions" syntax (not supported by
     Apicurio's parser as of this writing).
-  - Delete/insert, once an operation for it exists in `common`.
+  - Delete/insert, once an operation for it exists in `common` — Protobuf's wire format (fields tagged by
+    number, absence already idiomatic) makes "Divergent output schemas" below arguably even less friction
+    here than for Avro.
 - **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
   values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
   `DecryptStringFunction`), plus `Pipeline`, which validates that a list of functions compose and then runs
@@ -157,6 +161,102 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   directly as `Pipeline` stages — `Pipeline` needs each stage's *concrete* generic type to reflect on, which
   a named class reliably provides and a bundled method returning a lambda does not. This is the part of the
   module with the most unit test coverage so far.
+
+## Divergent output schemas
+
+Today, one schema does double duty: it's both the *selector* that drives `buildStructural`'s recursion and
+the *write contract* the masked value must conform to. That's why `delete` is rejected outright for Avro and
+Protobuf (`AvroFunction`/`ProtoFunction`'s `buildStringOp`/`buildIntegerOp`) — removing a required field would
+produce a value that no longer matches the one schema doing both jobs. Splitting those two roles — letting the
+*output* schema differ from the *input* schema — is worth designing towards, for two reasons: it's a more
+direct route to a meaningful `delete` than waiting on Avro union/default support, and it lets a masked view
+hide a field's *existence*, not just its value, which is a materially stronger guarantee for a subject who
+shouldn't know a broader dataset exists at all.
+
+**Per format:**
+
+- **Avro — yes, and it's the natural fit.** Avro binary isn't self-describing; a reader always needs a schema
+  out-of-band (a compile-time `.avsc`, or a registry ID on the wire), and Avro's own schema-resolution
+  algorithm already assumes reader and writer schema can differ, matching fields *by name* (with `aliases`).
+  `GenericDatumWriter` only validates against the schema it's given, not against whatever schema produced the
+  input — so building a fresh `GenericRecord` against an *output* `Schema`, populating each output field from
+  the correspondingly-named input field (or a generator, or omitting it), needs no defaults or unions at all.
+  The blocker today is purely that one `Schema` object is reused for both jobs, not anything about Avro's wire
+  format.
+- **Protobuf — yes, and arguably even more natural.** Protobuf's wire format tags every field with its number,
+  so a message isn't positionally tied to one descriptor the way Avro binary is — the `DynamicMessage`
+  strictness that currently forces `ProtoMessages`/`ProtoFunction` to use the *exact* input `Descriptor` (see
+  the gotcha noted above) is a `DynamicMessage` API restriction, not a wire-format one. Building the output via
+  a fresh `DynamicMessage.Builder` from the *output* `Descriptor`, matching fields **by number** (Protobuf's
+  compatibility model is number-based, unlike Avro's name-based one), makes deleting a field trivial: proto3
+  already treats absence as normal, so there's no "required field must be present" problem to solve.
+- **JSON — the question doesn't really apply the same way.** There's no wire-level write schema for JSON
+  today; `JacksonFunction` already doesn't enforce type preservation ("Pipeline's own composition check is
+  currently vacuous for `apply` chains", above), and delete/insert are already implemented. An "output schema"
+  for JSON would only matter as an optional validation/documentation artifact (e.g. what to register as the
+  topic's JSON Schema afterwards), not as something the write path itself needs to conform to.
+
+**Could the output schema be inferred from Java type information?** Two differently-sized versions of this
+question:
+
+- *General* Java-POJO-to-schema inference (as Avro's own `ReflectData` does) is genuinely ambiguous:
+  nullability (is a nullable field a union with `null`, or non-null?), collection element types, `Map` key
+  types (Avro maps require string keys), enums vs. arbitrary classes, logical types (`LocalDate`/`BigDecimal`
+  need explicit annotations to disambiguate), and reflection field order being unreliable without a pinning
+  annotation. This module doesn't have that problem in the general form, because record data here is never an
+  arbitrary Java POJO — it's `GenericRecord`/`DynamicMessage`/`JsonNode`, already dynamically typed against a
+  schema that's present.
+- *Specific* to this codebase, a much smaller and already-mostly-solved version of the same idea exists:
+  `ContextPipeline` already reflects on each `apply` stage's concrete Java generic type
+  (`GenericTypeReflector`/`functionReturnType`) to validate composition and, optionally, type preservation.
+  Every operation is a named, fixed-type interface (`StringOp`, `IntOp`), so the Java type of a field's *final*
+  `apply`-chain output is already known at build time, for free. A small, closed mapping table (`String` → Avro
+  `string`/proto `string`, `Integer` → `int`/`int32`, and so on — closed because the operation vocabulary in
+  `common` is closed) would let the engine *detect* when a field's `apply` chain changes its type relative to
+  the input schema, and derive an output schema by copying the input schema's fields — in their original
+  order, minus any deleted ones — substituting types only where they diverge. That's a much safer starting
+  point than open-ended Java reflection: deterministic, bounded, and built from machinery that already exists.
+
+**Other considerations, not yet designed for:**
+
+- **Wire schema identity has to be re-established.** Avro binary and registry-based Protobuf both rely on an
+  out-of-band pointer to the exact schema (a Confluent/Apicurio magic-byte-prefixed schema ID, or a header —
+  see `kroxylicious-record-validation`'s `AbstractSchemaBytebufValidator`, which already parses this via
+  Apicurio's `IdHandler`/`HeadersHandler`, for *validation*, not rewriting). If the output schema differs from
+  the one referenced on the wire, that pointer must be rewritten to point at a *registered* output schema, or
+  the consumer will misdecode. This is the real prerequisite work — see "Theme: Schema Registry integration"
+  below.
+- **This is a per-consumer/per-policy concern, not a static one.** The motivating use case — hiding a field's
+  existence from a subject who shouldn't know a broader schema exists — implies the output schema can vary by
+  *who's asking* (see the client-subject-conditional Filter config sketched under "Theme: An actual Filter").
+  That means potentially many output schemas need to be built/registered/cached per input schema, not one,
+  with real hot-path cost implications (no blocking registry calls per record).
+- **Registry compatibility modes can reject this.** If a topic's registry subject has BACKWARD/FORWARD/FULL
+  compatibility configured, registering a schema that drops a field a consumer's reader schema requires
+  (without a default) may simply be refused, or may silently break a consumer's decode. A masked view likely
+  needs its own registry subject (or subject-naming-strategy), distinct from the source data's own evolution
+  history, so masking doesn't pollute the "real" schema's compatibility lineage.
+- **Determinism, if any part of the output schema is derived rather than hand-authored.** Registries key
+  schemas by exact content/fingerprint; a derivation that isn't perfectly stable across restarts (e.g. relying
+  on hash-map iteration order, or Java reflection field order) would register a new schema every restart even
+  when nothing semantically changed. Deriving field order from the *input* schema's own declared order (both
+  engines already build their field mappings via `LinkedHashMap`) rather than from any Java-side reflection
+  sidesteps this.
+- **Field matching strategy differs by format and mustn't be conflated.** Avro resolves reader/writer fields by
+  *name* (with `aliases`); Protobuf's compatibility model is by field *number*. A shared "build output value
+  from output schema + input value" helper can't reuse one matching strategy for both.
+- **Delete is one-way; encrypt/hmac aren't.** The `encrypt`→`decrypt` unmask pattern above needs matching
+  schemas on both legs. If `delete` genuinely drops data rather than hiding it in one view, there's no
+  inverse — worth stating explicitly so it isn't assumed reversible the way encryption is.
+- **Termination.** The proof below rests on the recursion only ever walking one schema's own declared
+  structure. A dual-schema walk needs the same argument re-made for whatever input/output matching strategy is
+  chosen — still trivially true if both schemas are finite and matching is a direct lookup rather than a
+  search, but the proof should say so explicitly rather than silently stop being accurate.
+- **Process implications, once this leaves "experimental."** Nothing here needs a design proposal today, since
+  this module isn't wired into a `Filter` yet. But per the project's API-change rules, once it is, both a new
+  `outputSchema`-shaped filter YAML config surface and any new plugin-facing Java interfaces around output
+  schema construction would count as public API changes requiring the `kroxylicious/design` proposal process —
+  worth flagging now so it isn't a surprise later.
 
 ## Termination
 
@@ -287,6 +387,15 @@ KMS integration (`kroxylicious-kms`) if/when this module needs real key manageme
 - LocalDate, LocalDateTime, LocalTime, ZonedDateTime, Instant, Duration, etc.
 
 ### Theme: Schema Registry integration
+
+The concrete prerequisite for "Divergent output schemas" (above) to work against real Avro/Protobuf traffic:
+- Registering a derived/authored output schema with the registry, and caching the resulting schema ID
+  (must not be a per-record blocking call).
+- Rewriting the wire-visible schema-ID pointer (magic-byte body prefix or header — see
+  `kroxylicious-record-validation`'s `AbstractSchemaBytebufValidator`/Apicurio `IdHandler`/`HeadersHandler` for
+  the existing parsing-side precedent) to point at the registered output schema instead of the input one.
+- Deciding how a masked view's output schema is namespaced in the registry (its own subject/subject-naming
+  strategy) so it doesn't get folded into the source schema's own compatibility-mode evolution history.
 
 ### Theme: Tech debt
 
