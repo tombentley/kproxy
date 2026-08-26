@@ -1,0 +1,37 @@
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.filter.record.manipulation.config;
+
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.kroxylicious.filter.record.manipulation.common.IntOp;
+import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
+import io.kroxylicious.proxy.plugin.Plugin;
+
+/**
+ * Replaces a value with a fixed {@link Integer}. See {@link ValueString} for the equivalent
+ * {@link String} operation.
+ */
+@Plugin(configType = ValueInt.Config.class)
+public class ValueInt implements IntOpFactory {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Configuration for {@link ValueInt}.
+     * @param value the constant value to use
+     */
+    public record Config(int value) {}
+
+    @Override
+    public IntOp create(Map<String, Object> configMap) {
+        Config config = MAPPER.convertValue(configMap, Config.class);
+        return (ignored, context) -> config.value();
+    }
+}
