@@ -6,10 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.math.BigInteger;
 import java.util.function.BiFunction;
 
 /**
- * A single operation on a {@link Float}, given some {@link Context}.
+ * A single operation on an {@link BigInteger}, given some {@link Context}.
  */
-public interface FloatOp extends BiFunction<Float, Context, Float> {
+public interface BigIntegerOp extends BiFunction<BigInteger, Context, BigInteger> {
 }

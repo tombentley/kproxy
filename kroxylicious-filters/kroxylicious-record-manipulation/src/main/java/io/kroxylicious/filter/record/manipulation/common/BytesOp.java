@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.function.BiFunction;
 
 /**
- * A single operation on a {@link Float}, given some {@link Context}.
+ * A single operation on an {@code byte[]}, given some {@link Context}.
  */
-public interface FloatOp extends BiFunction<Float, Context, Float> {
+public interface BytesOp extends BiFunction<byte[], Context, byte[]> {
 }

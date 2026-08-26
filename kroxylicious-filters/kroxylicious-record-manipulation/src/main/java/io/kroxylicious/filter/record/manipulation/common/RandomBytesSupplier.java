@@ -13,9 +13,8 @@ import java.util.function.Function;
  * A provider of strings of a random length composed of
  * codepoints taken at random from a given alphabet.
  */
-public class RandomStringSupplier implements Function<Context, String> {
+public class RandomBytesSupplier implements Function<Context, byte[]> {
 
-    private final String alphabet;
     private final int minLengthInclusive;
     private final int maxLengthExclusive;
 
@@ -23,31 +22,26 @@ public class RandomStringSupplier implements Function<Context, String> {
      * A provider of strings of a random length
      * between {@code minLengthInclusive} and {@code maxLengthExclusive} composed of
      * codepoints taken at random from the given {@code alphabet}
-     * @param alphabet The codepoints to pick from
      * @param minLengthInclusive The minimum length of the string (inclusive)
      * @param maxLengthExclusive The maximum length of the string (exclusive)
      */
-    public RandomStringSupplier(String alphabet, int minLengthInclusive, int maxLengthExclusive) {
+    public RandomBytesSupplier(int minLengthInclusive, int maxLengthExclusive) {
         if (minLengthInclusive < 0) {
             throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be >= 0");
         }
         if (minLengthInclusive >= maxLengthExclusive) {
             throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be < maxLengthExclusive (" + maxLengthExclusive + ")");
         }
-        this.alphabet = alphabet;
         this.minLengthInclusive = minLengthInclusive;
         this.maxLengthExclusive = maxLengthExclusive;
     }
 
     @Override
-    public String apply(Context context) {
+    public byte[] apply(Context context) {
         Random prng = context.random();
-        var codePoints = alphabet.codePoints().toArray();
         var length = prng.nextInt(minLengthInclusive, maxLengthExclusive);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            sb.appendCodePoint(codePoints[prng.nextInt(alphabet.length())]);
-        }
-        return sb.toString();
+        byte[] bytes = new byte[length];
+        prng.nextBytes(bytes);
+        return bytes;
     }
 }

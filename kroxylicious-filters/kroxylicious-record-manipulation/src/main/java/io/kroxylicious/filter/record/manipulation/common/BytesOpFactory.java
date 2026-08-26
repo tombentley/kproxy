@@ -6,10 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.BiFunction;
-
 /**
- * A single operation on a {@link Float}, given some {@link Context}.
+ * An {@link OpFactory} that builds an {@link BytesOp}.
  */
-public interface FloatOp extends BiFunction<Float, Context, Float> {
+public interface BytesOpFactory extends OpFactory<BytesOp> {
 }

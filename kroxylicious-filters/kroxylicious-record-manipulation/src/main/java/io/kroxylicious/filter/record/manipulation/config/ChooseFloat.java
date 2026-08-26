@@ -18,8 +18,7 @@ import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Generates a random {@link Float} drawn from a fixed set. See {@link ChooseString} for the equivalent
- * {@link String} operation.
+ * Generates a random {@link Float} drawn from a fixed set.
  */
 @Plugin(configType = ChooseFloat.Config.class)
 public class ChooseFloat implements FloatOpFactory {

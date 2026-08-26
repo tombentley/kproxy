@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.config;
 
 import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.BytesOp;
+import io.kroxylicious.filter.record.manipulation.common.BytesOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.FloatOp;
@@ -49,6 +51,17 @@ public final class OpConfigs {
      */
     public static StringOp resolveStringOp(OpConfig op, PluginLookup lookup) {
         StringOpFactory factory = lookup.pluginInstance(StringOpFactory.class, op.op());
+        return factory.create(op.config());
+    }
+
+    /**
+     * Resolves {@code op} to a {@link BytesOpFactory} and builds its operation.
+     * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param lookup the plugin lookup to resolve {@code op}'s name against
+     * @return the built operation
+     */
+    public static BytesOp resolveBytesOp(OpConfig op, PluginLookup lookup) {
+        BytesOpFactory factory = lookup.pluginInstance(BytesOpFactory.class, op.op());
         return factory.create(op.config());
     }
 
