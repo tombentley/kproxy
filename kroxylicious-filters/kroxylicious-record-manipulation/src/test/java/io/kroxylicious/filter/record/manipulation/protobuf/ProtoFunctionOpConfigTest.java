@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Proves {@link ProtoFunction#buildIntegerOp(OpConfig, PluginLookup)} resolves a pluggable operation by
  * name and produces a working, composable {@link IntOp} - the same resolution
- * {@link ProtoFunction#buildApplyChain} uses for every field's {@code apply} list.
+ * {@code ProtoFunction#buildApplyChain(Descriptors.FieldDescriptor, List, Set, PluginLookup)} uses for every field's {@code apply} list.
  */
 class ProtoFunctionOpConfigTest {
 
@@ -67,7 +67,7 @@ class ProtoFunctionOpConfigTest {
         OpConfig op = new OpConfig("RandomInt", Map.of("minInclusive", 5, "maxExclusive", 6));
         IntOp built = ProtoFunction.buildIntegerOp(op, LOOKUP);
         IntOp addOne = (value, context) -> value + 1;
-        ContextPipeline pipeline = new ContextPipeline(List.<BiFunction<?, Context, ?>> of(built, addOne));
+        ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(List.<BiFunction<?, Context, ?>> of(built, addOne));
 
         // When
         int result = pipeline.apply(0, contextWithSeed(0));

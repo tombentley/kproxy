@@ -37,6 +37,8 @@ import io.kroxylicious.filter.record.manipulation.common.StringOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link SchemaConfig} tree - or, invoked with
  * {@link MissingNode#getInstance()} as the input, a generator: root/whole-record generation is simply this
@@ -179,32 +181,30 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
                                                    PluginLookup lookup) {
         return switch (type) {
             case "boolean" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildBooleanOp(op, lookup)).toList();
-                ContextPipeline<Boolean, Boolean> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildBooleanOp);
                 yield (node, context) -> {
                     Boolean result = pipeline.apply(node.isMissingNode() ? null : node.asBoolean(), context);
                     return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
                 };
             }
             case "integer" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
-                ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(fns, requirements);
+                // TODO need to handle short, long and BigInteger
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildIntegerOp);
                 yield (node, context) -> {
                     Integer result = pipeline.apply(node.isMissingNode() ? null : node.asInt(), context);
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
                 };
             }
             case "number" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildDoubleOp(op, lookup)).toList();
-                ContextPipeline<Double, Double> pipeline = new ContextPipeline<>(fns, requirements);
+                // TODO need to handle float and BigDecimal
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildDoubleOp);
                 yield (node, context) -> {
                     Double result = pipeline.apply(node.isMissingNode() ? null : node.asDouble(), context);
                     return result == null ? MissingNode.getInstance() : new DoubleNode(result);
                 };
             }
             case "string" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
-                ContextPipeline<String, String> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildStringOp);
                 yield (node, context) -> {
                     String result = pipeline.apply(node.isMissingNode() ? null : node.asText(), context);
                     return result == null ? MissingNode.getInstance() : new TextNode(result);
@@ -213,6 +213,15 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
 
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);
         };
+    }
+
+    @NonNull
+    private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
+                                                                Set<Requirement> requirements,
+                                                                PluginLookup lookup,
+                                                                BiFunction<OpConfig, PluginLookup, BiFunction<T, Context, R>> ffn) {
+        List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> ffn.apply(op, lookup)).toList();
+        return new ContextPipeline<>(fns, requirements);
     }
 
     /**
