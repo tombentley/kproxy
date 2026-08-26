@@ -16,15 +16,20 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
+import io.kroxylicious.filter.record.manipulation.common.LongOp;
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
@@ -51,7 +56,8 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
      *         {@link Context}
      */
-    static JacksonFunction buildMask(SchemaConfig schema, PluginLookup lookup) {
+    static JacksonFunction buildMask(SchemaConfig schema,
+                                     PluginLookup lookup) {
         return buildMask(schema, Set.of(), lookup);
     }
 
@@ -63,7 +69,9 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
      *         {@link Context}
      */
-    static JacksonFunction buildMask(SchemaConfig schema, Set<Requirement> requirements, PluginLookup lookup) {
+    static JacksonFunction buildMask(SchemaConfig schema,
+                                     Set<Requirement> requirements,
+                                     PluginLookup lookup) {
         JacksonFunction structural = buildStructural(schema, requirements, lookup);
         if (schema.apply() == null) {
             return structural;
@@ -117,7 +125,9 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * leaving leaves untouched. This runs before the node's own {@code apply} chain (if any), so {@code apply}
      * always sees the already-masked children.
      */
-    private static JacksonFunction buildStructural(SchemaConfig schema, Set<Requirement> requirements, PluginLookup lookup) {
+    private static JacksonFunction buildStructural(SchemaConfig schema,
+                                                   Set<Requirement> requirements,
+                                                   PluginLookup lookup) {
         return switch (schema.type()) {
             case "array" -> {
                 if (schema.items() != null) {
@@ -163,14 +173,17 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * op-level {@code delete} produces it; a transformer passes an incoming {@code null} straight through) -
      * translated to/from {@link MissingNode} only at this method's boundary, never leaking further.
      */
-    private static JacksonFunction buildApplyChain(String type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
+    private static JacksonFunction buildApplyChain(String type,
+                                                   List<OpConfig> ops,
+                                                   Set<Requirement> requirements,
+                                                   PluginLookup lookup) {
         return switch (type) {
-            case "string" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
+            case "boolean" -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildBooleanOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (node, context) -> {
-                    String result = pipeline.<String, String> apply(node.isMissingNode() ? null : node.asText(), context);
-                    return result == null ? MissingNode.getInstance() : new TextNode(result);
+                    Boolean result = pipeline.<Boolean, Boolean> apply(node.isMissingNode() ? null : node.asBoolean(), context);
+                    return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
                 };
             }
             case "integer" -> {
@@ -181,6 +194,23 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
                 };
             }
+            case "number" -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildDoubleOp(op, lookup)).toList();
+                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                yield (node, context) -> {
+                    Double result = pipeline.<Double, Double> apply(node.isMissingNode() ? null : node.asDouble(), context);
+                    return result == null ? MissingNode.getInstance() : new DoubleNode(result);
+                };
+            }
+            case "string" -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
+                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                yield (node, context) -> {
+                    String result = pipeline.<String, String> apply(node.isMissingNode() ? null : node.asText(), context);
+                    return result == null ? MissingNode.getInstance() : new TextNode(result);
+                };
+            }
+
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);
         };
     }
@@ -199,6 +229,16 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
     }
 
     /**
+     * The {@link BooleanOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static BooleanOp buildBooleanOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            return (value, context) -> null;
+        }
+        return OpConfigs.resolveBooleanOp(op, lookup);
+    }
+
+    /**
      * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
      */
     private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
@@ -206,5 +246,25 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
             return (value, context) -> null;
         }
         return OpConfigs.resolveIntOp(op, lookup);
+    }
+
+    /**
+     * The {@link LongOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static LongOp buildLongOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            return (value, context) -> null;
+        }
+        return OpConfigs.resolveLongOp(op, lookup);
+    }
+
+    /**
+     * The {@link DoubleOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static DoubleOp buildDoubleOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            return (value, context) -> null;
+        }
+        return OpConfigs.resolveDoubleOp(op, lookup);
     }
 }

@@ -10,29 +10,27 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Integer}. See {@link ValueString} for the equivalent
  * {@link String} operation.
  */
-@Plugin(configType = ValueLong.Config.class)
-public class ValueLong implements LongOpFactory {
+@Plugin(configType = ValueDouble.Config.class)
+public class ValueDouble implements DoubleOpFactory {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
-     * Configuration for {@link ValueLong}.
+     * Configuration for {@link ValueDouble}.
      * @param value the constant value to use
      */
-    public record Config(long value) {}
+    public record Config(double value) {}
 
     @Override
-    public LongOp create(Map<String, Object> configMap) {
+    public DoubleOp create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         return (ignored, context) -> config.value();
     }

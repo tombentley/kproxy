@@ -12,30 +12,30 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.ChooseLongSupplier;
+import io.kroxylicious.filter.record.manipulation.common.LongOp;
+import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Integer} drawn from a fixed set. See {@link ChooseString} for the equivalent
  * {@link String} operation.
  */
-@Plugin(configType = ChooseInt.Config.class)
-public class ChooseInt implements IntOpFactory {
+@Plugin(configType = ChooseLong.Config.class)
+public class ChooseLong implements LongOpFactory {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
-     * Configuration for {@link ChooseInt}.
+     * Configuration for {@link ChooseLong}.
      * @param from the set of values to choose from
      */
-    public record Config(List<Integer> from) {}
+    public record Config(List<Long> from) {}
 
     @Override
-    public IntOp create(Map<String, Object> configMap) {
+    public LongOp create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        var generator = new ChooseIntSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.applyAsInt(context);
+        var generator = new ChooseLongSupplier(new HashSet<>(config.from()));
+        return (ignored, context) -> generator.applyAsLong(context);
     }
 }
