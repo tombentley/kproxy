@@ -28,26 +28,26 @@ class ContextPipelineTest {
     @Test
     void emptyPipelineComposes() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline(List.of())).doesNotThrowAnyException();
+        assertThatCode(() -> new ContextPipeline<>(List.of())).doesNotThrowAnyException();
     }
 
     @Test
     void singleFunctionPipelineComposes() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline(List.of(new StringLength()))).doesNotThrowAnyException();
+        assertThatCode(() -> new ContextPipeline<>(List.of(new StringLength()))).doesNotThrowAnyException();
     }
 
     @Test
     void compatibleReturnAndParameterTypesCompose() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline(List.of(new StringLength(), new IntegerToString())))
+        assertThatCode(() -> new ContextPipeline<>(List.of(new StringLength(), new IntegerToString())))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void incompatibleReturnAndParameterTypesDoNotCompose() {
         // Given/When/Then
-        assertThatThrownBy(() -> new ContextPipeline(List.of(new StringLength(), new DoubleToString())))
+        assertThatThrownBy(() -> new ContextPipeline<>(List.of(new StringLength(), new DoubleToString())))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("do not compose");
     }
@@ -55,7 +55,7 @@ class ContextPipelineTest {
     @Test
     void appliesFunctionsInOrderThreadingTheSameContext() {
         // Given
-        ContextPipeline pipeline = new ContextPipeline(List.of(new StringLength(), new IntegerToString()));
+        ContextPipeline<String, String> pipeline = new ContextPipeline<>(List.of(new StringLength(), new IntegerToString()));
 
         // When
         String result = pipeline.apply("hello", CONTEXT);
@@ -67,7 +67,7 @@ class ContextPipelineTest {
     @Test
     void typePreservingChainSatisfiesTheRequirement() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline(List.of(new AppendExclamation(), new AppendExclamation()), Set.of(Requirement.TYPE_PRESERVING)))
+        assertThatCode(() -> new ContextPipeline<>(List.of(new AppendExclamation(), new AppendExclamation()), Set.of(Requirement.TYPE_PRESERVING)))
                 .doesNotThrowAnyException();
     }
 
@@ -77,8 +77,8 @@ class ContextPipelineTest {
         List<BiFunction<?, Context, ?>> ops = List.of(new StringLength(), new IntegerToString(), new StringLength());
 
         // When/Then
-        assertThatCode(() -> new ContextPipeline(ops)).doesNotThrowAnyException();
-        assertThatThrownBy(() -> new ContextPipeline(ops, Set.of(Requirement.TYPE_PRESERVING)))
+        assertThatCode(() -> new ContextPipeline<>(ops)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> new ContextPipeline<>(ops, Set.of(Requirement.TYPE_PRESERVING)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("not type-preserving");
     }

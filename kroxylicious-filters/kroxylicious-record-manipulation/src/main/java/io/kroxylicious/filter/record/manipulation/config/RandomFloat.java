@@ -1,0 +1,41 @@
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.filter.record.manipulation.config;
+
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.kroxylicious.filter.record.manipulation.common.FloatOp;
+import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.RandomFloatSupplier;
+import io.kroxylicious.proxy.plugin.Plugin;
+
+/**
+ * Generates a random {@link Integer} drawn from a range. See {@link RandomString} for the equivalent
+ * {@link String} operation - the two are separate plugins, each with its own disjoint configuration,
+ * rather than one plugin handling both types.
+ */
+@Plugin(configType = RandomFloat.Config.class)
+public class RandomFloat implements FloatOpFactory {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Configuration for {@link RandomFloat}.
+     * @param minInclusive the minimum value (inclusive)
+     * @param maxExclusive the maximum value (exclusive)
+     */
+    public record Config(float minInclusive, float maxExclusive) {}
+
+    @Override
+    public FloatOp create(Map<String, Object> configMap) {
+        Config config = MAPPER.convertValue(configMap, Config.class);
+        var generator = new RandomFloatSupplier(config.minInclusive(), config.maxExclusive());
+        return (ignored, context) -> generator.apply(context);
+    }
+}
