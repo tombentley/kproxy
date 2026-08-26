@@ -7,6 +7,7 @@
 package io.kroxylicious.filter.record.manipulation;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -25,6 +26,7 @@ import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.RandomBytesSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
@@ -100,6 +102,22 @@ class AvroMaskPipelineTest {
             ]}
             """;
 
+    private static final String VALUE_BYTES_SCHEMA_JSON = """
+            {"type": "record", "name": "User", "fields": [
+                {"name": "token", "type": "bytes", "apply": [
+                    {"op": "ValueBytes", "value": "aGVsbG8="}
+                ]}
+            ]}
+            """;
+
+    private static final String RANDOM_BYTES_SCHEMA_JSON = """
+            {"type": "record", "name": "User", "fields": [
+                {"name": "token", "type": "bytes", "apply": [
+                    {"op": "RandomBytes", "minLengthInclusive": 3, "maxLengthExclusive": 15}
+                ]}
+            ]}
+            """;
+
     private static final String DELETE_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
                 {"name": "firstName", "type": "string", "apply": [
@@ -110,7 +128,7 @@ class AvroMaskPipelineTest {
 
     private static final String UNSUPPORTED_TYPE_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
-                {"name": "id", "type": "long"}
+                {"name": "id", "type": {"type": "map", "values": "string"}}
             ]}
             """;
 
@@ -270,6 +288,35 @@ class AvroMaskPipelineTest {
         // Then
         String expected = new RandomStringSupplier("abcdefghijklmnopqrstuvwxyz", 3, 15).apply(contextWithSeed(SEED));
         assertThat(((List<?>) masked.get("aliases")).get(0)).isInstanceOf(Utf8.class).hasToString(expected);
+    }
+
+    @Test
+    void applyValueReplacesABytesFieldWithAFixedValue() {
+        // Given
+        Schema schema = schema(VALUE_BYTES_SCHEMA_JSON);
+        GenericRecord data = new GenericData.Record(schema);
+        data.put("token", ByteBuffer.wrap("world".getBytes(StandardCharsets.UTF_8)));
+
+        // When
+        GenericRecord masked = mask(data, schema, contextWithSeed(SEED));
+
+        // Then
+        assertThat(masked.get("token")).isEqualTo(ByteBuffer.wrap("hello".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void applyRandomGeneratesADeterministicBytesArrayWithASeededContext() {
+        // Given
+        Schema schema = schema(RANDOM_BYTES_SCHEMA_JSON);
+        GenericRecord data = new GenericData.Record(schema);
+        data.put("token", ByteBuffer.wrap(new byte[0]));
+
+        // When
+        GenericRecord masked = mask(data, schema, contextWithSeed(SEED));
+
+        // Then
+        byte[] expected = new RandomBytesSupplier(3, 15).apply(contextWithSeed(SEED));
+        assertThat(masked.get("token")).isEqualTo(ByteBuffer.wrap(expected));
     }
 
     @Test

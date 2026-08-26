@@ -13,6 +13,7 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
@@ -21,6 +22,7 @@ import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.RandomBytesSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
@@ -91,6 +93,20 @@ class ProtoMaskPipelineTest {
             }
             """;
 
+    private static final String VALUE_BYTES_SCHEMA_PROTO = """
+            syntax = "proto3";
+            message User {
+                bytes token = 1 [(apply) = { op: "ValueBytes", value: "aGVsbG8=" }];
+            }
+            """;
+
+    private static final String RANDOM_BYTES_SCHEMA_PROTO = """
+            syntax = "proto3";
+            message User {
+                bytes token = 1 [(apply) = { op: "RandomBytes", minLengthInclusive: 3, maxLengthExclusive: 15 }];
+            }
+            """;
+
     private static final String DELETE_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
@@ -101,7 +117,7 @@ class ProtoMaskPipelineTest {
     private static final String UNSUPPORTED_TYPE_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
-                int64 id = 1;
+                uint32 id = 1;
             }
             """;
 
@@ -271,6 +287,37 @@ class ProtoMaskPipelineTest {
         @SuppressWarnings("unchecked")
         List<Object> aliases = (List<Object>) masked.getField(schema.descriptor().findFieldByName("aliases"));
         assertThat(aliases).containsExactly(expected);
+    }
+
+    @Test
+    void applyValueReplacesABytesFieldWithAFixedValue() {
+        // Given
+        ParsedProtoSchema schema = schema(VALUE_BYTES_SCHEMA_PROTO);
+        DynamicMessage data = DynamicMessage.newBuilder(schema.descriptor())
+                .setField(schema.descriptor().findFieldByName("token"), ByteString.copyFromUtf8("world"))
+                .build();
+
+        // When
+        DynamicMessage masked = mask(data, schema, contextWithSeed(SEED));
+
+        // Then
+        assertThat(masked.getField(schema.descriptor().findFieldByName("token"))).isEqualTo(ByteString.copyFromUtf8("hello"));
+    }
+
+    @Test
+    void applyRandomGeneratesADeterministicBytesArrayWithASeededContext() {
+        // Given
+        ParsedProtoSchema schema = schema(RANDOM_BYTES_SCHEMA_PROTO);
+        DynamicMessage data = DynamicMessage.newBuilder(schema.descriptor())
+                .setField(schema.descriptor().findFieldByName("token"), ByteString.EMPTY)
+                .build();
+
+        // When
+        DynamicMessage masked = mask(data, schema, contextWithSeed(SEED));
+
+        // Then
+        byte[] expected = new RandomBytesSupplier(3, 15).apply(contextWithSeed(SEED));
+        assertThat(masked.getField(schema.descriptor().findFieldByName("token"))).isEqualTo(ByteString.copyFrom(expected));
     }
 
     @Test

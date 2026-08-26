@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
@@ -186,7 +187,7 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
                                                       Set<Requirement> requirements, PluginLookup lookup) {
         return switch (field.getType()) {
             case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
-            case STRING, INT32 -> (value, context) -> value;
+            case STRING, INT32, INT64, FLOAT, DOUBLE, BOOL, BYTES -> (value, context) -> value;
             default -> throw new IllegalArgumentException("Proto mask not yet supported for field type: " + field.getType());
         };
     }
@@ -230,7 +231,12 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
             }
             case BYTES -> {
                 ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBytesOp);
-                yield (value, context) -> pipeline.apply(value == null ? null : (byte[]) value, context);
+                yield (value, context) -> {
+                    // call toByteArray() because value is a ByteString, not a byte[]
+                    byte[] input = value == null ? null : ((ByteString) value).toByteArray();
+                    byte[] result = pipeline.apply(input, context);
+                    return result == null ? null : ByteString.copyFrom(result);
+                };
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for field type: " + field.getType());
         };
