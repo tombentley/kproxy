@@ -6,11 +6,13 @@
 
 package io.kroxylicious.filter.record.manipulation.protobuf;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.Descriptors;
 
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,7 +44,7 @@ class ProtoSchemaParserTest {
         String proto = """
                 syntax = "proto3";
                 message User {
-                    string first_name = 1 [(apply) = { value: "REDACTED" }];
+                    string first_name = 1 [(apply) = { op: "ValueString", value: "REDACTED" }];
                 }
                 """;
 
@@ -51,7 +53,7 @@ class ProtoSchemaParserTest {
 
         // Then
         Descriptors.FieldDescriptor firstName = schema.descriptor().findFieldByName("first_name");
-        assertThat(schema.apply().get(firstName)).containsExactly(new ApplyConfig(textNode("REDACTED"), null, null, null, null, null, null));
+        assertThat(schema.apply().get(firstName)).containsExactly(new OpConfig("ValueString", Map.of("value", "REDACTED")));
     }
 
     @Test
@@ -60,7 +62,7 @@ class ProtoSchemaParserTest {
         String proto = """
                 syntax = "proto3";
                 message User {
-                    string city = 1 [(apply) = { hmac: { keyId: "FOO" } }, (apply) = { encrypt: { keyId: "FOO" } }];
+                    string city = 1 [(apply) = { op: "HmacString", keyId: "FOO" }, (apply) = { op: "EncryptString", keyId: "FOO" }];
                 }
                 """;
 
@@ -70,8 +72,8 @@ class ProtoSchemaParserTest {
         // Then
         Descriptors.FieldDescriptor city = schema.descriptor().findFieldByName("city");
         assertThat(schema.apply().get(city)).hasSize(2);
-        assertThat(schema.apply().get(city).get(0).hmac()).isNotNull();
-        assertThat(schema.apply().get(city).get(1).encrypt()).isNotNull();
+        assertThat(schema.apply().get(city).get(0).op()).isEqualTo("HmacString");
+        assertThat(schema.apply().get(city).get(1).op()).isEqualTo("EncryptString");
     }
 
     @Test
@@ -81,7 +83,7 @@ class ProtoSchemaParserTest {
                 syntax = "proto3";
                 message User {
                     message Address {
-                        string city = 1 [(apply) = { value: "REDACTED" }];
+                        string city = 1 [(apply) = { op: "ValueString", value: "REDACTED" }];
                     }
                     Address address = 1;
                 }
@@ -107,9 +109,5 @@ class ProtoSchemaParserTest {
 
         // When/Then
         assertThatThrownBy(() -> ProtoSchemaParser.parse(proto, "DoesNotExist")).isInstanceOf(RuntimeException.class);
-    }
-
-    private static com.fasterxml.jackson.databind.JsonNode textNode(String value) {
-        return com.fasterxml.jackson.databind.node.TextNode.valueOf(value);
     }
 }

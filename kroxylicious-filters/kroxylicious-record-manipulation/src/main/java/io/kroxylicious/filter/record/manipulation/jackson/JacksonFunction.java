@@ -22,20 +22,15 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DecryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
-import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link SchemaConfig} tree - or, invoked with
@@ -43,8 +38,8 @@ import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
  * same traversal started from nothing instead of a real value, rather than a separate code path.
  * <p>
  * This is declared as its own interface (rather than using {@code BiFunction<JsonNode, Context, JsonNode>}
- * directly) so that instances built by {@link #buildMask(SchemaConfig)} carry a fixed, reflectable generic
- * signature - see {@link ContextPipeline} for why that matters.
+ * directly) so that instances built by {@link #buildMask(SchemaConfig, PluginLookup)} carry a fixed,
+ * reflectable generic signature - see {@link ContextPipeline} for why that matters.
  */
 public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode> {
 
@@ -52,26 +47,28 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * Builds a mask/generator function from a {@link SchemaConfig} tree, with no additional requirement
      * beyond each field's {@code apply} chain composing.
      * @param schema the schema tree, annotated with {@code apply} chains
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
      *         {@link Context}
      */
-    static JacksonFunction buildMask(SchemaConfig schema) {
-        return buildMask(schema, Set.of());
+    static JacksonFunction buildMask(SchemaConfig schema, PluginLookup lookup) {
+        return buildMask(schema, Set.of(), lookup);
     }
 
     /**
      * Builds a mask/generator function from a {@link SchemaConfig} tree.
      * @param schema the schema tree, annotated with {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
      *         {@link Context}
      */
-    static JacksonFunction buildMask(SchemaConfig schema, Set<Requirement> requirements) {
-        JacksonFunction structural = buildStructural(schema, requirements);
+    static JacksonFunction buildMask(SchemaConfig schema, Set<Requirement> requirements, PluginLookup lookup) {
+        JacksonFunction structural = buildStructural(schema, requirements, lookup);
         if (schema.apply() == null) {
             return structural;
         }
-        JacksonFunction ownApply = buildApplyChain(schema.type(), schema.apply(), requirements);
+        JacksonFunction ownApply = buildApplyChain(schema.type(), schema.apply(), requirements, lookup);
         return (node, context) -> ownApply.apply(structural.apply(node, context), context);
     }
 
@@ -120,11 +117,11 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * leaving leaves untouched. This runs before the node's own {@code apply} chain (if any), so {@code apply}
      * always sees the already-masked children.
      */
-    private static JacksonFunction buildStructural(SchemaConfig schema, Set<Requirement> requirements) {
+    private static JacksonFunction buildStructural(SchemaConfig schema, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (schema.type()) {
             case "array" -> {
                 if (schema.items() != null) {
-                    var fn = ArrayNodes.items(buildMask(schema.items(), requirements));
+                    var fn = ArrayNodes.items(buildMask(schema.items(), requirements, lookup));
                     // No speculative materialization for arrays: items() maps whatever elements already
                     // exist, and there's no concept of synthesizing new elements from nothing yet.
                     yield (node, context) -> node.isMissingNode() ? node : fn.apply((ArrayNode) node, context);
@@ -136,7 +133,7 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
             case "object" -> {
                 if (schema.properties() != null) {
                     Map<String, BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>>> mapping = schema.properties().entrySet().stream()
-                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), requirements).asMaybe(), (a, b) -> a, LinkedHashMap::new));
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> buildMask(e.getValue(), requirements, lookup).asMaybe(), (a, b) -> a, LinkedHashMap::new));
                     var fn = new ObjectNodes(JsonNodeFactory.instance).mapProperties(mapping);
                     // Speculatively recurse into a fresh empty object even when this node itself is
                     // missing, so a generator-shaped apply chain on a declared child (at any depth) still
@@ -166,10 +163,10 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
      * op-level {@code delete} produces it; a transformer passes an incoming {@code null} straight through) -
      * translated to/from {@link MissingNode} only at this method's boundary, never leaking further.
      */
-    private static JacksonFunction buildApplyChain(String type, List<ApplyConfig> ops, Set<Requirement> requirements) {
+    private static JacksonFunction buildApplyChain(String type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (type) {
             case "string" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(JacksonFunction::buildStringOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (node, context) -> {
                     String result = pipeline.<String, String> apply(node.isMissingNode() ? null : node.asText(), context);
@@ -177,7 +174,7 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
                 };
             }
             case "integer" -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(JacksonFunction::buildIntegerOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (node, context) -> {
                     Integer result = pipeline.<Integer, Integer> apply(node.isMissingNode() ? null : node.asInt(), context);
@@ -188,62 +185,26 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
         };
     }
 
-    private static StringOp buildStringOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+    /**
+     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * here (rather than resolved via {@code lookup}) since Jackson can represent "this property is absent"
+     * ({@link MissingNode}), unlike Avro/Protobuf (see {@code AvroFunction}/{@code ProtoFunction}'s
+     * equivalents, which reject it instead).
+     */
+    private static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             return (value, context) -> null;
         }
-        else if (op.value() != null) {
-            String constant = op.value().textValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomStringSupplier(op.random().alphabet(), op.random().minLength(), op.random().maxLength());
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.choose() != null) {
-            Set<String> from = op.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-            var generator = new ChooseStringSupplier(from);
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.hmac() != null) {
-            var fn = new HmacStringFunction();
-            // hmac/encrypt/decrypt are transformers requiring a real prior value, unlike the generators
-            // above (which already ignore their input unconditionally): a null input means "there is
-            // nothing here to transform", so pass it straight through rather than crashing on it.
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.encrypt() != null) {
-            var fn = new EncryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.decrypt() != null) {
-            var fn = new DecryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveStringOp(op, lookup);
     }
 
-    private static IntOp buildIntegerOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+    /**
+     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             return (value, context) -> null;
         }
-        else if (op.value() != null) {
-            int constant = op.value().intValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomIntSupplier(op.random().min(), op.random().max());
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else if (op.choose() != null) {
-            Set<Integer> from = op.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-            var generator = new ChooseIntSupplier(from);
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveIntOp(op, lookup);
     }
 }

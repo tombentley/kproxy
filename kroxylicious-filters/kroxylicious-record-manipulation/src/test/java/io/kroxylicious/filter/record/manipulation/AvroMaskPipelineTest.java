@@ -24,8 +24,10 @@ import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -46,15 +48,15 @@ class AvroMaskPipelineTest {
     private static final String MASK_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
                 {"name": "firstName", "type": "string", "apply": [
-                    {"value": "REDACTED"}
+                    {"op": "ValueString", "value": "REDACTED"}
                 ]},
                 {"name": "surname", "type": "string"},
                 {"name": "address", "type": {"type": "record", "name": "Address", "fields": [
                     {"name": "streetAddress", "type": "string", "apply": [
-                        {"hmac": {"keyId": "FOO"}}
+                        {"op": "HmacString", "keyId": "FOO"}
                     ]},
                     {"name": "city", "type": "string", "apply": [
-                        {"encrypt": {"keyId": "FOO"}}
+                        {"op": "EncryptString", "keyId": "FOO"}
                     ]}
                 ]}}
             ]}
@@ -64,8 +66,8 @@ class AvroMaskPipelineTest {
             {"type": "record", "name": "User", "fields": [
                 {"name": "address", "type": {"type": "record", "name": "Address", "fields": [
                     {"name": "city", "type": "string", "apply": [
-                        {"encrypt": {"keyId": "FOO"}},
-                        {"hmac": {"keyId": "FOO"}}
+                        {"op": "EncryptString", "keyId": "FOO"},
+                        {"op": "HmacString", "keyId": "FOO"}
                     ]}
                 ]}}
             ]}
@@ -75,8 +77,8 @@ class AvroMaskPipelineTest {
             {"type": "record", "name": "User", "fields": [
                 {"name": "address", "type": {"type": "record", "name": "Address", "fields": [
                     {"name": "city", "type": "string", "apply": [
-                        {"hmac": {"keyId": "FOO"}},
-                        {"encrypt": {"keyId": "FOO"}}
+                        {"op": "HmacString", "keyId": "FOO"},
+                        {"op": "EncryptString", "keyId": "FOO"}
                     ]}
                 ]}}
             ]}
@@ -85,7 +87,7 @@ class AvroMaskPipelineTest {
     private static final String RANDOM_INT_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
                 {"name": "ageYears", "type": "int", "apply": [
-                    {"random": {"min": 18, "max": 100}}
+                    {"op": "RandomInt", "minInclusive": 18, "maxExclusive": 100}
                 ]}
             ]}
             """;
@@ -93,7 +95,7 @@ class AvroMaskPipelineTest {
     private static final String RANDOM_STRING_ARRAY_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
                 {"name": "aliases", "type": {"type": "array", "items": {"type": "string", "apply": [
-                    {"random": {"alphabet": "abcdefghijklmnopqrstuvwxyz", "minLength": 3, "maxLength": 15}}
+                    {"op": "RandomString", "alphabet": "abcdefghijklmnopqrstuvwxyz", "minLengthInclusive": 3, "maxLengthExclusive": 15}
                 ]}}}
             ]}
             """;
@@ -101,7 +103,7 @@ class AvroMaskPipelineTest {
     private static final String DELETE_SCHEMA_JSON = """
             {"type": "record", "name": "User", "fields": [
                 {"name": "firstName", "type": "string", "apply": [
-                    {"delete": true}
+                    {"op": "Delete"}
                 ]}
             ]}
             """;
@@ -118,6 +120,8 @@ class AvroMaskPipelineTest {
     /** Matches the (currently hard-coded) key {@code AvroUse} uses for hmac/encrypt/decrypt. */
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
+
     private static Context contextWithSeed(long seed) {
         return new Context(new Random(seed), KEY);
     }
@@ -129,7 +133,7 @@ class AvroMaskPipelineTest {
     private static GenericRecord mask(GenericRecord record, Schema schema, Context context) {
         Function<ByteBuffer, GenericRecord> deserializer = new AvroBinaryDeserializer(schema);
         Function<GenericRecord, ByteBuffer> serializer = new AvroBinarySerializer(schema);
-        Pipeline pipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(schema).bindRecord(context), serializer));
+        Pipeline pipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(schema, LOOKUP).bindRecord(context), serializer));
         return deserializer.apply(pipeline.apply(serializer.apply(record)));
     }
 
@@ -183,7 +187,7 @@ class AvroMaskPipelineTest {
     void maskThenUnmaskPipelineRoundTripsTheEncryptedFieldButNotTheHmacedField() {
         // Given
         Schema maskSchema = schema(MASK_SCHEMA_JSON);
-        Schema unmaskSchema = schema(MASK_SCHEMA_JSON.replace("encrypt", "decrypt"));
+        Schema unmaskSchema = schema(MASK_SCHEMA_JSON.replace("EncryptString", "DecryptString"));
         GenericRecord data = userWithAddress(maskSchema, "Hogwarts", "Hogsmead");
 
         // When
@@ -274,7 +278,7 @@ class AvroMaskPipelineTest {
         Schema schema = schema(DELETE_SCHEMA_JSON);
 
         // When/Then
-        assertThatThrownBy(() -> AvroFunction.buildMask(schema)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> AvroFunction.buildMask(schema, LOOKUP)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -283,7 +287,7 @@ class AvroMaskPipelineTest {
         Schema schema = schema(UNSUPPORTED_TYPE_SCHEMA_JSON);
 
         // When/Then
-        assertThatThrownBy(() -> AvroFunction.buildMask(schema)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> AvroFunction.buildMask(schema, LOOKUP)).isInstanceOf(IllegalArgumentException.class);
     }
 
 }

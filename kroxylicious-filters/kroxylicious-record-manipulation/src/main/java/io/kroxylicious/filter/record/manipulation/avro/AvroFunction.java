@@ -17,19 +17,14 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DecryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
 /**
  * A mask/transform over an Avro generic value (a {@link GenericRecord}, a {@link java.util.List} for an
@@ -52,25 +47,27 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
      * Builds a mask function from a {@link Schema} tree, with no additional requirement beyond each
      * field's {@code apply} chain composing.
      * @param schema the schema tree, annotated with {@code apply} chains
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code schema}, given a {@link Context}
      */
-    static AvroFunction buildMask(Schema schema) {
-        return buildMask(schema, Set.of());
+    static AvroFunction buildMask(Schema schema, PluginLookup lookup) {
+        return buildMask(schema, Set.of(), lookup);
     }
 
     /**
      * Builds a mask function from a {@link Schema} tree.
      * @param schema the schema tree, annotated with {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code schema}, given a {@link Context}
      */
-    static AvroFunction buildMask(Schema schema, Set<Requirement> requirements) {
-        AvroFunction structural = buildStructural(schema, requirements);
-        List<ApplyConfig> apply = AvroSchemas.applyConfig(schema);
+    static AvroFunction buildMask(Schema schema, Set<Requirement> requirements, PluginLookup lookup) {
+        AvroFunction structural = buildStructural(schema, requirements, lookup);
+        List<OpConfig> apply = AvroSchemas.applyConfig(schema);
         if (apply == null) {
             return structural;
         }
-        AvroFunction ownApply = buildApplyChain(schema.getType(), apply, requirements);
+        AvroFunction ownApply = buildApplyChain(schema.getType(), apply, requirements, lookup);
         return (value, context) -> ownApply.apply(structural.apply(value, context), context);
     }
 
@@ -135,16 +132,16 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
      * any), so {@code apply} always sees the already-masked children - mirrors
      * {@code JacksonFunction.buildStructural}.
      */
-    private static AvroFunction buildStructural(Schema schema, Set<Requirement> requirements) {
+    private static AvroFunction buildStructural(Schema schema, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (schema.getType()) {
             case RECORD -> {
                 Map<String, BiFunction<Object, Context, Object>> mapping = schema.getFields().stream()
-                        .collect(Collectors.toMap(Schema.Field::name, field -> fieldFunction(field, requirements), (a, b) -> a, LinkedHashMap::new));
+                        .collect(Collectors.toMap(Schema.Field::name, field -> fieldFunction(field, requirements, lookup), (a, b) -> a, LinkedHashMap::new));
                 var fn = AvroRecords.mapFields(schema, mapping);
                 yield (value, context) -> fn.apply((GenericRecord) value, context);
             }
             case ARRAY -> {
-                var fn = AvroArrays.items(buildMask(schema.getElementType(), requirements));
+                var fn = AvroArrays.items(buildMask(schema.getElementType(), requirements, lookup));
                 yield (value, context) -> fn.apply(castToList(value), context);
             }
             case STRING, INT -> (value, context) -> value;
@@ -162,13 +159,13 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
      * a schema-level {@code apply}, e.g. on an array's {@code items}), composed with any {@code apply}
      * declared directly on the field (a sibling of the field's {@code type}, per {@link AvroSchemas}).
      */
-    private static BiFunction<Object, Context, Object> fieldFunction(Schema.Field field, Set<Requirement> requirements) {
-        AvroFunction base = buildMask(field.schema(), requirements);
-        List<ApplyConfig> apply = AvroSchemas.applyConfig(field);
+    private static BiFunction<Object, Context, Object> fieldFunction(Schema.Field field, Set<Requirement> requirements, PluginLookup lookup) {
+        AvroFunction base = buildMask(field.schema(), requirements, lookup);
+        List<OpConfig> apply = AvroSchemas.applyConfig(field);
         if (apply == null) {
             return base;
         }
-        AvroFunction ownApply = buildApplyChain(field.schema().getType(), apply, requirements);
+        AvroFunction ownApply = buildApplyChain(field.schema().getType(), apply, requirements, lookup);
         return (value, context) -> ownApply.apply(base.apply(value, context), context);
     }
 
@@ -178,15 +175,15 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
      * isn't meaningful without also supporting Avro's union/default mechanism (see the class javadoc), so
      * it fails loudly rather than producing a {@link GenericRecord} that no longer conforms to its schema.
      */
-    private static AvroFunction buildApplyChain(Schema.Type type, List<ApplyConfig> ops, Set<Requirement> requirements) {
+    private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (type) {
             case STRING -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(AvroFunction::buildStringOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (value, context) -> pipeline.<String, String> apply(value == null ? null : value.toString(), context);
             }
             case INT -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(AvroFunction::buildIntegerOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (value, context) -> pipeline.<Integer, Integer> apply((Integer) value, context);
             }
@@ -194,59 +191,27 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
         };
     }
 
-    private static StringOp buildStringOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+    /**
+     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * here (rather than resolved via {@code lookup}) since removing a required Avro field isn't meaningful
+     * without also supporting Avro's union/default mechanism (see the class javadoc), so it fails loudly
+     * rather than producing a {@link GenericRecord} that no longer conforms to its schema - unlike
+     * {@code JacksonFunction}'s equivalent, which allows it.
+     */
+    private static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Avro fields");
         }
-        else if (op.value() != null) {
-            String constant = op.value().textValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomStringSupplier(op.random().alphabet(), op.random().minLength(), op.random().maxLength());
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.choose() != null) {
-            Set<String> from = op.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-            var generator = new ChooseStringSupplier(from);
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.hmac() != null) {
-            var fn = new HmacStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.encrypt() != null) {
-            var fn = new EncryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.decrypt() != null) {
-            var fn = new DecryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveStringOp(op, lookup);
     }
 
-    private static IntOp buildIntegerOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+    /**
+     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Avro fields");
         }
-        else if (op.value() != null) {
-            int constant = op.value().intValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomIntSupplier(op.random().min(), op.random().max());
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else if (op.choose() != null) {
-            Set<Integer> from = op.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-            var generator = new ChooseIntSupplier(from);
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveIntOp(op, lookup);
     }
 }

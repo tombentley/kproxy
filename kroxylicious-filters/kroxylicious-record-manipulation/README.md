@@ -15,9 +15,9 @@ deliberately keeps two concerns separate that simply reusing the schema syntax w
   `patternProperties`/`additionalProperties`) are genuinely about navigating the document's structure, and
   reusing the schema's own vocabulary for this is natural — a schema author already thinks in these terms.
 - **Transformation**: *what* happens once you're there? This is the new part: an `apply` keyword whose
-  value is a *list* of operations (`value`, `random`, `choose`, `hmac`, `encrypt`, `decrypt` — see the
-  `common` package), composed in declared order via
-  [`common/Pipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/Pipeline.java).
+  value is a *list* of named, independently pluggable operations (`RandomInt`, `HmacString`, `ValueString`,
+  ...  — see [Pluggable operations](#pluggable-operations) below), composed in declared order via
+  [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ContextPipeline.java).
 
 These have to be kept apart because JSON Schema's own keywords are validation *predicates* — they're ANDed
 together, side-effect-free, and order-independent by design (a value either satisfies all of them or it
@@ -27,61 +27,126 @@ that decides "does this schema match" doesn't generalise to that, so `apply` is 
 composable list, kept distinct from the structural keywords that select where it runs.
 
 For JSON, this split is visible directly in the config model:
-[`config/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/SchemaConfig.java)
+[`jackson/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/SchemaConfig.java)
 represents the schema-shaped part (`type`/`properties`/`items`/`apply`), and tolerates *any* other real JSON
 Schema keyword (`pattern`, `contains`, `minLength`, ...) via a `@JsonAnySetter`/`@JsonAnyGetter` catch-all
 instead of failing to parse — the goal is that an existing JSON Schema document can have `apply` added to it
 directly, not that this module has to model JSON Schema's entire vocabulary.
-[`config/ApplyConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/ApplyConfig.java) is
-just the flat operation vocabulary that goes inside `apply`'s list. It deliberately doesn't carry `type`,
-`properties`, or `items` itself, so an operation can't be forced into a type-specific shape that would
-foreclose a field ever having a JSON Schema type union (`type: [string, number]`).
+[`config/OpConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfig.java) is just
+the shape of one entry in `apply`'s list: an `op` name plus that operation's own properties, squashed into
+one flat JSON object (e.g. `{op: RandomInt, minInclusive: 0, maxExclusive: 10}`) via the same
+`@JsonAnySetter` catch-all `SchemaConfig` uses. It deliberately doesn't carry `type`, `properties`, or
+`items` itself, so an operation can't be forced into a type-specific shape that would foreclose a field
+ever having a JSON Schema type union (`type: [string, number]`) — and, unlike a closed set of hardcoded
+keywords, `op` names a plugin implementation, so third parties can add new operations without touching this
+module. See [Pluggable operations](#pluggable-operations) below for how `op` gets resolved.
 
 Each data format still gets its own config model and its own code to walk it — there isn't one grammar
-shared across formats, since each format has its own type system (see `avro/AvroUse.java`, sketch only).
-What *is* shared is the small set of primitive transformations in `common`, and the pattern of building a
-`Function<Node, Node>` (to mask/transform existing data) or a `Supplier<Node>` (to generate data from
-nothing) from the config tree. Format-specific adapters (see `jackson/Jackson.java`) bridge the
+shared across formats, since each format has its own type system. What *is* shared is the small set of
+primitive operations in `common` (and, increasingly, the operations themselves — see
+[Pluggable operations](#pluggable-operations) below), and the pattern of building a
+`BiFunction<Node, Context, Node>` from the schema tree, recursing into structure first and then composing
+each node's own `apply` chain. Format-specific adapters (see `jackson/Jackson.java`) bridge the
 format-agnostic `common` primitives onto the format's native node types (e.g. Jackson's `JsonNode`).
 
-Stages built this way are given their own named types —
+Stages built this way are given their own named type per format —
 [`jackson/JacksonFunction`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/JacksonFunction.java)
-(`Function<JsonNode, JsonNode>`) and
-[`jackson/JacksonSupplier`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/JacksonSupplier.java)
-(`Supplier<JsonNode>`) — rather than being plain `Function<JsonNode, JsonNode>`/`Supplier<JsonNode>` values.
-That matters for `Pipeline`, which validates and runs a chain of stages by reflecting on each stage's
-*concrete* generic type: a lambda assigned directly to `Function<JsonNode, JsonNode>` erases its type
-arguments at runtime, whereas one assigned to a named subinterface with the type arguments fixed does not,
-since the parameterization lives on the interface declaration rather than the lambda. `Pipeline` is used at
-two levels: `Use.java` composes a `JacksonDeserializer`, a built mask/unmask `JacksonFunction`, and a
-`JacksonSerializer` into one whole-record `Pipeline`; `JacksonFunction.buildMask` also builds a smaller,
-per-field `Pipeline` out of a field's own `apply` list, so `apply: [encrypt, hmac]` on one field genuinely
-composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in the declared order.
+(`BiFunction<JsonNode, Context, JsonNode>`), with `avro/AvroFunction`/`protobuf/ProtoFunction` as its Avro/
+Protobuf counterparts — rather than being plain `BiFunction<JsonNode, Context, JsonNode>` values. That
+matters for [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ContextPipeline.java),
+which validates and runs a chain of stages by reflecting on each stage's *concrete* generic type: a lambda
+assigned directly to a generic `BiFunction<T, Context, T>` erases its type arguments at runtime, whereas one
+assigned to a named subinterface with the type arguments fixed does not, since the parameterization lives on
+the interface declaration rather than the lambda (this is also why every pluggable operation is exposed
+through a named interface like `StringOp`/`IntOp`, never a bare `BiFunction`). `common/Pipeline` is the
+`Context`-free sibling used one level up: `Use.java` composes a `JacksonDeserializer`, a built mask/unmask
+`JacksonFunction`, and a `JacksonSerializer` into one whole-record `Pipeline`; `JacksonFunction.buildMask`
+itself builds a smaller, per-field `ContextPipeline` out of a field's own `apply` list, so
+`apply: [{op: EncryptString}, {op: HmacString}]` on one field genuinely composes two independently
+resolved operations in the declared order.
+
+## Pluggable operations
+
+`apply`'s operation vocabulary is open, not a closed set of hardcoded keywords: each entry names a plugin
+implementation (Kroxylicious's standard `@Plugin` mechanism, via `kroxylicious-api`) rather than one of a
+fixed list of fields on a config record.
+
+- Every operation is exposed through a *type-specific* factory interface —
+  [`common/StringOpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/StringOpFactory.java)/
+  [`common/IntOpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/IntOpFactory.java),
+  both extending the shared
+  [`common/OpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/OpFactory.java) shape
+  (`Op create(Map<String, Object> config)`) — rather than one generic factory that would need to branch on a
+  runtime type token to decide which primitive type it's building for. A single plugin class is monomorphic
+  (it builds exactly one operation type), matching every other plugin in the codebase and matching the
+  type-suffixed primitives it usually delegates to (`RandomIntSupplier`/`RandomStringSupplier`, and so on).
+  Concretely: `RandomInt`/`RandomString`, `ValueInt`/`ValueString`, `ChooseInt`/`ChooseString`, and the
+  String-only `HmacString`/`EncryptString`/`DecryptString` (see `config/` for all of them) — each with its
+  own disjoint `Config` record, rather than one record's worth of fields where only one is ever populated at
+  a time (`config/OpConfig` itself deliberately isn't one of these unioned records, having learned from that
+  mistake). Parameterising over the whole operation shape (rather than separately over input/output types)
+  also means a future non-type-preserving operation fits the same pattern without a redesign — it would just
+  need its own fixed-generic interface (e.g. a hypothetical `StringToIntOp`) and matching factory.
+- [`config/OpConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfig.java)'s
+  `config` is deliberately a plain `Map<String, Object>`, not a Jackson tree type (`JsonNode`) — that keeps
+  the plugin-facing API surface to JDK types plus `jackson-annotations` only, so a future Jackson-major-
+  version migration (expected to rename `jackson-databind`'s package, unlike `jackson-annotations`'s) can't
+  ripple through every plugin implementor's method signature. Each plugin converts its own share of the map
+  via a private `ObjectMapper.convertValue` call.
+- Which plugin interface an `op` name resolves against (`StringOpFactory` vs `IntOpFactory`) depends on the
+  primitive type of the field the operation applies to — information the format-specific engine only has
+  once it's walked its own schema, not something Jackson's usual `@PluginImplName`/`@PluginImplConfig`
+  polymorphic-config-resolution machinery can decide up front. So resolution is deliberately deferred:
+  [`common/PluginLookup`](src/main/java/io/kroxylicious/filter/record/manipulation/common/PluginLookup.java)
+  is a tiny lookup interface (shaped like `FilterFactoryContext.pluginInstance`, so a future real `Filter`
+  integration is a drop-in swap), and each format's `buildStringOp`/`buildIntegerOp` calls
+  [`config/OpConfigs`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfigs.java)'s
+  shared `resolveStringOp`/`resolveIntOp` helpers to do the actual lookup-and-build — the one piece of logic
+  that's genuinely identical across all three engines, rather than being copy-pasted three times.
+  [`common/ServiceLoaderPluginLookup`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ServiceLoaderPluginLookup.java)
+  is a dependency-free `PluginLookup` (pure `java.util.ServiceLoader`, matching by simple class name) used by
+  the `main()` demos and most tests, so this module's main code never has to depend on `kroxylicious-runtime`
+  (where Kroxylicious's real `ServiceBasedPluginFactoryRegistry` lives) just to resolve its own bundled
+  operations; a couple of tests (`RandomPluginRegistrationTest`, `ProtoFunctionOpConfigTest`) deliberately use
+  the real registry instead, as a check that these plugins would also resolve correctly once this module is
+  wired into an actual `Filter`.
+- `Delete` (see `DELETE_AND_INSERT_CONTENT` in `MaskPipelineTest`, and the delete-related notes under
+  "Current state" below) is a reserved op *name*, not a plugin: its behaviour never varies by type (unlike
+  every other operation, there's no real per-type logic to encapsulate, and Java won't even let one class
+  implement both `StringOpFactory` and `IntOpFactory` at once — their `create(Map)` methods clash on
+  erasure), and whether it's legal at all is a property of the target format's container model (can it
+  represent "this property is absent"?), not of the leaf type. A shared, name-keyed, JVM-wide plugin registry
+  has no way to make an op resolvable from one format but not another, so each format's `buildStringOp`/
+  `buildIntegerOp` special-cases the literal name `Delete` itself before ever calling `PluginLookup` —
+  Jackson returns the null-producing operation, Avro/Protobuf throw `IllegalArgumentException`.
 
 ## Current state
 
-- **JSON** (`Use.java`, `jackson/`, `config/`): `SchemaConfig`/`ApplyConfig`-driven mask/generator builders
-  (`JacksonFunction.buildMask`, `JacksonSupplier.buildGenerator`). A field can now compose more than one
-  operation via `apply` (see `MaskPipelineTest`'s composed-chain tests) — this was the main gap in the
-  previous design, where a field picked exactly one of `value`/`random`/`choose`/`hmac`/`encrypt`/`decrypt`.
+- **JSON** (`Use.java`, `jackson/`, `config/`): `SchemaConfig`/`OpConfig`-driven mask/generator builder
+  (`JacksonFunction.buildMask` — fed a real value to mask, or `MissingNode` to generate). A field can
+  compose more than one operation via `apply` (see `MaskPipelineTest`'s composed-chain tests), see
+  [Pluggable operations](#pluggable-operations) above).
   Still open:
   - `apply` is mechanically available at object/array nodes too, not just leaves, but there's no
     object/array-level operation implemented in `common` yet, so it fails loudly rather than doing
     something silent and wrong.
-  - Generation (`JacksonSupplier`) only consumes the *first* `apply` entry — composing multiple operations
-    while generating from nothing (e.g. generate a random string, then hash it) is a real, separate
-    enhancement, not yet done.
+  - Generation only consumes the *first* `apply` entry — composing multiple operations while generating
+    from nothing (e.g. generate a random string, then hash it) is a real, separate enhancement, not yet
+    done.
   - `SchemaConfig.type` is still a plain `String`; JSON Schema's type-union syntax (`type: [string,
-    number]`) isn't supported, though the `SchemaConfig`/`ApplyConfig` split was chosen partly so that
+    number]`) isn't supported, though the `SchemaConfig`/`OpConfig` split was chosen partly so that
     adding it later wouldn't require reshaping `apply` again.
-  - `Pipeline`'s own composition check is currently *vacuous* for `apply` chains — every operation that
-    exists today is type-preserving by construction (`hmac`/`encrypt`/`decrypt`: string→string;
-    `random`/`choose`/`value`: produce their own field's type), so there's no way to build a chain that
-    fails the check. This is an accepted simplification, not a gap to fix speculatively — it starts doing
-    real work the day an operation that changes type is added.
-  - Deletion and insertion of an object property are supported: `apply: [{delete: true}]` removes an
-    existing property, and a generator-shaped `apply` entry (`value`/`random`/`choose`) on a property
-    absent from the data inserts it (see `MaskPipelineTest`'s delete/insert tests). Insertion works at any
+  - `ContextPipeline`'s own composition check is currently *vacuous* for `apply` chains — every operation
+    that exists today is type-preserving by construction (`HmacString`/`EncryptString`/`DecryptString`:
+    string→string; `RandomString`/`ChooseString`/`ValueString` and their `Int` counterparts: produce their
+    own field's type), so there's no way to build a chain that fails the check. This is an accepted
+    simplification, not a gap to fix speculatively — it starts doing real work the day an operation that
+    changes type is added (which the open plugin vocabulary makes more likely than when the operation set
+    was closed and hand-reviewed as one file).
+  - Deletion and insertion of an object property are supported: `apply: [{op: Delete}]` removes an
+    existing property, and a generator-shaped `apply` entry (`ValueString`/`RandomString`/`ChooseString`,
+    or their `Int` counterparts) on a property absent from the data inserts it (see `MaskPipelineTest`'s
+    delete/insert tests). Insertion works at any
     depth, not just one level — a leaf several levels below an entirely-absent chain of ancestor objects
     still materializes, via `JacksonFunction.buildStructural`'s speculative recursion into a fresh empty
     object, collapsing back to absent only if nothing real came of it (so a genuinely-present object that
@@ -106,8 +171,9 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   Masking only, unlike JSON's `JacksonFunction` (no generation-from-nothing): Avro requires every declared
   field to be present in a conforming record, so there's no "absent" starting point equivalent to Jackson's
   `MissingNode` to generate from — that needs Avro's union/default mechanism first, which is also why
-  `delete` isn't supported yet (it fails loudly rather than silently producing a record that no longer
-  conforms to its schema).
+  `Delete` isn't supported yet here (rejected as soon as it's named — see
+  [Pluggable operations](#pluggable-operations) above — rather than silently producing a record that no
+  longer conforms to its schema).
   Still open:
   - Unions and nullable fields (`type: [..., "null"]`) — `buildStructural`/`buildApplyChain` only handle a
     single concrete `Schema.Type` per node, the same simplification JSON's `SchemaConfig.type` currently
@@ -115,7 +181,7 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   - Every other Avro type: `map`, `enum`, `fixed`, `bytes`, `boolean`, `long`, `float`, `double`.
   - Generation and delete/insert, once union/default support exists to make them meaningful — or, an
     alternative to union/default support entirely: see "Divergent output schemas" below, which would make
-    `delete` meaningful without either.
+    `Delete` meaningful without either.
 - **Protobuf** (`protobuf/`): `ProtoFunction.buildMask` masks `message`/`repeated`/`string`/`int32` values,
   built from a `Descriptors.Descriptor` obtained from raw `.proto` IDL text via `ProtoSchemaParser`, which
   reuses `io.apicurio:apicurio-registry-protobuf-schema-utilities` (already a dependency of
@@ -139,8 +205,9 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
   Masking only, like Avro, and for the same underlying reason once you look past the surface difference:
   Protobuf fields *do* track presence (`FieldDescriptor.hasPresence()`/`DynamicMessage.hasField()`) far more
   naturally than Avro's always-required fields do, so `ProtoMessages` already carries an absent field through
-  as absent rather than manufacturing a false presence — but delete/insert still isn't wired up, since no
-  operation for it exists in `common` yet.
+  as absent rather than manufacturing a false presence — but `Delete` is rejected here too, the same as Avro
+  (see [Pluggable operations](#pluggable-operations) above for why), since removing a field isn't meaningful
+  without deciding what that means for a required proto2/proto3 implicit-presence field.
   Still open:
   - `oneof` (individual member fields already work like ordinary optional fields, since `DynamicMessage`
     doesn't distinguish oneof membership at the reflection API level used here — but nothing yet models the
@@ -150,26 +217,29 @@ composes two `common` classes (`EncryptStringFunction`, `HmacStringFunction`) in
     `google.protobuf.Any`/well-known wrapper types, extensions, multi-file `import` (Apicurio's utilities
     support a `dependencies` map for this; unused so far), the newer "Editions" syntax (not supported by
     Apicurio's parser as of this writing).
-  - Delete/insert, once an operation for it exists in `common` — Protobuf's wire format (fields tagged by
-    number, absence already idiomatic) makes "Divergent output schemas" below arguably even less friction
-    here than for Avro.
+  - Delete/insert, once removing a required field has defined semantics — Protobuf's wire format (fields
+    tagged by number, absence already idiomatic) makes "Divergent output schemas" below arguably even less
+    friction here than for Avro.
 - **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
   values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
-  `DecryptStringFunction`), plus `Pipeline`, which validates that a list of functions compose and then runs
-  them as a chain. The HMAC/encrypt/decrypt operations are each their own small, concrete
-  `Function<String, String>` class (rather than one bundled utility) specifically so they can be used
-  directly as `Pipeline` stages — `Pipeline` needs each stage's *concrete* generic type to reflect on, which
-  a named class reliably provides and a bundled method returning a lambda does not. This is the part of the
-  module with the most unit test coverage so far.
+  `DecryptStringFunction`, and a standalone `RegexReplaceStringFunction` not yet exposed as a pluggable op —
+  see "Theme: More functions" below), the `OpFactory`/`StringOpFactory`/`IntOpFactory`/`PluginLookup`
+  machinery described under [Pluggable operations](#pluggable-operations) above, plus `ContextPipeline` and
+  its `Context`-free sibling `Pipeline`, each of which validates that a list of functions compose and then
+  runs them as a chain. The HMAC/encrypt/decrypt operations are each their own small, concrete
+  `BiFunction<String, Context, String>` class (rather than one bundled utility) specifically so they can be
+  used directly as `ContextPipeline` stages — `ContextPipeline` needs each stage's *concrete* generic type
+  to reflect on, which a named class reliably provides and a bundled method returning a lambda does not.
+  This is the part of the module with the most unit test coverage so far.
 
 ## Divergent output schemas
 
 Today, one schema does double duty: it's both the *selector* that drives `buildStructural`'s recursion and
-the *write contract* the masked value must conform to. That's why `delete` is rejected outright for Avro and
+the *write contract* the masked value must conform to. That's why `Delete` is rejected outright for Avro and
 Protobuf (`AvroFunction`/`ProtoFunction`'s `buildStringOp`/`buildIntegerOp`) — removing a required field would
 produce a value that no longer matches the one schema doing both jobs. Splitting those two roles — letting the
 *output* schema differ from the *input* schema — is worth designing towards, for two reasons: it's a more
-direct route to a meaningful `delete` than waiting on Avro union/default support, and it lets a masked view
+direct route to a meaningful `Delete` than waiting on Avro union/default support, and it lets a masked view
 hide a field's *existence*, not just its value, which is a materially stronger guarantee for a subject who
 shouldn't know a broader dataset exists at all.
 
@@ -191,10 +261,11 @@ shouldn't know a broader dataset exists at all.
   compatibility model is number-based, unlike Avro's name-based one), makes deleting a field trivial: proto3
   already treats absence as normal, so there's no "required field must be present" problem to solve.
 - **JSON — the question doesn't really apply the same way.** There's no wire-level write schema for JSON
-  today; `JacksonFunction` already doesn't enforce type preservation ("Pipeline's own composition check is
-  currently vacuous for `apply` chains", above), and delete/insert are already implemented. An "output schema"
-  for JSON would only matter as an optional validation/documentation artifact (e.g. what to register as the
-  topic's JSON Schema afterwards), not as something the write path itself needs to conform to.
+  today; `JacksonFunction` already doesn't enforce type preservation ("`ContextPipeline`'s own composition
+  check is currently vacuous for `apply` chains", above), and `Delete`/insert are already implemented. An
+  "output schema" for JSON would only matter as an optional validation/documentation artifact (e.g. what to
+  register as the topic's JSON Schema afterwards), not as something the write path itself needs to conform
+  to.
 
 **Could the output schema be inferred from Java type information?** Two differently-sized versions of this
 question:
@@ -209,13 +280,18 @@ question:
 - *Specific* to this codebase, a much smaller and already-mostly-solved version of the same idea exists:
   `ContextPipeline` already reflects on each `apply` stage's concrete Java generic type
   (`GenericTypeReflector`/`functionReturnType`) to validate composition and, optionally, type preservation.
-  Every operation is a named, fixed-type interface (`StringOp`, `IntOp`), so the Java type of a field's *final*
-  `apply`-chain output is already known at build time, for free. A small, closed mapping table (`String` → Avro
-  `string`/proto `string`, `Integer` → `int`/`int32`, and so on — closed because the operation vocabulary in
-  `common` is closed) would let the engine *detect* when a field's `apply` chain changes its type relative to
-  the input schema, and derive an output schema by copying the input schema's fields — in their original
-  order, minus any deleted ones — substituting types only where they diverge. That's a much safer starting
-  point than open-ended Java reflection: deterministic, bounded, and built from machinery that already exists.
+  Every operation is exposed through a named, fixed-type interface (`StringOp`, `IntOp`, ...), so the Java
+  type of a field's *final* `apply`-chain output is already known at build time, for free — and this stays
+  true even though the operation *vocabulary* itself is now open and pluggable (see
+  [Pluggable operations](#pluggable-operations) above), because a new operation still has to arrive via one
+  of these same fixed-type interfaces to be usable at all; it can't introduce a new Java type of its own
+  into the mix. A small, closed mapping table (`String` → Avro `string`/proto `string`, `Integer` → `int`/
+  `int32`, and so on — closed because the small set of *primitive types* these interfaces are indexed by is
+  closed, not because the set of operations is) would let the engine *detect* when a field's `apply` chain
+  changes its type relative to the input schema, and derive an output schema by copying the input schema's
+  fields — in their original order, minus any deleted ones — substituting types only where they diverge.
+  That's a much safer starting point than open-ended Java reflection: deterministic, bounded, and built from
+  machinery that already exists.
 
 **Other considerations, not yet designed for:**
 
@@ -245,9 +321,9 @@ question:
 - **Field matching strategy differs by format and mustn't be conflated.** Avro resolves reader/writer fields by
   *name* (with `aliases`); Protobuf's compatibility model is by field *number*. A shared "build output value
   from output schema + input value" helper can't reuse one matching strategy for both.
-- **Delete is one-way; encrypt/hmac aren't.** The `encrypt`→`decrypt` unmask pattern above needs matching
-  schemas on both legs. If `delete` genuinely drops data rather than hiding it in one view, there's no
-  inverse — worth stating explicitly so it isn't assumed reversible the way encryption is.
+- **Delete is one-way; encrypt/hmac aren't.** The `EncryptString`→`DecryptString` unmask pattern above needs
+  matching schemas on both legs. If `Delete` genuinely drops data rather than hiding it in one view, there's
+  no inverse — worth stating explicitly so it isn't assumed reversible the way encryption is.
 - **Termination.** The proof below rests on the recursion only ever walking one schema's own declared
   structure. A dual-schema walk needs the same argument re-made for whatever input/output matching strategy is
   chosen — still trivially true if both schemas are finite and matching is a direct lookup rather than a
@@ -266,13 +342,18 @@ on exactly two conditions, and they are both necessary and sufficient:
 
 1. **None of the functions this module defines contain an unbounded loop or unbounded recursion.** Every
    primitive in `common` either does fixed-size work (a single HMAC/cipher operation) or loops a number of
-   times bounded by a config-declared, finite quantity (`random`'s `min`/`max`/`minLength`/`maxLength`,
-   `choose`'s finite set, `Pipeline`'s fixed-size stage list). The only *recursion* anywhere is
-   `JacksonFunction`/`JacksonSupplier` following the `SchemaConfig` tree's own `properties`/`items`
-   structure, and `ObjectNodes`/`ArrayNodes` iterating the data actually present at each node — both bounded
-   by whatever they're recursing over, never by anything unbounded. This has to stay true for every future
-   operation added to `common`: a new op must never take a config-declared parameter that could drive an
-   unbounded internal loop.
+   times bounded by a config-declared, finite quantity (`RandomInt`/`RandomString`'s `minInclusive`/
+   `maxExclusive`/`minLengthInclusive`/`maxLengthExclusive`, `ChooseInt`/`ChooseString`'s finite set,
+   `Pipeline`/`ContextPipeline`'s fixed-size stage list). The only *recursion* anywhere is `JacksonFunction`
+   following the `SchemaConfig` tree's own `properties`/`items` structure, and `ObjectNodes`/`ArrayNodes`
+   iterating the data actually present at each node — both bounded by whatever they're recursing over, never
+   by anything unbounded. This has to stay true for every future operation added to `common`: a new op must
+   never take a config-declared parameter that could drive an unbounded internal loop. Now that the operation
+   vocabulary is an open, pluggable set (see [Pluggable operations](#pluggable-operations) above) rather than
+   a closed one reviewed as a single file, this is a contract on every plugin author, not something this
+   module can enforce mechanically — the same way Kroxylicious already trusts filter/transform plugin authors
+   generally (see the project's own security threat model around "plugin developers who might violate
+   contracts").
 2. **The input being walked is a genuine tree — finite, and free of cycles.** For plain JSON this is true by
    construction: the JSON grammar has no way for one part of a document to reference another, so a parsed
    `JsonNode` tree's size is always linear in its own serialized length. This is what matters for the record
@@ -298,8 +379,11 @@ the same practical failure mode.
 ## Key management
 
 `HmacStringFunction`/`EncryptStringFunction`/`DecryptStringFunction` use a raw key passed in by the caller —
-there is no key management integration yet. See `kroxylicious-record-encryption` for the project's existing
-KMS integration (`kroxylicious-kms`) if/when this module needs real key management.
+there is no key management integration yet. Their `HmacString`/`EncryptString`/`DecryptString` plugin
+wrappers already accept a `keyId` config property (matching what a real key-management integration would
+need to select a key by), but don't yet consume it for the same reason. See `kroxylicious-record-encryption`
+for the project's existing KMS integration (`kroxylicious-kms`) if/when this module needs real key
+management.
 
 
 ## TODO
@@ -351,7 +435,7 @@ KMS integration (`kroxylicious-kms`) if/when this module needs real key manageme
               value: 123
               atLocation: prefix # optional, if we want to support apicurio headers, but default to the confluent 4 byte prefix
         then: 
-          apply
+          apply:
             - schemaValidation: 
             - signatureValidation
             - if: 
@@ -369,21 +453,13 @@ KMS integration (`kroxylicious-kms`) if/when this module needs real key manageme
     ````
 
 ### Theme: More functions
-- A general find/replace for `String` data
-    ```yaml
-    replaceAll:
-      pattern: <regex-with-groups>
-      replacement: <replacenent-strings-with-group-placeolders>
-      groups: # optional
-        - groupName: # the name of a capturing group in the `pattern`, which is also present in the `replacement`
-          apply: # another `ContextPipeline` to transform the captured groups prior to the `replacement` interpolation
-          - value: REDACTED
-              
-    ```
-  Similarly `replaceFirst`
+- A general find/replace for `String` data — the primitive itself already exists
+  (`common/RegexReplaceStringFunction`, supporting both `replaceAll`/`replaceFirst` and, for each, either a
+  plain replacement string or another `StringOp` applied to each captured group before interpolation - see
+  `RegexReplaceStringFunctionTest`), but it isn't yet exposed as a pluggable `apply` op. Still open: a
+  `RegexReplaceString` plugin wrapping it, following the same pattern as `HmacString`/`EncryptString`.
 - A function with `try`/`catch` -like semantics.
 - E.g. add an absolute/relative error to a number value
-- Make transformations a pluggable abstraction.
 - LocalDate, LocalDateTime, LocalTime, ZonedDateTime, Instant, Duration, etc.
 
 ### Theme: Schema Registry integration
@@ -399,8 +475,7 @@ The concrete prerequisite for "Divergent output schemas" (above) to work against
 
 ### Theme: Tech debt
 
-- root-level apply: [delete] semantics (undefined — "delete the whole record" is a
+- root-level `apply: [{op: Delete}]` semantics (undefined — "delete the whole record" is a
   bigger question),
-- cosmetic *MaskConfig renames (these classes are all JSON specific really).
 - YAML anchor/alias blow-up guard (just don't allow YAML, only JSON)
 - Recursion depth limit (avoid StackOverflowException on deeply nested data)
