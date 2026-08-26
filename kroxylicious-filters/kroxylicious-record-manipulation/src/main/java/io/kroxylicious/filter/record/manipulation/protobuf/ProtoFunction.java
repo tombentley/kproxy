@@ -25,12 +25,15 @@ import io.kroxylicious.filter.record.manipulation.common.DecryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
+import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
 import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
  * A mask/transform over a Protobuf generic value (a {@link DynamicMessage}, a {@link java.util.List} for a
@@ -245,6 +248,16 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
         else {
             return (value, context) -> value;
         }
+    }
+
+    /**
+     * Resolves and builds a pluggable operation, e.g. {@code op: RandomInt} - proof of concept for making
+     * the {@code apply} vocabulary extensible via Kroxylicious's Plugin mechanism. Not yet wired into
+     * {@link #buildApplyChain}: {@link ApplyConfig}'s closed operation vocabulary is unaffected by this.
+     */
+    static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
+        IntOpFactory factory = lookup.pluginInstance(IntOpFactory.class, op.op());
+        return factory.create(op.config());
     }
 
     private static IntOp buildIntegerOp(ApplyConfig op) {

@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
 
 public class RegexReplaceStringFunction implements StringOp {
 
-    public sealed interface Replacement{}
+    public sealed interface Replacement {
+    }
 
     /**
      * Replace all occurrences of the match with the given {@code replacement} string.
@@ -20,9 +21,9 @@ public class RegexReplaceStringFunction implements StringOp {
      *     <dt><code>${<i>foo</i>}</code></dt><dd>The named capturing group with name <i>foo</i>.</dd>
      *     <dt><code>$<i>g</i></code></dt><dd>The <i>g</i>-th capturing group.</dd>
      * </dl>
-     * @param replacement
+     * @param replacement the replacement string
      */
-    public record All(String replacement)  implements Replacement{}
+    public record All(String replacement) implements Replacement {}
 
     /**
      * Replace the first all occurrence of the match with the given {@code replacement} string.
@@ -31,11 +32,13 @@ public class RegexReplaceStringFunction implements StringOp {
      *     <dt><code>${<i>foo</i>}</code></dt><dd>The named capturing group with name <i>foo</i>.</dd>
      *     <dt><code>$<i>g</i></code></dt><dd>The <i>g</i>-th capturing group.</dd>
      * </dl>
-     * @param replacement
+     * @param replacement the replacement string
      */
-    public record First(String replacement) implements Replacement{}
-    public record AllOp(StringOp groupOp) implements Replacement{}
-    public record FirstOp(StringOp groupOp) implements Replacement{}
+    public record First(String replacement) implements Replacement {}
+
+    public record AllOp(StringOp groupOp) implements Replacement {}
+
+    public record FirstOp(StringOp groupOp) implements Replacement {}
 
     private final Pattern pattern;
     private final Replacement replacement;
