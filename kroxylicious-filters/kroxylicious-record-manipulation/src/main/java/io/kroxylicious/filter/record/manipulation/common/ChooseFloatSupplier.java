@@ -22,7 +22,7 @@ public class ChooseFloatSupplier implements Function<Context, Float> {
      */
     public ChooseFloatSupplier(Set<Float> from) {
         values = new float[from.size()];
-        var iter =  from.iterator();
+        var iter = from.iterator();
         for (int i = 0; i < values.length; i++) {
             values[i] = iter.next();
         }
