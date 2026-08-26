@@ -31,6 +31,8 @@ import io.kroxylicious.filter.record.manipulation.common.StringOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * A mask/transform over a Protobuf generic value (a {@link DynamicMessage}, a {@link java.util.List} for a
  * repeated field, or a leaf value such as a {@link String}/{@link Integer}), built from a
@@ -202,37 +204,40 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
     private static ProtoFunction buildApplyChain(Descriptors.FieldDescriptor field, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (field.getType()) {
             case BOOL -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildBooleanOp(op, lookup)).toList();
-                ContextPipeline<Boolean, Boolean> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBooleanOp);
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
             case INT32 -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
-                ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildIntegerOp);
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
             case INT64 -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildLongOp(op, lookup)).toList();
-                ContextPipeline<Long, Long> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildLongOp);
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
             case FLOAT -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildFloatOp(op, lookup)).toList();
-                ContextPipeline<Float, Float> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildFloatOp);
                 yield (value, context) -> pipeline.apply((Float) value, context);
             }
             case DOUBLE -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildDoubleOp(op, lookup)).toList();
-                ContextPipeline<Double, Double> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildDoubleOp);
                 yield (value, context) -> pipeline.apply((Double) value, context);
             }
             case STRING -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
-                ContextPipeline<String, String> pipeline = new ContextPipeline<>(fns, requirements);
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildStringOp);
                 yield (value, context) -> pipeline.apply(value == null ? null : value.toString(), context);
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for field type: " + field.getType());
         };
+    }
+
+    @NonNull
+    private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
+                                                                Set<Requirement> requirements,
+                                                                PluginLookup lookup,
+                                                                BiFunction<OpConfig, PluginLookup, BiFunction<T, Context, R>> ffn) {
+        List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> ffn.apply(op, lookup)).toList();
+        return new ContextPipeline<>(fns, requirements);
     }
 
     /**

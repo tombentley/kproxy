@@ -80,6 +80,7 @@ public class ContextPipeline<T, R> implements BiFunction<T, Context, R> {
      * @return the result of the last function, or {@code input} itself if the pipeline is empty
      */
     @SuppressWarnings("unchecked")
+    @Override
     public R apply(T input, Context context) {
         Object result = input;
         for (BiFunction<?, Context, ?> function : functions) {
