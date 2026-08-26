@@ -9,10 +9,10 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.function.BiFunction;
 
 /**
- * A single operation on a {@link Long}, given some {@link Context}.
+ * A single operation on an {@link Boolean}, given some {@link Context}.
  * <p>
  * See {@link StringOp} for why this needs to be its own named interface rather than a bare
- * {@code BiFunction<Long, Context, Long>}.
+ * {@code BiFunction<Boolean, Context, Boolean>}.
  */
-public interface LongOp extends BiFunction<Long, Context, Long> {
+public interface BooleanOp extends BiFunction<Boolean, Context, Boolean> {
 }

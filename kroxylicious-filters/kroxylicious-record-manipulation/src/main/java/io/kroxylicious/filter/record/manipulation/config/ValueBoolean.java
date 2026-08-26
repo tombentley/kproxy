@@ -10,27 +10,27 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
+import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Integer}. See {@link ValueString} for the equivalent
  * {@link String} operation.
  */
-@Plugin(configType = ValueDouble.Config.class)
-public class ValueDouble implements DoubleOpFactory {
+@Plugin(configType = ValueBoolean.Config.class)
+public class ValueBoolean implements BooleanOpFactory {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
-     * Configuration for {@link ValueDouble}.
+     * Configuration for {@link ValueBoolean}.
      * @param value the constant value to use
      */
-    public record Config(double value) {}
+    public record Config(boolean value) {}
 
     @Override
-    public DoubleOp create(Map<String, Object> configMap) {
+    public BooleanOp create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         return (ignored, context) -> config.value();
     }

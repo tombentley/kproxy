@@ -7,7 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 /**
- * An {@link OpFactory} that builds an {@link DoubleOp}.
+ * An {@link OpFactory} that builds an {@link BooleanOp}.
  */
-public interface DoubleOpFactory extends OpFactory<DoubleOp> {
+public interface BooleanOpFactory extends OpFactory<BooleanOp> {
 }
