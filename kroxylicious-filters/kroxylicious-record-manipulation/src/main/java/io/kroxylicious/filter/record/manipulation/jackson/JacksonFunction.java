@@ -180,33 +180,33 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
         return switch (type) {
             case "boolean" -> {
                 List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildBooleanOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                ContextPipeline<Boolean, Boolean> pipeline = new ContextPipeline<>(fns, requirements);
                 yield (node, context) -> {
-                    Boolean result = pipeline.<Boolean, Boolean> apply(node.isMissingNode() ? null : node.asBoolean(), context);
+                    Boolean result = pipeline.apply(node.isMissingNode() ? null : node.asBoolean(), context);
                     return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
                 };
             }
             case "integer" -> {
                 List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(fns, requirements);
                 yield (node, context) -> {
-                    Integer result = pipeline.<Integer, Integer> apply(node.isMissingNode() ? null : node.asInt(), context);
+                    Integer result = pipeline.apply(node.isMissingNode() ? null : node.asInt(), context);
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
                 };
             }
             case "number" -> {
                 List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildDoubleOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                ContextPipeline<Double, Double> pipeline = new ContextPipeline<>(fns, requirements);
                 yield (node, context) -> {
-                    Double result = pipeline.<Double, Double> apply(node.isMissingNode() ? null : node.asDouble(), context);
+                    Double result = pipeline.apply(node.isMissingNode() ? null : node.asDouble(), context);
                     return result == null ? MissingNode.getInstance() : new DoubleNode(result);
                 };
             }
             case "string" -> {
                 List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
+                ContextPipeline<String, String> pipeline = new ContextPipeline<>(fns, requirements);
                 yield (node, context) -> {
-                    String result = pipeline.<String, String> apply(node.isMissingNode() ? null : node.asText(), context);
+                    String result = pipeline.apply(node.isMissingNode() ? null : node.asText(), context);
                     return result == null ? MissingNode.getInstance() : new TextNode(result);
                 };
             }

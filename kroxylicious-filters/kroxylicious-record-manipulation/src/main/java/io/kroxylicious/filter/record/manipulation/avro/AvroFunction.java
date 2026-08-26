@@ -17,9 +17,13 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
+import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.FloatOp;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
+import io.kroxylicious.filter.record.manipulation.common.LongOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
@@ -177,18 +181,88 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
      */
     private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (type) {
-            case STRING -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
-                yield (value, context) -> pipeline.<String, String> apply(value == null ? null : value.toString(), context);
+            case BOOLEAN -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildBooleanOp(op, lookup)).toList();
+                ContextPipeline<Boolean, Boolean> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
             case INT -> {
                 List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
-                ContextPipeline pipeline = new ContextPipeline(fns, requirements);
-                yield (value, context) -> pipeline.<Integer, Integer> apply((Integer) value, context);
+                ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply((Integer) value, context);
+            }
+            case LONG -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildLongOp(op, lookup)).toList();
+                ContextPipeline<Long, Long> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply((Long) value, context);
+            }
+            case FLOAT -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildFloatOp(op, lookup)).toList();
+                ContextPipeline<Float,Float> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply((Float) value, context);
+            }
+            case DOUBLE -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildDoubleOp(op, lookup)).toList();
+                ContextPipeline<Double, Double> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply((Double) value, context);
+            }
+            case STRING -> {
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
+                ContextPipeline<String, String> pipeline = new ContextPipeline<>(fns, requirements);
+                yield (value, context) -> pipeline.apply(value == null ? null : value.toString(), context);
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);
         };
+    }
+
+    /**
+     * The {@link BooleanOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static BooleanOp buildBooleanOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveBooleanOp(op, lookup);
+    }
+
+    /**
+     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveIntOp(op, lookup);
+    }
+
+    /**
+     * The {@link LongOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static LongOp buildLongOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveLongOp(op, lookup);
+    }
+
+    /**
+     * The {@link FloatOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static FloatOp buildFloatOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveFloatOp(op, lookup);
+    }
+
+    /**
+     * The {@link DoubleOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
+     */
+    private static DoubleOp buildDoubleOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveDoubleOp(op, lookup);
     }
 
     /**
@@ -205,13 +279,5 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
         return OpConfigs.resolveStringOp(op, lookup);
     }
 
-    /**
-     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveIntOp(op, lookup);
-    }
+
 }
