@@ -15,8 +15,7 @@ import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Replaces a value with a fixed {@link String}. See {@link ValueInt} for the equivalent {@link Integer}
- * operation.
+ * Replaces a value with a fixed {@link String}.
  */
 @Plugin(configType = ValueString.Config.class)
 public class ValueString implements StringOpFactory {

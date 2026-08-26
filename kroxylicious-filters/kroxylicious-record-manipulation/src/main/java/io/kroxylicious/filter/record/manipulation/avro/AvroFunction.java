@@ -18,6 +18,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
+import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
@@ -205,7 +206,15 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
             }
             case STRING -> {
                 ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildStringOp);
-                yield (value, context) -> pipeline.apply(value == null ? null : value.toString(), context);
+                yield (value, context) -> {
+                    // call toString() because value could be a Utf8, not a String
+                    String input = value == null ? null : value.toString();
+                    return pipeline.apply(input, context);
+                };
+            }
+            case BYTES -> {
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildBytesOp);
+                yield (value, context) -> pipeline.apply(value == null ? null : (byte[]) value, context);
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);
         };
@@ -284,4 +293,10 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
         return OpConfigs.resolveStringOp(op, lookup);
     }
 
+    private static BytesOp buildBytesOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+        }
+        return OpConfigs.resolveBytesOp(op, lookup);
+    }
 }

@@ -15,8 +15,7 @@ import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Replaces a value with a fixed {@link Integer}. See {@link ValueString} for the equivalent
- * {@link String} operation.
+ * Replaces a value with a fixed {@link Double}.
  */
 @Plugin(configType = ValueDouble.Config.class)
 public class ValueDouble implements DoubleOpFactory {

@@ -18,6 +18,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
+import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
@@ -227,6 +228,10 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
                 ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildStringOp);
                 yield (value, context) -> pipeline.apply(value == null ? null : value.toString(), context);
             }
+            case BYTES -> {
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBytesOp);
+                yield (value, context) -> pipeline.apply(value == null ? null : (byte[]) value, context);
+            }
             default -> throw new IllegalArgumentException("apply is not yet supported for field type: " + field.getType());
         };
     }
@@ -302,5 +307,12 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
             throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
         }
         return OpConfigs.resolveStringOp(op, lookup);
+    }
+
+    static BytesOp buildBytesOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
+            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
+        }
+        return OpConfigs.resolveBytesOp(op, lookup);
     }
 }

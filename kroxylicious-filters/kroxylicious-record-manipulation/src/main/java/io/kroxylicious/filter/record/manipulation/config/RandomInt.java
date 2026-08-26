@@ -16,9 +16,7 @@ import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Generates a random {@link Integer} drawn from a range. See {@link RandomString} for the equivalent
- * {@link String} operation - the two are separate plugins, each with its own disjoint configuration,
- * rather than one plugin handling both types.
+ * Generates a random {@link Integer} drawn from a range.
  */
 @Plugin(configType = RandomInt.Config.class)
 public class RandomInt implements IntOpFactory {
