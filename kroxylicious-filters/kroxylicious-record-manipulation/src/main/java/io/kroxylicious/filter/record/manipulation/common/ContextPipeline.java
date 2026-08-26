@@ -26,8 +26,10 @@ import io.leangen.geantyref.GenericTypeReflector;
  * generic type - which is why chain elements need to be named classes/interfaces with fixed type arguments
  * (see {@link StringOp}/{@link IntOp}), not bare lambdas. Additionally verifies any requested
  * {@link Requirement} against the composed chain.
+ * @param <T> the input type
+ * @param <R> the result type
  */
-public class ContextPipeline {
+public class ContextPipeline<T, R> implements BiFunction<T, Context, R> {
 
     private final List<BiFunction<?, Context, ?>> functions;
 
@@ -76,11 +78,9 @@ public class ContextPipeline {
      * @param input the input to the first function
      * @param context the context threaded through every function
      * @return the result of the last function, or {@code input} itself if the pipeline is empty
-     * @param <T> the input type
-     * @param <R> the result type
      */
     @SuppressWarnings("unchecked")
-    public <T, R> R apply(T input, Context context) {
+    public R apply(T input, Context context) {
         Object result = input;
         for (BiFunction<?, Context, ?> function : functions) {
             result = ((BiFunction<Object, Context, Object>) function).apply(result, context);

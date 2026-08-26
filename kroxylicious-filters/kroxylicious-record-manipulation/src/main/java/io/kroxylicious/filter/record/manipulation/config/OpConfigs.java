@@ -10,6 +10,8 @@ import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
 import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.FloatOp;
+import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
 import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.LongOp;
@@ -80,6 +82,17 @@ public final class OpConfigs {
      */
     public static LongOp resolveLongOp(OpConfig op, PluginLookup lookup) {
         LongOpFactory factory = lookup.pluginInstance(LongOpFactory.class, op.op());
+        return factory.create(op.config());
+    }
+
+    /**
+     * Resolves {@code op} to an {@link DoubleOpFactory} and builds its operation.
+     * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param lookup the plugin lookup to resolve {@code op}'s name against
+     * @return the built operation
+     */
+    public static FloatOp resolveFloatOp(OpConfig op, PluginLookup lookup) {
+        FloatOpFactory factory = lookup.pluginInstance(FloatOpFactory.class, op.op());
         return factory.create(op.config());
     }
 
