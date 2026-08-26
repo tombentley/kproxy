@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.avro;
 
+import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,7 +152,7 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
                 var fn = AvroArrays.items(buildMask(schema.getElementType(), requirements, lookup));
                 yield (value, context) -> fn.apply(castToList(value), context);
             }
-            case STRING, INT -> (value, context) -> value;
+            case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES -> (value, context) -> value;
             default -> throw new IllegalArgumentException("Avro mask not yet supported for schema type: " + schema.getType());
         };
     }
@@ -159,6 +160,17 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
     @SuppressWarnings("unchecked")
     private static List<Object> castToList(Object value) {
         return (List<Object>) value;
+    }
+
+    /**
+     * Copies a {@link ByteBuffer}'s remaining bytes into a fresh array, without disturbing the buffer's own
+     * position - {@link GenericRecord} fields declared {@code bytes} always read back as a {@link ByteBuffer},
+     * never a {@code byte[]}.
+     */
+    private static byte[] toByteArray(ByteBuffer buffer) {
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.duplicate().get(bytes);
+        return bytes;
     }
 
     /**
@@ -214,7 +226,12 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
             }
             case BYTES -> {
                 ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildBytesOp);
-                yield (value, context) -> pipeline.apply(value == null ? null : (byte[]) value, context);
+                yield (value, context) -> {
+                    // call toByteArray() because value is a ByteBuffer, not a byte[]
+                    byte[] input = value == null ? null : toByteArray((ByteBuffer) value);
+                    byte[] result = pipeline.apply(input, context);
+                    return result == null ? null : ByteBuffer.wrap(result);
+                };
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);
         };
