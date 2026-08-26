@@ -209,11 +209,11 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
                 ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBooleanOp);
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
-            case INT32 -> {
+            case INT32, FIXED32, SINT32, SFIXED32 -> {
                 ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildIntegerOp);
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
-            case INT64 -> {
+            case INT64, FIXED64, SINT64, SFIXED64 -> {
                 ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildLongOp);
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
