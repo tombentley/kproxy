@@ -12,33 +12,30 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ChooseLongSupplier;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.ChooseDoubleSupplier;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Integer} drawn from a fixed set. See {@link ChooseString} for the equivalent
  * {@link String} operation.
  */
-@Plugin(configType = ChooseLong.Config.class)
-public class ChooseLong implements LongOpFactory {
+@Plugin(configType = ChooseDouble.Config.class)
+public class ChooseDouble implements DoubleOpFactory {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
-     * Configuration for {@link ChooseLong}.
+     * Configuration for {@link ChooseDouble}.
      * @param from the set of values to choose from
      */
-    public record Config(List<Long> from) {}
+    public record Config(List<Double> from) {}
 
     @Override
-    public LongOp create(Map<String, Object> configMap) {
+    public DoubleOp create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        var generator = new ChooseLongSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.applyAsLong(context);
+        var generator = new ChooseDoubleSupplier(new HashSet<>(config.from()));
+        return (ignored, context) -> generator.applyAsDouble(context);
     }
 }

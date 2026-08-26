@@ -6,8 +6,14 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
+import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
 import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.LongOp;
+import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
 import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
@@ -45,6 +51,17 @@ public final class OpConfigs {
     }
 
     /**
+     * Resolves {@code op} to an {@link BooleanOpFactory} and builds its operation.
+     * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param lookup the plugin lookup to resolve {@code op}'s name against
+     * @return the built operation
+     */
+    public static BooleanOp resolveBooleanOp(OpConfig op, PluginLookup lookup) {
+        BooleanOpFactory factory = lookup.pluginInstance(BooleanOpFactory.class, op.op());
+        return factory.create(op.config());
+    }
+
+    /**
      * Resolves {@code op} to an {@link IntOpFactory} and builds its operation.
      * @param op the operation to resolve; must not be {@link #DELETE}
      * @param lookup the plugin lookup to resolve {@code op}'s name against
@@ -52,6 +69,28 @@ public final class OpConfigs {
      */
     public static IntOp resolveIntOp(OpConfig op, PluginLookup lookup) {
         IntOpFactory factory = lookup.pluginInstance(IntOpFactory.class, op.op());
+        return factory.create(op.config());
+    }
+
+    /**
+     * Resolves {@code op} to an {@link LongOpFactory} and builds its operation.
+     * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param lookup the plugin lookup to resolve {@code op}'s name against
+     * @return the built operation
+     */
+    public static LongOp resolveLongOp(OpConfig op, PluginLookup lookup) {
+        LongOpFactory factory = lookup.pluginInstance(LongOpFactory.class, op.op());
+        return factory.create(op.config());
+    }
+
+    /**
+     * Resolves {@code op} to an {@link DoubleOpFactory} and builds its operation.
+     * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param lookup the plugin lookup to resolve {@code op}'s name against
+     * @return the built operation
+     */
+    public static DoubleOp resolveDoubleOp(OpConfig op, PluginLookup lookup) {
+        DoubleOpFactory factory = lookup.pluginInstance(DoubleOpFactory.class, op.op());
         return factory.create(op.config());
     }
 }
