@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.jackson.Use;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -40,6 +42,7 @@ public class AvroUse {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AvroUse.class);
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
 
     private AvroUse() {
     }
@@ -58,23 +61,23 @@ public class AvroUse {
                 {"type": "record", "name": "User", "namespace": "example.avro",
                     "fields": [
                         {"name": "firstName", "type": "string", "apply": [
-                            {"random": {"alphabet": "abcdefghijklmnopqrstuvwxyz", "minLength": 3, "maxLength": 5}}
+                            {"op": "RandomString", "alphabet": "abcdefghijklmnopqrstuvwxyz", "minLengthInclusive": 3, "maxLengthExclusive": 5}
                         ]},
                         {"name": "surname", "type": "string", "apply": [
-                            {"choose": ["Smith", "Jones"]}
+                            {"op": "ChooseString", "from": ["Smith", "Jones"]}
                         ]},
                         {"name": "ageYears", "type": "int", "apply": [
-                            {"random": {"min": 18, "max": 100}}
+                            {"op": "RandomInt", "minInclusive": 18, "maxExclusive": 100}
                         ]},
                         {"name": "aliases", "type": {"type": "array", "items": {"type": "string", "apply": [
-                            {"random": {"alphabet": "abcdefghijklmnopqrstuvwxyz", "minLength": 3, "maxLength": 15}}
+                            {"op": "RandomString", "alphabet": "abcdefghijklmnopqrstuvwxyz", "minLengthInclusive": 3, "maxLengthExclusive": 15}
                         ]}}},
                         {"name": "address", "type": {"type": "record", "name": "Address", "fields": [
                             {"name": "streetAddress", "type": "string", "apply": [
-                                {"hmac": {"keyId": "FOO"}}
+                                {"op": "HmacString", "keyId": "FOO"}
                             ]},
                             {"name": "city", "type": "string", "apply": [
-                                {"encrypt": {"keyId": "FOO"}}
+                                {"op": "EncryptString", "keyId": "FOO"}
                             ]}
                         ]}}
                     ]
@@ -82,7 +85,7 @@ public class AvroUse {
                 """;
 
         Schema maskSchema = new Schema.Parser().parse(maskSchemaJson);
-        Schema unmaskSchema = new Schema.Parser().parse(maskSchemaJson.replace("encrypt", "decrypt"));
+        Schema unmaskSchema = new Schema.Parser().parse(maskSchemaJson.replace("EncryptString", "DecryptString"));
 
         GenericRecord address = new GenericData.Record(maskSchema.getField("address").schema());
         address.put("streetAddress", "Hogwarts");
@@ -99,12 +102,12 @@ public class AvroUse {
         ByteBuffer data = serializer.apply(user);
 
         Context maskContext = new Context(new Random(), KEY);
-        Pipeline maskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(maskSchema).bindRecord(maskContext), serializer));
+        Pipeline maskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskContext), serializer));
         ByteBuffer masked = maskPipeline.apply(data.duplicate());
         LOGGER.atInfo().addKeyValue("masked", deserializer.apply(masked.duplicate())).log("applied mask");
 
         Context unmaskContext = new Context(new Random(), KEY);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(unmaskSchema).bindRecord(unmaskContext), serializer));
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskContext), serializer));
         ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
         LOGGER.atInfo().addKeyValue("unmasked", deserializer.apply(unmasked.duplicate())).log("applied unmask");
 
@@ -112,7 +115,7 @@ public class AvroUse {
         Function<ByteBuffer, GenericRecord> jsonDeserializer = new AvroJsonDeserializer(maskSchema);
         Function<GenericRecord, ByteBuffer> jsonSerializer = new AvroJsonSerializer(maskSchema);
         Pipeline jsonMaskPipeline = new Pipeline(
-                List.of(jsonDeserializer, AvroFunction.buildMask(maskSchema).bindRecord(new Context(new Random(), KEY)), jsonSerializer));
+                List.of(jsonDeserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(new Context(new Random(), KEY)), jsonSerializer));
         ByteBuffer jsonMasked = jsonMaskPipeline.apply(jsonSerializer.apply(user));
         LOGGER.atInfo().addKeyValue("jsonMasked", jsonDeserializer.apply(jsonMasked.duplicate())).log("applied mask via Avro JSON encoding");
     }

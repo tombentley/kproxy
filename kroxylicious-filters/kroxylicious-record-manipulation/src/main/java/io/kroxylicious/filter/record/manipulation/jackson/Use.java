@@ -22,6 +22,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -36,6 +38,7 @@ public class Use {
     private static final Logger LOGGER = LoggerFactory.getLogger(Use.class);
     private static final YAMLMapper MAPPER = new YAMLMapper();
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
 
     private Use() {
     }
@@ -107,11 +110,13 @@ public class Use {
                   firstName:
                     type: string
                     apply:
-                      - value: "REDACTED"
+                      - op: ValueString
+                        value: "REDACTED"
                   #surname:
                   #  type: string
                   #  apply:
-                  #    - choose:
+                  #    - op: ChooseString
+                  #      from:
                   #        - Smith
                   #        - Jones
                   aliases:
@@ -119,46 +124,46 @@ public class Use {
                     items:
                       type: string
                       apply:
-                        - random:
-                            minLength: 3
-                            maxLength: 15
-                            alphabet: abcdef ghijklmnopqrst uvwxyz
+                        - op: RandomString
+                          minLengthInclusive: 3
+                          maxLengthExclusive: 15
+                          alphabet: abcdef ghijklmnopqrst uvwxyz
                   ageYears:
                     type: integer
                     apply:
-                      - random:
-                          min: 18
-                          max: 100
+                      - op: RandomInt
+                        minInclusive: 18
+                        maxExclusive: 100
                   address:
                     type: object
                     properties:
                       streetAddress:
                         type: string
                         apply:
-                          - hmac:
-                              keyId: FOO
+                          - op: HmacString
+                            keyId: FOO
                       city:
                         type: string
                         apply:
-                          - encrypt:
-                              keyId: FOO
+                          - op: EncryptString
+                            keyId: FOO
                 """;
         // The above assumes that every node has a singular `type`.
         // That's fine so long as things like `random` work with multiple types
         SchemaConfig maskTree = MAPPER.readValue(maskContent, SchemaConfig.class);
-        SchemaConfig unmaskTree = MAPPER.readValue(maskContent.replace("encrypt", "decrypt"), SchemaConfig.class);
+        SchemaConfig unmaskTree = MAPPER.readValue(maskContent.replace("EncryptString", "DecryptString"), SchemaConfig.class);
 
         Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
 
         Context maskContext = new Context(new Random(), KEY);
-        JacksonFunction maskFn = JacksonFunction.buildMask(maskTree);
+        JacksonFunction maskFn = JacksonFunction.buildMask(maskTree, LOOKUP);
         Pipeline maskPipeline = new Pipeline(List.of(deserializer, maskFn.bind(maskContext), serializer));
         ByteBuffer result = maskPipeline.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
         String masked = StandardCharsets.UTF_8.decode(result.duplicate()).toString();
         LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
 
         Context unmaskContext = new Context(new Random(), KEY);
-        JacksonFunction unmaskFn = JacksonFunction.buildMask(unmaskTree);
+        JacksonFunction unmaskFn = JacksonFunction.buildMask(unmaskTree, LOOKUP);
         Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, unmaskFn.bind(unmaskContext), serializer));
         ByteBuffer result2 = unmaskPipeline.apply(result);
         String unmasked = StandardCharsets.UTF_8.decode(result2.duplicate()).toString();
@@ -166,7 +171,7 @@ public class Use {
 
         // Root-level generation is just this same traversal, started from MissingNode instead of a real value.
         Context generateContext = new Context(new Random(), KEY);
-        JsonNode generatedResult = JacksonFunction.buildMask(maskTree).apply(MissingNode.getInstance(), generateContext);
+        JsonNode generatedResult = JacksonFunction.buildMask(maskTree, LOOKUP).apply(MissingNode.getInstance(), generateContext);
         String generated = MAPPER.writeValueAsString(generatedResult);
         LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
 

@@ -23,7 +23,9 @@ import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer;
@@ -58,35 +60,36 @@ class MaskPipelineTest {
               firstName:
                 type: string
                 apply:
-                  - value: "REDACTED"
+                  - op: ValueString
+                    value: "REDACTED"
               aliases:
                 type: array
                 items:
                   type: string
                   apply:
-                    - random:
-                        minLength: 3
-                        maxLength: 15
-                        alphabet: abcdefghijklmnopqrstuvwxyz
+                    - op: RandomString
+                      minLengthInclusive: 3
+                      maxLengthExclusive: 15
+                      alphabet: abcdefghijklmnopqrstuvwxyz
               ageYears:
                 type: integer
                 apply:
-                  - random:
-                      min: 18
-                      max: 100
+                  - op: RandomInt
+                    minInclusive: 18
+                    maxExclusive: 100
               address:
                 type: object
                 properties:
                   streetAddress:
                     type: string
                     apply:
-                      - hmac:
-                          keyId: FOO
+                      - op: HmacString
+                        keyId: FOO
                   city:
                     type: string
                     apply:
-                      - encrypt:
-                          keyId: FOO
+                      - op: EncryptString
+                        keyId: FOO
             """;
 
     private static final String ENCRYPT_THEN_HMAC_CITY = """
@@ -98,10 +101,10 @@ class MaskPipelineTest {
                   city:
                     type: string
                     apply:
-                      - encrypt:
-                          keyId: FOO
-                      - hmac:
-                          keyId: FOO
+                      - op: EncryptString
+                        keyId: FOO
+                      - op: HmacString
+                        keyId: FOO
             """;
 
     private static final String HMAC_THEN_ENCRYPT_CITY = """
@@ -113,10 +116,10 @@ class MaskPipelineTest {
                   city:
                     type: string
                     apply:
-                      - hmac:
-                          keyId: FOO
-                      - encrypt:
-                          keyId: FOO
+                      - op: HmacString
+                        keyId: FOO
+                      - op: EncryptString
+                        keyId: FOO
             """;
 
     private static final String SCHEMA_WITH_UNRECOGNISED_KEYWORD = """
@@ -126,7 +129,8 @@ class MaskPipelineTest {
                 type: string
                 pattern: "^[A-Z]"
                 apply:
-                  - value: "REDACTED"
+                  - op: ValueString
+                    value: "REDACTED"
             """;
 
     private static final String DELETE_AND_INSERT_CONTENT = """
@@ -135,11 +139,12 @@ class MaskPipelineTest {
               surname:
                 type: string
                 apply:
-                  - delete: true
+                  - op: Delete
               nickname:
                 type: string
                 apply:
-                  - value: "Wizard"
+                  - op: ValueString
+                    value: "Wizard"
             """;
 
     private static final String INSERT_NESTED_OBJECT_CONTENT = """
@@ -151,7 +156,8 @@ class MaskPipelineTest {
                   name:
                     type: string
                     apply:
-                      - value: "Dumbledore"
+                      - op: ValueString
+                        value: "Dumbledore"
             """;
 
     private static final String DOES_NOT_INSERT_NESTED_OBJECT_CONTENT = """
@@ -163,8 +169,8 @@ class MaskPipelineTest {
                   name:
                     type: string
                     apply:
-                      - hmac:
-                          keyId: FOO
+                      - op: HmacString
+                        keyId: FOO
             """;
 
     private static final String GENERATE_COMPOSED_CONTENT = """
@@ -173,12 +179,12 @@ class MaskPipelineTest {
               city:
                 type: string
                 apply:
-                  - random:
-                      minLength: 3
-                      maxLength: 15
-                      alphabet: abcdefghijklmnopqrstuvwxyz
-                  - hmac:
-                      keyId: FOO
+                  - op: RandomString
+                    minLengthInclusive: 3
+                    maxLengthExclusive: 15
+                    alphabet: abcdefghijklmnopqrstuvwxyz
+                  - op: HmacString
+                    keyId: FOO
               plain:
                 type: string
             """;
@@ -188,6 +194,8 @@ class MaskPipelineTest {
 
     /** Matches the (currently hard-coded) key {@link Use} uses for hmac/encrypt/decrypt. */
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
 
     private final Function<ByteBuffer, JsonNode> deserializer = new JacksonDeserializer(MAPPER);
     private final Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
@@ -201,12 +209,12 @@ class MaskPipelineTest {
     }
 
     private ByteBuffer mask(SchemaConfig maskTree, Context context) {
-        Pipeline pipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(maskTree).bind(context), serializer));
+        Pipeline pipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(maskTree, LOOKUP).bind(context), serializer));
         return pipeline.apply(ByteBuffer.wrap(DATA.getBytes(StandardCharsets.UTF_8)));
     }
 
     private JsonNode generate(SchemaConfig schema, Context context) {
-        return JacksonFunction.buildMask(schema).apply(MissingNode.getInstance(), context);
+        return JacksonFunction.buildMask(schema, LOOKUP).apply(MissingNode.getInstance(), context);
     }
 
     private static String hmacOf(String plaintext) {
@@ -262,8 +270,8 @@ class MaskPipelineTest {
     void maskThenUnmaskPipelineRoundTripsTheEncryptedFieldButNotTheHmacedField() throws JsonProcessingException {
         // Given
         SchemaConfig maskTree = MAPPER.readValue(MASK_CONTENT, SchemaConfig.class);
-        SchemaConfig unmaskTree = MAPPER.readValue(MASK_CONTENT.replace("encrypt", "decrypt"), SchemaConfig.class);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(unmaskTree).bind(contextWithSeed(SEED)), serializer));
+        SchemaConfig unmaskTree = MAPPER.readValue(MASK_CONTENT.replace("EncryptString", "DecryptString"), SchemaConfig.class);
+        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, JacksonFunction.buildMask(unmaskTree, LOOKUP).bind(contextWithSeed(SEED)), serializer));
 
         // When
         ByteBuffer masked = mask(maskTree, contextWithSeed(SEED));

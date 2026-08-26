@@ -20,8 +20,10 @@ import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.protobuf.ParsedProtoSchema;
 import io.kroxylicious.filter.record.manipulation.protobuf.ProtoBinaryDeserializer;
 import io.kroxylicious.filter.record.manipulation.protobuf.ProtoBinarySerializer;
@@ -45,12 +47,12 @@ class ProtoMaskPipelineTest {
     private static final String MASK_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
-                string first_name = 1 [(apply) = { value: "REDACTED" }];
+                string first_name = 1 [(apply) = { op: "ValueString", value: "REDACTED" }];
                 string surname = 2;
                 Address address = 3;
                 message Address {
-                    string street_address = 1 [(apply) = { hmac: { keyId: "FOO" } }];
-                    string city = 2 [(apply) = { encrypt: { keyId: "FOO" } }];
+                    string street_address = 1 [(apply) = { op: "HmacString", keyId: "FOO" }];
+                    string city = 2 [(apply) = { op: "EncryptString", keyId: "FOO" }];
                 }
             }
             """;
@@ -60,7 +62,7 @@ class ProtoMaskPipelineTest {
             message User {
                 Address address = 1;
                 message Address {
-                    string city = 1 [(apply) = { encrypt: { keyId: "FOO" } }, (apply) = { hmac: { keyId: "FOO" } }];
+                    string city = 1 [(apply) = { op: "EncryptString", keyId: "FOO" }, (apply) = { op: "HmacString", keyId: "FOO" }];
                 }
             }
             """;
@@ -70,7 +72,7 @@ class ProtoMaskPipelineTest {
             message User {
                 Address address = 1;
                 message Address {
-                    string city = 1 [(apply) = { hmac: { keyId: "FOO" } }, (apply) = { encrypt: { keyId: "FOO" } }];
+                    string city = 1 [(apply) = { op: "HmacString", keyId: "FOO" }, (apply) = { op: "EncryptString", keyId: "FOO" }];
                 }
             }
             """;
@@ -78,21 +80,21 @@ class ProtoMaskPipelineTest {
     private static final String RANDOM_INT_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
-                int32 age_years = 1 [(apply) = { random: { min: 18, max: 100 } }];
+                int32 age_years = 1 [(apply) = { op: "RandomInt", minInclusive: 18, maxExclusive: 100 }];
             }
             """;
 
     private static final String RANDOM_STRING_REPEATED_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
-                repeated string aliases = 1 [(apply) = { random: { alphabet: "abcdefghijklmnopqrstuvwxyz", minLength: 3, maxLength: 15 } }];
+                repeated string aliases = 1 [(apply) = { op: "RandomString", alphabet: "abcdefghijklmnopqrstuvwxyz", minLengthInclusive: 3, maxLengthExclusive: 15 }];
             }
             """;
 
     private static final String DELETE_SCHEMA_PROTO = """
             syntax = "proto3";
             message User {
-                string first_name = 1 [(apply) = { delete: true }];
+                string first_name = 1 [(apply) = { op: "Delete" }];
             }
             """;
 
@@ -109,6 +111,8 @@ class ProtoMaskPipelineTest {
     /** Matches the (currently hard-coded) key {@link io.kroxylicious.filter.record.manipulation.protobuf.ProtoUse} uses for hmac/encrypt/decrypt. */
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
 
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
+
     private static Context contextWithSeed(long seed) {
         return new Context(new Random(seed), KEY);
     }
@@ -120,7 +124,7 @@ class ProtoMaskPipelineTest {
     private static DynamicMessage mask(DynamicMessage message, ParsedProtoSchema schema, Context context) {
         Function<ByteBuffer, DynamicMessage> deserializer = new ProtoBinaryDeserializer(schema.descriptor());
         Function<DynamicMessage, ByteBuffer> serializer = new ProtoBinarySerializer();
-        Pipeline pipeline = new Pipeline(List.of(deserializer, ProtoFunction.buildMask(schema).bindRecord(context), serializer));
+        Pipeline pipeline = new Pipeline(List.of(deserializer, ProtoFunction.buildMask(schema, LOOKUP).bindRecord(context), serializer));
         return deserializer.apply(pipeline.apply(serializer.apply(message)));
     }
 
@@ -178,7 +182,7 @@ class ProtoMaskPipelineTest {
     void maskThenUnmaskPipelineRoundTripsTheEncryptedFieldButNotTheHmacedField() {
         // Given
         ParsedProtoSchema maskSchema = schema(MASK_SCHEMA_PROTO);
-        ParsedProtoSchema unmaskSchema = schema(MASK_SCHEMA_PROTO.replace("encrypt", "decrypt"));
+        ParsedProtoSchema unmaskSchema = schema(MASK_SCHEMA_PROTO.replace("EncryptString", "DecryptString"));
         DynamicMessage data = userWithAddress(maskSchema, "Hogwarts", "Hogsmead");
 
         // When
@@ -275,7 +279,7 @@ class ProtoMaskPipelineTest {
         ParsedProtoSchema schema = schema(DELETE_SCHEMA_PROTO);
 
         // When/Then
-        assertThatThrownBy(() -> ProtoFunction.buildMask(schema)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ProtoFunction.buildMask(schema, LOOKUP)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -284,7 +288,7 @@ class ProtoMaskPipelineTest {
         ParsedProtoSchema schema = schema(UNSUPPORTED_TYPE_SCHEMA_PROTO);
 
         // When/Then
-        assertThatThrownBy(() -> ProtoFunction.buildMask(schema)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ProtoFunction.buildMask(schema, LOOKUP)).isInstanceOf(IllegalArgumentException.class);
     }
 
 }

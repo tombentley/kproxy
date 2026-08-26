@@ -5,3 +5,5 @@
 #
 
 io.kroxylicious.filter.record.manipulation.config.RandomInt
+io.kroxylicious.filter.record.manipulation.config.ValueInt
+io.kroxylicious.filter.record.manipulation.config.ChooseInt

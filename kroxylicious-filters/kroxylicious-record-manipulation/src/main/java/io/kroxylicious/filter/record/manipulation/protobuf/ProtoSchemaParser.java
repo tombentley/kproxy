@@ -24,7 +24,7 @@ import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
  * Parses raw {@code .proto} IDL source text into a {@link ParsedProtoSchema} - the Protobuf equivalent of
@@ -54,7 +54,7 @@ public final class ProtoSchemaParser {
     public static ParsedProtoSchema parse(String protoText, String rootMessageName) {
         ProtoFileElement fileElement = ProtobufFile.toProtoFileElement(protoText);
         Descriptors.Descriptor rootDescriptor = FileDescriptorUtils.toDescriptor(rootMessageName, fileElement, Map.of());
-        Map<Descriptors.GenericDescriptor, List<ApplyConfig>> apply = new HashMap<>();
+        Map<Descriptors.GenericDescriptor, List<OpConfig>> apply = new HashMap<>();
         for (TypeElement type : fileElement.getTypes()) {
             if (type instanceof MessageElement message) {
                 Descriptors.Descriptor descriptor = rootDescriptor.getFile().findMessageTypeByName(message.getName());
@@ -66,7 +66,7 @@ public final class ProtoSchemaParser {
         return new ParsedProtoSchema(rootDescriptor, apply);
     }
 
-    private static void collectApply(MessageElement message, Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<ApplyConfig>> out) {
+    private static void collectApply(MessageElement message, Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> out) {
         applyConfig(message.getOptions()).ifPresent(config -> out.put(descriptor, config));
         for (FieldElement field : message.getFields()) {
             Descriptors.FieldDescriptor fieldDescriptor = descriptor.findFieldByName(field.getName());
@@ -90,7 +90,7 @@ public final class ProtoSchemaParser {
      * composed {@code apply} chain is written as one option occurrence per operation - mirrors a field's
      * {@code apply} being a YAML/JSON list for Avro/JSON.
      */
-    private static Optional<List<ApplyConfig>> applyConfig(List<OptionElement> options) {
+    private static Optional<List<OpConfig>> applyConfig(List<OptionElement> options) {
         List<Object> raw = options.stream()
                 .filter(option -> APPLY_OPTION.equals(option.getName()))
                 .map(OptionElement::getValue)
@@ -99,7 +99,7 @@ public final class ProtoSchemaParser {
         if (raw.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(MAPPER.convertValue(raw, new TypeReference<List<ApplyConfig>>() {
+        return Optional.of(MAPPER.convertValue(raw, new TypeReference<List<OpConfig>>() {
         }));
     }
 

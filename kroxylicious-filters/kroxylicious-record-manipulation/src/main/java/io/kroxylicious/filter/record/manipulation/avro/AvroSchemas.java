@@ -13,7 +13,7 @@ import org.apache.avro.JsonProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
  * Reads the non-standard {@code apply} keyword off an Avro {@link org.apache.avro.Schema} or
@@ -40,12 +40,12 @@ public class AvroSchemas {
      * @param props the schema or field to read {@code apply} from
      * @return the {@code apply} chain, or {@code null} if {@code props} carries no {@code apply} property
      */
-    public static List<ApplyConfig> applyConfig(JsonProperties props) {
+    public static List<OpConfig> applyConfig(JsonProperties props) {
         Object raw = props.getObjectProp("apply");
         if (raw == null) {
             return null;
         }
-        return MAPPER.convertValue(raw, new TypeReference<List<ApplyConfig>>() {
+        return MAPPER.convertValue(raw, new TypeReference<List<OpConfig>>() {
         });
     }
 }

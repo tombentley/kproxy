@@ -18,6 +18,8 @@ import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.Pipeline;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.jackson.Use;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -38,6 +40,7 @@ public class ProtoUse {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProtoUse.class);
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
 
     private ProtoUse() {
     }
@@ -55,21 +58,21 @@ public class ProtoUse {
         var maskSchemaProto = """
                 syntax = "proto3";
                 message User {
-                    string first_name = 1 [(apply) = { random: { alphabet: "abcdefghijklmnopqrstuvwxyz", minLength: 3, maxLength: 5 } }];
-                    string surname = 2 [(apply) = { choose: ["Smith", "Jones"] }];
-                    int32 age_years = 3 [(apply) = { random: { min: 18, max: 100 } }];
-                    repeated string aliases = 4 [(apply) = { random: { alphabet: "abcdefghijklmnopqrstuvwxyz", minLength: 3, maxLength: 15 } }];
+                    string first_name = 1 [(apply) = { op: "RandomString", alphabet: "abcdefghijklmnopqrstuvwxyz", minLengthInclusive: 3, maxLengthExclusive: 5 }];
+                    string surname = 2 [(apply) = { op: "ChooseString", from: ["Smith", "Jones"] }];
+                    int32 age_years = 3 [(apply) = { op: "RandomInt", minInclusive: 18, maxExclusive: 100 }];
+                    repeated string aliases = 4 [(apply) = { op: "RandomString", alphabet: "abcdefghijklmnopqrstuvwxyz", minLengthInclusive: 3, maxLengthExclusive: 15 }];
                     Address address = 5;
 
                     message Address {
-                        string street_address = 1 [(apply) = { hmac: { keyId: "FOO" } }];
-                        string city = 2 [(apply) = { encrypt: { keyId: "FOO" } }];
+                        string street_address = 1 [(apply) = { op: "HmacString", keyId: "FOO" }];
+                        string city = 2 [(apply) = { op: "EncryptString", keyId: "FOO" }];
                     }
                 }
                 """;
 
         ParsedProtoSchema maskSchema = ProtoSchemaParser.parse(maskSchemaProto, "User");
-        ParsedProtoSchema unmaskSchema = ProtoSchemaParser.parse(maskSchemaProto.replace("encrypt", "decrypt"), "User");
+        ParsedProtoSchema unmaskSchema = ProtoSchemaParser.parse(maskSchemaProto.replace("EncryptString", "DecryptString"), "User");
 
         DynamicMessage address = DynamicMessage.newBuilder(maskSchema.descriptor().findNestedTypeByName("Address"))
                 .setField(maskSchema.descriptor().findNestedTypeByName("Address").findFieldByName("street_address"), "Hogwarts")
@@ -95,12 +98,12 @@ public class ProtoUse {
         ByteBuffer data = serializer.apply(user);
 
         Context maskContext = new Context(new Random(), KEY);
-        Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtoFunction.buildMask(maskSchema).bindRecord(maskContext), serializer));
+        Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtoFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskContext), serializer));
         ByteBuffer masked = maskPipeline.apply(data.duplicate());
         LOGGER.atInfo().addKeyValue("masked", maskDeserializer.apply(masked.duplicate())).log("applied mask");
 
         Context unmaskContext = new Context(new Random(), KEY);
-        Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtoFunction.buildMask(unmaskSchema).bindRecord(unmaskContext), serializer));
+        Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtoFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskContext), serializer));
         ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
         LOGGER.atInfo().addKeyValue("unmasked", unmaskDeserializer.apply(unmasked.duplicate())).log("applied unmask");
     }
