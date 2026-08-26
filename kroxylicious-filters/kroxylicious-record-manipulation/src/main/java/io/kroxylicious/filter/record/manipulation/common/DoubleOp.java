@@ -10,9 +10,6 @@ import java.util.function.BiFunction;
 
 /**
  * A single operation on a {@link Double}, given some {@link Context}.
- * <p>
- * See {@link StringOp} for why this needs to be its own named interface rather than a bare
- * {@code BiFunction<Double, Context, Double>}.
  */
 public interface DoubleOp extends BiFunction<Double, Context, Double> {
 }

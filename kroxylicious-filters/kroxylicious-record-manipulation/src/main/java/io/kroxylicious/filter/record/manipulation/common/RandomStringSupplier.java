@@ -43,7 +43,6 @@ public class RandomStringSupplier implements Function<Context, String> {
     public String apply(Context context) {
         Random prng = context.random();
         var codePoints = alphabet.codePoints().toArray();
-        // TODO this should really be using codepoints, not chars
         var length = prng.nextInt(minLengthInclusive, maxLengthExclusive);
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {

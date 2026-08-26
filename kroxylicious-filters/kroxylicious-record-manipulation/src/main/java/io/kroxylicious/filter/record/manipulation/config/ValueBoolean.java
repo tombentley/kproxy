@@ -15,8 +15,7 @@ import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Replaces a value with a fixed {@link Integer}. See {@link ValueString} for the equivalent
- * {@link String} operation.
+ * Replaces a value with a fixed {@link Boolean}.
  */
 @Plugin(configType = ValueBoolean.Config.class)
 public class ValueBoolean implements BooleanOpFactory {

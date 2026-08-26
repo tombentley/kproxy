@@ -18,8 +18,7 @@ import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Generates a random {@link String} drawn from a fixed set. See {@link ChooseInt} for the equivalent
- * {@link Integer} operation.
+ * Generates a random {@link String} drawn from a fixed set.
  */
 @Plugin(configType = ChooseString.Config.class)
 public class ChooseString implements StringOpFactory {

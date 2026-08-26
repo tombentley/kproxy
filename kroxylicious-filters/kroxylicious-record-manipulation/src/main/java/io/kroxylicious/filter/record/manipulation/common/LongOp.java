@@ -10,9 +10,6 @@ import java.util.function.BiFunction;
 
 /**
  * A single operation on a {@link Long}, given some {@link Context}.
- * <p>
- * See {@link StringOp} for why this needs to be its own named interface rather than a bare
- * {@code BiFunction<Long, Context, Long>}.
  */
 public interface LongOp extends BiFunction<Long, Context, Long> {
 }

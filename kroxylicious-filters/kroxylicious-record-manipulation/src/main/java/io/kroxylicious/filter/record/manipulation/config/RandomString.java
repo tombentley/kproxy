@@ -16,9 +16,7 @@ import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Generates a random {@link String} of a random length composed of codepoints taken from an alphabet. See
- * {@link RandomInt} for the equivalent {@link Integer} operation - the two are separate plugins, each
- * with its own disjoint configuration, rather than one plugin handling both types.
+ * Generates a random {@link String} of a random length composed of codepoints taken from an alphabet.
  */
 @Plugin(configType = RandomString.Config.class)
 public class RandomString implements StringOpFactory {

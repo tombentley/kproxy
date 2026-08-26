@@ -18,8 +18,7 @@ import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
- * Generates a random {@link Integer} drawn from a fixed set. See {@link ChooseString} for the equivalent
- * {@link String} operation.
+ * Generates a random {@link Integer} drawn from a fixed set.
  */
 @Plugin(configType = ChooseLong.Config.class)
 public class ChooseLong implements LongOpFactory {
