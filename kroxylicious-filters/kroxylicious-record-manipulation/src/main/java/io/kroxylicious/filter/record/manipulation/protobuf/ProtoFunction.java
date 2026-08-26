@@ -17,23 +17,15 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.ChooseIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DecryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.RandomIntSupplier;
-import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
 /**
  * A mask/transform over a Protobuf generic value (a {@link DynamicMessage}, a {@link java.util.List} for a
@@ -54,25 +46,27 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
      * Builds a mask function from a {@link ParsedProtoSchema}, with no additional requirement beyond each
      * field's {@code apply} chain composing.
      * @param schema the parsed schema, plus its {@code apply} chains
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code schema}, given a {@link Context}
      */
-    static ProtoFunction buildMask(ParsedProtoSchema schema) {
-        return buildMask(schema, Set.of());
+    static ProtoFunction buildMask(ParsedProtoSchema schema, PluginLookup lookup) {
+        return buildMask(schema, Set.of(), lookup);
     }
 
     /**
      * Builds a mask function from a {@link ParsedProtoSchema}.
      * @param schema the parsed schema, plus its {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
+     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code schema}, given a {@link Context}
      */
-    static ProtoFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements) {
-        return buildMask(schema.descriptor(), schema.apply(), requirements);
+    static ProtoFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements, PluginLookup lookup) {
+        return buildMask(schema.descriptor(), schema.apply(), requirements, lookup);
     }
 
-    private static ProtoFunction buildMask(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<ApplyConfig>> applyByNode,
-                                           Set<Requirement> requirements) {
-        ProtoFunction structural = buildStructural(descriptor, applyByNode, requirements);
+    private static ProtoFunction buildMask(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                           Set<Requirement> requirements, PluginLookup lookup) {
+        ProtoFunction structural = buildStructural(descriptor, applyByNode, requirements, lookup);
         if (applyByNode.get(descriptor) != null) {
             throw new IllegalArgumentException("apply is not yet supported for message-level nodes: " + descriptor.getFullName());
         }
@@ -140,10 +134,10 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
      * untouched. This runs before each field's own {@code apply} chain (if any), so {@code apply} always
      * sees the already-masked value - mirrors {@code AvroFunction.buildStructural}.
      */
-    private static ProtoFunction buildStructural(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<ApplyConfig>> applyByNode,
-                                                 Set<Requirement> requirements) {
+    private static ProtoFunction buildStructural(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                 Set<Requirement> requirements, PluginLookup lookup) {
         Map<String, BiFunction<Object, Context, Object>> mapping = descriptor.getFields().stream()
-                .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, requirements), (a, b) -> a,
+                .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, requirements, lookup), (a, b) -> a,
                         LinkedHashMap::new));
         var fn = ProtoMessages.mapFields(descriptor, mapping);
         return (value, context) -> fn.apply((DynamicMessage) value, context);
@@ -156,15 +150,15 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
      * per-element rather than whole-list here).
      */
     private static BiFunction<Object, Context, Object> fieldFunction(Descriptors.FieldDescriptor field,
-                                                                     Map<Descriptors.GenericDescriptor, List<ApplyConfig>> applyByNode,
-                                                                     Set<Requirement> requirements) {
+                                                                     Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                                     Set<Requirement> requirements, PluginLookup lookup) {
         if (field.isMapField()) {
             throw new IllegalArgumentException("Proto mask not yet supported for map fields: " + field.getFullName());
         }
-        ProtoFunction elementFn = buildElementTypeMask(field, applyByNode, requirements);
-        List<ApplyConfig> apply = applyByNode.get(field);
+        ProtoFunction elementFn = buildElementTypeMask(field, applyByNode, requirements, lookup);
+        List<OpConfig> apply = applyByNode.get(field);
         if (apply != null) {
-            ProtoFunction ownApply = buildApplyChain(field, apply, requirements);
+            ProtoFunction ownApply = buildApplyChain(field, apply, requirements, lookup);
             ProtoFunction base = elementFn;
             elementFn = (value, context) -> ownApply.apply(base.apply(value, context), context);
         }
@@ -177,13 +171,14 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
 
     /**
      * Builds the mask for one element of {@code field} (its message type, if any - recursing via
-     * {@link #buildMask(Descriptors.Descriptor, Map, Set)} - or a passthrough for a supported scalar leaf
-     * type), ignoring {@code field}'s repeated-ness, which {@link #fieldFunction} applies separately.
+     * {@link #buildMask(Descriptors.Descriptor, Map, Set, PluginLookup)} - or a passthrough for a supported
+     * scalar leaf type), ignoring {@code field}'s repeated-ness, which {@link #fieldFunction} applies
+     * separately.
      */
-    private static ProtoFunction buildElementTypeMask(Descriptors.FieldDescriptor field, Map<Descriptors.GenericDescriptor, List<ApplyConfig>> applyByNode,
-                                                      Set<Requirement> requirements) {
+    private static ProtoFunction buildElementTypeMask(Descriptors.FieldDescriptor field, Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                      Set<Requirement> requirements, PluginLookup lookup) {
         return switch (field.getType()) {
-            case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements);
+            case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
             case STRING, INT32 -> (value, context) -> value;
             default -> throw new IllegalArgumentException("Proto mask not yet supported for field type: " + field.getType());
         };
@@ -200,15 +195,15 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
      * removing a field isn't meaningful without deciding what it means for a required proto2/proto3
      * implicit-presence field, so it fails loudly rather than producing a possibly-nonconforming message.
      */
-    private static ProtoFunction buildApplyChain(Descriptors.FieldDescriptor field, List<ApplyConfig> ops, Set<Requirement> requirements) {
+    private static ProtoFunction buildApplyChain(Descriptors.FieldDescriptor field, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (field.getType()) {
             case STRING -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(ProtoFunction::buildStringOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildStringOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (value, context) -> pipeline.<String, String> apply(value == null ? null : value.toString(), context);
             }
             case INT32 -> {
-                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(ProtoFunction::buildIntegerOp).toList();
+                List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> buildIntegerOp(op, lookup)).toList();
                 ContextPipeline pipeline = new ContextPipeline(fns, requirements);
                 yield (value, context) -> pipeline.<Integer, Integer> apply((Integer) value, context);
             }
@@ -216,69 +211,27 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
         };
     }
 
-    private static StringOp buildStringOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+    /**
+     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * here (rather than resolved via {@code lookup}) since removing a field isn't meaningful without
+     * deciding what it means for a required proto2/proto3 implicit-presence field, so it fails loudly
+     * rather than producing a possibly-nonconforming message - unlike {@code JacksonFunction}'s equivalent,
+     * which allows it.
+     */
+    static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
         }
-        else if (op.value() != null) {
-            String constant = op.value().textValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomStringSupplier(op.random().alphabet(), op.random().minLength(), op.random().maxLength());
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.choose() != null) {
-            Set<String> from = op.choose().stream().map(x -> (String) x).collect(Collectors.toSet());
-            var generator = new ChooseStringSupplier(from);
-            return (ignored, context) -> generator.apply(context);
-        }
-        else if (op.hmac() != null) {
-            var fn = new HmacStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.encrypt() != null) {
-            var fn = new EncryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else if (op.decrypt() != null) {
-            var fn = new DecryptStringFunction();
-            return (value, context) -> value == null ? null : fn.apply(value, context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveStringOp(op, lookup);
     }
 
     /**
-     * Resolves and builds a pluggable operation, e.g. {@code op: RandomInt} - proof of concept for making
-     * the {@code apply} vocabulary extensible via Kroxylicious's Plugin mechanism. Not yet wired into
-     * {@link #buildApplyChain}: {@link ApplyConfig}'s closed operation vocabulary is unaffected by this.
+     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
      */
     static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
-        IntOpFactory factory = lookup.pluginInstance(IntOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    private static IntOp buildIntegerOp(ApplyConfig op) {
-        if (Boolean.TRUE.equals(op.delete())) {
+        if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
         }
-        else if (op.value() != null) {
-            int constant = op.value().intValue();
-            return (ignored, context) -> constant;
-        }
-        else if (op.random() != null) {
-            var generator = new RandomIntSupplier(op.random().min(), op.random().max());
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else if (op.choose() != null) {
-            Set<Integer> from = op.choose().stream().map(x -> (Integer) x).collect(Collectors.toSet());
-            var generator = new ChooseIntSupplier(from);
-            return (ignored, context) -> generator.applyAsInt(context);
-        }
-        else {
-            return (value, context) -> value;
-        }
+        return OpConfigs.resolveIntOp(op, lookup);
     }
 }

@@ -5,3 +5,8 @@
 #
 
 io.kroxylicious.filter.record.manipulation.config.RandomString
+io.kroxylicious.filter.record.manipulation.config.ValueString
+io.kroxylicious.filter.record.manipulation.config.ChooseString
+io.kroxylicious.filter.record.manipulation.config.HmacString
+io.kroxylicious.filter.record.manipulation.config.EncryptString
+io.kroxylicious.filter.record.manipulation.config.DecryptString

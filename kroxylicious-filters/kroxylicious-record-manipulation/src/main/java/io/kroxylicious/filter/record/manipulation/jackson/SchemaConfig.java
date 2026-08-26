@@ -12,7 +12,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
  * A JSON-Schema-shaped node describing where {@code apply} chains attach.
@@ -33,5 +33,5 @@ import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
 public record SchemaConfig(String type,
                            Map<String, SchemaConfig> properties,
                            SchemaConfig items,
-                           List<ApplyConfig> apply,
+                           List<OpConfig> apply,
                            @JsonAnySetter @JsonAnyGetter Map<String, Object> otherKeywords) {}

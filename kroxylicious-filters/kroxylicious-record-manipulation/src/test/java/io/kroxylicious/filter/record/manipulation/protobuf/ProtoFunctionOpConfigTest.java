@@ -27,9 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Proves {@link ProtoFunction#buildIntegerOp(OpConfig, PluginLookup)} resolves a pluggable operation by
- * name and produces a working, composable {@link IntOp} - not yet reachable from
- * {@link ProtoFunction#buildStringOp}/{@code buildApplyChain}'s {@link
- * io.kroxylicious.filter.record.manipulation.config.ApplyConfig}-driven path.
+ * name and produces a working, composable {@link IntOp} - the same resolution
+ * {@link ProtoFunction#buildApplyChain} uses for every field's {@code apply} list.
  */
 class ProtoFunctionOpConfigTest {
 

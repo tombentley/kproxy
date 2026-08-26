@@ -11,7 +11,7 @@ import java.util.Map;
 
 import com.google.protobuf.Descriptors;
 
-import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
+import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
  * The result of {@link ProtoSchemaParser#parse(String, String)}: the root message's real
@@ -29,4 +29,4 @@ import io.kroxylicious.filter.record.manipulation.config.ApplyConfig;
  * @param descriptor the root message type's descriptor
  * @param apply {@code apply} chains declared in the schema, keyed by the field or message they attach to
  */
-public record ParsedProtoSchema(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<ApplyConfig>> apply) {}
+public record ParsedProtoSchema(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> apply) {}
