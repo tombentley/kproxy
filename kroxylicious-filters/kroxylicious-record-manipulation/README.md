@@ -1,66 +1,52 @@
 # Record Manipulation Filter
 
+## What?
+
+A Filter for flexibly manipulating Kafka record data on it way to or from a broker.
+
 **Status: experimental.** This module is not yet wired into the Kroxylicious filter framework (no
 `Filter`/`FilterFactory`, no `META-INF/services` entry). It is a set of building blocks, driven by
 `main()`-based demos, for a future filter that transforms record data — masking/redaction being the
 motivating use case, but the design is meant to be more general (e.g. synthetic data generation).
 
+## Why?
+
+There are a lot of use cases for this kind of manipulation, including:
+
+* Anonymization/redaction: For example replace PII fields in a record with fixed values, such replacing names with `REDACTED`, or credit card numbers with `0000 0000 0000 0000`. 
+* Pseudonymization/obfuscation: For example replace PII field in a record with random tokens, (with the mapping stored separately), or use deterministic hashing (which allow joining across datasets without revealing the data on which to join), or use encryption
+* Generation: An entire record is constructed without reference to any existing record, just some context specific information like the topic, partition index and offset.
+* Adhoc transformations for other reasons.
+
+## How?
+
+While the concept is simple, the reality is complex because:
+
+* The Kafka protocol is completely unopinionated about data formats, so clients can use whatever serialization they like. In practice JSON, Apache Avro, and Protocol Buffers (Protobuf) are most commonly used, with along tail of more niche formats.
+* Each data format defines its own type system, with its own rules. Each data format's schema language is specific to that format. These differences are extremely difficult to abstract over, and any such abstraction is likely to be brittle.
+* Some data formats, like Avro and Protobuf require a schema to (de)serialize. This means that either the transformation on that data must be type-preserving, so that the transformation's input schema is the same as its output schema; or a separate output schema needs to be used, and be type compatible with the transformation. 
+* Some data formats, like JSON or XML, don't require a schema, but one may be used. If it is then again the transformations being applied to the input (assumed schema-valid) data must not result in schema-invalid data, or otherwise a separate output schema is needed. The schemas for these formats often function more like "constraint languages", than "type schemas". For example, although JSON Schema allows to say that a `name` property of an `object` is of type `string`, it can also provide limits on the length of that `string`, or mandate that it matches a given regular expression.
+* Clients may, or may not, be using a schema registry. If they are using a schema registry then there are a number of pick between, and they don't all work the same way.
+
 ## Idea
 
-A mask is described in a syntax that borrows the *shape* of the data format's own schema language —
-JSON-Schema-like keywords (`type`, `properties`, `items`) for JSON, Avro schema syntax for Avro — but
-deliberately keeps two concerns separate that simply reusing the schema syntax wholesale would conflate:
+We break the problem into three layers. 
 
-- **Selection**: *where* in the document does something apply? `type`/`properties`/`items` (and, later,
-  `patternProperties`/`additionalProperties`) are genuinely about navigating the document's structure, and
-  reusing the schema's own vocabulary for this is natural — a schema author already thinks in these terms.
-- **Transformation**: *what* happens once you're there? This is the new part: an `apply` keyword whose
-  value is a *list* of named, independently pluggable operations (`RandomInt`, `HmacString`, `ValueString`,
-  ...  — see [Pluggable operations](#pluggable-operations) below), composed in declared order via
-  [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ContextPipeline.java).
+Firstly we can observe that for a data format to work in Java at all it needs to have a way of representing atomic "values". Invariably they do this using Java's own built-in types like `String`, `Boolean` and `Integer`, because these are most ergonomic.
 
-These have to be kept apart because JSON Schema's own keywords are validation *predicates* — they're ANDed
-together, side-effect-free, and order-independent by design (a value either satisfies all of them or it
-doesn't). A sequence of transformations has none of those properties: encrypting then hashing a value gives
-a different result than hashing then encrypting it. Folding "what operation to run" into the same keyword
-that decides "does this schema match" doesn't generalise to that, so `apply` is its own explicitly-ordered,
-composable list, kept distinct from the structural keywords that select where it runs.
+Assuming some set of basic types are being used, we define an abstraction for functions on these types, called **operations**.
+These operations are common across schema languages. For example:
+* `ValueString` is an operation which always returns some (configured) string. 
+* `RandomInt`  is an operation which returns a random int between two bounds
 
-For JSON, this split is visible directly in the config model:
-[`jackson/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/SchemaConfig.java)
-represents the schema-shaped part (`type`/`properties`/`items`/`apply`), and tolerates *any* other real JSON
-Schema keyword (`pattern`, `contains`, `minLength`, ...) via a `@JsonAnySetter`/`@JsonAnyGetter` catch-all
-instead of failing to parse — the goal is that an existing JSON Schema document can have `apply` added to it
-directly, not that this module has to model JSON Schema's entire vocabulary.
-[`config/OpConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfig.java) is just
-the shape of one entry in `apply`'s list: an `op` name plus that operation's own properties, squashed into
-one flat JSON object (e.g. `{op: RandomInt, minInclusive: 0, maxExclusive: 10}`) via the same
-`@JsonAnySetter` catch-all `SchemaConfig` uses. It deliberately doesn't carry `type`, `properties`, or
-`items` itself, so an operation can't be forced into a type-specific shape that would foreclose a field
-ever having a JSON Schema type union (`type: [string, number]`) — and, unlike a closed set of hardcoded
-keywords, `op` names a plugin implementation, so third parties can add new operations without touching this
-module. See [Pluggable operations](#pluggable-operations) below for how `op` gets resolved.
+A number of other operation are built in, but operations are also pluggable, see [Pluggable operations](#pluggable-operations) below.
+If needed operations can be composed like functions (see [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ContextPipeline.java)).
 
-Each data format still gets its own config model and its own code to walk it — there isn't one grammar
-shared across formats, since each format has its own type system. What *is* shared is the small set of
-primitive operations in `common` (and, increasingly, the operations themselves — see
-[Pluggable operations](#pluggable-operations) below), and the pattern of building a
-`BiFunction<Node, Context, Node>` from the schema tree, recursing into structure first and then composing
-each node's own `apply` chain. Format-specific adapters (see `jackson/Jackson.java`) bridge the
-format-agnostic `common` primitives onto the format's native node types (e.g. Jackson's `JsonNode`).
+Operations are useless without knowing what data they should be applied to.
+We use each data format's own schema language to express the structure/shape of the data (in terms of format specific notions like "object" aka "record" aka "message", and "array" aka "list" aka "sequence"). The pipeline of operations is declared via a custom `apply` "keyword" that's crowbar-ed into the format's schema language.
+So each data format still gets its own config model and its own code to walk it — there isn't one grammar
+shared across formats, since each format has its own type system.
 
-Stages built this way are given their own named type per format —
-[`jackson/JacksonFunction`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/JacksonFunction.java)
-(`BiFunction<JsonNode, Context, JsonNode>`), with `avro/AvroFunction`/`protobuf/ProtoFunction` as its Avro/
-Protobuf counterparts — rather than being plain `BiFunction<JsonNode, Context, JsonNode>` values. That
-matters for [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ContextPipeline.java),
-which validates and runs a chain of stages by reflecting on each stage's *concrete* generic type: a lambda
-assigned directly to a generic `BiFunction<T, Context, T>` erases its type arguments at runtime, whereas one
-assigned to a named subinterface with the type arguments fixed does not, since the parameterization lives on
-the interface declaration rather than the lambda. (A single field's own `apply` chain - see
-[Pluggable operations](#pluggable-operations) below - sidesteps this a different way: each operation carries
-its own [`common/TypedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/common/TypedOp.java)
-input/output type as explicit data instead of relying on a fixed-type interface, so it can be a bare lambda.)
 `common/Pipeline` is the `Context`-free sibling used one level up: `Use.java` composes a
 `JacksonDeserializer`, a built mask/unmask `JacksonFunction`, and a `JacksonSerializer` into one whole-record
 `Pipeline`; `JacksonFunction.buildMask` itself builds a smaller, per-field `ContextPipeline` out of a field's
@@ -103,10 +89,8 @@ fixed list of fields on a config record.
   `config` is deliberately a plain `Map<String, Object>`, not a Jackson tree type (`JsonNode`) — that keeps
   the plugin-facing API surface to JDK types plus `jackson-annotations` only, so a future Jackson-major-
   version migration (expected to rename `jackson-databind`'s package, unlike `jackson-annotations`'s) can't
-  ripple through every plugin implementor's method signature. Each plugin converts its own share of the map
-  via a private `ObjectMapper.convertValue` call.
-- Every operation implementation is registered under the one `OpFactory` interface (not partitioned per
-  base type the way separate `StringOpFactory`/`IntOpFactory` interfaces would be), so plugin names are
+  ripple through every plugin implementor's method signature. 
+- Every operation implementation is registered under the one `OpFactory` interface, so plugin names are
   unique across every operation, not just within one base type - already true in practice, since
   `RandomInt`/`RandomString`/`RandomLong` etc. are already distinct names. Which input/output type an `op`
   name must resolve to depends on the primitive type of the field the operation applies to — information
@@ -139,13 +123,23 @@ fixed list of fields on a config record.
   ever calling `PluginLookup` — Jackson returns the null-producing operation, Avro/Protobuf throw
   `IllegalArgumentException`.
 
-## Current state
+## JSON
 
-- **JSON** (`Use.java`, `jackson/`, `config/`): `SchemaConfig`/`OpConfig`-driven mask/generator builder
-  (`JacksonFunction.buildMask` — fed a real value to mask, or `MissingNode` to generate). A field can
-  compose more than one operation via `apply` (see `MaskPipelineTest`'s composed-chain tests), see
-  [Pluggable operations](#pluggable-operations) above).
-  Still open:
+For JSON
+[`jackson/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/SchemaConfig.java)
+represents the schema-shaped part (`type`/`properties`/`items`/`apply`), and tolerates *any* other real JSON
+Schema keyword (`pattern`, `contains`, `minLength`, ...) via a `@JsonAnySetter`/`@JsonAnyGetter` catch-all
+instead of failing to parse — the goal is that an existing JSON Schema document can have `apply` added to it directly, not that this module has to model JSON Schema's entire vocabulary.
+[`config/OpConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfig.java) is just
+the shape of one entry in `apply`'s list: an `op` name plus that operation's own properties, squashed into
+one flat JSON object (e.g. `{op: RandomInt, minInclusive: 0, maxExclusive: 10}`) via the same
+`@JsonAnySetter` catch-all `SchemaConfig` uses. It deliberately doesn't carry `type`, `properties`, or
+`items` itself, so an operation can't be forced into a type-specific shape that would foreclose a field
+ever having a JSON Schema type union (`type: [string, number]`) — and, unlike a closed set of hardcoded
+keywords, `op` names a plugin implementation, so third parties can add new operations without touching this
+module. See [Pluggable operations](#pluggable-operations) below for how `op` gets resolved.
+
+Still open:
   - `apply` is mechanically available at object/array nodes too, not just leaves, but there's no
     object/array-level operation implemented in `common` yet, so it fails loudly rather than doing
     something silent and wrong.
@@ -176,8 +170,11 @@ fixed list of fields on a config record.
     function to mean "remove this" (to support deletion).
   - Still open: array element insertion/deletion (arrays have no per-slot generator concept to insert
     into), and `patternProperties`/`additionalProperties` selection (and what order they'd run in relative
-    to `properties`, given operations are order-sensitive).
-- **Avro** (`avro/`): `AvroFunction.buildMask` masks `record`/`array`/`string`/`int` values, built directly
+    to `properties`, given operations are order-sensitive)
+
+## Avro
+
+`AvroFunction.buildMask` masks `record`/`array`/`string`/`int` values, built directly
   from a real `org.apache.avro.Schema` rather than a shadow config model — `Schema`/`Schema.Field` already
   preserve unrecognised JSON properties (`getObjectProp`), so the non-standard `apply` keyword round-trips
   through `Schema.Parser` for free (see `AvroSchemas`), exactly as `AvroUse.java` originally sketched
@@ -193,7 +190,8 @@ fixed list of fields on a config record.
   `Delete` isn't supported yet here (rejected as soon as it's named — see
   [Pluggable operations](#pluggable-operations) above — rather than silently producing a record that no
   longer conforms to its schema).
-  Still open:
+
+Still open:
   - Unions and nullable fields (`type: [..., "null"]`) — `buildStructural`/`buildApplyChain` only handle a
     single concrete `Schema.Type` per node, the same simplification JSON's `SchemaConfig.type` currently
     makes for type-unions.
@@ -201,33 +199,37 @@ fixed list of fields on a config record.
   - Generation and delete/insert, once union/default support exists to make them meaningful — or, an
     alternative to union/default support entirely: see "Divergent output schemas" below, which would make
     `Delete` meaningful without either.
-- **Protobuf** (`protobuf/`): `ProtoFunction.buildMask` masks `message`/`repeated`/`string`/`int32` values,
-  built from a `Descriptors.Descriptor` obtained from raw `.proto` IDL text via `ProtoSchemaParser`, which
-  reuses `io.apicurio:apicurio-registry-protobuf-schema-utilities` (already a dependency of
-  `kroxylicious-record-validation`, for the same "turn `.proto` text into a real descriptor" problem) rather
-  than writing a `.proto` parser of our own — see `ProtoSchemaParser`'s javadoc for why depending on that
-  over Square Wire directly, or writing a custom ANTLR grammar, was the better tradeoff here. Unlike Avro,
-  Apicurio's conversion doesn't carry a custom option like `apply` through to the built descriptor (it only
-  translates a fixed list of well-known protobuf option names), so `ProtoSchemaParser` separately walks the
-  same parsed AST itself to read `apply` off a field's/message's `option (apply) = {...}` declaration,
-  keeping the result alongside the descriptor in a `ParsedProtoSchema`.
-  Protobuf's `repeated` fields have no separate node to hang a per-element `apply` chain off the way Avro's
-  array `items` schema does (repeated-ness and element type live on one `FieldDescriptor`), so `apply` on a
-  repeated field is deliberately interpreted as per-element, not whole-list — a Protobuf-specific choice
-  forced by its schema shape, documented on `ProtoFunction`.
-  A real, non-obvious gotcha worth knowing before extending this: `DynamicMessage.getField(FieldDescriptor)`
-  is checked against the exact `Descriptor` build a `FieldDescriptor` came from, unlike Avro's
-  name-based `GenericRecord.get(String)` — a deserializer and the mask function it feeds must be built from
-  the *same* `ParsedProtoSchema`, even when two schemas are structurally identical (e.g. a mask schema and
-  its `encrypt`→`decrypt` unmask counterpart), or every field access throws `IllegalArgumentException`
-  ("FieldDescriptor does not match message type"). See `ProtoUse`'s comment for a worked example.
-  Masking only, like Avro, and for the same underlying reason once you look past the surface difference:
-  Protobuf fields *do* track presence (`FieldDescriptor.hasPresence()`/`DynamicMessage.hasField()`) far more
-  naturally than Avro's always-required fields do, so `ProtoMessages` already carries an absent field through
-  as absent rather than manufacturing a false presence — but `Delete` is rejected here too, the same as Avro
-  (see [Pluggable operations](#pluggable-operations) above for why), since removing a field isn't meaningful
-  without deciding what that means for a required proto2/proto3 implicit-presence field.
-  Still open:
+
+
+## Protobuf
+`ProtoFunction.buildMask` masks `message`/`repeated`/`string`/`int32` values,
+built from a `Descriptors.Descriptor` obtained from raw `.proto` IDL text via `ProtoSchemaParser`, which
+reuses `io.apicurio:apicurio-registry-protobuf-schema-utilities` (already a dependency of
+`kroxylicious-record-validation`, for the same "turn `.proto` text into a real descriptor" problem) rather
+than writing a `.proto` parser of our own — see `ProtoSchemaParser`'s javadoc for why depending on that
+over Square Wire directly, or writing a custom ANTLR grammar, was the better tradeoff here. Unlike Avro,
+Apicurio's conversion doesn't carry a custom option like `apply` through to the built descriptor (it only
+translates a fixed list of well-known protobuf option names), so `ProtoSchemaParser` separately walks the
+same parsed AST itself to read `apply` off a field's/message's `option (apply) = {...}` declaration,
+keeping the result alongside the descriptor in a `ParsedProtoSchema`.
+Protobuf's `repeated` fields have no separate node to hang a per-element `apply` chain off the way Avro's
+array `items` schema does (repeated-ness and element type live on one `FieldDescriptor`), so `apply` on a
+repeated field is deliberately interpreted as per-element, not whole-list — a Protobuf-specific choice
+forced by its schema shape, documented on `ProtoFunction`.
+A real, non-obvious gotcha worth knowing before extending this: `DynamicMessage.getField(FieldDescriptor)`
+is checked against the exact `Descriptor` build a `FieldDescriptor` came from, unlike Avro's
+name-based `GenericRecord.get(String)` — a deserializer and the mask function it feeds must be built from
+the *same* `ParsedProtoSchema`, even when two schemas are structurally identical (e.g. a mask schema and
+its `encrypt`→`decrypt` unmask counterpart), or every field access throws `IllegalArgumentException`
+("FieldDescriptor does not match message type"). See `ProtoUse`'s comment for a worked example.
+Masking only, like Avro, and for the same underlying reason once you look past the surface difference:
+Protobuf fields *do* track presence (`FieldDescriptor.hasPresence()`/`DynamicMessage.hasField()`) far more
+naturally than Avro's always-required fields do, so `ProtoMessages` already carries an absent field through
+as absent rather than manufacturing a false presence — but `Delete` is rejected here too, the same as Avro
+(see [Pluggable operations](#pluggable-operations) above for why), since removing a field isn't meaningful
+without deciding what that means for a required proto2/proto3 implicit-presence field.
+
+Still open:
   - `oneof` (individual member fields already work like ordinary optional fields, since `DynamicMessage`
     doesn't distinguish oneof membership at the reflection API level used here — but nothing yet models the
     "exactly one of" semantics as a concept), `map<K,V>` (desugars to a synthetic `repeated MapEntry`
@@ -239,18 +241,6 @@ fixed list of fields on a config record.
   - Delete/insert, once removing a required field has defined semantics — Protobuf's wire format (fields
     tagged by number, absence already idiomatic) makes "Divergent output schemas" below arguably even less
     friction here than for Avro.
-- **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
-  values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
-  `DecryptStringFunction`, and a standalone `RegexReplaceStringFunction` not yet exposed as a pluggable op —
-  see "Theme: More functions" below), the `OpFactory`/`TypedOp`/`PluginLookup` machinery described under
-  [Pluggable operations](#pluggable-operations) above, plus `ContextPipeline` and its `Context`-free
-  sibling `Pipeline`, each of which validates that a list of functions compose and then runs them as a
-  chain. The HMAC/encrypt/decrypt operations are each their own small, concrete `BiFunction<String,
-  Context, String>` class (rather than one bundled utility) mainly so their crypto setup logic is
-  independently reusable/testable - `ContextPipeline` itself no longer needs a stage to be a named class
-  to use it as one, since `TypedOp.of(...)` attaches a stage's input/output type explicitly rather than by
-  reflecting on its declared type, so a plain lambda works there too.
-  This is the part of the module with the most unit test coverage so far.
 
 ## Divergent output schemas
 
@@ -446,12 +436,17 @@ management.
       apply: 
       - if: 
           recordHeader: # ...
-          headerKey: 
-            value: my-header
-          headerValue: 
-            value: blah # optional
+            headerKey: 
+              value: my-header
+            headerValue: 
+              value: blah # optional
         then:
-      recordKey: # ...
+          apply: 
+      - if: 
+          recordKey: # ...
+        then:
+          apply:
+  
       - if: 
           recordValue:
           - hasSchemaId: 
@@ -459,8 +454,8 @@ management.
               atLocation: prefix # optional, if we want to support apicurio headers, but default to the confluent 4 byte prefix
         then: 
           apply:
-            - schemaValidation: 
-            - signatureValidation
+            - op: schemaValidation 
+            - op: signatureValidation
             - if: 
                 recordDirection: out # in=Produce, out=Fetch (and ShareFetch), in,out=both and out,in (e.g. useful for symmetric transformation like record- and field-level encryption)
                 clientSubject:
@@ -470,7 +465,8 @@ management.
                 clientId: 
                   value: billing-app
               then:     
-                - mask:
+                apply:
+                  - op: 
             - recordEncryption:
             - compression: 
     ````

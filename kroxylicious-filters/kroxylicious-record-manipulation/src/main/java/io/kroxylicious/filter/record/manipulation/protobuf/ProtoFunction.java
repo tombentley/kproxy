@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.protobuf;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,11 +204,11 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
                 ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Boolean.class, Boolean.class, l));
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
-            case INT32, FIXED32, SINT32, SFIXED32 -> {
+            case INT32, FIXED32, SINT32, SFIXED32, UINT32 -> {
                 ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Integer.class, Integer.class, l));
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
-            case INT64, FIXED64, SINT64, SFIXED64 -> {
+            case INT64, FIXED64, SINT64, SFIXED64, UINT64 -> {
                 ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Long.class, Long.class, l));
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
@@ -230,6 +231,22 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
                     byte[] input = value == null ? null : ((ByteString) value).toByteArray();
                     byte[] result = pipeline.apply(input, context);
                     return result == null ? null : ByteString.copyFrom(result);
+                };
+            }
+            case ENUM -> {
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, String.class, String.class, pluginLookup));
+                yield (value, context) -> {
+                    Enum<?> enumSymbol = (Enum<?>) value;
+                    Class<? extends Enum> enumClass = enumSymbol.getClass();
+                    var allowedSymbols = Arrays.stream(enumClass.getEnumConstants()).map(Enum::name).collect(Collectors.toSet());
+                    String result = pipeline.apply(enumSymbol.name(), context);
+                    if (result == null) {
+                        return null;
+                    }
+                    if (!allowedSymbols.contains(result)) {
+                        throw new IllegalArgumentException("Enum type '" + enumClass.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
+                    }
+                    return Enum.valueOf(enumClass, result);
                 };
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for field type: " + field.getType());

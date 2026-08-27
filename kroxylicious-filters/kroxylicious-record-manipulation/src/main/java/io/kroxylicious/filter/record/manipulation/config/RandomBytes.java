@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = RandomBytes.Config.class)
 public class RandomBytes implements OpFactory<byte[], byte[]> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link RandomBytes}.
      * @param minLengthInclusive the minimum length of the array (inclusive)
@@ -32,7 +30,7 @@ public class RandomBytes implements OpFactory<byte[], byte[]> {
 
     @Override
     public TypedOp<byte[], byte[]> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomBytesSupplier(config.minLengthInclusive(), config.maxLengthExclusive());
         return TypedOp.of(byte[].class, (ignored, context) -> generator.apply(context));
     }

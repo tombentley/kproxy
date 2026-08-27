@@ -6,30 +6,27 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-import java.math.BigInteger;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.RegexReplaceStringFunction;
 import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
-/**
- * Replaces a value with a fixed {@link Boolean}.
- */
-@Plugin(configType = ValueBigInteger.Config.class)
-public class ValueBigInteger implements OpFactory<BigInteger, BigInteger> {
+@Plugin(configType = RegexReplace.Config.class)
+public class RegexReplace implements OpFactory<String, String> {
 
     /**
-     * Configuration for {@link ValueBoolean}.
-     * @param value the constant value to use
+     * Configuration for {@link RegexReplace}.
      */
-    public record Config(BigInteger value) {}
+    public record Config(String pattern,
+                         RegexReplaceStringFunction.Replacement replacement) {}
 
     @Override
-    public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
+    public TypedOp<String, String> create(Map<String, Object> configMap) {
         Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(BigInteger.class, (ignored, context) -> config.value());
+        return TypedOp.of(String.class, new RegexReplaceStringFunction(config.pattern(), config.replacement()));
     }
 }

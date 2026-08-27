@@ -20,8 +20,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = ValueString.Config.class)
 public class ValueString implements OpFactory<String, String> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link ValueString}.
      * @param value the constant value to use
@@ -30,7 +28,7 @@ public class ValueString implements OpFactory<String, String> {
 
     @Override
     public TypedOp<String, String> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         return TypedOp.of(String.class, (ignored, context) -> config.value());
     }
 }

@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = RandomLong.Config.class)
 public class RandomLong implements OpFactory<Long, Long> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link RandomLong}.
      * @param minInclusive the minimum value (inclusive)
@@ -32,7 +30,7 @@ public class RandomLong implements OpFactory<Long, Long> {
 
     @Override
     public TypedOp<Long, Long> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomLongSupplier(config.minInclusive(), config.maxExclusive());
         return TypedOp.of(Long.class, (ignored, context) -> generator.applyAsLong(context));
     }
