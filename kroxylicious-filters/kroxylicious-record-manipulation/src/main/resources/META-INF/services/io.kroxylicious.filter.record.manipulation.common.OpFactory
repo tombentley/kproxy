@@ -28,3 +28,4 @@ io.kroxylicious.filter.record.manipulation.config.RandomBytes
 io.kroxylicious.filter.record.manipulation.config.ValueBytes
 io.kroxylicious.filter.record.manipulation.config.ChooseBigInteger
 io.kroxylicious.filter.record.manipulation.config.ValueBigInteger
+io.kroxylicious.filter.record.manipulation.config.RegexReplace

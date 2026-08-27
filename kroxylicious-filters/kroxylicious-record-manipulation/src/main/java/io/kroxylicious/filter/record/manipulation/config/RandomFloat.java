@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = RandomFloat.Config.class)
 public class RandomFloat implements OpFactory<Float, Float> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link RandomFloat}.
      * @param minInclusive the minimum value (inclusive)
@@ -32,7 +30,7 @@ public class RandomFloat implements OpFactory<Float, Float> {
 
     @Override
     public TypedOp<Float, Float> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomFloatSupplier(config.minInclusive(), config.maxExclusive());
         return TypedOp.of(Float.class, (ignored, context) -> generator.apply(context));
     }

@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
@@ -191,27 +192,27 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
     private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (type) {
             case BOOLEAN -> {
-                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Boolean.class, Boolean.class, l));
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, Boolean.class, Boolean.class, pluginLookup));
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
             case INT -> {
-                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Integer.class, Integer.class, l));
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, Integer.class, Integer.class, pluginLookup));
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
             case LONG -> {
-                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Long.class, Long.class, l));
+                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, Long.class, Long.class, pluginLookup));
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
             case FLOAT -> {
-                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Float.class, Float.class, l));
+                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, Float.class, Float.class, pluginLookup));
                 yield (value, context) -> pipeline.apply((Float) value, context);
             }
             case DOUBLE -> {
-                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Double.class, Double.class, l));
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, Double.class, Double.class, pluginLookup));
                 yield (value, context) -> pipeline.apply((Double) value, context);
             }
             case STRING -> {
-                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, String.class, String.class, l));
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, String.class, String.class, pluginLookup));
                 yield (value, context) -> {
                     // call toString() because value could be a Utf8, not a String
                     String input = value == null ? null : value.toString();
@@ -219,12 +220,44 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
                 };
             }
             case BYTES -> {
-                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, byte[].class, byte[].class, l));
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, byte[].class, byte[].class, pluginLookup));
                 yield (value, context) -> {
                     // call toByteArray() because value is a ByteBuffer, not a byte[]
                     byte[] input = value == null ? null : toByteArray((ByteBuffer) value);
                     byte[] result = pipeline.apply(input, context);
                     return result == null ? null : ByteBuffer.wrap(result);
+                };
+            }
+            case FIXED -> {
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, byte[].class, byte[].class, pluginLookup));
+                yield (value, context) -> {
+                    GenericData.Fixed fixed = (GenericData.Fixed) value;
+                    Schema schema = fixed.getSchema();
+                    int fixedSize = schema.getFixedSize();
+                    byte[] result = pipeline.apply(fixed.bytes(), context);
+                    if (result == null) {
+                        return null;
+                    }
+                    if (result.length != fixedSize) {
+                        throw new IllegalArgumentException("Fixed type '" + schema.getName() + "' requires size " + fixedSize + " bytes but transformation resulted in " + result.length + " bytes");
+                    }
+                    return new GenericData.Fixed(schema, result);
+                };
+            }
+            case ENUM -> {
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, pluginLookup) -> buildOp(op, String.class, String.class, pluginLookup));
+                yield (value, context) -> {
+                    GenericData.EnumSymbol enumSymbol = (GenericData.EnumSymbol) value;
+                    Schema schema = enumSymbol.getSchema();
+                    var allowedSymbols = schema.getEnumSymbols();
+                    String result = pipeline.apply(enumSymbol.toString(), context);
+                    if (result == null) {
+                        return null;
+                    }
+                    if (!allowedSymbols.contains(result)) {
+                        throw new IllegalArgumentException("Enum type '" + schema.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
+                    }
+                    return new GenericData.EnumSymbol(schema, result);
                 };
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for type " + type);

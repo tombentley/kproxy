@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = RandomString.Config.class)
 public class RandomString implements OpFactory<String, String> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link RandomString}.
      * @param alphabet the codepoints to pick from
@@ -33,7 +31,7 @@ public class RandomString implements OpFactory<String, String> {
 
     @Override
     public TypedOp<String, String> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomStringSupplier(config.alphabet(), config.minLengthInclusive(), config.maxLengthExclusive());
         return TypedOp.of(String.class, (ignored, context) -> generator.apply(context));
     }

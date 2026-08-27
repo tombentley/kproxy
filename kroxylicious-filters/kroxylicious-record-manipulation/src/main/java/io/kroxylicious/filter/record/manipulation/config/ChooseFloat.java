@@ -23,8 +23,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = ChooseFloat.Config.class)
 public class ChooseFloat implements OpFactory<Float, Float> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link ChooseFloat}.
      * @param from the set of values to choose from
@@ -33,7 +31,7 @@ public class ChooseFloat implements OpFactory<Float, Float> {
 
     @Override
     public TypedOp<Float, Float> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseFloatSupplier(new HashSet<>(config.from()));
         return TypedOp.of(Float.class, (ignored, context) -> generator.apply(context));
     }

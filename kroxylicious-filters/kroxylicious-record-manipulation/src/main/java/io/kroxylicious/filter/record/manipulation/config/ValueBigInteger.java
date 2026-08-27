@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = ValueBigInteger.Config.class)
 public class ValueBigInteger implements OpFactory<BigInteger, BigInteger> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link ValueBoolean}.
      * @param value the constant value to use
@@ -31,7 +29,7 @@ public class ValueBigInteger implements OpFactory<BigInteger, BigInteger> {
 
     @Override
     public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         return TypedOp.of(BigInteger.class, (ignored, context) -> config.value());
     }
 }

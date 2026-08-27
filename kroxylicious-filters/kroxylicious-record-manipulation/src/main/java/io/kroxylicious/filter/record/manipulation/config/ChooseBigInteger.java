@@ -24,8 +24,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = ChooseBigInteger.Config.class)
 public class ChooseBigInteger implements OpFactory<BigInteger, BigInteger> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link ChooseBigInteger}.
      * @param from the set of values to choose from
@@ -34,7 +32,7 @@ public class ChooseBigInteger implements OpFactory<BigInteger, BigInteger> {
 
     @Override
     public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseBigIntegerSupplier(new HashSet<>(config.from()));
         return TypedOp.of(BigInteger.class, (ignored, context) -> generator.apply(context));
     }

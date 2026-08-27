@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = RandomBoolean.Config.class)
 public class RandomBoolean implements OpFactory<Boolean, Boolean> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link RandomBoolean}.
      */
