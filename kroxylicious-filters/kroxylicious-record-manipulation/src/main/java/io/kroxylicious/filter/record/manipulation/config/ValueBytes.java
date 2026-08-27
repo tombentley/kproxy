@@ -21,8 +21,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = ValueBytes.Config.class)
 public class ValueBytes implements OpFactory<byte[], byte[]> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link ValueBytes}.
      * @param value the constant value to use
@@ -53,7 +51,7 @@ public class ValueBytes implements OpFactory<byte[], byte[]> {
 
     @Override
     public TypedOp<byte[], byte[]> create(Map<String, Object> configMap) {
-        Config config = MAPPER.convertValue(configMap, Config.class);
+        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
         return TypedOp.of(byte[].class, (ignored, context) -> config.value());
     }
 }

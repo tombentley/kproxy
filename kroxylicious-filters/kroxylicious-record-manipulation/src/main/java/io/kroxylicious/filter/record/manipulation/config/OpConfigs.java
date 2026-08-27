@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.leangen.geantyref.TypeToken;
 
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
@@ -29,6 +31,7 @@ public final class OpConfigs {
      * through {@link PluginLookup} - see the class javadoc for why.
      */
     public static final String DELETE = "Delete";
+    static final ObjectMapper MAPPER = new ObjectMapper();
 
     private OpConfigs() {
     }

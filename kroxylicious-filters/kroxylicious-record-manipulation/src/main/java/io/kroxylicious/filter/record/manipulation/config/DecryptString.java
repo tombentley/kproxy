@@ -22,8 +22,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 @Plugin(configType = DecryptString.Config.class)
 public class DecryptString implements OpFactory<String, String> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     /**
      * Configuration for {@link DecryptString}.
      * @param keyId identifies the key to use - not yet consumed, since key material is currently drawn
@@ -34,7 +32,7 @@ public class DecryptString implements OpFactory<String, String> {
 
     @Override
     public TypedOp<String, String> create(Map<String, Object> configMap) {
-        MAPPER.convertValue(configMap, Config.class);
+        OpConfigs.MAPPER.convertValue(configMap, Config.class);
         var fn = new DecryptStringFunction();
         return TypedOp.of(String.class, (value, context) -> value == null ? null : fn.apply(value, context));
     }
