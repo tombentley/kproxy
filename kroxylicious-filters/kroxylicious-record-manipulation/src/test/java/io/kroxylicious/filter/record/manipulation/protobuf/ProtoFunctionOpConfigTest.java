@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.protobuf;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
@@ -18,16 +17,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Proves {@link ProtoFunction#buildIntegerOp(OpConfig, PluginLookup)} resolves a pluggable operation by
- * name and produces a working, composable {@link IntOp} - the same resolution
+ * Proves {@link ProtoFunction#buildOp(OpConfig, Class, Class, PluginLookup)} resolves a pluggable
+ * operation by name and produces a working, composable {@link TypedOp} - the same resolution
  * {@code ProtoFunction#buildApplyChain(Descriptors.FieldDescriptor, List, Set, PluginLookup)} uses for every field's {@code apply} list.
  */
 class ProtoFunctionOpConfigTest {
@@ -51,7 +50,7 @@ class ProtoFunctionOpConfigTest {
     void resolvesRandomIntByNameAndProducesValuesInRange() {
         // Given
         OpConfig op = new OpConfig("RandomInt", Map.of("minInclusive", 10, "maxExclusive", 20));
-        IntOp built = ProtoFunction.buildIntegerOp(op, LOOKUP);
+        TypedOp<Integer, Integer> built = ProtoFunction.buildOp(op, Integer.class, Integer.class, LOOKUP);
         Context context = contextWithSeed(0);
 
         // When
@@ -65,9 +64,9 @@ class ProtoFunctionOpConfigTest {
     void resolvedOpComposesWithAnotherIntOpViaContextPipeline() {
         // Given
         OpConfig op = new OpConfig("RandomInt", Map.of("minInclusive", 5, "maxExclusive", 6));
-        IntOp built = ProtoFunction.buildIntegerOp(op, LOOKUP);
-        IntOp addOne = (value, context) -> value + 1;
-        ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(List.<BiFunction<?, Context, ?>> of(built, addOne));
+        TypedOp<Integer, Integer> built = ProtoFunction.buildOp(op, Integer.class, Integer.class, LOOKUP);
+        TypedOp<Integer, Integer> addOne = TypedOp.of(Integer.class, (value, context) -> value + 1);
+        ContextPipeline<Integer, Integer> pipeline = new ContextPipeline<>(List.<TypedOp<?, ?>> of(built, addOne));
 
         // When
         int result = pipeline.apply(0, contextWithSeed(0));
@@ -82,7 +81,7 @@ class ProtoFunctionOpConfigTest {
         OpConfig op = MAPPER.readValue("""
                 {"op": "RandomInt", "minInclusive": 10, "maxExclusive": 20}
                 """, OpConfig.class);
-        IntOp built = ProtoFunction.buildIntegerOp(op, LOOKUP);
+        TypedOp<Integer, Integer> built = ProtoFunction.buildOp(op, Integer.class, Integer.class, LOOKUP);
         Context context = contextWithSeed(0);
 
         // When

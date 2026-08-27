@@ -10,15 +10,15 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Integer}.
  */
 @Plugin(configType = ValueInt.Config.class)
-public class ValueInt implements IntOpFactory {
+public class ValueInt implements OpFactory<Integer, Integer> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -29,8 +29,8 @@ public class ValueInt implements IntOpFactory {
     public record Config(int value) {}
 
     @Override
-    public IntOp create(Map<String, Object> configMap) {
+    public TypedOp<Integer, Integer> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        return (ignored, context) -> config.value();
+        return TypedOp.of(Integer.class, (ignored, context) -> config.value());
     }
 }

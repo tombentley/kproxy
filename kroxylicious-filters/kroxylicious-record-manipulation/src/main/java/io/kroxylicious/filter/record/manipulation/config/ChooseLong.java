@@ -13,15 +13,15 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.ChooseLongSupplier;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Integer} drawn from a fixed set.
  */
 @Plugin(configType = ChooseLong.Config.class)
-public class ChooseLong implements LongOpFactory {
+public class ChooseLong implements OpFactory<Long, Long> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -32,9 +32,9 @@ public class ChooseLong implements LongOpFactory {
     public record Config(List<Long> from) {}
 
     @Override
-    public LongOp create(Map<String, Object> configMap) {
+    public TypedOp<Long, Long> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseLongSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.applyAsLong(context);
+        return TypedOp.of(Long.class, (ignored, context) -> generator.applyAsLong(context));
     }
 }

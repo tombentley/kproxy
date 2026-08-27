@@ -13,15 +13,15 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.ChooseDoubleSupplier;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Integer} drawn from a fixed set.
  */
 @Plugin(configType = ChooseDouble.Config.class)
-public class ChooseDouble implements DoubleOpFactory {
+public class ChooseDouble implements OpFactory<Double, Double> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -32,9 +32,9 @@ public class ChooseDouble implements DoubleOpFactory {
     public record Config(List<Double> from) {}
 
     @Override
-    public DoubleOp create(Map<String, Object> configMap) {
+    public TypedOp<Double, Double> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseDoubleSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.applyAsDouble(context);
+        return TypedOp.of(Double.class, (ignored, context) -> generator.applyAsDouble(context));
     }
 }

@@ -10,15 +10,15 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Float}.
  */
 @Plugin(configType = ValueFloat.Config.class)
-public class ValueFloat implements FloatOpFactory {
+public class ValueFloat implements OpFactory<Float, Float> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -29,8 +29,8 @@ public class ValueFloat implements FloatOpFactory {
     public record Config(float value) {}
 
     @Override
-    public FloatOp create(Map<String, Object> configMap) {
+    public TypedOp<Float, Float> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        return (ignored, context) -> config.value();
+        return TypedOp.of(Float.class, (ignored, context) -> config.value());
     }
 }

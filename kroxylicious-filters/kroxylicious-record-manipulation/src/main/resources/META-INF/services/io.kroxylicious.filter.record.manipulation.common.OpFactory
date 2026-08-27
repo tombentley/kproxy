@@ -1,0 +1,30 @@
+#
+# Copyright Kroxylicious Authors.
+#
+# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+#
+
+io.kroxylicious.filter.record.manipulation.config.RandomString
+io.kroxylicious.filter.record.manipulation.config.ValueString
+io.kroxylicious.filter.record.manipulation.config.ChooseString
+io.kroxylicious.filter.record.manipulation.config.HmacString
+io.kroxylicious.filter.record.manipulation.config.EncryptString
+io.kroxylicious.filter.record.manipulation.config.DecryptString
+io.kroxylicious.filter.record.manipulation.config.RandomInt
+io.kroxylicious.filter.record.manipulation.config.ValueInt
+io.kroxylicious.filter.record.manipulation.config.ChooseInt
+io.kroxylicious.filter.record.manipulation.config.RandomLong
+io.kroxylicious.filter.record.manipulation.config.ValueLong
+io.kroxylicious.filter.record.manipulation.config.ChooseLong
+io.kroxylicious.filter.record.manipulation.config.RandomFloat
+io.kroxylicious.filter.record.manipulation.config.ValueFloat
+io.kroxylicious.filter.record.manipulation.config.ChooseFloat
+io.kroxylicious.filter.record.manipulation.config.RandomDouble
+io.kroxylicious.filter.record.manipulation.config.ValueDouble
+io.kroxylicious.filter.record.manipulation.config.ChooseDouble
+io.kroxylicious.filter.record.manipulation.config.RandomBoolean
+io.kroxylicious.filter.record.manipulation.config.ValueBoolean
+io.kroxylicious.filter.record.manipulation.config.RandomBytes
+io.kroxylicious.filter.record.manipulation.config.ValueBytes
+io.kroxylicious.filter.record.manipulation.config.ChooseBigInteger
+io.kroxylicious.filter.record.manipulation.config.ValueBigInteger

@@ -13,15 +13,15 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.ChooseFloatSupplier;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Float} drawn from a fixed set.
  */
 @Plugin(configType = ChooseFloat.Config.class)
-public class ChooseFloat implements FloatOpFactory {
+public class ChooseFloat implements OpFactory<Float, Float> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -32,9 +32,9 @@ public class ChooseFloat implements FloatOpFactory {
     public record Config(List<Float> from) {}
 
     @Override
-    public FloatOp create(Map<String, Object> configMap) {
+    public TypedOp<Float, Float> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseFloatSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.apply(context);
+        return TypedOp.of(Float.class, (ignored, context) -> generator.apply(context));
     }
 }

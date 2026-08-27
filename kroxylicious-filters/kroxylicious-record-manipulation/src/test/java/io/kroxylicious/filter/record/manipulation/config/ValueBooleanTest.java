@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ class ValueBooleanTest {
     void createsAnOpThatAlwaysReturnsTheConfiguredValue() {
         // Given
         ValueBoolean factory = new ValueBoolean();
-        BooleanOp op = factory.create(Map.of("value", true));
+        TypedOp<Boolean, Boolean> op = factory.create(Map.of("value", true));
 
         // When
         Boolean value = op.apply(false, CONTEXT);
@@ -44,7 +44,7 @@ class ValueBooleanTest {
                 {"op": "ValueBoolean", "value": false}
                 """, OpConfig.class);
         ValueBoolean factory = new ValueBoolean();
-        BooleanOp op = factory.create(opConfig.config());
+        TypedOp<Boolean, Boolean> op = factory.create(opConfig.config());
 
         // When
         Boolean value = op.apply(true, CONTEXT);

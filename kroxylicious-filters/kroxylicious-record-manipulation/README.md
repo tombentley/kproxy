@@ -57,13 +57,15 @@ matters for [`common/ContextPipeline`](src/main/java/io/kroxylicious/filter/reco
 which validates and runs a chain of stages by reflecting on each stage's *concrete* generic type: a lambda
 assigned directly to a generic `BiFunction<T, Context, T>` erases its type arguments at runtime, whereas one
 assigned to a named subinterface with the type arguments fixed does not, since the parameterization lives on
-the interface declaration rather than the lambda (this is also why every pluggable operation is exposed
-through a named interface like `StringOp`/`IntOp`, never a bare `BiFunction`). `common/Pipeline` is the
-`Context`-free sibling used one level up: `Use.java` composes a `JacksonDeserializer`, a built mask/unmask
-`JacksonFunction`, and a `JacksonSerializer` into one whole-record `Pipeline`; `JacksonFunction.buildMask`
-itself builds a smaller, per-field `ContextPipeline` out of a field's own `apply` list, so
-`apply: [{op: EncryptString}, {op: HmacString}]` on one field genuinely composes two independently
-resolved operations in the declared order.
+the interface declaration rather than the lambda. (A single field's own `apply` chain - see
+[Pluggable operations](#pluggable-operations) below - sidesteps this a different way: each operation carries
+its own [`common/TypedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/common/TypedOp.java)
+input/output type as explicit data instead of relying on a fixed-type interface, so it can be a bare lambda.)
+`common/Pipeline` is the `Context`-free sibling used one level up: `Use.java` composes a
+`JacksonDeserializer`, a built mask/unmask `JacksonFunction`, and a `JacksonSerializer` into one whole-record
+`Pipeline`; `JacksonFunction.buildMask` itself builds a smaller, per-field `ContextPipeline` out of a field's
+own `apply` list, so `apply: [{op: EncryptString}, {op: HmacString}]` on one field genuinely composes two
+independently resolved operations in the declared order.
 
 ## Pluggable operations
 
@@ -71,54 +73,71 @@ resolved operations in the declared order.
 implementation (Kroxylicious's standard `@Plugin` mechanism, via `kroxylicious-api`) rather than one of a
 fixed list of fields on a config record.
 
-- Every operation is exposed through a *type-specific* factory interface —
-  [`common/StringOpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/StringOpFactory.java)/
-  [`common/IntOpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/IntOpFactory.java),
-  both extending the shared
-  [`common/OpFactory`](src/main/java/io/kroxylicious/filter/record/manipulation/common/OpFactory.java) shape
-  (`Op create(Map<String, Object> config)`) — rather than one generic factory that would need to branch on a
-  runtime type token to decide which primitive type it's building for. A single plugin class is monomorphic
-  (it builds exactly one operation type), matching every other plugin in the codebase and matching the
-  type-suffixed primitives it usually delegates to (`RandomIntSupplier`/`RandomStringSupplier`, and so on).
-  Concretely: `RandomInt`/`RandomString`, `ValueInt`/`ValueString`, `ChooseInt`/`ChooseString`, and the
-  String-only `HmacString`/`EncryptString`/`DecryptString` (see `config/` for all of them) — each with its
-  own disjoint `Config` record, rather than one record's worth of fields where only one is ever populated at
-  a time (`config/OpConfig` itself deliberately isn't one of these unioned records, having learned from that
-  mistake). Parameterising over the whole operation shape (rather than separately over input/output types)
-  also means a future non-type-preserving operation fits the same pattern without a redesign — it would just
-  need its own fixed-generic interface (e.g. a hypothetical `StringToIntOp`) and matching factory.
+- Every operation is exposed through
+  [`common/OpFactory<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/common/OpFactory.java)
+  (`TypedOp<T, R> create(Map<String, Object> config)`), parameterised directly over the operation's input
+  and output type rather than routed through a bespoke, fixed-generic interface per base type (an earlier
+  design had a `StringOpFactory`/`IntOpFactory`/... family, one per type, each extending a shared
+  `OpFactory<Op extends BiFunction<?, Context, ?>>` shape - abandoned because it meant a new base type, or a
+  future non-type-preserving operation, needed a whole new interface declaration before a single plugin
+  could be written against it). A single plugin class is still monomorphic (it builds exactly one
+  `OpFactory<T, R>` instantiation), matching every other plugin in the codebase and matching the
+  type-suffixed primitives it usually delegates to (`RandomIntSupplier`/`RandomStringSupplier`, and so on) -
+  that property doesn't depend on there being a separate interface per type, just on each plugin class
+  picking concrete `T`/`R` type arguments once. Concretely: `RandomInt`/`RandomString`, `ValueInt`/
+  `ValueString`, `ChooseInt`/`ChooseString`, and the String-only `HmacString`/`EncryptString`/
+  `DecryptString` (see `config/` for all of them) — each with its own disjoint `Config` record, rather than
+  one record's worth of fields where only one is ever populated at a time (`config/OpConfig` itself
+  deliberately isn't one of these unioned records, having learned from that mistake).
+  [`common/TypedOp<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/common/TypedOp.java) is
+  what `create` returns: a `BiFunction<T, Context, R>` paired with its own input/output type, carried as
+  data (an `io.leangen.geantyref.TypeToken`, not a plain `Class` - a `Class` erases its own generic
+  arguments, e.g. a future `List<Integer>` and `List<String>` operation would both just be `List.class`,
+  whereas a `TypeToken` wraps a full `java.lang.reflect.Type` and compares accordingly) rather than left to
+  be recovered by reflecting on a lambda's declared interface. That's what lets `ContextPipeline` validate
+  composition and `Requirement.TYPE_PRESERVING` without every operation needing its own fixed-type marker
+  interface: any lambda works, since `TypedOp.of(Class<T>, Class<R>, BiFunction<T, Context, R>)` (or the
+  `TypeToken`-keyed overload, for a future non-`Class`-expressible type) attaches the type information
+  explicitly at construction time.
 - [`config/OpConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfig.java)'s
   `config` is deliberately a plain `Map<String, Object>`, not a Jackson tree type (`JsonNode`) — that keeps
   the plugin-facing API surface to JDK types plus `jackson-annotations` only, so a future Jackson-major-
   version migration (expected to rename `jackson-databind`'s package, unlike `jackson-annotations`'s) can't
   ripple through every plugin implementor's method signature. Each plugin converts its own share of the map
   via a private `ObjectMapper.convertValue` call.
-- Which plugin interface an `op` name resolves against (`StringOpFactory` vs `IntOpFactory`) depends on the
-  primitive type of the field the operation applies to — information the format-specific engine only has
-  once it's walked its own schema, not something Jackson's usual `@PluginImplName`/`@PluginImplConfig`
-  polymorphic-config-resolution machinery can decide up front. So resolution is deliberately deferred:
+- Every operation implementation is registered under the one `OpFactory` interface (not partitioned per
+  base type the way separate `StringOpFactory`/`IntOpFactory` interfaces would be), so plugin names are
+  unique across every operation, not just within one base type - already true in practice, since
+  `RandomInt`/`RandomString`/`RandomLong` etc. are already distinct names. Which input/output type an `op`
+  name must resolve to depends on the primitive type of the field the operation applies to — information
+  the format-specific engine only has once it's walked its own schema, not something Jackson's usual
+  `@PluginImplName`/`@PluginImplConfig` polymorphic-config-resolution machinery can decide up front. So
+  resolution is deliberately deferred:
   [`common/PluginLookup`](src/main/java/io/kroxylicious/filter/record/manipulation/common/PluginLookup.java)
   is a tiny lookup interface (shaped like `FilterFactoryContext.pluginInstance`, so a future real `Filter`
-  integration is a drop-in swap), and each format's `buildStringOp`/`buildIntegerOp` calls
+  integration is a drop-in swap), and each format's `buildOp` calls
   [`config/OpConfigs`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfigs.java)'s
-  shared `resolveStringOp`/`resolveIntOp` helpers to do the actual lookup-and-build — the one piece of logic
-  that's genuinely identical across all three engines, rather than being copy-pasted three times.
+  shared `resolveOp` helper to do the actual lookup-and-build — the one piece of logic that's genuinely
+  identical across all three engines, rather than being copy-pasted three times. `resolveOp` also checks
+  the resolved `TypedOp`'s declared input/output type against what the caller asked for, throwing
+  `IllegalArgumentException` if a misconfigured/misnamed plugin doesn't produce the expected shape - the
+  runtime counterpart of what a per-type interface used to catch at the (illusory, since
+  `META-INF/services` registration itself was never compiler-checked either) "compile time" level.
   [`common/ServiceLoaderPluginLookup`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ServiceLoaderPluginLookup.java)
   is a dependency-free `PluginLookup` (pure `java.util.ServiceLoader`, matching by simple class name) used by
   the `main()` demos and most tests, so this module's main code never has to depend on `kroxylicious-runtime`
   (where Kroxylicious's real `ServiceBasedPluginFactoryRegistry` lives) just to resolve its own bundled
-  operations; a couple of tests (`RandomPluginRegistrationTest`, `ProtoFunctionOpConfigTest`) deliberately use
+  operations; a couple of tests (`PluginRegistrationTest`, `ProtoFunctionOpConfigTest`) deliberately use
   the real registry instead, as a check that these plugins would also resolve correctly once this module is
   wired into an actual `Filter`.
 - `Delete` (see `DELETE_AND_INSERT_CONTENT` in `MaskPipelineTest`, and the delete-related notes under
   "Current state" below) is a reserved op *name*, not a plugin: its behaviour never varies by type (unlike
-  every other operation, there's no real per-type logic to encapsulate, and Java won't even let one class
-  implement both `StringOpFactory` and `IntOpFactory` at once — their `create(Map)` methods clash on
-  erasure), and whether it's legal at all is a property of the target format's container model (can it
-  represent "this property is absent"?), not of the leaf type. A shared, name-keyed, JVM-wide plugin registry
-  has no way to make an op resolvable from one format but not another, so each format's `buildStringOp`/
-  `buildIntegerOp` special-cases the literal name `Delete` itself before ever calling `PluginLookup` —
-  Jackson returns the null-producing operation, Avro/Protobuf throw `IllegalArgumentException`.
+  every other operation, there's no real per-type logic to encapsulate), and whether it's legal at all is a
+  property of the target format's container model (can it represent "this property is absent"?), not of the
+  leaf type. A shared, name-keyed, JVM-wide plugin registry has no way to make an op resolvable from one
+  format but not another, so each format's `buildOp` special-cases the literal name `Delete` itself before
+  ever calling `PluginLookup` — Jackson returns the null-producing operation, Avro/Protobuf throw
+  `IllegalArgumentException`.
 
 ## Current state
 
@@ -223,20 +242,21 @@ fixed list of fields on a config record.
 - **`common`**: format-agnostic primitives (suppliers/functions for constant, random, and choose-from-a-set
   values across `String`/`int`/`long`/`double`, plus `HmacStringFunction`/`EncryptStringFunction`/
   `DecryptStringFunction`, and a standalone `RegexReplaceStringFunction` not yet exposed as a pluggable op —
-  see "Theme: More functions" below), the `OpFactory`/`StringOpFactory`/`IntOpFactory`/`PluginLookup`
-  machinery described under [Pluggable operations](#pluggable-operations) above, plus `ContextPipeline` and
-  its `Context`-free sibling `Pipeline`, each of which validates that a list of functions compose and then
-  runs them as a chain. The HMAC/encrypt/decrypt operations are each their own small, concrete
-  `BiFunction<String, Context, String>` class (rather than one bundled utility) specifically so they can be
-  used directly as `ContextPipeline` stages — `ContextPipeline` needs each stage's *concrete* generic type
-  to reflect on, which a named class reliably provides and a bundled method returning a lambda does not.
+  see "Theme: More functions" below), the `OpFactory`/`TypedOp`/`PluginLookup` machinery described under
+  [Pluggable operations](#pluggable-operations) above, plus `ContextPipeline` and its `Context`-free
+  sibling `Pipeline`, each of which validates that a list of functions compose and then runs them as a
+  chain. The HMAC/encrypt/decrypt operations are each their own small, concrete `BiFunction<String,
+  Context, String>` class (rather than one bundled utility) mainly so their crypto setup logic is
+  independently reusable/testable - `ContextPipeline` itself no longer needs a stage to be a named class
+  to use it as one, since `TypedOp.of(...)` attaches a stage's input/output type explicitly rather than by
+  reflecting on its declared type, so a plain lambda works there too.
   This is the part of the module with the most unit test coverage so far.
 
 ## Divergent output schemas
 
 Today, one schema does double duty: it's both the *selector* that drives `buildStructural`'s recursion and
 the *write contract* the masked value must conform to. That's why `Delete` is rejected outright for Avro and
-Protobuf (`AvroFunction`/`ProtoFunction`'s `buildStringOp`/`buildIntegerOp`) — removing a required field would
+Protobuf (`AvroFunction`/`ProtoFunction`'s `buildOp`) — removing a required field would
 produce a value that no longer matches the one schema doing both jobs. Splitting those two roles — letting the
 *output* schema differ from the *input* schema — is worth designing towards, for two reasons: it's a more
 direct route to a meaningful `Delete` than waiting on Avro union/default support, and it lets a masked view
@@ -278,15 +298,18 @@ question:
   arbitrary Java POJO — it's `GenericRecord`/`DynamicMessage`/`JsonNode`, already dynamically typed against a
   schema that's present.
 - *Specific* to this codebase, a much smaller and already-mostly-solved version of the same idea exists:
-  `ContextPipeline` already reflects on each `apply` stage's concrete Java generic type
-  (`GenericTypeReflector`/`functionReturnType`) to validate composition and, optionally, type preservation.
-  Every operation is exposed through a named, fixed-type interface (`StringOp`, `IntOp`, ...), so the Java
-  type of a field's *final* `apply`-chain output is already known at build time, for free — and this stays
-  true even though the operation *vocabulary* itself is now open and pluggable (see
-  [Pluggable operations](#pluggable-operations) above), because a new operation still has to arrive via one
-  of these same fixed-type interfaces to be usable at all; it can't introduce a new Java type of its own
-  into the mix. A small, closed mapping table (`String` → Avro `string`/proto `string`, `Integer` → `int`/
-  `int32`, and so on — closed because the small set of *primitive types* these interfaces are indexed by is
+  every operation carries its own input/output type as an explicit `TypedOp`/`TypeToken` (see
+  [Pluggable operations](#pluggable-operations) above), which `ContextPipeline` already reads to validate
+  composition and, optionally, type preservation - so the Java type of a field's *final* `apply`-chain
+  output is already known at build time, for free. This stays true even though the operation *vocabulary*
+  itself is open and pluggable, and even though nothing in the type system stops a plugin from declaring an
+  arbitrary `OpFactory<T, R>`: each format engine's `buildOp` call site still only ever asks
+  `OpConfigs.resolveOp` for one of a small, closed set of `Class` tokens per schema-type case (`String` for
+  a `"string"` field, `Integer` for an `"integer"` field, and so on), and `resolveOp` rejects a resolved
+  operation whose declared type doesn't match what was asked for - so a new operation can't actually
+  introduce a new Java type into an existing field's chain, even though it technically *could* declare one.
+  A small, closed mapping table (`String` → Avro `string`/proto `string`, `Integer` → `int`/`int32`, and so
+  on — closed because the small set of *primitive types* an engine's `buildOp` call sites index by is
   closed, not because the set of operations is) would let the engine *detect* when a field's `apply` chain
   changes its type relative to the input schema, and derive an output schema by copying the input schema's
   fields — in their original order, minus any deleted ones — substituting types only where they diverge.
@@ -455,7 +478,8 @@ management.
 ### Theme: More functions
 - A general find/replace for `String` data — the primitive itself already exists
   (`common/RegexReplaceStringFunction`, supporting both `replaceAll`/`replaceFirst` and, for each, either a
-  plain replacement string or another `StringOp` applied to each captured group before interpolation - see
+  plain replacement string or another `BiFunction<String, Context, String>` applied to each captured group
+  before interpolation - see
   `RegexReplaceStringFunctionTest`), but it isn't yet exposed as a pluggable `apply` op. Still open: a
   `RegexReplaceString` plugin wrapping it, following the same pattern as `HmacString`/`EncryptString`.
 - A function with `try`/`catch` -like semantics.

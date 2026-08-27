@@ -11,15 +11,15 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
-import io.kroxylicious.filter.record.manipulation.common.BytesOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@code byte[]}.
  */
 @Plugin(configType = ValueBytes.Config.class)
-public class ValueBytes implements BytesOpFactory {
+public class ValueBytes implements OpFactory<byte[], byte[]> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -52,8 +52,8 @@ public class ValueBytes implements BytesOpFactory {
     }
 
     @Override
-    public BytesOp create(Map<String, Object> configMap) {
+    public TypedOp<byte[], byte[]> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        return (ignored, context) -> config.value();
+        return TypedOp.of(byte[].class, (ignored, context) -> config.value());
     }
 }

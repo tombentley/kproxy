@@ -18,18 +18,12 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
@@ -206,31 +200,31 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
     private static ProtoFunction buildApplyChain(Descriptors.FieldDescriptor field, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (field.getType()) {
             case BOOL -> {
-                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBooleanOp);
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Boolean.class, Boolean.class, l));
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
             case INT32, FIXED32, SINT32, SFIXED32 -> {
-                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildIntegerOp);
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Integer.class, Integer.class, l));
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
             case INT64, FIXED64, SINT64, SFIXED64 -> {
-                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildLongOp);
+                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Long.class, Long.class, l));
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
             case FLOAT -> {
-                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildFloatOp);
+                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Float.class, Float.class, l));
                 yield (value, context) -> pipeline.apply((Float) value, context);
             }
             case DOUBLE -> {
-                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildDoubleOp);
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Double.class, Double.class, l));
                 yield (value, context) -> pipeline.apply((Double) value, context);
             }
             case STRING -> {
-                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildStringOp);
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, String.class, String.class, l));
                 yield (value, context) -> pipeline.apply(value == null ? null : value.toString(), context);
             }
             case BYTES -> {
-                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, ProtoFunction::buildBytesOp);
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, byte[].class, byte[].class, l));
                 yield (value, context) -> {
                     // call toByteArray() because value is a ByteString, not a byte[]
                     byte[] input = value == null ? null : ((ByteString) value).toByteArray();
@@ -246,79 +240,22 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
     private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
                                                                 Set<Requirement> requirements,
                                                                 PluginLookup lookup,
-                                                                BiFunction<OpConfig, PluginLookup, BiFunction<T, Context, R>> ffn) {
-        List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> ffn.apply(op, lookup)).toList();
+                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> ffn) {
+        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> ffn.apply(op, lookup)).toList();
         return new ContextPipeline<>(fns, requirements);
     }
 
     /**
-     * The {@link BooleanOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    static BooleanOp buildBooleanOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveBooleanOp(op, lookup);
-    }
-
-    /**
-     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveIntOp(op, lookup);
-    }
-
-    /**
-     * The {@link LongOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    static LongOp buildLongOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveLongOp(op, lookup);
-    }
-
-    /**
-     * The {@link FloatOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    static FloatOp buildFloatOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveFloatOp(op, lookup);
-    }
-
-    /**
-     * The {@link DoubleOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    static DoubleOp buildDoubleOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveDoubleOp(op, lookup);
-    }
-
-    /**
-     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
      * here (rather than resolved via {@code lookup}) since removing a field isn't meaningful without
      * deciding what it means for a required proto2/proto3 implicit-presence field, so it fails loudly
      * rather than producing a possibly-nonconforming message - unlike {@code JacksonFunction}'s equivalent,
      * which allows it.
      */
-    static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+    static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
         if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
         }
-        return OpConfigs.resolveStringOp(op, lookup);
-    }
-
-    static BytesOp buildBytesOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-        }
-        return OpConfigs.resolveBytesOp(op, lookup);
+        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
     }
 }

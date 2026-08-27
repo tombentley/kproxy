@@ -10,16 +10,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.RandomDoubleSupplier;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Double} drawn from a range.
  */
 @Plugin(configType = RandomDouble.Config.class)
-public class RandomDouble implements DoubleOpFactory {
+public class RandomDouble implements OpFactory<Double, Double> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -31,9 +31,9 @@ public class RandomDouble implements DoubleOpFactory {
     public record Config(double minInclusive, double maxExclusive) {}
 
     @Override
-    public DoubleOp create(Map<String, Object> configMap) {
+    public TypedOp<Double, Double> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomDoubleSupplier(config.minInclusive(), config.maxExclusive());
-        return (ignored, context) -> generator.applyAsDouble(context);
+        return TypedOp.of(Double.class, (ignored, context) -> generator.applyAsDouble(context));
     }
 }

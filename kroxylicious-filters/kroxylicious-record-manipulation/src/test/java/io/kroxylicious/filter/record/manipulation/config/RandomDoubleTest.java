@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +32,7 @@ class RandomDoubleTest {
     void createsAnOpThatDrawsWithinTheConfiguredRange() {
         // Given
         RandomDouble factory = new RandomDouble();
-        DoubleOp op = factory.create(Map.of("minInclusive", 10.0, "maxExclusive", 20.0));
+        TypedOp<Double, Double> op = factory.create(Map.of("minInclusive", 10.0, "maxExclusive", 20.0));
         Context context = contextWithSeed(0);
 
         // When
@@ -49,7 +49,7 @@ class RandomDoubleTest {
                 {"op": "RandomDouble", "minInclusive": 10.0, "maxExclusive": 20.0}
                 """, OpConfig.class);
         RandomDouble factory = new RandomDouble();
-        DoubleOp op = factory.create(opConfig.config());
+        TypedOp<Double, Double> op = factory.create(opConfig.config());
 
         // When
         double value = op.apply(0.0, contextWithSeed(0));

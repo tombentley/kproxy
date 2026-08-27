@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,7 @@ class ChooseDoubleTest {
     void createsAnOpThatDrawsFromTheConfiguredSet() {
         // Given
         ChooseDouble factory = new ChooseDouble();
-        DoubleOp op = factory.create(Map.of("from", List.of(1.5, 2.5, 3.5)));
+        TypedOp<Double, Double> op = factory.create(Map.of("from", List.of(1.5, 2.5, 3.5)));
         Context context = contextWithSeed(0);
 
         // When
@@ -50,7 +50,7 @@ class ChooseDoubleTest {
                 {"op": "ChooseDouble", "from": [10.0, 20.0, 30.0]}
                 """, OpConfig.class);
         ChooseDouble factory = new ChooseDouble();
-        DoubleOp op = factory.create(opConfig.config());
+        TypedOp<Double, Double> op = factory.create(opConfig.config());
 
         // When
         double value = op.apply(0.0, contextWithSeed(0));

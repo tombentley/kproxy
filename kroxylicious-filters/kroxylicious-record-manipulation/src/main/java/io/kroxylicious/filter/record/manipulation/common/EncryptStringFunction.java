@@ -11,6 +11,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.function.BiFunction;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -28,7 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * isn't known until then, and a shared, cached instance would not be safe to reuse across concurrent
  * invocations regardless.
  */
-public class EncryptStringFunction implements StringOp {
+public class EncryptStringFunction implements BiFunction<String, Context, String> {
 
     private static final int IV_LENGTH = 12;
 

@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.function.BiFunction;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -19,7 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
  * {@link Context}. A fresh {@link Mac} is created per invocation - the key isn't known until then, and a
  * shared, cached instance would not be safe to reuse across concurrent invocations regardless.
  */
-public class HmacStringFunction implements StringOp {
+public class HmacStringFunction implements BiFunction<String, Context, String> {
 
     /**
      * Creates an instance.

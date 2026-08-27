@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +31,7 @@ class RandomBytesTest {
     void createsAnOpThatDrawsLengthsWithinTheConfiguredRange() {
         // Given
         RandomBytes factory = new RandomBytes();
-        BytesOp op = factory.create(Map.of("minLengthInclusive", 3, "maxLengthExclusive", 15));
+        TypedOp<byte[], byte[]> op = factory.create(Map.of("minLengthInclusive", 3, "maxLengthExclusive", 15));
         Context context = contextWithSeed(0);
 
         // When
@@ -48,7 +48,7 @@ class RandomBytesTest {
                 {"op": "RandomBytes", "minLengthInclusive": 3, "maxLengthExclusive": 4}
                 """, OpConfig.class);
         RandomBytes factory = new RandomBytes();
-        BytesOp op = factory.create(opConfig.config());
+        TypedOp<byte[], byte[]> op = factory.create(opConfig.config());
 
         // When
         byte[] value = op.apply(new byte[0], contextWithSeed(0));

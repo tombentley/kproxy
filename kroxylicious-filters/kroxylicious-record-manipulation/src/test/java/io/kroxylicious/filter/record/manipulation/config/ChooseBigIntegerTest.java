@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BigIntegerOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,7 @@ class ChooseBigIntegerTest {
     void createsAnOpThatDrawsFromTheConfiguredSet() {
         // Given
         ChooseBigInteger factory = new ChooseBigInteger();
-        BigIntegerOp op = factory.create(Map.of("from", List.of(BigInteger.ONE, BigInteger.TWO, BigInteger.TEN)));
+        TypedOp<BigInteger, BigInteger> op = factory.create(Map.of("from", List.of(BigInteger.ONE, BigInteger.TWO, BigInteger.TEN)));
         Context context = contextWithSeed(0);
 
         // When
@@ -50,7 +50,7 @@ class ChooseBigIntegerTest {
                 {"op": "ChooseBigInteger", "from": ["123456789012345678901234567890", "1"]}
                 """, OpConfig.class);
         ChooseBigInteger factory = new ChooseBigInteger();
-        BigIntegerOp op = factory.create(opConfig.config());
+        TypedOp<BigInteger, BigInteger> op = factory.create(opConfig.config());
 
         // When
         BigInteger value = op.apply(BigInteger.ZERO, contextWithSeed(0));

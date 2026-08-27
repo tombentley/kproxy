@@ -11,8 +11,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.EncryptStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -20,7 +20,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
  * for the inverse operation.
  */
 @Plugin(configType = EncryptString.Config.class)
-public class EncryptString implements StringOpFactory {
+public class EncryptString implements OpFactory<String, String> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -33,9 +33,9 @@ public class EncryptString implements StringOpFactory {
     public record Config(String keyId) {}
 
     @Override
-    public StringOp create(Map<String, Object> configMap) {
+    public TypedOp<String, String> create(Map<String, Object> configMap) {
         MAPPER.convertValue(configMap, Config.class);
         var fn = new EncryptStringFunction();
-        return (value, context) -> value == null ? null : fn.apply(value, context);
+        return TypedOp.of(String.class, (value, context) -> value == null ? null : fn.apply(value, context));
     }
 }

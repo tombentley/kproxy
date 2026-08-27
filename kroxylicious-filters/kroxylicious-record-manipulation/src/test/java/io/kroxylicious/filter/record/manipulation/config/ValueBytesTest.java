@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +30,7 @@ class ValueBytesTest {
         // Given
         ValueBytes factory = new ValueBytes();
         byte[] configured = { 1, 2, 3 };
-        BytesOp op = factory.create(Map.of("value", configured));
+        TypedOp<byte[], byte[]> op = factory.create(Map.of("value", configured));
 
         // When
         byte[] value = op.apply(new byte[0], CONTEXT);
@@ -47,7 +47,7 @@ class ValueBytesTest {
                 {"op": "ValueBytes", "value": "%s"}
                 """.formatted(base64), OpConfig.class);
         ValueBytes factory = new ValueBytes();
-        BytesOp op = factory.create(opConfig.config());
+        TypedOp<byte[], byte[]> op = factory.create(opConfig.config());
 
         // When
         byte[] value = op.apply(new byte[0], CONTEXT);
