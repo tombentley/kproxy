@@ -10,16 +10,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.RandomLongSupplier;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Long} drawn from a range.
  */
 @Plugin(configType = RandomLong.Config.class)
-public class RandomLong implements LongOpFactory {
+public class RandomLong implements OpFactory<Long, Long> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -31,9 +31,9 @@ public class RandomLong implements LongOpFactory {
     public record Config(long minInclusive, long maxExclusive) {}
 
     @Override
-    public LongOp create(Map<String, Object> configMap) {
+    public TypedOp<Long, Long> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomLongSupplier(config.minInclusive(), config.maxExclusive());
-        return (ignored, context) -> generator.applyAsLong(context);
+        return TypedOp.of(Long.class, (ignored, context) -> generator.applyAsLong(context));
     }
 }

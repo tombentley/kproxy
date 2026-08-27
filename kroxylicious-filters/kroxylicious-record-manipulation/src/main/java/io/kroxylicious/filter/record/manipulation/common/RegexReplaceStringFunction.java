@@ -6,10 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexReplaceStringFunction implements StringOp {
+public class RegexReplaceStringFunction implements BiFunction<String, Context, String> {
 
     public sealed interface Replacement {
     }
@@ -36,9 +37,9 @@ public class RegexReplaceStringFunction implements StringOp {
      */
     public record First(String replacement) implements Replacement {}
 
-    public record AllOp(StringOp groupOp) implements Replacement {}
+    public record AllOp(BiFunction<String, Context, String> groupOp) implements Replacement {}
 
-    public record FirstOp(StringOp groupOp) implements Replacement {}
+    public record FirstOp(BiFunction<String, Context, String> groupOp) implements Replacement {}
 
     private final Pattern pattern;
     private final Replacement replacement;
@@ -55,8 +56,8 @@ public class RegexReplaceStringFunction implements StringOp {
         return switch (replacement) {
             case All(String string) -> matcher.replaceAll(string);
             case First(String string) -> matcher.replaceFirst(string);
-            case AllOp(StringOp op) -> matcher.replaceAll(matchResult -> op.apply(matchResult.group(), context));
-            case FirstOp(StringOp op) -> matcher.replaceFirst(matchResult -> op.apply(matchResult.group(), context));
+            case AllOp(BiFunction<String, Context, String> op) -> matcher.replaceAll(matchResult -> op.apply(matchResult.group(), context));
+            case FirstOp(BiFunction<String, Context, String> op) -> matcher.replaceFirst(matchResult -> op.apply(matchResult.group(), context));
         };
     }
 }

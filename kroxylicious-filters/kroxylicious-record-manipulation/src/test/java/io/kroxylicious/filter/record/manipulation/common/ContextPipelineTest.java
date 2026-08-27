@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,10 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Note: the functions under test are named classes, not lambdas. ContextPipeline inspects the reified
- * generic type arguments of each function's class, which lambdas erase.
- */
 class ContextPipelineTest {
 
     private static final Context CONTEXT = new Context(new Random(), new byte[0]);
@@ -34,20 +29,25 @@ class ContextPipelineTest {
     @Test
     void singleFunctionPipelineComposes() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline<>(List.of(new StringLength()))).doesNotThrowAnyException();
+        assertThatCode(() -> new ContextPipeline<>(List.of(TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()))))
+                .doesNotThrowAnyException();
     }
 
     @Test
     void compatibleReturnAndParameterTypesCompose() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline<>(List.of(new StringLength(), new IntegerToString())))
+        assertThatCode(() -> new ContextPipeline<>(List.of(
+                TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()),
+                TypedOp.of(Integer.class, String.class, (i, ctx) -> i.toString()))))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void incompatibleReturnAndParameterTypesDoNotCompose() {
         // Given/When/Then
-        assertThatThrownBy(() -> new ContextPipeline<>(List.of(new StringLength(), new DoubleToString())))
+        assertThatThrownBy(() -> new ContextPipeline<>(List.of(
+                TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()),
+                TypedOp.of(Double.class, String.class, (d, ctx) -> d.toString()))))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("do not compose");
     }
@@ -55,7 +55,9 @@ class ContextPipelineTest {
     @Test
     void appliesFunctionsInOrderThreadingTheSameContext() {
         // Given
-        ContextPipeline<String, String> pipeline = new ContextPipeline<>(List.of(new StringLength(), new IntegerToString()));
+        ContextPipeline<String, String> pipeline = new ContextPipeline<>(List.of(
+                TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()),
+                TypedOp.of(Integer.class, String.class, (i, ctx) -> i.toString())));
 
         // When
         String result = pipeline.apply("hello", CONTEXT);
@@ -67,48 +69,25 @@ class ContextPipelineTest {
     @Test
     void typePreservingChainSatisfiesTheRequirement() {
         // Given/When/Then
-        assertThatCode(() -> new ContextPipeline<>(List.of(new AppendExclamation(), new AppendExclamation()), Set.of(Requirement.TYPE_PRESERVING)))
+        assertThatCode(() -> new ContextPipeline<>(List.of(
+                TypedOp.of(String.class, (value, ctx) -> value + "!"),
+                TypedOp.of(String.class, (value, ctx) -> value + "!")), Set.of(Requirement.TYPE_PRESERVING)))
                 .doesNotThrowAnyException();
     }
 
     @Test
     void nonTypePreservingChainFailsOnlyWhenRequirementIsRequested() {
         // Given
-        List<BiFunction<?, Context, ?>> ops = List.of(new StringLength(), new IntegerToString(), new StringLength());
+        List<TypedOp<?, ?>> ops = List.of(
+                TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()),
+                TypedOp.of(Integer.class, String.class, (i, ctx) -> i.toString()),
+                TypedOp.of(String.class, Integer.class, (s, ctx) -> s.length()));
 
         // When/Then
         assertThatCode(() -> new ContextPipeline<>(ops)).doesNotThrowAnyException();
         assertThatThrownBy(() -> new ContextPipeline<>(ops, Set.of(Requirement.TYPE_PRESERVING)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("not type-preserving");
-    }
-
-    private static class StringLength implements BiFunction<String, Context, Integer> {
-        @Override
-        public Integer apply(String s, Context context) {
-            return s.length();
-        }
-    }
-
-    private static class IntegerToString implements BiFunction<Integer, Context, String> {
-        @Override
-        public String apply(Integer i, Context context) {
-            return i.toString();
-        }
-    }
-
-    private static class DoubleToString implements BiFunction<Double, Context, String> {
-        @Override
-        public String apply(Double d, Context context) {
-            return d.toString();
-        }
-    }
-
-    private static class AppendExclamation implements StringOp {
-        @Override
-        public String apply(String value, Context context) {
-            return value + "!";
-        }
     }
 
 }

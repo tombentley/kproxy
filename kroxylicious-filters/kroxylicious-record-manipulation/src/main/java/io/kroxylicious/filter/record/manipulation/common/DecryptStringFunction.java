@@ -11,6 +11,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.function.BiFunction;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -25,7 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
  * known until then, and a shared, cached instance would not be safe to reuse across concurrent invocations
  * regardless.
  */
-public class DecryptStringFunction implements StringOp {
+public class DecryptStringFunction implements BiFunction<String, Context, String> {
 
     private static final int IV_LENGTH = 12;
 

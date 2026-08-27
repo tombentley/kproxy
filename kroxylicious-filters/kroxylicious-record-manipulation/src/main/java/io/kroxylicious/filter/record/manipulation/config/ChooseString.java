@@ -13,15 +13,15 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.ChooseStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link String} drawn from a fixed set.
  */
 @Plugin(configType = ChooseString.Config.class)
-public class ChooseString implements StringOpFactory {
+public class ChooseString implements OpFactory<String, String> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -32,9 +32,9 @@ public class ChooseString implements StringOpFactory {
     public record Config(List<String> from) {}
 
     @Override
-    public StringOp create(Map<String, Object> configMap) {
+    public TypedOp<String, String> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseStringSupplier(new HashSet<>(config.from()));
-        return (ignored, context) -> generator.apply(context);
+        return TypedOp.of(String.class, (ignored, context) -> generator.apply(context));
     }
 }

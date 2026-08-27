@@ -10,15 +10,15 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
-import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Boolean}.
  */
 @Plugin(configType = ValueBoolean.Config.class)
-public class ValueBoolean implements BooleanOpFactory {
+public class ValueBoolean implements OpFactory<Boolean, Boolean> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -29,8 +29,8 @@ public class ValueBoolean implements BooleanOpFactory {
     public record Config(boolean value) {}
 
     @Override
-    public BooleanOp create(Map<String, Object> configMap) {
+    public TypedOp<Boolean, Boolean> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        return (ignored, context) -> config.value();
+        return TypedOp.of(Boolean.class, (ignored, context) -> config.value());
     }
 }

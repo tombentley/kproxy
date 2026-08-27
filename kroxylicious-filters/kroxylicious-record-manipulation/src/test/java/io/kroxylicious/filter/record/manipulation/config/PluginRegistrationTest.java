@@ -6,16 +6,14 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.common.BigIntegerOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.BytesOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
+import io.leangen.geantyref.TypeToken;
+
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.config.PluginFactoryRegistry;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 
@@ -23,235 +21,248 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Proves that every {@code Choose*}/{@code Random*}/{@code Value*}/{@code HmacString}/{@code EncryptString}/
- * {@code DecryptString} implementation of {@link StringOpFactory}, {@link IntOpFactory},
- * {@link LongOpFactory}, {@link DoubleOpFactory}, {@link FloatOpFactory}, {@link BooleanOpFactory},
- * {@link BytesOpFactory} and {@link BigIntegerOpFactory} is independently discoverable via
- * {@link java.util.ServiceLoader} through one uniform mechanism, and that plugin name resolution stays
- * correctly scoped per plugin interface even where two unrelated types happen to share an implementation's
- * simple name (e.g. {@code RandomInt} vs {@code RandomString}).
- * <p>
- * All eight plugin interfaces are treated identically here: {@code StringOpFactory}/{@code IntOpFactory}
- * aren't special - they're just the two plugin interfaces whose {@code META-INF/services} registration
- * happened to predate the other six.
+ * {@code DecryptString} implementation of {@link OpFactory} is independently discoverable, by its own
+ * unique plugin name, via {@link java.util.ServiceLoader} - even though every plugin now shares the same
+ * single {@link OpFactory} interface rather than being partitioned into a per-base-type interface (e.g. a
+ * former, now-deleted {@code IntOpFactory}/{@code StringOpFactory}). Plugin name resolution stays correctly
+ * scoped even where two unrelated types happen to share an implementation's simple name (e.g. {@code
+ * RandomInt} vs {@code RandomString}).
  */
 class PluginRegistrationTest {
 
     private static final PluginFactoryRegistry REGISTRY = new ServiceBasedPluginFactoryRegistry();
 
     @Test
-    void randomIntIsRegisteredUnderIntOpFactory() {
+    void randomIntIsRegisteredUnderOpFactory() {
         // Given/When
-        IntOpFactory factory = REGISTRY.pluginFactory(IntOpFactory.class).pluginInstance("RandomInt");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomInt");
 
         // Then
         assertThat(factory).isInstanceOf(RandomInt.class);
     }
 
     @Test
-    void valueIntIsRegisteredUnderIntOpFactory() {
+    void valueIntIsRegisteredUnderOpFactory() {
         // Given/When
-        IntOpFactory factory = REGISTRY.pluginFactory(IntOpFactory.class).pluginInstance("ValueInt");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueInt");
 
         // Then
         assertThat(factory).isInstanceOf(ValueInt.class);
     }
 
     @Test
-    void chooseIntIsRegisteredUnderIntOpFactory() {
+    void chooseIntIsRegisteredUnderOpFactory() {
         // Given/When
-        IntOpFactory factory = REGISTRY.pluginFactory(IntOpFactory.class).pluginInstance("ChooseInt");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseInt");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseInt.class);
     }
 
     @Test
-    void randomStringIsRegisteredUnderStringOpFactory() {
+    void randomStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("RandomString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomString");
 
         // Then
         assertThat(factory).isInstanceOf(RandomString.class);
     }
 
     @Test
-    void valueStringIsRegisteredUnderStringOpFactory() {
+    void valueStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("ValueString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueString");
 
         // Then
         assertThat(factory).isInstanceOf(ValueString.class);
     }
 
     @Test
-    void chooseStringIsRegisteredUnderStringOpFactory() {
+    void chooseStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("ChooseString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseString");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseString.class);
     }
 
     @Test
-    void hmacStringIsRegisteredUnderStringOpFactory() {
+    void hmacStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("HmacString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("HmacString");
 
         // Then
         assertThat(factory).isInstanceOf(HmacString.class);
     }
 
     @Test
-    void encryptStringIsRegisteredUnderStringOpFactory() {
+    void encryptStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("EncryptString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("EncryptString");
 
         // Then
         assertThat(factory).isInstanceOf(EncryptString.class);
     }
 
     @Test
-    void decryptStringIsRegisteredUnderStringOpFactory() {
+    void decryptStringIsRegisteredUnderOpFactory() {
         // Given/When
-        StringOpFactory factory = REGISTRY.pluginFactory(StringOpFactory.class).pluginInstance("DecryptString");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("DecryptString");
 
         // Then
         assertThat(factory).isInstanceOf(DecryptString.class);
     }
 
     @Test
-    void chooseLongIsRegisteredUnderLongOpFactory() {
+    void chooseLongIsRegisteredUnderOpFactory() {
         // Given/When
-        LongOpFactory factory = REGISTRY.pluginFactory(LongOpFactory.class).pluginInstance("ChooseLong");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseLong");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseLong.class);
     }
 
     @Test
-    void randomLongIsRegisteredUnderLongOpFactory() {
+    void randomLongIsRegisteredUnderOpFactory() {
         // Given/When
-        LongOpFactory factory = REGISTRY.pluginFactory(LongOpFactory.class).pluginInstance("RandomLong");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomLong");
 
         // Then
         assertThat(factory).isInstanceOf(RandomLong.class);
     }
 
     @Test
-    void valueLongIsRegisteredUnderLongOpFactory() {
+    void valueLongIsRegisteredUnderOpFactory() {
         // Given/When
-        LongOpFactory factory = REGISTRY.pluginFactory(LongOpFactory.class).pluginInstance("ValueLong");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueLong");
 
         // Then
         assertThat(factory).isInstanceOf(ValueLong.class);
     }
 
     @Test
-    void chooseDoubleIsRegisteredUnderDoubleOpFactory() {
+    void chooseDoubleIsRegisteredUnderOpFactory() {
         // Given/When
-        DoubleOpFactory factory = REGISTRY.pluginFactory(DoubleOpFactory.class).pluginInstance("ChooseDouble");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseDouble");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseDouble.class);
     }
 
     @Test
-    void randomDoubleIsRegisteredUnderDoubleOpFactory() {
+    void randomDoubleIsRegisteredUnderOpFactory() {
         // Given/When
-        DoubleOpFactory factory = REGISTRY.pluginFactory(DoubleOpFactory.class).pluginInstance("RandomDouble");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomDouble");
 
         // Then
         assertThat(factory).isInstanceOf(RandomDouble.class);
     }
 
     @Test
-    void valueDoubleIsRegisteredUnderDoubleOpFactory() {
+    void valueDoubleIsRegisteredUnderOpFactory() {
         // Given/When
-        DoubleOpFactory factory = REGISTRY.pluginFactory(DoubleOpFactory.class).pluginInstance("ValueDouble");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueDouble");
 
         // Then
         assertThat(factory).isInstanceOf(ValueDouble.class);
     }
 
     @Test
-    void chooseFloatIsRegisteredUnderFloatOpFactory() {
+    void chooseFloatIsRegisteredUnderOpFactory() {
         // Given/When
-        FloatOpFactory factory = REGISTRY.pluginFactory(FloatOpFactory.class).pluginInstance("ChooseFloat");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseFloat");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseFloat.class);
     }
 
     @Test
-    void randomFloatIsRegisteredUnderFloatOpFactory() {
+    void randomFloatIsRegisteredUnderOpFactory() {
         // Given/When
-        FloatOpFactory factory = REGISTRY.pluginFactory(FloatOpFactory.class).pluginInstance("RandomFloat");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomFloat");
 
         // Then
         assertThat(factory).isInstanceOf(RandomFloat.class);
     }
 
     @Test
-    void valueFloatIsRegisteredUnderFloatOpFactory() {
+    void valueFloatIsRegisteredUnderOpFactory() {
         // Given/When
-        FloatOpFactory factory = REGISTRY.pluginFactory(FloatOpFactory.class).pluginInstance("ValueFloat");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueFloat");
 
         // Then
         assertThat(factory).isInstanceOf(ValueFloat.class);
     }
 
     @Test
-    void randomBooleanIsRegisteredUnderBooleanOpFactory() {
+    void randomBooleanIsRegisteredUnderOpFactory() {
         // Given/When
-        BooleanOpFactory factory = REGISTRY.pluginFactory(BooleanOpFactory.class).pluginInstance("RandomBoolean");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomBoolean");
 
         // Then
         assertThat(factory).isInstanceOf(RandomBoolean.class);
     }
 
     @Test
-    void valueBooleanIsRegisteredUnderBooleanOpFactory() {
+    void valueBooleanIsRegisteredUnderOpFactory() {
         // Given/When
-        BooleanOpFactory factory = REGISTRY.pluginFactory(BooleanOpFactory.class).pluginInstance("ValueBoolean");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueBoolean");
 
         // Then
         assertThat(factory).isInstanceOf(ValueBoolean.class);
     }
 
     @Test
-    void randomBytesIsRegisteredUnderBytesOpFactory() {
+    void randomBytesIsRegisteredUnderOpFactory() {
         // Given/When
-        BytesOpFactory factory = REGISTRY.pluginFactory(BytesOpFactory.class).pluginInstance("RandomBytes");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomBytes");
 
         // Then
         assertThat(factory).isInstanceOf(RandomBytes.class);
     }
 
     @Test
-    void valueBytesIsRegisteredUnderBytesOpFactory() {
+    void valueBytesIsRegisteredUnderOpFactory() {
         // Given/When
-        BytesOpFactory factory = REGISTRY.pluginFactory(BytesOpFactory.class).pluginInstance("ValueBytes");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueBytes");
 
         // Then
         assertThat(factory).isInstanceOf(ValueBytes.class);
     }
 
     @Test
-    void chooseBigIntegerIsRegisteredUnderBigIntegerOpFactory() {
+    void chooseBigIntegerIsRegisteredUnderOpFactory() {
         // Given/When
-        BigIntegerOpFactory factory = REGISTRY.pluginFactory(BigIntegerOpFactory.class).pluginInstance("ChooseBigInteger");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ChooseBigInteger");
 
         // Then
         assertThat(factory).isInstanceOf(ChooseBigInteger.class);
     }
 
     @Test
-    void valueBigIntegerIsRegisteredUnderBigIntegerOpFactory() {
+    void valueBigIntegerIsRegisteredUnderOpFactory() {
         // Given/When
-        BigIntegerOpFactory factory = REGISTRY.pluginFactory(BigIntegerOpFactory.class).pluginInstance("ValueBigInteger");
+        OpFactory<?, ?> factory = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("ValueBigInteger");
 
         // Then
         assertThat(factory).isInstanceOf(ValueBigInteger.class);
+    }
+
+    @Test
+    void resolvedFactoriesBuildOperationsWithTheExpectedInputAndOutputTypes() {
+        // Given
+        OpFactory<?, ?> randomInt = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomInt");
+        OpFactory<?, ?> randomString = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomString");
+
+        // When
+        TypedOp<?, ?> intOp = randomInt.create(Map.of("minInclusive", 0, "maxExclusive", 10));
+        TypedOp<?, ?> stringOp = randomString.create(Map.of("alphabet", "abc", "minLengthInclusive", 1, "maxLengthExclusive", 5));
+
+        // Then
+        assertThat(intOp.inputType()).isEqualTo(TypeToken.get(Integer.class));
+        assertThat(intOp.outputType()).isEqualTo(TypeToken.get(Integer.class));
+        assertThat(stringOp.inputType()).isEqualTo(TypeToken.get(String.class));
+        assertThat(stringOp.outputType()).isEqualTo(TypeToken.get(String.class));
     }
 
 }

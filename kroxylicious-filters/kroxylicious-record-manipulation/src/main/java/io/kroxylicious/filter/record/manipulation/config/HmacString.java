@@ -11,15 +11,15 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a {@link String} value with its HMAC. String-only: there is no numeric equivalent.
  */
 @Plugin(configType = HmacString.Config.class)
-public class HmacString implements StringOpFactory {
+public class HmacString implements OpFactory<String, String> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -32,9 +32,9 @@ public class HmacString implements StringOpFactory {
     public record Config(String keyId) {}
 
     @Override
-    public StringOp create(Map<String, Object> configMap) {
+    public TypedOp<String, String> create(Map<String, Object> configMap) {
         MAPPER.convertValue(configMap, Config.class);
         var fn = new HmacStringFunction();
-        return (value, context) -> value == null ? null : fn.apply(value, context);
+        return TypedOp.of(String.class, (value, context) -> value == null ? null : fn.apply(value, context));
     }
 }

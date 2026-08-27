@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ class ValueFloatTest {
     void createsAnOpThatAlwaysReturnsTheConfiguredValue() {
         // Given
         ValueFloat factory = new ValueFloat();
-        FloatOp op = factory.create(Map.of("value", 3.14f));
+        TypedOp<Float, Float> op = factory.create(Map.of("value", 3.14f));
 
         // When
         Float value = op.apply(0.0f, CONTEXT);
@@ -44,7 +44,7 @@ class ValueFloatTest {
                 {"op": "ValueFloat", "value": 2.5}
                 """, OpConfig.class);
         ValueFloat factory = new ValueFloat();
-        FloatOp op = factory.create(opConfig.config());
+        TypedOp<Float, Float> op = factory.create(opConfig.config());
 
         // When
         Float value = op.apply(0.0f, CONTEXT);

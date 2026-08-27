@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +32,7 @@ class ChooseLongTest {
     void createsAnOpThatDrawsFromTheConfiguredSet() {
         // Given
         ChooseLong factory = new ChooseLong();
-        LongOp op = factory.create(Map.of("from", List.of(1L, 2L, 3L)));
+        TypedOp<Long, Long> op = factory.create(Map.of("from", List.of(1L, 2L, 3L)));
         Context context = contextWithSeed(0);
 
         // When
@@ -49,7 +49,7 @@ class ChooseLongTest {
                 {"op": "ChooseLong", "from": [10, 20, 30]}
                 """, OpConfig.class);
         ChooseLong factory = new ChooseLong();
-        LongOp op = factory.create(opConfig.config());
+        TypedOp<Long, Long> op = factory.create(opConfig.config());
 
         // When
         long value = op.apply(0L, contextWithSeed(0));
