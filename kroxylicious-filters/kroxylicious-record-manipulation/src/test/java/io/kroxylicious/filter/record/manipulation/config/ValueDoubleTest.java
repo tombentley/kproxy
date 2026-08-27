@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ class ValueDoubleTest {
     void createsAnOpThatAlwaysReturnsTheConfiguredValue() {
         // Given
         ValueDouble factory = new ValueDouble();
-        DoubleOp op = factory.create(Map.of("value", 3.14));
+        TypedOp<Double, Double> op = factory.create(Map.of("value", 3.14));
 
         // When
         double value = op.apply(0.0, CONTEXT);
@@ -44,7 +44,7 @@ class ValueDoubleTest {
                 {"op": "ValueDouble", "value": 2.71}
                 """, OpConfig.class);
         ValueDouble factory = new ValueDouble();
-        DoubleOp op = factory.create(opConfig.config());
+        TypedOp<Double, Double> op = factory.create(opConfig.config());
 
         // When
         double value = op.apply(0.0, CONTEXT);

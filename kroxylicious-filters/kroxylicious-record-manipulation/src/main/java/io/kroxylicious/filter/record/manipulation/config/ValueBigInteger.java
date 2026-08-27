@@ -11,15 +11,15 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BigIntegerOp;
-import io.kroxylicious.filter.record.manipulation.common.BigIntegerOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link Boolean}.
  */
 @Plugin(configType = ValueBigInteger.Config.class)
-public class ValueBigInteger implements BigIntegerOpFactory {
+public class ValueBigInteger implements OpFactory<BigInteger, BigInteger> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -30,8 +30,8 @@ public class ValueBigInteger implements BigIntegerOpFactory {
     public record Config(BigInteger value) {}
 
     @Override
-    public BigIntegerOp create(Map<String, Object> configMap) {
+    public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
-        return (ignored, context) -> config.value();
+        return TypedOp.of(BigInteger.class, (ignored, context) -> config.value());
     }
 }

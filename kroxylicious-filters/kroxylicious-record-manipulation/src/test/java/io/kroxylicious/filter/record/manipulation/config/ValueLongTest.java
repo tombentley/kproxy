@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ class ValueLongTest {
     void createsAnOpThatAlwaysReturnsTheConfiguredValue() {
         // Given
         ValueLong factory = new ValueLong();
-        LongOp op = factory.create(Map.of("value", 42L));
+        TypedOp<Long, Long> op = factory.create(Map.of("value", 42L));
 
         // When
         long value = op.apply(0L, CONTEXT);
@@ -44,7 +44,7 @@ class ValueLongTest {
                 {"op": "ValueLong", "value": 99}
                 """, OpConfig.class);
         ValueLong factory = new ValueLong();
-        LongOp op = factory.create(opConfig.config());
+        TypedOp<Long, Long> op = factory.create(opConfig.config());
 
         // When
         long value = op.apply(0L, CONTEXT);

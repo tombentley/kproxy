@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +31,7 @@ class RandomLongTest {
     void createsAnOpThatDrawsWithinTheConfiguredRange() {
         // Given
         RandomLong factory = new RandomLong();
-        LongOp op = factory.create(Map.of("minInclusive", 10L, "maxExclusive", 20L));
+        TypedOp<Long, Long> op = factory.create(Map.of("minInclusive", 10L, "maxExclusive", 20L));
         Context context = contextWithSeed(0);
 
         // When
@@ -48,7 +48,7 @@ class RandomLongTest {
                 {"op": "RandomLong", "minInclusive": 10, "maxExclusive": 20}
                 """, OpConfig.class);
         RandomLong factory = new RandomLong();
-        LongOp op = factory.create(opConfig.config());
+        TypedOp<Long, Long> op = factory.create(opConfig.config());
 
         // When
         long value = op.apply(0L, contextWithSeed(0));

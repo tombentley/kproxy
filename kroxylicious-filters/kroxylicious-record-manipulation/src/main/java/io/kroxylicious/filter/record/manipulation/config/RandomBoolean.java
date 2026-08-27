@@ -10,16 +10,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
-import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.RandomBooleanSupplier;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Integer} drawn from a range.
  */
 @Plugin(configType = RandomBoolean.Config.class)
-public class RandomBoolean implements BooleanOpFactory {
+public class RandomBoolean implements OpFactory<Boolean, Boolean> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -29,8 +29,8 @@ public class RandomBoolean implements BooleanOpFactory {
     public record Config() {}
 
     @Override
-    public BooleanOp create(Map<String, Object> configMap) {
+    public TypedOp<Boolean, Boolean> create(Map<String, Object> configMap) {
         var generator = new RandomBooleanSupplier();
-        return (ignored, context) -> generator.test(context);
+        return TypedOp.of(Boolean.class, (ignored, context) -> generator.test(context));
     }
 }

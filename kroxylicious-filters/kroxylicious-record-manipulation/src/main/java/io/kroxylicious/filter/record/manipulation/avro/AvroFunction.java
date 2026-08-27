@@ -18,17 +18,11 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
@@ -197,27 +191,27 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
     private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
         return switch (type) {
             case BOOLEAN -> {
-                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildBooleanOp);
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Boolean.class, Boolean.class, l));
                 yield (value, context) -> pipeline.apply((Boolean) value, context);
             }
             case INT -> {
-                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildIntegerOp);
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Integer.class, Integer.class, l));
                 yield (value, context) -> pipeline.apply((Integer) value, context);
             }
             case LONG -> {
-                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildLongOp);
+                ContextPipeline<Long, Long> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Long.class, Long.class, l));
                 yield (value, context) -> pipeline.apply((Long) value, context);
             }
             case FLOAT -> {
-                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildFloatOp);
+                ContextPipeline<Float, Float> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Float.class, Float.class, l));
                 yield (value, context) -> pipeline.apply((Float) value, context);
             }
             case DOUBLE -> {
-                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildDoubleOp);
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Double.class, Double.class, l));
                 yield (value, context) -> pipeline.apply((Double) value, context);
             }
             case STRING -> {
-                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildStringOp);
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, String.class, String.class, l));
                 yield (value, context) -> {
                     // call toString() because value could be a Utf8, not a String
                     String input = value == null ? null : value.toString();
@@ -225,7 +219,7 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
                 };
             }
             case BYTES -> {
-                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, AvroFunction::buildBytesOp);
+                ContextPipeline<byte[], byte[]> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, byte[].class, byte[].class, l));
                 yield (value, context) -> {
                     // call toByteArray() because value is a ByteBuffer, not a byte[]
                     byte[] input = value == null ? null : toByteArray((ByteBuffer) value);
@@ -241,79 +235,22 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
     private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
                                                                 Set<Requirement> requirements,
                                                                 PluginLookup lookup,
-                                                                BiFunction<OpConfig, PluginLookup, BiFunction<T, Context, R>> fnn) {
-        List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> fnn.apply(op, lookup)).toList();
+                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> fnn) {
+        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> fnn.apply(op, lookup)).toList();
         return new ContextPipeline<>(fns, requirements);
     }
 
     /**
-     * The {@link BooleanOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static BooleanOp buildBooleanOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveBooleanOp(op, lookup);
-    }
-
-    /**
-     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveIntOp(op, lookup);
-    }
-
-    /**
-     * The {@link LongOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static LongOp buildLongOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveLongOp(op, lookup);
-    }
-
-    /**
-     * The {@link FloatOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static FloatOp buildFloatOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveFloatOp(op, lookup);
-    }
-
-    /**
-     * The {@link DoubleOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static DoubleOp buildDoubleOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveDoubleOp(op, lookup);
-    }
-
-    /**
-     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
      * here (rather than resolved via {@code lookup}) since removing a required Avro field isn't meaningful
      * without also supporting Avro's union/default mechanism (see the class javadoc), so it fails loudly
      * rather than producing a {@link GenericRecord} that no longer conforms to its schema - unlike
      * {@code JacksonFunction}'s equivalent, which allows it.
      */
-    private static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+    private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
         if (OpConfigs.DELETE.equals(op.op())) {
             throw new IllegalArgumentException("delete is not yet supported for Avro fields");
         }
-        return OpConfigs.resolveStringOp(op, lookup);
-    }
-
-    private static BytesOp buildBytesOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-        }
-        return OpConfigs.resolveBytesOp(op, lookup);
+        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
     }
 }

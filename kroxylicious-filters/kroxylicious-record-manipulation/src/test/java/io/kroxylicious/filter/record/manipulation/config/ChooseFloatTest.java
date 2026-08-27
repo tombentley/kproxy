@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +32,7 @@ class ChooseFloatTest {
     void createsAnOpThatDrawsFromTheConfiguredSet() {
         // Given
         ChooseFloat factory = new ChooseFloat();
-        FloatOp op = factory.create(Map.of("from", List.of(1.5f, 2.5f, 3.5f)));
+        TypedOp<Float, Float> op = factory.create(Map.of("from", List.of(1.5f, 2.5f, 3.5f)));
         Context context = contextWithSeed(0);
 
         // When
@@ -49,7 +49,7 @@ class ChooseFloatTest {
                 {"op": "ChooseFloat", "from": [10.0, 20.0, 30.0]}
                 """, OpConfig.class);
         ChooseFloat factory = new ChooseFloat();
-        FloatOp op = factory.create(opConfig.config());
+        TypedOp<Float, Float> op = factory.create(opConfig.config());
 
         // When
         Float value = op.apply(0.0f, contextWithSeed(0));

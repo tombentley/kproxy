@@ -7,8 +7,9 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.Locale;
+import java.util.function.BiFunction;
 
-public class LowercaseStringFunction implements StringOp {
+public class LowercaseStringFunction implements BiFunction<String, Context, String> {
 
     private final Locale locale;
 

@@ -10,16 +10,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
-import io.kroxylicious.filter.record.manipulation.common.BytesOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.RandomBytesSupplier;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@code byte[]} of a random length.
  */
 @Plugin(configType = RandomBytes.Config.class)
-public class RandomBytes implements BytesOpFactory {
+public class RandomBytes implements OpFactory<byte[], byte[]> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -31,9 +31,9 @@ public class RandomBytes implements BytesOpFactory {
     public record Config(int minLengthInclusive, int maxLengthExclusive) {}
 
     @Override
-    public BytesOp create(Map<String, Object> configMap) {
+    public TypedOp<byte[], byte[]> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomBytesSupplier(config.minLengthInclusive(), config.maxLengthExclusive());
-        return (ignored, context) -> generator.apply(context);
+        return TypedOp.of(byte[].class, (ignored, context) -> generator.apply(context));
     }
 }

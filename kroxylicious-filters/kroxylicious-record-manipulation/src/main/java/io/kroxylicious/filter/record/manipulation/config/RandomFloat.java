@@ -10,16 +10,16 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.RandomFloatSupplier;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Generates a random {@link Float} drawn from a range.
  */
 @Plugin(configType = RandomFloat.Config.class)
-public class RandomFloat implements FloatOpFactory {
+public class RandomFloat implements OpFactory<Float, Float> {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -31,9 +31,9 @@ public class RandomFloat implements FloatOpFactory {
     public record Config(float minInclusive, float maxExclusive) {}
 
     @Override
-    public FloatOp create(Map<String, Object> configMap) {
+    public TypedOp<Float, Float> create(Map<String, Object> configMap) {
         Config config = MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomFloatSupplier(config.minInclusive(), config.maxExclusive());
-        return (ignored, context) -> generator.apply(context);
+        return TypedOp.of(Float.class, (ignored, context) -> generator.apply(context));
     }
 }

@@ -1,9 +1,0 @@
-#
-# Copyright Kroxylicious Authors.
-#
-# Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
-#
-
-io.kroxylicious.filter.record.manipulation.config.RandomDouble
-io.kroxylicious.filter.record.manipulation.config.ValueDouble
-io.kroxylicious.filter.record.manipulation.config.ChooseDouble

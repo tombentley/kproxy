@@ -24,16 +24,12 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
 import io.kroxylicious.filter.record.manipulation.common.ContextPipeline;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 
@@ -181,7 +177,7 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
                                                    PluginLookup lookup) {
         return switch (type) {
             case "boolean" -> {
-                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildBooleanOp);
+                ContextPipeline<Boolean, Boolean> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Boolean.class, Boolean.class, l));
                 yield (node, context) -> {
                     Boolean result = pipeline.apply(node.isMissingNode() ? null : node.asBoolean(), context);
                     return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
@@ -189,7 +185,7 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
             }
             case "integer" -> {
                 // TODO need to handle short, long and BigInteger
-                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildIntegerOp);
+                ContextPipeline<Integer, Integer> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Integer.class, Integer.class, l));
                 yield (node, context) -> {
                     Integer result = pipeline.apply(node.isMissingNode() ? null : node.asInt(), context);
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
@@ -197,14 +193,14 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
             }
             case "number" -> {
                 // TODO need to handle float and BigDecimal
-                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildDoubleOp);
+                ContextPipeline<Double, Double> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, Double.class, Double.class, l));
                 yield (node, context) -> {
                     Double result = pipeline.apply(node.isMissingNode() ? null : node.asDouble(), context);
                     return result == null ? MissingNode.getInstance() : new DoubleNode(result);
                 };
             }
             case "string" -> {
-                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, JacksonFunction::buildStringOp);
+                ContextPipeline<String, String> pipeline = contextPipeline(ops, requirements, lookup, (op, l) -> buildOp(op, String.class, String.class, l));
                 yield (node, context) -> {
                     String result = pipeline.apply(node.isMissingNode() ? null : node.asText(), context);
                     return result == null ? MissingNode.getInstance() : new TextNode(result);
@@ -219,61 +215,21 @@ public interface JacksonFunction extends BiFunction<JsonNode, Context, JsonNode>
     private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
                                                                 Set<Requirement> requirements,
                                                                 PluginLookup lookup,
-                                                                BiFunction<OpConfig, PluginLookup, BiFunction<T, Context, R>> ffn) {
-        List<BiFunction<?, Context, ?>> fns = ops.stream().<BiFunction<?, Context, ?>> map(op -> ffn.apply(op, lookup)).toList();
+                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> ffn) {
+        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> ffn.apply(op, lookup)).toList();
         return new ContextPipeline<>(fns, requirements);
     }
 
     /**
-     * Resolves one {@code apply} entry to a {@link StringOp} - {@link OpConfigs#DELETE} is special-cased
+     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
      * here (rather than resolved via {@code lookup}) since Jackson can represent "this property is absent"
      * ({@link MissingNode}), unlike Avro/Protobuf (see {@code AvroFunction}/{@code ProtoFunction}'s
      * equivalents, which reject it instead).
      */
-    private static StringOp buildStringOp(OpConfig op, PluginLookup lookup) {
+    private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
         if (OpConfigs.DELETE.equals(op.op())) {
-            return (value, context) -> null;
+            return TypedOp.of(inputType, outputType, (value, context) -> null);
         }
-        return OpConfigs.resolveStringOp(op, lookup);
-    }
-
-    /**
-     * The {@link BooleanOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static BooleanOp buildBooleanOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            return (value, context) -> null;
-        }
-        return OpConfigs.resolveBooleanOp(op, lookup);
-    }
-
-    /**
-     * The {@link IntOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static IntOp buildIntegerOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            return (value, context) -> null;
-        }
-        return OpConfigs.resolveIntOp(op, lookup);
-    }
-
-    /**
-     * The {@link LongOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static LongOp buildLongOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            return (value, context) -> null;
-        }
-        return OpConfigs.resolveLongOp(op, lookup);
-    }
-
-    /**
-     * The {@link DoubleOp} counterpart of {@link #buildStringOp(OpConfig, PluginLookup)}.
-     */
-    private static DoubleOp buildDoubleOp(OpConfig op, PluginLookup lookup) {
-        if (OpConfigs.DELETE.equals(op.op())) {
-            return (value, context) -> null;
-        }
-        return OpConfigs.resolveDoubleOp(op, lookup);
+        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
     }
 }

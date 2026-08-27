@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
 import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +31,7 @@ class RandomBooleanTest {
     void createsAnOpThatDrawsBothTrueAndFalseOverManyCalls() {
         // Given
         RandomBoolean factory = new RandomBoolean();
-        BooleanOp op = factory.create(Map.of());
+        TypedOp<Boolean, Boolean> op = factory.create(Map.of());
         Context context = contextWithSeed(0);
 
         // When
@@ -48,7 +48,7 @@ class RandomBooleanTest {
                 {"op": "RandomBoolean"}
                 """, OpConfig.class);
         RandomBoolean factory = new RandomBoolean();
-        BooleanOp op = factory.create(opConfig.config());
+        TypedOp<Boolean, Boolean> op = factory.create(opConfig.config());
 
         // When
         Boolean value = op.apply(false, contextWithSeed(0));

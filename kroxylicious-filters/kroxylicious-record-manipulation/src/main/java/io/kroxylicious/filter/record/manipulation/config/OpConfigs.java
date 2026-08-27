@@ -6,31 +6,21 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-import io.kroxylicious.filter.record.manipulation.common.BooleanOp;
-import io.kroxylicious.filter.record.manipulation.common.BooleanOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.BytesOp;
-import io.kroxylicious.filter.record.manipulation.common.BytesOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOp;
-import io.kroxylicious.filter.record.manipulation.common.DoubleOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
-import io.kroxylicious.filter.record.manipulation.common.FloatOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.IntOp;
-import io.kroxylicious.filter.record.manipulation.common.IntOpFactory;
-import io.kroxylicious.filter.record.manipulation.common.LongOp;
-import io.kroxylicious.filter.record.manipulation.common.LongOpFactory;
+import io.leangen.geantyref.TypeToken;
+
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StringOp;
-import io.kroxylicious.filter.record.manipulation.common.StringOpFactory;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 /**
  * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an
  * {@code apply} chain that's identical across every format engine (Jackson/Avro/Protobuf), so it lives
- * here once rather than being duplicated in each engine's own {@code buildStringOp}/{@code buildIntegerOp}.
+ * here once rather than being duplicated in each engine's own {@code buildOp}.
  * <p>
  * Deliberately does not know about {@link #DELETE}: whether that name is legal at all is a property of the
  * calling format's container model (can it represent "this property is absent"?), not something a shared,
- * name-keyed plugin registry can answer - see each engine's own {@code buildStringOp}/{@code
- * buildIntegerOp} for how they handle it before ever calling here.
+ * name-keyed plugin registry can answer - see each engine's own {@code buildOp} for how they handle it
+ * before ever calling here.
  */
 public final class OpConfigs {
 
@@ -44,79 +34,42 @@ public final class OpConfigs {
     }
 
     /**
-     * Resolves {@code op} to a {@link StringOpFactory} and builds its operation.
+     * Resolves {@code op} to an {@link OpFactory} and builds its operation, checking that the built
+     * operation's declared input/output types match what the caller expected.
      * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param inputType the input type the built operation must have
+     * @param outputType the output type the built operation must have
      * @param lookup the plugin lookup to resolve {@code op}'s name against
      * @return the built operation
+     * @throws IllegalArgumentException if the resolved operation's input/output types don't match
+     * @param <T> the input type
+     * @param <R> the output type
      */
-    public static StringOp resolveStringOp(OpConfig op, PluginLookup lookup) {
-        StringOpFactory factory = lookup.pluginInstance(StringOpFactory.class, op.op());
-        return factory.create(op.config());
+    @SuppressWarnings("unchecked")
+    public static <T, R> TypedOp<T, R> resolveOp(OpConfig op, TypeToken<T> inputType, TypeToken<R> outputType, PluginLookup lookup) {
+        OpFactory<?, ?> factory = lookup.pluginInstance(OpFactory.class, op.op());
+        TypedOp<?, ?> built = factory.create(op.config());
+        if (!built.inputType().equals(inputType) || !built.outputType().equals(outputType)) {
+            throw new IllegalArgumentException("Operation '" + op.op() + "' produces "
+                    + built.inputType().getType() + "->" + built.outputType().getType()
+                    + ", but " + inputType.getType() + "->" + outputType.getType() + " was required");
+        }
+        return (TypedOp<T, R>) built;
     }
 
     /**
-     * Resolves {@code op} to a {@link BytesOpFactory} and builds its operation.
+     * The {@link Class}-keyed counterpart of {@link #resolveOp(OpConfig, TypeToken, TypeToken, PluginLookup)},
+     * for the common case of a plain, non-parameterized input/output type.
      * @param op the operation to resolve; must not be {@link #DELETE}
+     * @param inputType the input type the built operation must have
+     * @param outputType the output type the built operation must have
      * @param lookup the plugin lookup to resolve {@code op}'s name against
      * @return the built operation
+     * @throws IllegalArgumentException if the resolved operation's input/output types don't match
+     * @param <T> the input type
+     * @param <R> the output type
      */
-    public static BytesOp resolveBytesOp(OpConfig op, PluginLookup lookup) {
-        BytesOpFactory factory = lookup.pluginInstance(BytesOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    /**
-     * Resolves {@code op} to an {@link BooleanOpFactory} and builds its operation.
-     * @param op the operation to resolve; must not be {@link #DELETE}
-     * @param lookup the plugin lookup to resolve {@code op}'s name against
-     * @return the built operation
-     */
-    public static BooleanOp resolveBooleanOp(OpConfig op, PluginLookup lookup) {
-        BooleanOpFactory factory = lookup.pluginInstance(BooleanOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    /**
-     * Resolves {@code op} to an {@link IntOpFactory} and builds its operation.
-     * @param op the operation to resolve; must not be {@link #DELETE}
-     * @param lookup the plugin lookup to resolve {@code op}'s name against
-     * @return the built operation
-     */
-    public static IntOp resolveIntOp(OpConfig op, PluginLookup lookup) {
-        IntOpFactory factory = lookup.pluginInstance(IntOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    /**
-     * Resolves {@code op} to an {@link LongOpFactory} and builds its operation.
-     * @param op the operation to resolve; must not be {@link #DELETE}
-     * @param lookup the plugin lookup to resolve {@code op}'s name against
-     * @return the built operation
-     */
-    public static LongOp resolveLongOp(OpConfig op, PluginLookup lookup) {
-        LongOpFactory factory = lookup.pluginInstance(LongOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    /**
-     * Resolves {@code op} to an {@link DoubleOpFactory} and builds its operation.
-     * @param op the operation to resolve; must not be {@link #DELETE}
-     * @param lookup the plugin lookup to resolve {@code op}'s name against
-     * @return the built operation
-     */
-    public static FloatOp resolveFloatOp(OpConfig op, PluginLookup lookup) {
-        FloatOpFactory factory = lookup.pluginInstance(FloatOpFactory.class, op.op());
-        return factory.create(op.config());
-    }
-
-    /**
-     * Resolves {@code op} to an {@link DoubleOpFactory} and builds its operation.
-     * @param op the operation to resolve; must not be {@link #DELETE}
-     * @param lookup the plugin lookup to resolve {@code op}'s name against
-     * @return the built operation
-     */
-    public static DoubleOp resolveDoubleOp(OpConfig op, PluginLookup lookup) {
-        DoubleOpFactory factory = lookup.pluginInstance(DoubleOpFactory.class, op.op());
-        return factory.create(op.config());
+    public static <T, R> TypedOp<T, R> resolveOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
+        return resolveOp(op, TypeToken.get(inputType), TypeToken.get(outputType), lookup);
     }
 }

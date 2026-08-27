@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.FloatOp;
+import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +31,7 @@ class RandomFloatTest {
     void createsAnOpThatDrawsWithinTheConfiguredRange() {
         // Given
         RandomFloat factory = new RandomFloat();
-        FloatOp op = factory.create(Map.of("minInclusive", 10.0f, "maxExclusive", 20.0f));
+        TypedOp<Float, Float> op = factory.create(Map.of("minInclusive", 10.0f, "maxExclusive", 20.0f));
         Context context = contextWithSeed(0);
 
         // When
@@ -48,7 +48,7 @@ class RandomFloatTest {
                 {"op": "RandomFloat", "minInclusive": 10.0, "maxExclusive": 20.0}
                 """, OpConfig.class);
         RandomFloat factory = new RandomFloat();
-        FloatOp op = factory.create(opConfig.config());
+        TypedOp<Float, Float> op = factory.create(opConfig.config());
 
         // When
         Float value = op.apply(0.0f, contextWithSeed(0));
