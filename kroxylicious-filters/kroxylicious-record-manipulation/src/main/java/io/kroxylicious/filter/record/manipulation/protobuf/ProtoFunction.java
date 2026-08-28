@@ -257,8 +257,8 @@ public interface ProtoFunction extends BiFunction<Object, Context, Object> {
     private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
                                                                 Set<Requirement> requirements,
                                                                 PluginLookup lookup,
-                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> ffn) {
-        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> ffn.apply(op, lookup)).toList();
+                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
+        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
         return new ContextPipeline<>(fns, requirements);
     }
 

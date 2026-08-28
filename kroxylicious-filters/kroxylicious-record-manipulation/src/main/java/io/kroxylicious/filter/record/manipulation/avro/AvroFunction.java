@@ -268,8 +268,8 @@ public interface AvroFunction extends BiFunction<Object, Context, Object> {
     private static <T, R> ContextPipeline<T, R> contextPipeline(List<OpConfig> ops,
                                                                 Set<Requirement> requirements,
                                                                 PluginLookup lookup,
-                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> fnn) {
-        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> fnn.apply(op, lookup)).toList();
+                                                                BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
+        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
         return new ContextPipeline<>(fns, requirements);
     }
 
