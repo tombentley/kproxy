@@ -93,14 +93,14 @@ public class ProtoUse {
         Function<DynamicMessage, ByteBuffer> serializer = new ProtobufBinarySerializer();
         ByteBuffer data = serializer.apply(user);
 
-//        OpContext maskOpContext = new OpContext(new Random(), KEY);
-//        Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtobufFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskOpContext), serializer));
-//        ByteBuffer masked = maskPipeline.apply(data.duplicate());
-//        LOGGER.atInfo().addKeyValue("masked", maskDeserializer.apply(masked.duplicate())).log("applied mask");
-//
-//        OpContext unmaskOpContext = new OpContext(new Random(), KEY);
-//        Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtobufFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskOpContext), serializer));
-//        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
-//        LOGGER.atInfo().addKeyValue("unmasked", unmaskDeserializer.apply(unmasked.duplicate())).log("applied unmask");
+        // OpContext maskOpContext = new OpContext(new Random(), KEY);
+        // Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtobufFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskOpContext), serializer));
+        // ByteBuffer masked = maskPipeline.apply(data.duplicate());
+        // LOGGER.atInfo().addKeyValue("masked", maskDeserializer.apply(masked.duplicate())).log("applied mask");
+        //
+        // OpContext unmaskOpContext = new OpContext(new Random(), KEY);
+        // Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtobufFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskOpContext), serializer));
+        // ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
+        // LOGGER.atInfo().addKeyValue("unmasked", unmaskDeserializer.apply(unmasked.duplicate())).log("applied unmask");
     }
 }

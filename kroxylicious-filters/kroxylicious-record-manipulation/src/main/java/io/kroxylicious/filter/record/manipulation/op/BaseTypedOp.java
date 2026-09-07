@@ -87,8 +87,10 @@ public interface BaseTypedOp<T, R> {
         return List.of();
     }
 
+    // Unfinished: generic type-parameter substitution isn't implemented yet (falls through to
+    // `return null` below for a generic op) and nothing calls this method yet - only IdentityOp
+    // declares non-empty typeParameters(), and OpConfigs.compose never calls typeApply.
     default Type typeApply(List<Type> typeArguments) {
-        // What does this method return? a Type?
         if (typeArguments.size() != typeParameters().size()) {
             String prefix;
             if (typeArguments.size() < typeParameters().size()) {
@@ -114,19 +116,18 @@ public interface BaseTypedOp<T, R> {
         }
 
         return null;
-//        return typeParameters().stream().map(typeParameter -> {
-//            var typeArgument = substitutions.get(typeParameter);
-//            for (var bound : typeParameter.getBounds()) {
-//                if (!GenericTypeReflector.isSuperType(bound, typeArgument)) {
-//                    throw new TypeException("Type argument " + typeArgument + " is within bound " + bound);
-//                }
-//            }
-//            return typeArgument;
-//        });
+        // return typeParameters().stream().map(typeParameter -> {
+        // var typeArgument = substitutions.get(typeParameter);
+        // for (var bound : typeParameter.getBounds()) {
+        // if (!GenericTypeReflector.isSuperType(bound, typeArgument)) {
+        // throw new TypeException("Type argument " + typeArgument + " is within bound " + bound);
+        // }
+        // }
+        // return typeArgument;
+        // });
     }
 
     @UnknownNullness
     R apply(T value, OpContext opContext);
-
 
 }

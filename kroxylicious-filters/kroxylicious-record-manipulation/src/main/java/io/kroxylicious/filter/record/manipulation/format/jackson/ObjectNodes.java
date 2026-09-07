@@ -15,9 +15,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.kroxylicious.filter.record.manipulation.common.Maybe;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.common.Maybe;
 
 /**
  * TODO patternProperties (invocation order wrt properties)
@@ -69,7 +69,7 @@ public class ObjectNodes {
      * @return a function building a fresh object per the rules above
      */
     public BiFunction<ObjectNode, OpContext, ObjectNode> mapProperties(
-                                                                     Map<String, ? extends BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>> map) {
+                                                                       Map<String, ? extends BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>> map) {
         return new JsonNodePropertiesFunction(nodeFactory, map);
     }
 

@@ -25,15 +25,15 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link SchemaConfig} tree - or, invoked with
@@ -68,7 +68,7 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,
-                                                 PluginLookup lookup) {
+                                     PluginLookup lookup) {
         return buildMask(schema, Set.of(), lookup);
     }
 
@@ -81,8 +81,8 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,
-                                                 Set<Requirement> requirements,
-                                                 PluginLookup lookup) {
+                                     Set<Requirement> requirements,
+                                     PluginLookup lookup) {
         JacksonFunction structural = buildStructural(schema, requirements, lookup);
         JacksonFunction foo;
         if (schema.apply() != null) {
@@ -94,18 +94,18 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
         }
         return foo;
     }
-//
-//    /**
-//     * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<JsonNode,JsonNode>}
-//     * suitable for composing into a whole-record {@link Pipeline}
-//     * stage, which (unlike {@link OpPipeline}) has no notion of {@link OpContext} - see the module README
-//     * for why {@code Pipeline} stays that way.
-//     * @param opContext the context to bind
-//     * @return an equivalent {@code Function<JsonNode,JsonNode>}
-//     */
-//    default Function<JsonNode, JsonNode> bind(OpContext opContext) {
-//        return new BoundJacksonFunction(this, opContext);
-//    }
+    //
+    // /**
+    // * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<JsonNode,JsonNode>}
+    // * suitable for composing into a whole-record {@link Pipeline}
+    // * stage, which (unlike {@link OpPipeline}) has no notion of {@link OpContext} - see the module README
+    // * for why {@code Pipeline} stays that way.
+    // * @param opContext the context to bind
+    // * @return an equivalent {@code Function<JsonNode,JsonNode>}
+    // */
+    // default Function<JsonNode, JsonNode> bind(OpContext opContext) {
+    // return new BoundJacksonFunction(this, opContext);
+    // }
 
     /**
      * Adapts this function to the {@link Maybe}-based convention {@link ObjectNodes#mapProperties} uses, from
@@ -118,8 +118,8 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
             @Override
             public Type outputType(Type inputType) {
                 if (inputType instanceof ParameterizedType pt
-                    && pt.getRawType().equals(Maybe.class)
-                    && pt.getActualTypeArguments()[0].equals(JsonNode.class)) {
+                        && pt.getRawType().equals(Maybe.class)
+                        && pt.getActualTypeArguments()[0].equals(JsonNode.class)) {
                 }
                 throw new TypeException();
             }
@@ -133,20 +133,20 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
         };
     }
 
-//    /**
-//     * A concrete (non-lambda) {@link Function} binding a fixed {@link OpContext} to a {@link JacksonFunction}.
-//     * Concrete classes are reflectable via their own declaration regardless of whether they implement a
-//     * fixed-type marker interface; only lambdas need one (a bare {@code node -> fn.apply(node, context)}
-//     * lambda would not be independently reflectable).
-//     * @param fn the function being bound
-//     * @param opContext the context bound to it
-//     */
-//    record BoundJacksonFunction(JacksonFunction fn, OpContext opContext) implements Function<JsonNode, JsonNode> {
-//        @Override
-//        public JsonNode apply(JsonNode node) {
-//            return fn.apply(node, opContext);
-//        }
-//    }
+    // /**
+    // * A concrete (non-lambda) {@link Function} binding a fixed {@link OpContext} to a {@link JacksonFunction}.
+    // * Concrete classes are reflectable via their own declaration regardless of whether they implement a
+    // * fixed-type marker interface; only lambdas need one (a bare {@code node -> fn.apply(node, context)}
+    // * lambda would not be independently reflectable).
+    // * @param fn the function being bound
+    // * @param opContext the context bound to it
+    // */
+    // record BoundJacksonFunction(JacksonFunction fn, OpContext opContext) implements Function<JsonNode, JsonNode> {
+    // @Override
+    // public JsonNode apply(JsonNode node) {
+    // return fn.apply(node, opContext);
+    // }
+    // }
 
     /**
      * Builds the part of the mask that recurses into a node's declared children ({@code properties}/{@code items}),
@@ -235,38 +235,37 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
         };
     }
 
+    //
+    // @NonNull
+    // private static <T, R> OpPipeline<T, R> contextPipeline(List<OpConfig> ops,
+    // Set<Requirement> requirements,
+    // PluginLookup lookup,
+    // BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
+    //
+    // List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
+    // return new OpPipeline<>(fns, requirements);
+    // }
 
-//
-//    @NonNull
-//    private static <T, R> OpPipeline<T, R> contextPipeline(List<OpConfig> ops,
-//                                                           Set<Requirement> requirements,
-//                                                           PluginLookup lookup,
-//                                                           BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
-//
-//        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
-//        return new OpPipeline<>(fns, requirements);
-//    }
-
-//    /**
-//     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
-//     * here (rather than resolved via {@code lookup}) since Jackson can represent "this property is absent"
-//     * ({@link MissingNode}), unlike Avro/Protobuf (see {@code AvroFunction}/{@code ProtoFunction}'s
-//     * equivalents, which reject it instead).
-//     */
-//    private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, PluginLookup lookup) {
-//        if (OpConfigs.DELETE.equals(op.op())) {
-//            return new TypedOp<T, R>() {
-//                @Override
-//                public Type outputType(Type inputType) {
-//                    return null;
-//                }
-//
-//                @Override
-//                public R apply(T value, OpContext opContext) {
-//                    return null;
-//                }
-//            };
-//        }
-//        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
-//    }
+    // /**
+    // * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
+    // * here (rather than resolved via {@code lookup}) since Jackson can represent "this property is absent"
+    // * ({@link MissingNode}), unlike Avro/Protobuf (see {@code AvroFunction}/{@code ProtoFunction}'s
+    // * equivalents, which reject it instead).
+    // */
+    // private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, PluginLookup lookup) {
+    // if (OpConfigs.DELETE.equals(op.op())) {
+    // return new TypedOp<T, R>() {
+    // @Override
+    // public Type outputType(Type inputType) {
+    // return null;
+    // }
+    //
+    // @Override
+    // public R apply(T value, OpContext opContext) {
+    // return null;
+    // }
+    // };
+    // }
+    // return OpConfigs.resolveOp(op, inputType, outputType, lookup);
+    // }
 }

@@ -25,16 +25,19 @@ public class AvroArrays {
      * @return a function mapping an array to a new array with {@code itemsFn} applied to each element
      */
     public static BaseTypedOp<List<Object>, List<Object>> items(BaseTypedOp<Object, Object> itemsFn) {
-        return null; /*(array, context) -> new ListElements().modifyAll(array, new StaticTypedOp<Object, Object>() {
-            @Override
-            public Object apply(Object value, OpContext opContext) {
-                return itemsFn.apply(value, opContext);
-            }
-
-            @Override
-            public Type outputType(Type inputType) {
-                return Object.class;
-            }
-        }, context);*/
+        return null; /*
+                      * (array, context) -> new ListElements().modifyAll(array, new StaticTypedOp<Object, Object>() {
+                      *
+                      * @Override
+                      * public Object apply(Object value, OpContext opContext) {
+                      * return itemsFn.apply(value, opContext);
+                      * }
+                      *
+                      * @Override
+                      * public Type outputType(Type inputType) {
+                      * return Object.class;
+                      * }
+                      * }, context);
+                      */
     }
 }

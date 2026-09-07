@@ -16,10 +16,10 @@ import com.fasterxml.jackson.databind.JavaType;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
@@ -37,6 +37,7 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
                   boolean throwIfEmpty) {
 
     }
+
     @Override
     public BaseTypedOp<List<T>, T> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         var config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
@@ -48,9 +49,9 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
         }
 
         Type listTypeArgument = parameterizedType.getActualTypeArguments()[0];
-//        if (listTypeArgument instanceof TypeVariable<?> || listTypeArgument instanceof WildcardType) {
-//            throw new TypeException("List type argument " + GenericTypeReflector.getTypeName(listTypeArgument) + " is not supported");
-//        }
+        // if (listTypeArgument instanceof TypeVariable<?> || listTypeArgument instanceof WildcardType) {
+        // throw new TypeException("List type argument " + GenericTypeReflector.getTypeName(listTypeArgument) + " is not supported");
+        // }
         T ifEmpty;
 
         if (config.ifEmpty() != null) {
@@ -61,34 +62,34 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
         }
         var throwIfEmpty = config.throwIfEmpty();
         return BaseTypedOp.of(argumentType, listTypeArgument, (List<T> value, OpContext opContext) -> {
-                if (value.isEmpty()) {
-                    if (throwIfEmpty) {
-                        throw new NoSuchElementException("No first element of an empty list");
-                    }
-                    return ifEmpty;
+            if (value.isEmpty()) {
+                if (throwIfEmpty) {
+                    throw new NoSuchElementException("No first element of an empty list");
                 }
-                return value.getFirst();
-            });
+                return ifEmpty;
+            }
+            return value.getFirst();
+        });
     }
 
     private T getT(Type actualTypeArgument, Object ifEmptyObj) {
         JavaType jt;
         jt = OpConfigs.OP_CONFIG_MAPPER.getTypeFactory().constructType(actualTypeArgument);
-//        if (actualTypeArgument instanceof Class c) {
-//            jt = OpConfigs.MAPPER.getTypeFactory().constructType(c);
-//        }
-//        else if (actualTypeArgument instanceof ParameterizedType p
-//                && p.getRawType() instanceof Class rawClass
-//                && Arrays.stream(p.getActualTypeArguments()).allMatch(Class.class::isInstance)) {
-//            jt = OpConfigs.MAPPER.getTypeFactory()
-//                    .constructParametricType(rawClass, Arrays.stream(p.getActualTypeArguments())
-//                            .map(typeArgument -> (Class<?>) typeArgument)
-//                            .toArray(Class[]::new));
-//
-//        }
-//        else {
-//            throw new TypeException("Unable to map type " + GenericTypeReflector.getTypeName(actualTypeArgument));
-//        }
+        // if (actualTypeArgument instanceof Class c) {
+        // jt = OpConfigs.MAPPER.getTypeFactory().constructType(c);
+        // }
+        // else if (actualTypeArgument instanceof ParameterizedType p
+        // && p.getRawType() instanceof Class rawClass
+        // && Arrays.stream(p.getActualTypeArguments()).allMatch(Class.class::isInstance)) {
+        // jt = OpConfigs.MAPPER.getTypeFactory()
+        // .constructParametricType(rawClass, Arrays.stream(p.getActualTypeArguments())
+        // .map(typeArgument -> (Class<?>) typeArgument)
+        // .toArray(Class[]::new));
+        //
+        // }
+        // else {
+        // throw new TypeException("Unable to map type " + GenericTypeReflector.getTypeName(actualTypeArgument));
+        // }
         return (T) OpConfigs.OP_CONFIG_MAPPER.convertValue(ifEmptyObj, jt);
     }
 }

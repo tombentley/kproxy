@@ -14,24 +14,23 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.kafka.common.record.Record;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
 import io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson;
 import io.kroxylicious.filter.record.manipulation.format.jackson.JsonTransform;
 import io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
-
-import org.apache.kafka.common.record.Record;
-import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,10 +59,9 @@ class OpConfigsTest {
                                 Map.of("type", "integer",
                                         "apply", List.of(
                                                 Map.of(
-                                                    "op", ValueInt.class.getName(),
-                                                    "value", 999))))),
-                new OpConfig(SerializeJson.class)
-        ), Set.of(), lookup);
+                                                        "op", ValueInt.class.getName(),
+                                                        "value", 999))))),
+                new OpConfig(SerializeJson.class)), Set.of(), lookup);
 
         assertThat(pipe.inputType()).isEqualTo(Record.class);
         assertThat(pipe.outputType()).isEqualTo(ByteBuffer.class);
@@ -114,8 +112,7 @@ class OpConfigsTest {
     @Test
     void throwsIfPluginLookupFails() {
         List<OpConfig> opConfigs = List.of(
-                new OpConfig("this.type.does.not.Exist", Map.of())
-        );
+                new OpConfig("this.type.does.not.Exist", Map.of()));
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
                 .isInstanceOf(UnknownPluginInstanceException.class)
@@ -125,8 +122,7 @@ class OpConfigsTest {
     @Test
     void throwsIfConcompatibleConfig() {
         List<OpConfig> opConfigs = List.of(
-                new OpConfig(DeserializeJson.class, Map.of("thisParameterDoesNotExist", 999))
-        );
+                new OpConfig(DeserializeJson.class, Map.of("thisParameterDoesNotExist", 999)));
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(ByteBuffer.class, opConfigs, requirements, lookup))
                 .isInstanceOf(IllegalArgumentException.class)

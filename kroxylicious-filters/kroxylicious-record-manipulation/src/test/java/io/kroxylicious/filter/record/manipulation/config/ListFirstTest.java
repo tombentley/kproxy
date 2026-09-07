@@ -23,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.leangen.geantyref.TypeFactory;
 
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -112,11 +112,11 @@ class ListFirstTest {
         assertThat(listFirst.apply(List.of(), opContext)).isNull();
     }
 
-//    <T> T first(List<T> list) {
-//        //        List<? extends Number> l = null;
-//        //        var x = first(l);
-//        return list.isEmpty() ? null : list.get(0);
-//    }
+    // <T> T first(List<T> list) {
+    // // List<? extends Number> l = null;
+    // // var x = first(l);
+    // return list.isEmpty() ? null : list.get(0);
+    // }
 
     @Test
     void listOfUnknown() {
@@ -130,7 +130,7 @@ class ListFirstTest {
     }
 
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     void listOfUnknownIfEmpty() {
         var listOfUnknown = TypeFactory.parameterizedClass(List.class, TypeFactory.unboundWildcard());
         var listFirstWithDefault42 = new ListFirst<Integer>().create(Map.of("ifEmpty", 42), lookup, listOfUnknown);

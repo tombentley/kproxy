@@ -23,7 +23,7 @@ public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
         this.first = first;
         this.then = then;
         if (GenericTypeReflector.isFullyBound(first.outputType())
-            && GenericTypeReflector.isFullyBound(then.inputType())) {
+                && GenericTypeReflector.isFullyBound(then.inputType())) {
             if (!GenericTypeReflector.isSuperType(then.inputType(), first.outputType())) {
                 throw new TypeException("Cannot compose " + first + " with " + then);
             }

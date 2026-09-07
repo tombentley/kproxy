@@ -37,8 +37,6 @@ public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer>
         this.writer = new GenericDatumWriter<>(schema);
     }
 
-
-
     @Override
     public ByteBuffer apply(GenericRecord record) {
         return serialize(record);

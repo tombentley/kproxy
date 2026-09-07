@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.format.jackson;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 

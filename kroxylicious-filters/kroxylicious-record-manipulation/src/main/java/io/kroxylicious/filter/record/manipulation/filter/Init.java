@@ -16,5 +16,4 @@ public record Init(String topic,
                    Direction direction,
                    BaseTypedOp<Record, Long> recordTimestampPipeline,
                    BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
-                   BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {
-}
+                   BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {}

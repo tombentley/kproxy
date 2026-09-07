@@ -15,22 +15,21 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = DeserializeJson.Config.class)
 public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
 
     public record Config(
-            boolean allowComments,
-            boolean allowSingleQuotes,
-            boolean allowTrailingComma,
-            boolean allowUnquotedFieldNames
-    ) {
+                         boolean allowComments,
+                         boolean allowSingleQuotes,
+                         boolean allowTrailingComma,
+                         boolean allowUnquotedFieldNames) {
         // TODO and the rest
         // or use a less verbose way to do this?
     }

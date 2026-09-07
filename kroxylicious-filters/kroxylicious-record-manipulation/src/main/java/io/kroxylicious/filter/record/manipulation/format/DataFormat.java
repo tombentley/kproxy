@@ -24,5 +24,6 @@ package io.kroxylicious.filter.record.manipulation.format;
  */
 public interface DataFormat<T> {
     Serializer<T> serializer();
+
     Deserializer<T> deserializer();
 }
