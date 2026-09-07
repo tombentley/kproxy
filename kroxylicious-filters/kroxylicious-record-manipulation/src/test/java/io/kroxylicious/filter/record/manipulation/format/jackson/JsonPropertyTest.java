@@ -99,64 +99,64 @@ class JsonPropertyTest {
         assertThat(object.has("a")).isTrue();
     }
 
-//    @Test
-//    void modifyReplacesAPresentValue() {
-//        // Given
-//        ObjectNode object = JsonNodeFactory.instance.objectNode();
-//        object.set("a", new IntNode(1));
-//        BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> increment = (Maybe<JsonNode> maybe, OpContext context) -> Maybe
-//                .some(new IntNode(((Maybe.Some<JsonNode>) maybe).value().asInt() + 1));
-//
-//        // When
-//        ObjectNode result = new JsonProperty("a").modify(object, increment, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result.get("a")).isEqualTo(new IntNode(2));
-//    }
+    // @Test
+    // void modifyReplacesAPresentValue() {
+    // // Given
+    // ObjectNode object = JsonNodeFactory.instance.objectNode();
+    // object.set("a", new IntNode(1));
+    // BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> increment = (Maybe<JsonNode> maybe, OpContext context) -> Maybe
+    // .some(new IntNode(((Maybe.Some<JsonNode>) maybe).value().asInt() + 1));
+    //
+    // // When
+    // ObjectNode result = new JsonProperty("a").modify(object, increment, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result.get("a")).isEqualTo(new IntNode(2));
+    // }
 
-//    @Test
-//    void modifyInsertsAnAbsentValue() {
-//        // Given
-//        ObjectNode object = JsonNodeFactory.instance.objectNode();
-//        BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> insertIfAbsent = (Maybe<JsonNode> maybe, OpContext context) -> maybe instanceof Maybe.None<JsonNode>
-//                ? Maybe.some(new IntNode(42))
-//                : maybe;
-//
-//        // When
-//        ObjectNode result = new JsonProperty("a").modify(object, insertIfAbsent, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result.get("a")).isEqualTo(new IntNode(42));
-//    }
-//
-//    @Test
-//    void modifyDeletesAPresentValue() {
-//        // Given
-//        ObjectNode object = JsonNodeFactory.instance.objectNode();
-//        object.set("a", new IntNode(1));
-//        BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> delete = (maybe, context) -> Maybe.none();
-//
-//        // When
-//        ObjectNode result = new JsonProperty("a").modify(object, delete, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result.has("a")).isFalse();
-//    }
-//
-//    @Test
-//    void modifyAgreesWithObjectNodesMapProperties() {
-//        // Given
-//        ObjectNode object = JsonNodeFactory.instance.objectNode();
-//        object.set("a", new IntNode(1));
-//        BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> increment = (Maybe<JsonNode> maybe, OpContext context) -> Maybe
-//                .some(new IntNode(((Maybe.Some<JsonNode>) maybe).value().asInt() + 1));
-//
-//        // When
-//        ObjectNode viaProperty = new JsonProperty("a").modify(object, increment, OP_CONTEXT);
-//        ObjectNode viaMapProperties = new ObjectNodes(JsonNodeFactory.instance).mapProperties(Map.of("a", increment)).apply(object, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(viaProperty).isEqualTo(viaMapProperties);
-//    }
+    // @Test
+    // void modifyInsertsAnAbsentValue() {
+    // // Given
+    // ObjectNode object = JsonNodeFactory.instance.objectNode();
+    // BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> insertIfAbsent = (Maybe<JsonNode> maybe, OpContext context) -> maybe instanceof Maybe.None<JsonNode>
+    // ? Maybe.some(new IntNode(42))
+    // : maybe;
+    //
+    // // When
+    // ObjectNode result = new JsonProperty("a").modify(object, insertIfAbsent, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result.get("a")).isEqualTo(new IntNode(42));
+    // }
+    //
+    // @Test
+    // void modifyDeletesAPresentValue() {
+    // // Given
+    // ObjectNode object = JsonNodeFactory.instance.objectNode();
+    // object.set("a", new IntNode(1));
+    // BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> delete = (maybe, context) -> Maybe.none();
+    //
+    // // When
+    // ObjectNode result = new JsonProperty("a").modify(object, delete, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result.has("a")).isFalse();
+    // }
+    //
+    // @Test
+    // void modifyAgreesWithObjectNodesMapProperties() {
+    // // Given
+    // ObjectNode object = JsonNodeFactory.instance.objectNode();
+    // object.set("a", new IntNode(1));
+    // BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> increment = (Maybe<JsonNode> maybe, OpContext context) -> Maybe
+    // .some(new IntNode(((Maybe.Some<JsonNode>) maybe).value().asInt() + 1));
+    //
+    // // When
+    // ObjectNode viaProperty = new JsonProperty("a").modify(object, increment, OP_CONTEXT);
+    // ObjectNode viaMapProperties = new ObjectNodes(JsonNodeFactory.instance).mapProperties(Map.of("a", increment)).apply(object, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(viaProperty).isEqualTo(viaMapProperties);
+    // }
 
 }

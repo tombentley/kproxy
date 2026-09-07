@@ -34,7 +34,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public record SchemaConfig(String type,
                            @Nullable Map<String, SchemaConfig> properties,
-                           //List<String> required,
+                           // List<String> required,
                            @Nullable SchemaConfig items,
                            @Nullable List<OpConfig> apply,
                            @JsonAnySetter @JsonAnyGetter Map<String, Object> otherKeywords) {}

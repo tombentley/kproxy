@@ -13,6 +13,5 @@ import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 public record PipelineConfig(
-        Origin from,
-        @Nullable List<OpConfig> apply) {
-}
+                             Origin from,
+                             @Nullable List<OpConfig> apply) {}

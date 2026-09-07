@@ -14,10 +14,10 @@ import java.util.Map;
 import io.leangen.geantyref.GenericTypeReflector;
 import io.leangen.geantyref.TypeFactory;
 
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
@@ -31,6 +31,7 @@ public class DistinctList<T> implements OpFactory<List<T>, List<T>> {
     record Config() {
 
     }
+
     @Override
     public BaseTypedOp<List<T>, List<T>> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         var config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
@@ -43,7 +44,7 @@ public class DistinctList<T> implements OpFactory<List<T>, List<T>> {
         Type listTypeArgument = parameterizedType.getActualTypeArguments()[0];
         Type resultType = TypeFactory.parameterizedClass(List.class, listTypeArgument);
         return BaseTypedOp.of(argumentType, resultType, (List<T> value, OpContext opContext) -> {
-                return value.stream().distinct().toList();
-            });
+            return value.stream().distinct().toList();
+        });
     }
 }

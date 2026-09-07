@@ -16,25 +16,31 @@ import org.apache.kafka.common.record.Record;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
+import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
+/**
+ * The FilterFactory (service) for the {@link RecordManipulationFilter}.
+ */
+@Plugin(configType = RecordManipulationConfig.class)
 public class RecordManipulation implements FilterFactory<RecordManipulationConfig, Init> {
 
     @Override
     public Init initialize(FilterFactoryContext context,
-                           RecordManipulationConfig config) throws PluginConfigurationException {
+                           RecordManipulationConfig config)
+            throws PluginConfigurationException {
         RecordTransformConfig recordTransformConfig = config.recordTransform();
         var timestampPipeline = keyOrValuePipeline(context,
                 recordTransformConfig.intoTimestamp(),
@@ -57,18 +63,16 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
 
     @NonNull
     private static <T> BaseTypedOp<Record, T> keyOrValuePipeline(
-            FilterFactoryContext filterFactoryContext,
-            @Nullable PipelineConfig keyOrValue,
-            OpConfig defaultOrigin,
-            Class<T> expectedType) {
+                                                                 FilterFactoryContext filterFactoryContext,
+                                                                 @Nullable PipelineConfig keyOrValue,
+                                                                 OpConfig defaultOrigin,
+                                                                 Class<T> expectedType) {
 
-        OpConfig first = Optional.ofNullable(keyOrValue).map(x ->
-            switch (x.from()) {
-                case Timestamp -> new OpConfig(RecordTimestamp.class);
-                case RecordValue -> new OpConfig(RecordValue.class);
-                case RecordKey -> new OpConfig(RecordKey.class);
-            }
-        ).orElse(defaultOrigin);
+        OpConfig first = Optional.ofNullable(keyOrValue).map(x -> switch (x.from()) {
+            case Timestamp -> new OpConfig(RecordTimestamp.class);
+            case RecordValue -> new OpConfig(RecordValue.class);
+            case RecordKey -> new OpConfig(RecordKey.class);
+        }).orElse(defaultOrigin);
 
         List<OpConfig> configs = new ArrayList<>();
         configs.add(first);

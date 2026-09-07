@@ -19,7 +19,6 @@ public class IfThenChain<T, R> implements BiFunction<T, OpContext, R> {
     private final List<GuardedBranch<T, R>> ifThens;
     private final BiFunction<T, OpContext, R> else_;
 
-
     public IfThenChain(List<GuardedBranch<T, R>> ifThens, BiFunction<T, OpContext, R> else_) {
         this.ifThens = ifThens;
         this.else_ = else_;

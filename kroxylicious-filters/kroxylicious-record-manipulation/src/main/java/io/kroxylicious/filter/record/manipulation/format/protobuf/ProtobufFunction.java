@@ -20,15 +20,15 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.format.avro.AvroFunction;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.format.avro.AvroFunction;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 /**
  * A mask/transform over a Protobuf generic value (a {@link DynamicMessage}, a {@link java.util.List} for a
@@ -76,37 +76,35 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
         return structural;
     }
 
-//    /**
-//     * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
-//     * Kept as loosely typed as the function itself since a mask can be built from a non-message schema too
-//     * (e.g. one describing just a repeated field or a leaf) - see {@link #bindRecord(OpContext)} for the
-//     * common case of composing a whole-message mask into a
-//     * {@link Pipeline} between a deserializer and
-//     * serializer, which are both typed to {@link DynamicMessage}.
-//     * @param opContext the context to bind
-//     * @return an equivalent {@code Function<Object,Object>}
-//     */
-//    default Function<Object, Object> bind(OpContext opContext) {
-//        return new BoundProtoFunction(this, opContext);
-//    }
-//
-//    /**
-//     * Binds a fixed {@link OpContext} to this function, producing a {@code Function<DynamicMessage,DynamicMessage>}
-//     * suitable for composing into a whole-message {@link Pipeline}
-//     * stage alongside {@link ProtobufBinaryDeserializer}/{@link ProtobufBinarySerializer}, which are themselves
-//     * typed to {@link DynamicMessage} rather than {@code Object} - narrower than {@link #bind(OpContext)}
-//     * purely so {@link Pipeline}'s reflection-based
-//     * composition check lines up either side of this stage, not because the underlying transformation
-//     * differs.
-//     * @param opContext the context to bind
-//     * @return an equivalent {@code Function<DynamicMessage,DynamicMessage>}
-//     * @throws ClassCastException if this function was built from a non-message schema
-//     */
-//    default Function<DynamicMessage, DynamicMessage> bindRecord(OpContext opContext) {
-//        return new BoundProtoMessageFunction(this, opContext);
-//    }
-
-
+    // /**
+    // * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
+    // * Kept as loosely typed as the function itself since a mask can be built from a non-message schema too
+    // * (e.g. one describing just a repeated field or a leaf) - see {@link #bindRecord(OpContext)} for the
+    // * common case of composing a whole-message mask into a
+    // * {@link Pipeline} between a deserializer and
+    // * serializer, which are both typed to {@link DynamicMessage}.
+    // * @param opContext the context to bind
+    // * @return an equivalent {@code Function<Object,Object>}
+    // */
+    // default Function<Object, Object> bind(OpContext opContext) {
+    // return new BoundProtoFunction(this, opContext);
+    // }
+    //
+    // /**
+    // * Binds a fixed {@link OpContext} to this function, producing a {@code Function<DynamicMessage,DynamicMessage>}
+    // * suitable for composing into a whole-message {@link Pipeline}
+    // * stage alongside {@link ProtobufBinaryDeserializer}/{@link ProtobufBinarySerializer}, which are themselves
+    // * typed to {@link DynamicMessage} rather than {@code Object} - narrower than {@link #bind(OpContext)}
+    // * purely so {@link Pipeline}'s reflection-based
+    // * composition check lines up either side of this stage, not because the underlying transformation
+    // * differs.
+    // * @param opContext the context to bind
+    // * @return an equivalent {@code Function<DynamicMessage,DynamicMessage>}
+    // * @throws ClassCastException if this function was built from a non-message schema
+    // */
+    // default Function<DynamicMessage, DynamicMessage> bindRecord(OpContext opContext) {
+    // return new BoundProtoMessageFunction(this, opContext);
+    // }
 
     /**
      * A concrete (non-lambda) {@link Function} binding a fixed {@link OpContext} to a {@link ProtobufFunction} -
@@ -120,19 +118,19 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
             return fn.apply(value, opContext);
         }
     }
-//
-//    /**
-//     * The {@link DynamicMessage}-typed counterpart of {@link BoundProtoFunction}, for the same reason - see
-//     * {@link #bindRecord(OpContext)}.
-//     * @param fn the function being bound
-//     * @param opContext the context bound to it
-//     */
-//    record BoundProtoMessageFunction(ProtobufFunction fn, OpContext opContext) implements Function<DynamicMessage, DynamicMessage> {
-//        @Override
-//        public DynamicMessage apply(DynamicMessage value) {
-//            return (DynamicMessage) fn.apply(value, opContext);
-//        }
-//    }
+    //
+    // /**
+    // * The {@link DynamicMessage}-typed counterpart of {@link BoundProtoFunction}, for the same reason - see
+    // * {@link #bindRecord(OpContext)}.
+    // * @param fn the function being bound
+    // * @param opContext the context bound to it
+    // */
+    // record BoundProtoMessageFunction(ProtobufFunction fn, OpContext opContext) implements Function<DynamicMessage, DynamicMessage> {
+    // @Override
+    // public DynamicMessage apply(DynamicMessage value) {
+    // return (DynamicMessage) fn.apply(value, opContext);
+    // }
+    // }
 
     /**
      * Builds the part of the mask that recurses into a message's declared fields, leaving leaves
@@ -140,9 +138,9 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
      * sees the already-masked value - mirrors {@code AvroFunction.buildStructural}.
      */
     private static ProtobufFunction buildStructural(Descriptors.Descriptor descriptor,
-                                                           Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                           Set<Requirement> requirements,
-                                                           PluginLookup lookup) {
+                                                    Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                    Set<Requirement> requirements,
+                                                    PluginLookup lookup) {
         Map<String, BaseTypedOp<Object, Object>> mapping = descriptor.getFields().stream()
                 .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, requirements, lookup), (a, b) -> a,
                         LinkedHashMap::new));
@@ -157,8 +155,8 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
      * per-element rather than whole-list here).
      */
     private static ProtobufFunction fieldFunction(Descriptors.FieldDescriptor field,
-                                                                       Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                                       Set<Requirement> requirements, PluginLookup lookup) {
+                                                  Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                  Set<Requirement> requirements, PluginLookup lookup) {
         if (field.isMapField()) {
             throw new IllegalArgumentException("Proto mask not yet supported for map fields: " + field.getFullName());
         }
@@ -183,9 +181,9 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
      * separately.
      */
     private static ProtobufFunction buildElementTypeMask(Descriptors.FieldDescriptor field,
-                                                                Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                                Set<Requirement> requirements,
-                                                                PluginLookup lookup) {
+                                                         Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                                         Set<Requirement> requirements,
+                                                         PluginLookup lookup) {
         return switch (field.getType()) {
             case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
             case STRING, INT32, INT64, FLOAT, DOUBLE, BOOL, BYTES -> new ProtobufFunction((value, context) -> value);
@@ -244,7 +242,8 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
                         return null;
                     }
                     if (!allowedSymbols.contains(result)) {
-                        throw new IllegalArgumentException("Enum type '" + enumClass.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
+                        throw new IllegalArgumentException(
+                                "Enum type '" + enumClass.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
                     }
                     return Enum.valueOf(enumClass, result);
                 });
@@ -253,28 +252,28 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
         };
     }
 
-//    @NonNull
-//    private static <T, R> TypedOp<T, R> contextPipeline(List<OpConfig> ops,
-//                                                           Set<Requirement> requirements,
-//                                                           PluginLookup lookup,
-//                                                           BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
-//        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
-//        return new OpPipeline<>(fns, requirements);
-//    }
+    // @NonNull
+    // private static <T, R> TypedOp<T, R> contextPipeline(List<OpConfig> ops,
+    // Set<Requirement> requirements,
+    // PluginLookup lookup,
+    // BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
+    // List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
+    // return new OpPipeline<>(fns, requirements);
+    // }
 
-//    /**
-//     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
-//     * here (rather than resolved via {@code lookup}) since removing a field isn't meaningful without
-//     * deciding what it means for a required proto2/proto3 implicit-presence field, so it fails loudly
-//     * rather than producing a possibly-nonconforming message - unlike {@code JacksonFunction}'s equivalent,
-//     * which allows it.
-//     */
-//    static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
-//        if (OpConfigs.DELETE.equals(op.op())) {
-//            throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
-//        }
-//        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
-//    }
+    // /**
+    // * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
+    // * here (rather than resolved via {@code lookup}) since removing a field isn't meaningful without
+    // * deciding what it means for a required proto2/proto3 implicit-presence field, so it fails loudly
+    // * rather than producing a possibly-nonconforming message - unlike {@code JacksonFunction}'s equivalent,
+    // * which allows it.
+    // */
+    // static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
+    // if (OpConfigs.DELETE.equals(op.op())) {
+    // throw new IllegalArgumentException("delete is not yet supported for Protobuf fields");
+    // }
+    // return OpConfigs.resolveOp(op, inputType, outputType, lookup);
+    // }
 
     private final BiFunction<Object, OpContext, Object> fn;
 

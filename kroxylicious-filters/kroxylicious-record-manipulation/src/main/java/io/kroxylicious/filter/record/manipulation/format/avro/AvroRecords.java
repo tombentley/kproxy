@@ -40,8 +40,8 @@ public class AvroRecords {
      * @return a function building a fresh {@link GenericRecord} per the rules above
      */
     public static BiFunction<GenericRecord, OpContext, GenericRecord> mapFields(
-                                                                              Schema schema,
-                                                                              Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns) {
+                                                                                Schema schema,
+                                                                                Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns) {
         return new AvroRecordFieldsFunction(schema, fieldFns);
     }
 

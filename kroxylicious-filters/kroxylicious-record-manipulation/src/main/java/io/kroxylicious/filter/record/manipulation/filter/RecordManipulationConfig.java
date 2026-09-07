@@ -21,8 +21,6 @@ import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
  * @param recordTransform The transform
  */
 public record RecordManipulationConfig(
-        String topic,
-        Direction direction,
-        RecordTransformConfig recordTransform
-) {
-}
+                                       String topic,
+                                       Direction direction,
+                                       RecordTransformConfig recordTransform) {}

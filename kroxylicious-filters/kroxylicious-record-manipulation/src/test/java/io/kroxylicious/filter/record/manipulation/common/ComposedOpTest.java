@@ -6,41 +6,63 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.Random;
-import java.util.function.ToIntFunction;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.ops.constant.ConstantIntSupplier;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ComposedOpTest {
 
+    OpContext opContext = new OpContext(new Random(), new byte[0]);
 
-    public MethodHandle asHandle() throws NoSuchMethodException, IllegalAccessException {
-        var lookup = MethodHandles.lookup();
-        var mh = lookup.findVirtual(ToIntFunction.class, "applyAsInt", MethodType.methodType(Integer.TYPE, OpContext.class));
-        return mh;
-    }
+    @Test
+    void appliesFirstThenThen() {
+        // Given
+        BaseTypedOp<String, Integer> parseInt = BaseTypedOp.of(String.class, Integer.class,
+                (String s, OpContext ctx) -> Integer.parseInt(s) * 2);
+        BaseTypedOp<Integer, String> toString = BaseTypedOp.of(Integer.class, String.class,
+                (Integer i, OpContext ctx) -> "value=" + i);
+        var composed = new ComposedOp<>(parseInt, toString);
 
-    public MethodHandle doublerAsHandle() throws NoSuchMethodException, IllegalAccessException {
-        var lookup = MethodHandles.lookup();
-        var mh = lookup.findVirtual(ConstantIntSupplier.class, "applyAsInt", MethodType.methodType(Integer.TYPE, OpContext.class));
-        return mh;
+        // When
+        String result = composed.apply("21", opContext);
+
+        // Then
+        assertThat(result).isEqualTo("value=42");
     }
 
     @Test
-    void handle() throws Throwable {
-        var mh = asHandle();
-        ConstantIntSupplier constantIntSupplier = new ConstantIntSupplier(42);
-        OpContext opContext = new OpContext(new Random(), new byte[0]);
-        int result = (int) mh.invokeExact(constantIntSupplier, opContext);
-        assertThat(result).isEqualTo(42);
+    void exposesInputAndOutputTypesOfItsStages() {
+        // Given
+        BaseTypedOp<String, Integer> first = BaseTypedOp.of(String.class, Integer.class, (s, ctx) -> 0);
+        BaseTypedOp<Integer, Boolean> then = BaseTypedOp.of(Integer.class, Boolean.class, (i, ctx) -> true);
+
+        // When
+        var composed = new ComposedOp<>(first, then);
+
+        // Then
+        assertThat(composed.inputType()).isEqualTo(String.class);
+        assertThat(composed.outputType()).isEqualTo(Boolean.class);
+    }
+
+    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    void rejectsStagesWhoseTypesDoNotCompose() {
+        // Given: first's declared output type (String) doesn't match then's declared input type
+        // (Integer) - raw types are needed to get past compile-time generic checking, mirroring how
+        // OpConfigs.compose builds a chain from operations whose types are only known at runtime.
+        BaseTypedOp first = BaseTypedOp.of(String.class, String.class, (String s, OpContext ctx) -> s);
+        BaseTypedOp then = BaseTypedOp.of(Integer.class, String.class, (Integer i, OpContext ctx) -> i.toString());
+
+        // When/Then
+        assertThatThrownBy(() -> new ComposedOp(first, then))
+                .isInstanceOf(TypeException.class);
     }
 
 }

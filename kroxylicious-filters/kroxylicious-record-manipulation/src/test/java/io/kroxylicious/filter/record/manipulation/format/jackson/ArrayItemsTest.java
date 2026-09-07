@@ -37,32 +37,32 @@ class ArrayItemsTest {
         assertThat(result).containsExactly(new IntNode(1), new IntNode(2), new IntNode(3));
     }
 
-//    @Test
-//    void modifyAllAppliesTheFunctionToEveryElement() {
-//        // Given
-//        ArrayNode array = JsonNodeFactory.instance.arrayNode();
-//        array.add(1).add(2).add(3);
-//        BaseTypedOp<JsonNode, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
-//
-//        // When
-//        ArrayNode result = new ArrayItems().modifyAll(array, incrementFn, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result).isEqualTo(JsonNodeFactory.instance.arrayNode().add(2).add(3).add(4));
-//    }
-//
-//    @Test
-//    void modifyAllDoesNotMutateTheInputArray() {
-//        // Given
-//        ArrayNode array = JsonNodeFactory.instance.arrayNode();
-//        array.add(1).add(2).add(3);
-//        BaseTypedOp<JsonNode, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
-//
-//        // When
-//        var unused = new ArrayItems().modifyAll(array, incrementFn, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(array).isEqualTo(JsonNodeFactory.instance.arrayNode().add(1).add(2).add(3));
-//    }
+    // @Test
+    // void modifyAllAppliesTheFunctionToEveryElement() {
+    // // Given
+    // ArrayNode array = JsonNodeFactory.instance.arrayNode();
+    // array.add(1).add(2).add(3);
+    // BaseTypedOp<JsonNode, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
+    //
+    // // When
+    // ArrayNode result = new ArrayItems().modifyAll(array, incrementFn, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result).isEqualTo(JsonNodeFactory.instance.arrayNode().add(2).add(3).add(4));
+    // }
+    //
+    // @Test
+    // void modifyAllDoesNotMutateTheInputArray() {
+    // // Given
+    // ArrayNode array = JsonNodeFactory.instance.arrayNode();
+    // array.add(1).add(2).add(3);
+    // BaseTypedOp<JsonNode, JsonNode> incrementFn = (node, context) -> new IntNode(node.asInt() + 1);
+    //
+    // // When
+    // var unused = new ArrayItems().modifyAll(array, incrementFn, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(array).isEqualTo(JsonNodeFactory.instance.arrayNode().add(1).add(2).add(3));
+    // }
 
 }

@@ -31,30 +31,30 @@ class ListElementsTest {
         assertThat(result).containsExactly(1, 2, 3);
     }
 
-//    @Test
-//    void modifyAllAppliesTheFunctionToEveryElement() {
-//        // Given
-//        List<Object> list = List.of(1, 2, 3);
-//        BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
-//
-//        // When
-//        List<Object> result = new ListElements().modifyAll(list, incrementFn, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result).containsExactly(2, 3, 4);
-//    }
-//
-//    @Test
-//    void modifyAllDoesNotMutateTheInputList() {
-//        // Given
-//        List<Object> list = List.of(1, 2, 3);
-//        BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
-//
-//        // When
-//        var unused = new ListElements().modifyAll(list, incrementFn, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(list).containsExactly(1, 2, 3);
-//    }
+    // @Test
+    // void modifyAllAppliesTheFunctionToEveryElement() {
+    // // Given
+    // List<Object> list = List.of(1, 2, 3);
+    // BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
+    //
+    // // When
+    // List<Object> result = new ListElements().modifyAll(list, incrementFn, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result).containsExactly(2, 3, 4);
+    // }
+    //
+    // @Test
+    // void modifyAllDoesNotMutateTheInputList() {
+    // // Given
+    // List<Object> list = List.of(1, 2, 3);
+    // BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
+    //
+    // // When
+    // var unused = new ListElements().modifyAll(list, incrementFn, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(list).containsExactly(1, 2, 3);
+    // }
 
 }

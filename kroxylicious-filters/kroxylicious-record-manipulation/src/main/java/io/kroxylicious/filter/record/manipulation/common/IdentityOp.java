@@ -21,7 +21,8 @@ public class IdentityOp<T> implements BaseTypedOp<T, T> {
         return INSTANCE;
     }
 
-    private IdentityOp() {}
+    private IdentityOp() {
+    }
 
     @Override
     public List<? extends TypeVariable<? extends Class<?>>> typeParameters() {

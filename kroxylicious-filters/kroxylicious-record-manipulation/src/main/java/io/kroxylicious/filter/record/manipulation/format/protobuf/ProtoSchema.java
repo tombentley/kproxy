@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.format.protobuf;
 
-public record ProtoSchema(String protoText, String rootMessageName) {
-}
+public record ProtoSchema(String protoText, String rootMessageName) {}

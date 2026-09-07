@@ -10,8 +10,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.leangen.geantyref.TypeToken;
-
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseBigInteger;
@@ -282,10 +280,10 @@ class PluginRegistrationTest {
         BaseTypedOp<?, ?> stringOp = randomString.create(Map.of("alphabet", "abc", "minLengthInclusive", 1, "maxLengthExclusive", 5), null, null);
 
         // Then
-        assertThat(intOp.inputType()).isEqualTo(TypeToken.get(Integer.class));
-        assertThat(intOp.outputType()).isEqualTo(TypeToken.get(Integer.class));
-        assertThat(stringOp.inputType()).isEqualTo(TypeToken.get(String.class));
-        assertThat(stringOp.outputType()).isEqualTo(TypeToken.get(String.class));
+        assertThat(intOp.inputType()).isEqualTo(Integer.class);
+        assertThat(intOp.outputType()).isEqualTo(Integer.class);
+        assertThat(stringOp.inputType()).isEqualTo(String.class);
+        assertThat(stringOp.outputType()).isEqualTo(String.class);
     }
 
 }
