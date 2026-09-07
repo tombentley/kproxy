@@ -14,13 +14,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.ComposedOp;
 import io.kroxylicious.filter.record.manipulation.common.IdentityOp;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
@@ -31,7 +31,7 @@ import io.kroxylicious.filter.record.manipulation.op.TypeException;
 public final class OpConfigs {
 
     // TODO if we're going to use a single ObjectMapper then different OpFactories might want to register
-    //  modules/types for use when deserializing their config
+    // modules/types for use when deserializing their config
     // But then there's risk of collision. So maybe better for each to use its own ObjectMapper?
     public static final ObjectMapper OP_CONFIG_MAPPER = new ObjectMapper();
 
@@ -40,10 +40,10 @@ public final class OpConfigs {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public static <T> BaseTypedOp<T, ?> compose(
-            Class<T> inputType,
-            List<OpConfig> opConfigs,
-            Set<Requirement> requirements,
-            PluginLookup lookup) {
+                                                Class<T> inputType,
+                                                List<OpConfig> opConfigs,
+                                                Set<Requirement> requirements,
+                                                PluginLookup lookup) {
 
         if (opConfigs.isEmpty()) {
             return IdentityOp.identity();
@@ -56,7 +56,7 @@ public final class OpConfigs {
                 BaseTypedOp<?, ?> op = factory.create(opConfig.config(), lookup, currentType);
                 if (!GenericTypeReflector.isSuperType(op.inputType(), currentType)) {
                     throw new TypeException("Op " + opConfig.op() + " has input type " + GenericTypeReflector.getTypeName(op.inputType())
-                    + " which is not a subtype of the expected type " + GenericTypeReflector.getTypeName(currentType));
+                            + " which is not a subtype of the expected type " + GenericTypeReflector.getTypeName(currentType));
                 }
                 currentType = op.outputType();
                 if (last == null) {

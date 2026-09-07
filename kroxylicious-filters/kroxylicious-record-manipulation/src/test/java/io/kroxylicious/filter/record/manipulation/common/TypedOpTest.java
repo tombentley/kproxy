@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 import java.lang.reflect.Type;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,10 +20,7 @@ class TypedOpTest {
     @Test
     void identity() {
         BaseTypedOp<?, ?> op = IdentityOp.identity();
-        //assertThat(op.inputType()).isEqualTo(String.class);
-        //assertThat(op.outputType()).isEqualTo(Integer.class);
         assertThat(op.typeParameters()).isNotEmpty();
-        op.typeApply(List.of(String.class, Integer.class));
     }
 
     @Test
@@ -33,7 +29,6 @@ class TypedOpTest {
         assertThat(op.inputType()).isEqualTo(String.class);
         assertThat(op.outputType()).isEqualTo(Integer.class);
         assertThat(op.typeParameters()).isEmpty();
-        op.typeApply(List.of(String.class));
     }
 
     @Test
@@ -52,7 +47,6 @@ class TypedOpTest {
         assertThat(op.inputType()).isEqualTo(String.class);
         assertThat(op.outputType()).isEqualTo(Integer.class);
         assertThat(op.typeParameters()).isEmpty();
-        op.typeApply(List.of(String.class));
     }
 
 }

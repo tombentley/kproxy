@@ -11,9 +11,9 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.kroxylicious.filter.record.manipulation.common.Traversal;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.common.Traversal;
 
 /**
  * A {@link Traversal} focusing on every element of an {@link ArrayNode}.

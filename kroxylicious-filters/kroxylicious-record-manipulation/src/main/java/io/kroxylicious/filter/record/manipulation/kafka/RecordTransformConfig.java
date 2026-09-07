@@ -18,7 +18,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *     - op: JsonObjectTemplate
  *       value: '{"key": $k, "value": $v}'
  *
- *       
+ *
  * Example:
  * <pre>{@code
  * transformedRecord:
@@ -75,9 +75,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * }</pre>
  */
 public record RecordTransformConfig(
-        @Nullable PipelineConfig intoTimestamp,
-        @Nullable PipelineConfig intoRecordKey,
-        @Nullable PipelineConfig intoRecordValue
-) {
+                                    @Nullable PipelineConfig intoTimestamp,
+                                    @Nullable PipelineConfig intoRecordKey,
+                                    @Nullable PipelineConfig intoRecordValue) {
 
 }

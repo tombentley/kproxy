@@ -8,11 +8,11 @@ package io.kroxylicious.filter.record.manipulation.format.protobuf;
 
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.format.DataFormat;
 import io.kroxylicious.filter.record.manipulation.format.DataFormatService;
 import io.kroxylicious.filter.record.manipulation.format.SchemaParseException;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 public class ProtobufBinaryFormatService implements DataFormatService<DynamicMessage, ProtoSchema, ProtoSchema> {
     @Override

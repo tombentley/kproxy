@@ -14,19 +14,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = SerializeJson.Config.class)
 public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
 
     public record Config(boolean indentOutput,
-                         boolean orderMapEntriesByKeys) {
-    }
+                         boolean orderMapEntriesByKeys) {}
 
     @Override
     public BaseTypedOp<JsonNode, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {

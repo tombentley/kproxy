@@ -16,9 +16,9 @@ import org.apache.kafka.common.record.Record;
 import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
+import io.kroxylicious.filter.record.manipulation.common.Functional;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.common.Functional;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.kafka.transform.RecordTransform;
 
@@ -32,9 +32,9 @@ public class RecordsSerializer {
     private final BaseTypedOp<Record, ByteBuffer> recordValuePipeline;
 
     public RecordsSerializer(
-            BaseTypedOp<Record, Long> recordTimestampPipeline,
-            BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
-            BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {
+                             BaseTypedOp<Record, Long> recordTimestampPipeline,
+                             BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
+                             BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {
         if (recordKeyPipeline.inputType() != Record.class) { // TODO actually an assignability check
             throw new RuntimeException("recordKeyPipeline must accept " + Record.class.getName() + " but actually accepts " + recordKeyPipeline.inputType());
         }

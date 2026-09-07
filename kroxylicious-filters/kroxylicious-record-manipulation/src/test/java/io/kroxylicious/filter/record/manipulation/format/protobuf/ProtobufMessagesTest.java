@@ -43,33 +43,33 @@ class ProtobufMessagesTest {
                 .build();
     }
 
-//    @Test
-//    void mapFieldsReplacesOnlyTheFieldsPresentInTheMap() {
-//        // Given
-//        DynamicMessage input = numbers(1, 2, 3);
-//        BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
-//
-//        // When
-//        DynamicMessage result = ProtobufMessages.mapFields(DESCRIPTOR, Map.of("a", incrementFn)).apply(input, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(result.getField(DESCRIPTOR.findFieldByName("a"))).isEqualTo(2);
-//        assertThat(result.getField(DESCRIPTOR.findFieldByName("b"))).isEqualTo(2);
-//        assertThat(result.getField(DESCRIPTOR.findFieldByName("c"))).isEqualTo(3);
-//    }
+    // @Test
+    // void mapFieldsReplacesOnlyTheFieldsPresentInTheMap() {
+    // // Given
+    // DynamicMessage input = numbers(1, 2, 3);
+    // BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
+    //
+    // // When
+    // DynamicMessage result = ProtobufMessages.mapFields(DESCRIPTOR, Map.of("a", incrementFn)).apply(input, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(result.getField(DESCRIPTOR.findFieldByName("a"))).isEqualTo(2);
+    // assertThat(result.getField(DESCRIPTOR.findFieldByName("b"))).isEqualTo(2);
+    // assertThat(result.getField(DESCRIPTOR.findFieldByName("c"))).isEqualTo(3);
+    // }
 
-//    @Test
-//    void mapFieldsDoesNotMutateTheInputMessage() {
-//        // Given
-//        DynamicMessage input = numbers(1, 2, 3);
-//        BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
-//
-//        // When
-//        var unused = ProtobufMessages.mapFields(DESCRIPTOR, Map.of("a", incrementFn)).apply(input, OP_CONTEXT);
-//
-//        // Then
-//        assertThat(input.getField(DESCRIPTOR.findFieldByName("a"))).isEqualTo(1);
-//    }
+    // @Test
+    // void mapFieldsDoesNotMutateTheInputMessage() {
+    // // Given
+    // DynamicMessage input = numbers(1, 2, 3);
+    // BaseTypedOp<Object, Object> incrementFn = (value, context) -> (Integer) value + 1;
+    //
+    // // When
+    // var unused = ProtobufMessages.mapFields(DESCRIPTOR, Map.of("a", incrementFn)).apply(input, OP_CONTEXT);
+    //
+    // // Then
+    // assertThat(input.getField(DESCRIPTOR.findFieldByName("a"))).isEqualTo(1);
+    // }
 
     @Test
     void mapFieldsLeavesAnAbsentPresenceTrackedFieldAbsent() {

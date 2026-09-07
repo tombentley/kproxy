@@ -20,9 +20,9 @@ import org.apache.kafka.common.record.BaseRecords;
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.Record;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsDeserializer;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
@@ -110,9 +110,9 @@ public class RecordManipulationFilter implements
 
     @Override
     public CompletionStage<ResponseFilterResult> onShareFetchResponse(short apiVersion,
-                                                                 ResponseHeaderData header,
-                                                                 ShareFetchResponseData response,
-                                                                 FilterContext context) {
+                                                                      ResponseHeaderData header,
+                                                                      ShareFetchResponseData response,
+                                                                      FilterContext context) {
         if (this.direction == Direction.OUT) {
             return context.topicNames(response.responses().stream().map(ShareFetchResponseData.ShareFetchableTopicResponse::topicId).toList())
                     .thenCompose(topicMapping -> {

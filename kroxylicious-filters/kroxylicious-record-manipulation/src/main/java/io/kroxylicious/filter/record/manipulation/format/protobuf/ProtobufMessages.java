@@ -37,8 +37,8 @@ public class ProtobufMessages {
      * @return a function building a fresh {@link DynamicMessage} per the rules above
      */
     public static BiFunction<DynamicMessage, OpContext, DynamicMessage> mapFields(
-                                                                                Descriptors.Descriptor descriptor,
-                                                                                Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns) {
+                                                                                  Descriptors.Descriptor descriptor,
+                                                                                  Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns) {
         return new ProtoMessageFieldsFunction(descriptor, fieldFns);
     }
 

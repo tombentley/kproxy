@@ -24,15 +24,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonFunction;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonFunction;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * A mask/transform over an Avro generic value (a {@link GenericRecord}, a {@link java.util.List} for an
@@ -99,34 +99,34 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
         return foo;
     }
 
-//    /**
-//     * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
-//     * Kept as loosely typed as the function itself since a mask can be built from a non-record schema too
-//     * (e.g. one describing just an array or a leaf) - see {@link #bindRecord(OpContext)} for the common case
-//     * of composing a whole-record mask into a {@link Pipeline}
-//     * between a deserializer and serializer, which are both typed to {@link GenericRecord}.
-//     * @param opContext the context to bind
-//     * @return an equivalent {@code Function<Object,Object>}
-//     */
-//    default Function<Object, Object> bind(OpContext opContext) {
-//        return new BoundAvroFunction(this, opContext);
-//    }
-//
-//    /**
-//     * Binds a fixed {@link OpContext} to this function, producing a {@code Function<GenericRecord,GenericRecord>}
-//     * suitable for composing into a whole-record {@link Pipeline}
-//     * stage alongside {@link AvroBinaryDeserializer}/{@link AvroBinarySerializer} (or the JSON equivalents),
-//     * which are themselves typed to {@link GenericRecord} rather than {@code Object} - narrower than
-//     * {@link #bind(OpContext)} purely so {@link Pipeline}'s
-//     * reflection-based composition check (each stage's return type must be assignable to the next stage's
-//     * parameter type) lines up either side of this stage, not because the underlying transformation differs.
-//     * @param opContext the context to bind
-//     * @return an equivalent {@code Function<GenericRecord,GenericRecord>}
-//     * @throws ClassCastException if this function was built from a non-record schema
-//     */
-//    default Function<GenericRecord, GenericRecord> bindRecord(OpContext opContext) {
-//        return new BoundAvroRecordFunction(this, opContext);
-//    }
+    // /**
+    // * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
+    // * Kept as loosely typed as the function itself since a mask can be built from a non-record schema too
+    // * (e.g. one describing just an array or a leaf) - see {@link #bindRecord(OpContext)} for the common case
+    // * of composing a whole-record mask into a {@link Pipeline}
+    // * between a deserializer and serializer, which are both typed to {@link GenericRecord}.
+    // * @param opContext the context to bind
+    // * @return an equivalent {@code Function<Object,Object>}
+    // */
+    // default Function<Object, Object> bind(OpContext opContext) {
+    // return new BoundAvroFunction(this, opContext);
+    // }
+    //
+    // /**
+    // * Binds a fixed {@link OpContext} to this function, producing a {@code Function<GenericRecord,GenericRecord>}
+    // * suitable for composing into a whole-record {@link Pipeline}
+    // * stage alongside {@link AvroBinaryDeserializer}/{@link AvroBinarySerializer} (or the JSON equivalents),
+    // * which are themselves typed to {@link GenericRecord} rather than {@code Object} - narrower than
+    // * {@link #bind(OpContext)} purely so {@link Pipeline}'s
+    // * reflection-based composition check (each stage's return type must be assignable to the next stage's
+    // * parameter type) lines up either side of this stage, not because the underlying transformation differs.
+    // * @param opContext the context to bind
+    // * @return an equivalent {@code Function<GenericRecord,GenericRecord>}
+    // * @throws ClassCastException if this function was built from a non-record schema
+    // */
+    // default Function<GenericRecord, GenericRecord> bindRecord(OpContext opContext) {
+    // return new BoundAvroRecordFunction(this, opContext);
+    // }
 
     /**
      * A concrete (non-lambda) {@link Function} binding a fixed {@link OpContext} to an {@link AvroFunction} -
@@ -141,18 +141,18 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
         }
     }
 
-//    /**
-//     * The {@link GenericRecord}-typed counterpart of {@link BoundAvroFunction}, for the same reason - see
-//     * {@link #bindRecord(OpContext)}.
-//     * @param fn the function being bound
-//     * @param opContext the context bound to it
-//     */
-//    record BoundAvroRecordFunction(AvroFunction fn, OpContext opContext) implements Function<GenericRecord, GenericRecord> {
-//        @Override
-//        public GenericRecord apply(GenericRecord value) {
-//            return (GenericRecord) fn.apply(value, opContext);
-//        }
-//    }
+    // /**
+    // * The {@link GenericRecord}-typed counterpart of {@link BoundAvroFunction}, for the same reason - see
+    // * {@link #bindRecord(OpContext)}.
+    // * @param fn the function being bound
+    // * @param opContext the context bound to it
+    // */
+    // record BoundAvroRecordFunction(AvroFunction fn, OpContext opContext) implements Function<GenericRecord, GenericRecord> {
+    // @Override
+    // public GenericRecord apply(GenericRecord value) {
+    // return (GenericRecord) fn.apply(value, opContext);
+    // }
+    // }
 
     /**
      * Builds the part of the mask that recurses into a schema's declared children ({@code fields}/
@@ -258,7 +258,8 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
                         return null;
                     }
                     if (result.length != fixedSize) {
-                        throw new IllegalArgumentException("Fixed type '" + schema.getName() + "' requires size " + fixedSize + " bytes but transformation resulted in " + result.length + " bytes");
+                        throw new IllegalArgumentException(
+                                "Fixed type '" + schema.getName() + "' requires size " + fixedSize + " bytes but transformation resulted in " + result.length + " bytes");
                     }
                     return new GenericData.Fixed(schema, result);
                 });
@@ -274,7 +275,8 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
                         return null;
                     }
                     if (!allowedSymbols.contains(result)) {
-                        throw new IllegalArgumentException("Enum type '" + schema.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
+                        throw new IllegalArgumentException(
+                                "Enum type '" + schema.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
                     }
                     return new GenericData.EnumSymbol(schema, result);
                 });
@@ -283,26 +285,26 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
         };
     }
 
-//    @NonNull
-//    private static <T, R> OpPipeline<T, R> contextPipeline(List<OpConfig> ops,
-//                                                           Set<Requirement> requirements,
-//                                                           PluginLookup lookup,
-//                                                           BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
-//        List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
-//        return new OpPipeline<>(fns, requirements);
-//    }
-//
-//    /**
-//     * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
-//     * here (rather than resolved via {@code lookup}) since removing a required Avro field isn't meaningful
-//     * without also supporting Avro's union/default mechanism (see the class javadoc), so it fails loudly
-//     * rather than producing a {@link GenericRecord} that no longer conforms to its schema - unlike
-//     * {@code JacksonFunction}'s equivalent, which allows it.
-//     */
-//    private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
-//        if (OpConfigs.DELETE.equals(op.op())) {
-//            throw new IllegalArgumentException("delete is not yet supported for Avro fields");
-//        }
-//        return OpConfigs.resolveOp(op, inputType, outputType, lookup);
-//    }
+    // @NonNull
+    // private static <T, R> OpPipeline<T, R> contextPipeline(List<OpConfig> ops,
+    // Set<Requirement> requirements,
+    // PluginLookup lookup,
+    // BiFunction<OpConfig, PluginLookup, TypedOp<T, R>> factoryFn) {
+    // List<TypedOp<?, ?>> fns = ops.stream().<TypedOp<?, ?>> map(op -> factoryFn.apply(op, lookup)).toList();
+    // return new OpPipeline<>(fns, requirements);
+    // }
+    //
+    // /**
+    // * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
+    // * here (rather than resolved via {@code lookup}) since removing a required Avro field isn't meaningful
+    // * without also supporting Avro's union/default mechanism (see the class javadoc), so it fails loudly
+    // * rather than producing a {@link GenericRecord} that no longer conforms to its schema - unlike
+    // * {@code JacksonFunction}'s equivalent, which allows it.
+    // */
+    // private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {
+    // if (OpConfigs.DELETE.equals(op.op())) {
+    // throw new IllegalArgumentException("delete is not yet supported for Avro fields");
+    // }
+    // return OpConfigs.resolveOp(op, inputType, outputType, lookup);
+    // }
 }

@@ -41,4 +41,3 @@ public record OpConfig(@JsonProperty(required = true) String op, @JsonAnySetter 
         this(op.getName(), config);
     }
 }
-
