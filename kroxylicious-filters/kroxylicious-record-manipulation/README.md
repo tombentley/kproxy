@@ -148,7 +148,7 @@ fixed list of fields on a config record.
 ## JSON
 
 For JSON
-[`jackson/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/jackson/SchemaConfig.java)
+[`jackson/SchemaConfig`](src/main/java/io/kroxylicious/filter/record/manipulation/format/jackson/SchemaConfig.java)
 represents the schema-shaped part (`type`/`properties`/`items`/`apply`), and tolerates *any* other real JSON
 Schema keyword (`pattern`, `contains`, `minLength`, ...) via a `@JsonAnySetter`/`@JsonAnyGetter` catch-all
 instead of failing to parse — the goal is that an existing JSON Schema document can have `apply` added to it directly, not that this module has to model JSON Schema's entire vocabulary.

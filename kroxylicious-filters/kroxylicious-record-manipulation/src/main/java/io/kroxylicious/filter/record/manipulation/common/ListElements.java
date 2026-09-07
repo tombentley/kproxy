@@ -9,6 +9,7 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.format.jackson.ArrayItems;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
@@ -16,7 +17,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
  * A {@link Traversal} focusing on every element of a plain {@link List} - shared by every format whose
  * generic API already represents a repeated/array value as a {@code List} rather than a format-specific
  * node type (Avro's {@code array}, Protobuf's {@code repeated}), unlike
- * {@link io.kroxylicious.filter.record.manipulation.jackson.ArrayItems}, which needs Jackson's
+ * {@link ArrayItems}, which needs Jackson's
  * {@code ArrayNode} at both ends.
  */
 public record ListElements() implements Traversal<List<Object>, Object> {
