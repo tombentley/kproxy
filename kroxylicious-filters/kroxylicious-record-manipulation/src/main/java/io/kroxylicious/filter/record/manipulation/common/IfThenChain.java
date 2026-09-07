@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 public class IfThenChain<T, R> implements BiFunction<T, OpContext, R> {
 
     public record GuardedBranch<T, R>(BiPredicate<T, OpContext> guard, BiFunction<T, OpContext, R> op) {}

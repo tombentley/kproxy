@@ -20,7 +20,7 @@ import org.apache.kafka.common.record.BaseRecords;
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.Record;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsDeserializer;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
 import io.kroxylicious.kafka.transform.RecordStream;

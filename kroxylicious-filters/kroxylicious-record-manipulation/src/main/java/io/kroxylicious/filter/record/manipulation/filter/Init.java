@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.kafka.common.record.Record;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 public record Init(String topic,
                    Direction direction,

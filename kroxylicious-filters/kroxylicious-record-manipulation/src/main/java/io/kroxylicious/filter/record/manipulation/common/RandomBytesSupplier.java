@@ -9,6 +9,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.Random;
 import java.util.function.Function;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A provider of strings of a random length composed of
  * codepoints taken at random from a given alphabet.

@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.function.ToLongFunction;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A function that returns a {@code long} drawn at random from a range.
  */

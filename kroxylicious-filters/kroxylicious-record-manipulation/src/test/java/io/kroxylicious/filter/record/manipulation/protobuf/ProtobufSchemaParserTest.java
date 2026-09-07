@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.protobuf.Descriptors;
 
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -11,7 +11,7 @@ import java.util.Map;
 
 import com.google.protobuf.Descriptors;
 
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 /**
  * The result of {@link ProtobufSchemaParser#parse(String, String)}: the root message's real

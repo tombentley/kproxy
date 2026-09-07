@@ -9,6 +9,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.math.BigInteger;
 import java.util.function.Function;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A function that always returns the same {@code BigInteger}, regardless of context.
  */

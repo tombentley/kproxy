@@ -11,6 +11,8 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantBigIntegerSupplierTest {

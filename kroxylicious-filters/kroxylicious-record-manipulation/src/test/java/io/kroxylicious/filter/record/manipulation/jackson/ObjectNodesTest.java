@@ -10,7 +10,7 @@ import java.util.Random;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 class ObjectNodesTest {
 

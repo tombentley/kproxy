@@ -24,7 +24,7 @@ import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 /**
  * Parses raw {@code .proto} IDL source text into a {@link ParsedProtoSchema} - the Protobuf equivalent of

@@ -10,6 +10,8 @@ import java.math.BigInteger;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A function that returns a {@code BigInteger} drawn at random from a fixed set.
  */

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.common;
+package io.kroxylicious.filter.record.manipulation.op;
 
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import io.leangen.geantyref.GenericTypeReflector;
+
+import io.kroxylicious.filter.record.manipulation.common.ComposedOp;
+import io.kroxylicious.filter.record.manipulation.common.IdentityOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 
 import edu.umd.cs.findbugs.annotations.UnknownNullness;
 

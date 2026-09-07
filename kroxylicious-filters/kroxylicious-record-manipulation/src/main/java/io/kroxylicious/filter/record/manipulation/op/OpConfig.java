@@ -4,14 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.config;
+package io.kroxylicious.filter.record.manipulation.op;
 
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kroxylicious.filter.record.manipulation.common.OpFactory;
 
 /**
  * Names a pluggable operation and carries its configuration, not yet deserialized into a concrete type.
