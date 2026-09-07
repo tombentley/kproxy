@@ -11,6 +11,8 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kroxylicious.filter.record.manipulation.format.jackson.SchemaConfig;
+
 /**
  * Names a pluggable operation and carries its configuration, not yet deserialized into a concrete type.
  * The input/output type {@code op} must resolve to (e.g. {@code String}-to-{@code String}) depends on
@@ -24,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * "RandomInt", "minInclusive": 0, "maxExclusive": 10}}, rather than nesting the latter under a separate
  * {@code config} property - {@code op} is consumed by its own declared property, and every other property
  * is collected into {@code config} via {@code @JsonAnySetter}, the same catch-all mechanism {@link
- * io.kroxylicious.filter.record.manipulation.jackson.SchemaConfig} uses to tolerate arbitrary JSON Schema
+ * SchemaConfig} uses to tolerate arbitrary JSON Schema
  * keywords.
  *
  * @param op the name of the plugin implementation to use

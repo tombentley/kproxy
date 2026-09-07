@@ -33,7 +33,7 @@ public final class OpConfigs {
     // TODO if we're going to use a single ObjectMapper then different OpFactories might want to register
     //  modules/types for use when deserializing their config
     // But then there's risk of collision. So maybe better for each to use its own ObjectMapper?
-    static final ObjectMapper OP_CONFIG_MAPPER = new ObjectMapper();
+    public static final ObjectMapper OP_CONFIG_MAPPER = new ObjectMapper();
 
     private OpConfigs() {
     }
