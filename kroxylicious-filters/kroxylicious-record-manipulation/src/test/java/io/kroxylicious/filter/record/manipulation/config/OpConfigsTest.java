@@ -23,9 +23,10 @@ import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
-import io.kroxylicious.filter.record.manipulation.jackson.DeserializeJson;
-import io.kroxylicious.filter.record.manipulation.jackson.JsonTransform;
-import io.kroxylicious.filter.record.manipulation.jackson.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson.JsonTransform;
+import io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 
@@ -105,7 +106,7 @@ class OpConfigsTest {
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
-                .hasMessage("Op io.kroxylicious.filter.record.manipulation.jackson.DeserializeJson has input type "
+                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "
                         + "the expected type java.lang.Long");
     }

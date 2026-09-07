@@ -15,6 +15,7 @@ import java.util.function.ToIntFunction;
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.constant.ConstantIntSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
