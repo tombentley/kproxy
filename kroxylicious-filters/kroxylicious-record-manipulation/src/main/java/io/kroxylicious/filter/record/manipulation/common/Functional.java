@@ -6,9 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

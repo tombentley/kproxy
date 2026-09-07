@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

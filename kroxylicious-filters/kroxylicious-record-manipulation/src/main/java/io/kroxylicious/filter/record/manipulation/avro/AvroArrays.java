@@ -8,7 +8,7 @@ package io.kroxylicious.filter.record.manipulation.avro;
 
 import java.util.List;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.ArrayNodes} for Avro array values.

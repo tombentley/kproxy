@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.function.Predicate;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A function that returns an {@code int} drawn at random from a range.
  */

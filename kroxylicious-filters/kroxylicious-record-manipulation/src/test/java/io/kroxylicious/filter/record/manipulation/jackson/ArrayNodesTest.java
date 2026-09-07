@@ -8,7 +8,7 @@ package io.kroxylicious.filter.record.manipulation.jackson;
 
 import java.util.Random;
 
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 class ArrayNodesTest {
 

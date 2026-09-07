@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.function.BiFunction;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 public class TryCatch<T, R> implements BiFunction<T, OpContext, R> {
 
     private final BiFunction<T, OpContext, R> try_;

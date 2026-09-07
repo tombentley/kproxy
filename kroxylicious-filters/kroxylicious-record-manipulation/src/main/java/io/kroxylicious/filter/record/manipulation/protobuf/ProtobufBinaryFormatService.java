@@ -8,7 +8,7 @@ package io.kroxylicious.filter.record.manipulation.protobuf;
 
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.format.DataFormat;
 import io.kroxylicious.filter.record.manipulation.format.DataFormatService;

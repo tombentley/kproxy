@@ -13,7 +13,7 @@ import org.apache.avro.JsonProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 /**
  * Reads the non-standard {@code apply} keyword off an Avro {@link org.apache.avro.Schema} or

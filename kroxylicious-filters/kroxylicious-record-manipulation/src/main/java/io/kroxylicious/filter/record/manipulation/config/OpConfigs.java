@@ -14,13 +14,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.ComposedOp;
 import io.kroxylicious.filter.record.manipulation.common.IdentityOp;
-import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an

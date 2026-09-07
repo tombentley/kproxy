@@ -20,6 +20,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * Decrypts a Base64-encoded ciphertext produced by {@link EncryptStringFunction}, using a raw key drawn
  * from the invocation's {@link OpContext}. A fresh {@link Cipher} is created per invocation - the key isn't

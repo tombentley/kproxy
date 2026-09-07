@@ -10,6 +10,8 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 public class RegexReplaceStringFunction implements BiFunction<String, OpContext, String> {
 
     public sealed interface Replacement {

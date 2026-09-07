@@ -6,6 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * Focuses on a part of a larger structure that might not be there (the "Optional"/"AffineTraversal" optic in
  * the Lens/Prism/Traversal family - a {@code Lens} that might not focus on anything).

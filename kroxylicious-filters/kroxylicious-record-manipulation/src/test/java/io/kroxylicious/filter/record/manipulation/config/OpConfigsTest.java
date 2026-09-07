@@ -16,10 +16,11 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
 import io.kroxylicious.filter.record.manipulation.jackson.DeserializeJson;

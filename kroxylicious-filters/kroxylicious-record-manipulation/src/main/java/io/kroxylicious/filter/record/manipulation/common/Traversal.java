@@ -8,6 +8,9 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * Focuses on zero or more parts of a larger structure, uniformly.
  * @param <S> the type of the whole structure

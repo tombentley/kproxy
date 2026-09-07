@@ -21,6 +21,8 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**

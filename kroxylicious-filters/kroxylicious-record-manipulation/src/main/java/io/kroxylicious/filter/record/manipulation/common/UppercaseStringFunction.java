@@ -9,6 +9,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 public class UppercaseStringFunction implements BiFunction<String, OpContext, String> {
 
     private final Locale locale;
