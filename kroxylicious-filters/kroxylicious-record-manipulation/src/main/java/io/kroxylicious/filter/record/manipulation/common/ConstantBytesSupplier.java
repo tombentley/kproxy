@@ -11,7 +11,7 @@ import java.util.function.Function;
 /**
  * A function that always returns the same {@link String}, regardless of context.
  */
-public class ConstantBytesSupplier implements Function<Context, byte[]> {
+public class ConstantBytesSupplier implements Function<OpContext, byte[]> {
     private final byte[] value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantBytesSupplier implements Function<Context, byte[]> {
     }
 
     @Override
-    public byte[] apply(Context context) {
+    public byte[] apply(OpContext opContext) {
         return value;
     }
 }

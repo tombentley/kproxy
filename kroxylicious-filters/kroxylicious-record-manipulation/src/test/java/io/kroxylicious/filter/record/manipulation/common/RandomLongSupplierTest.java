@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomLongSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -36,10 +36,10 @@ class RandomLongSupplierTest {
     void valuesFallWithinRange() {
         // Given
         RandomLongSupplier supplier = new RandomLongSupplier(10, 20);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        long[] values = LongStream.range(0, 500).map(i -> supplier.applyAsLong(context)).toArray();
+        long[] values = LongStream.range(0, 500).map(i -> supplier.applyAsLong(opContext)).toArray();
 
         // Then
         assertThat(LongStream.of(values).allMatch(value -> value >= 10 && value < 20)).isTrue();

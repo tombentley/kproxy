@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomStringSupplier;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -30,9 +32,19 @@ public class RandomString implements OpFactory<String, String> {
     public record Config(String alphabet, int minLengthInclusive, int maxLengthExclusive) {}
 
     @Override
-    public TypedOp<String, String> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomStringSupplier(config.alphabet(), config.minLengthInclusive(), config.maxLengthExclusive());
-        return TypedOp.of(String.class, (ignored, context) -> generator.apply(context));
+        return new StaticTypedOp<String, String>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return String.class;
+            }
+
+            @Override
+            public String apply(String value, OpContext opContext) {
+                return generator.apply(opContext);
+            }
+        };
     }
 }

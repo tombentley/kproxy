@@ -11,6 +11,8 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+
 /**
  * Names a pluggable operation and carries its configuration, not yet deserialized into a concrete type.
  * The input/output type {@code op} must resolve to (e.g. {@code String}-to-{@code String}) depends on
@@ -30,4 +32,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param op the name of the plugin implementation to use
  * @param config the operation's configuration properties, not yet deserialized into a concrete type
  */
-public record OpConfig(@JsonProperty(required = true) String op, @JsonAnySetter Map<String, Object> config) {}
+public record OpConfig(@JsonProperty(required = true) String op, @JsonAnySetter Map<String, Object> config) {
+    public OpConfig(Class<? extends OpFactory> op) {
+        this(op, Map.of());
+    }
+
+    public OpConfig(Class<? extends OpFactory> op, Map<String, Object> config) {
+        this(op.getName(), config);
+    }
+}
+

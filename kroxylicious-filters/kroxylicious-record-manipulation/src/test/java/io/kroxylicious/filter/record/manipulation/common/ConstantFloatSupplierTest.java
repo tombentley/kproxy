@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantFloatSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -22,8 +22,8 @@ class ConstantFloatSupplierTest {
         ConstantFloatSupplier supplier = new ConstantFloatSupplier(3.14f);
 
         // When
-        Float first = supplier.apply(CONTEXT);
-        Float second = supplier.apply(CONTEXT);
+        Float first = supplier.apply(OP_CONTEXT);
+        Float second = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(3.14f);

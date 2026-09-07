@@ -12,7 +12,7 @@ import java.util.function.ToIntFunction;
 /**
  * A function that returns an {@code int} drawn at random from a fixed set.
  */
-public class ChooseIntSupplier implements ToIntFunction<Context> {
+public class ChooseIntSupplier implements ToIntFunction<OpContext> {
     private final int[] values;
 
     /**
@@ -24,8 +24,8 @@ public class ChooseIntSupplier implements ToIntFunction<Context> {
     }
 
     @Override
-    public int applyAsInt(Context context) {
-        int index = context.random().nextInt(0, values.length);
+    public int applyAsInt(OpContext opContext) {
+        int index = opContext.random().nextInt(0, values.length);
         return values[index];
     }
 }

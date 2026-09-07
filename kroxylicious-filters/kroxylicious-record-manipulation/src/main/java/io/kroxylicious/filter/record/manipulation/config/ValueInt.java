@@ -6,12 +6,14 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -27,8 +29,18 @@ public class ValueInt implements OpFactory<Integer, Integer> {
     public record Config(int value) {}
 
     @Override
-    public TypedOp<Integer, Integer> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(Integer.class, (ignored, context) -> config.value());
+    public BaseTypedOp<Integer, Integer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        return new StaticTypedOp<Integer, Integer>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return Integer.class;
+            }
+
+            @Override
+            public Integer apply(Integer value, OpContext opContext) {
+                return config.value();
+            }
+        };
     }
 }

@@ -16,10 +16,13 @@ import org.apache.kafka.common.utils.ByteBufferOutputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.format.SerializationException;
+import io.kroxylicious.filter.record.manipulation.format.Serializer;
+
 /**
  * Serializes a {@link JsonNode} to a {@link ByteBuffer} ready to be read.
  */
-public class JacksonSerializer implements Function<JsonNode, ByteBuffer> {
+public class JacksonSerializer implements Function<JsonNode, ByteBuffer>, Serializer<JsonNode> {
 
     private final ObjectMapper mapper;
 
@@ -33,6 +36,11 @@ public class JacksonSerializer implements Function<JsonNode, ByteBuffer> {
 
     @Override
     public ByteBuffer apply(JsonNode node) {
+        return serialize(node);
+    }
+
+    @Override
+    public ByteBuffer serialize(JsonNode node) {
         // TODO buffer recycling
         try (var is = new ByteBufferOutputStream(10000)) {
             mapper.writeValue(is, node);
@@ -40,8 +48,8 @@ public class JacksonSerializer implements Function<JsonNode, ByteBuffer> {
             buffer.flip();
             return buffer;
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+        catch (Exception e) {
+            throw new SerializationException(e);
         }
     }
 }

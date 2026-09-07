@@ -11,7 +11,7 @@ import java.util.function.ToLongFunction;
 /**
  * A function that always returns the same {@code long}, regardless of context.
  */
-public class ConstantLongSupplier implements ToLongFunction<Context> {
+public class ConstantLongSupplier implements ToLongFunction<OpContext> {
     private final long value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantLongSupplier implements ToLongFunction<Context> {
     }
 
     @Override
-    public long applyAsLong(Context context) {
+    public long applyAsLong(OpContext opContext) {
         return value;
     }
 }

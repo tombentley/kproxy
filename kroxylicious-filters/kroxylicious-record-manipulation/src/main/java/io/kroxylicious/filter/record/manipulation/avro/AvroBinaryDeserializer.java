@@ -18,13 +18,16 @@ import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.utils.ByteBufferInputStream;
 
+import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
+import io.kroxylicious.filter.record.manipulation.format.Deserializer;
+
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link GenericRecord}, decoded per Avro's
  * single-object binary encoding against a fixed {@link Schema} (no schema evolution: the same schema is
  * used to write and read). Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.JacksonDeserializer},
  * except a {@link Schema} is required up front - unlike JSON, Avro binary data isn't self-describing.
  */
-public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecord> {
+public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecord>, Deserializer<GenericRecord> {
 
     private final GenericDatumReader<GenericRecord> reader;
 
@@ -38,6 +41,11 @@ public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecor
 
     @Override
     public GenericRecord apply(ByteBuffer bb) {
+        return deserialize(bb);
+    }
+
+    @Override
+    public GenericRecord deserialize(ByteBuffer bb) {
         try {
             if (bb.hasArray()) {
                 Decoder decoder = DecoderFactory.get().binaryDecoder(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining(), null);
@@ -50,8 +58,8 @@ public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecor
                 }
             }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+        catch (Exception e) {
+            throw new DeserializationException(e);
         }
     }
 }

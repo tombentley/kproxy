@@ -6,8 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * Adapters between {@link Runnable}, {@link Supplier}, and {@link Function}.
@@ -61,10 +64,19 @@ public class Functional {
      * @param <R> the result type
      * @param <T> the ignored input type
      */
-    public static <R, T> Function<T, R> toFn(Runnable runnable, R result) {
+    public static <R, T> Function<T, R> asFunction(Runnable runnable, R result) {
         return (T ignored) -> {
             runnable.run();
             return result;
+        };
+    }
+
+    public static <T, R> Function<T, R> bind(BaseTypedOp<T, R> biFunction, @Nullable OpContext context) {
+        return new Function<T, R>() {
+            @Override
+            public R apply(T t) {
+                return biFunction.apply(t, context);
+            }
         };
     }
 }

@@ -11,7 +11,7 @@ import java.util.function.Function;
 /**
  * A function that always returns the same {@code double}, regardless of context.
  */
-public class ConstantFloatSupplier implements Function<Context, Float> {
+public class ConstantFloatSupplier implements Function<OpContext, Float> {
     private final float value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantFloatSupplier implements Function<Context, Float> {
     }
 
     @Override
-    public Float apply(Context context) {
+    public Float apply(OpContext opContext) {
         return value;
     }
 }

@@ -11,7 +11,7 @@ import java.util.function.ToDoubleFunction;
 /**
  * A function that returns a {@code double} drawn at random from a range.
  */
-public class RandomDoubleSupplier implements ToDoubleFunction<Context> {
+public class RandomDoubleSupplier implements ToDoubleFunction<OpContext> {
     private final double minInclusive;
     private final double maxExclusive;
 
@@ -29,7 +29,7 @@ public class RandomDoubleSupplier implements ToDoubleFunction<Context> {
     }
 
     @Override
-    public double applyAsDouble(Context context) {
-        return context.random().nextDouble(minInclusive, maxExclusive);
+    public double applyAsDouble(OpContext opContext) {
+        return opContext.random().nextDouble(minInclusive, maxExclusive);
     }
 }

@@ -14,7 +14,7 @@ import com.google.protobuf.Descriptors;
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
 /**
- * The result of {@link ProtoSchemaParser#parse(String, String)}: the root message's real
+ * The result of {@link ProtobufSchemaParser#parse(String, String)}: the root message's real
  * {@link Descriptors.Descriptor}, plus a side-table of {@code apply} chains read off the schema's
  * custom field/message options.
  * <p>

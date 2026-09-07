@@ -7,12 +7,13 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.ToDoubleFunction;
 
 /**
  * A function that returns a {@code double} drawn at random from a fixed set.
  */
-public class ChooseDoubleSupplier implements ToDoubleFunction<Context> {
+public class ChooseDoubleSupplier implements BiFunction<Object, OpContext, Double> {
     private final double[] values;
 
     /**
@@ -24,8 +25,8 @@ public class ChooseDoubleSupplier implements ToDoubleFunction<Context> {
     }
 
     @Override
-    public double applyAsDouble(Context context) {
-        int index = context.random().nextInt(0, values.length);
+    public Double apply(Object ignored, OpContext opContext) {
+        int index = opContext.random().nextInt(0, values.length);
         return values[index];
     }
 }

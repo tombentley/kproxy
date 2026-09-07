@@ -11,7 +11,7 @@ import java.util.function.Function;
 /**
  * A function that returns a {@code double} drawn at random from a range.
  */
-public class RandomFloatSupplier implements Function<Context, Float> {
+public class RandomFloatSupplier implements Function<OpContext, Float> {
     private final float minInclusive;
     private final float maxExclusive;
 
@@ -29,7 +29,7 @@ public class RandomFloatSupplier implements Function<Context, Float> {
     }
 
     @Override
-    public Float apply(Context context) {
-        return context.random().nextFloat(minInclusive, maxExclusive);
+    public Float apply(OpContext opContext) {
+        return opContext.random().nextFloat(minInclusive, maxExclusive);
     }
 }

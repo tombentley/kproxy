@@ -17,10 +17,10 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Computes the Base64-encoded HMAC-SHA256 of a string, using a raw key drawn from the invocation's
- * {@link Context}. A fresh {@link Mac} is created per invocation - the key isn't known until then, and a
+ * {@link OpContext}. A fresh {@link Mac} is created per invocation - the key isn't known until then, and a
  * shared, cached instance would not be safe to reuse across concurrent invocations regardless.
  */
-public class HmacStringFunction implements BiFunction<String, Context, String> {
+public class HmacStringFunction implements BiFunction<String, OpContext, String> {
 
     /**
      * Creates an instance.
@@ -29,10 +29,10 @@ public class HmacStringFunction implements BiFunction<String, Context, String> {
     }
 
     @Override
-    public String apply(String value, Context context) {
+    public String apply(String value, OpContext opContext) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(context.key(), "HmacSHA256"));
+            mac.init(new SecretKeySpec(opContext.key(), "HmacSHA256"));
             return Base64.getEncoder().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
         }
         catch (NoSuchAlgorithmException | InvalidKeyException e) {

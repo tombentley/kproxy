@@ -11,7 +11,7 @@ import java.util.function.ToLongFunction;
 /**
  * A function that returns a {@code long} drawn at random from a range.
  */
-public class RandomLongSupplier implements ToLongFunction<Context> {
+public class RandomLongSupplier implements ToLongFunction<OpContext> {
     private final long minInclusive;
     private final long maxExclusive;
 
@@ -29,7 +29,7 @@ public class RandomLongSupplier implements ToLongFunction<Context> {
     }
 
     @Override
-    public long applyAsLong(Context context) {
-        return context.random().nextLong(minInclusive, maxExclusive);
+    public long applyAsLong(OpContext opContext) {
+        return opContext.random().nextLong(minInclusive, maxExclusive);
     }
 }

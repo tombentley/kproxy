@@ -12,7 +12,7 @@ import java.util.function.Function;
 /**
  * A function that returns a {@code double} drawn at random from a fixed set.
  */
-public class ChooseFloatSupplier implements Function<Context, Float> {
+public class ChooseFloatSupplier implements Function<OpContext, Float> {
 
     private final float[] values;
 
@@ -29,8 +29,8 @@ public class ChooseFloatSupplier implements Function<Context, Float> {
     }
 
     @Override
-    public Float apply(Context context) {
-        int index = context.random().nextInt(0, values.length);
+    public Float apply(OpContext opContext) {
+        int index = opContext.random().nextInt(0, values.length);
         return values[index];
     }
 }

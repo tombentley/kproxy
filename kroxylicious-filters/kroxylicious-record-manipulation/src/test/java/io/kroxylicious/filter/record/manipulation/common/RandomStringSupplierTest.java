@@ -15,10 +15,10 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomStringSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -27,7 +27,7 @@ class RandomStringSupplierTest {
         RandomStringSupplier supplier = new RandomStringSupplier("abc", 3, 4);
 
         // When
-        String value = supplier.apply(CONTEXT);
+        String value = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(value).hasSize(3);
@@ -39,7 +39,7 @@ class RandomStringSupplierTest {
         RandomStringSupplier supplier = new RandomStringSupplier("abc", 0, 1);
 
         // When
-        String value = supplier.apply(CONTEXT);
+        String value = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(value).isEmpty();

@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomFloatSupplier;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -29,9 +31,19 @@ public class RandomFloat implements OpFactory<Float, Float> {
     public record Config(float minInclusive, float maxExclusive) {}
 
     @Override
-    public TypedOp<Float, Float> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
+    public BaseTypedOp<Float, Float> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomFloatSupplier(config.minInclusive(), config.maxExclusive());
-        return TypedOp.of(Float.class, (ignored, context) -> generator.apply(context));
+        return new StaticTypedOp<Float, Float>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return Float.class;
+            }
+
+            @Override
+            public Float apply(Float value, OpContext opContext) {
+                return generator.apply(opContext);
+            }
+        };
     }
 }

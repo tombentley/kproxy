@@ -11,7 +11,7 @@ import java.util.function.Function;
 /**
  * A function that always returns the same {@link String}, regardless of context.
  */
-public class ConstantStringSupplier implements Function<Context, String> {
+public class ConstantStringSupplier implements Function<OpContext, String> {
     private final String value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantStringSupplier implements Function<Context, String> {
     }
 
     @Override
-    public String apply(Context context) {
+    public String apply(OpContext opContext) {
         return value;
     }
 }

@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * Focuses on zero or more parts of a larger structure, uniformly.
@@ -26,9 +25,9 @@ public interface Traversal<S, A> {
     /**
      * Transforms every focused part.
      * @param s the whole structure
-     * @param f the transformation, given each part and a {@link Context}
-     * @param context the context to pass to {@code f}
+     * @param f the transformation, given each part and a {@link OpContext}
+     * @param opContext the context to pass to {@code f}
      * @return a copy of {@code s} with {@code f} applied to every focused part
      */
-    S modifyAll(S s, BiFunction<A, Context, A> f, Context context);
+    S modifyAll(S s, BaseTypedOp<A, A> f, OpContext opContext);
 }

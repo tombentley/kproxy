@@ -18,12 +18,15 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
+import io.kroxylicious.filter.record.manipulation.format.SerializationException;
+import io.kroxylicious.filter.record.manipulation.format.Serializer;
+
 /**
  * Serializes a {@link GenericRecord} to a {@link ByteBuffer} ready to be read, using Avro's single-object
  * binary encoding - the inverse of {@link AvroBinaryDeserializer}. Mirrors
  * {@link io.kroxylicious.filter.record.manipulation.jackson.JacksonSerializer}.
  */
-public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer> {
+public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer>, Serializer<GenericRecord> {
 
     private final GenericDatumWriter<GenericRecord> writer;
 
@@ -35,8 +38,15 @@ public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer>
         this.writer = new GenericDatumWriter<>(schema);
     }
 
+
+
     @Override
     public ByteBuffer apply(GenericRecord record) {
+        return serialize(record);
+    }
+
+    @Override
+    public ByteBuffer serialize(GenericRecord record) {
         // TODO buffer recycling
         try (var os = new ByteBufferOutputStream(10000)) {
             Encoder encoder = EncoderFactory.get().binaryEncoder(os, null);
@@ -46,8 +56,8 @@ public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer>
             buffer.flip();
             return buffer;
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+        catch (Exception e) {
+            throw new SerializationException(e);
         }
     }
 }

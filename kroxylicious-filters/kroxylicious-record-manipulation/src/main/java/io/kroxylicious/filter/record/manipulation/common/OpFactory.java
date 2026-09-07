@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
@@ -40,8 +41,11 @@ public interface OpFactory<T, R> {
 
     /**
      * Builds the operation described by the given configuration.
+     *
      * @param config the operation's configuration properties, not yet deserialized into a concrete type
+     * @param lookup The lookup
+     * @param argumentType The argument type
      * @return the built operation
      */
-    TypedOp<T, R> create(Map<String, Object> config);
+    BaseTypedOp<T, R> create(Map<String, Object> config, PluginLookup lookup, Type argumentType);
 }
