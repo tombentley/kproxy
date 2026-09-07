@@ -4,6 +4,13 @@
 # Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
 #
 
+io.kroxylicious.filter.record.manipulation.filter.RecordValue
+io.kroxylicious.filter.record.manipulation.filter.RecordKey
+io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp
+io.kroxylicious.filter.record.manipulation.jackson.DeserializeJson
+io.kroxylicious.filter.record.manipulation.jackson.JsonTransform
+io.kroxylicious.filter.record.manipulation.jackson.SerializeJson
+
 io.kroxylicious.filter.record.manipulation.config.RandomString
 io.kroxylicious.filter.record.manipulation.config.ValueString
 io.kroxylicious.filter.record.manipulation.config.ChooseString

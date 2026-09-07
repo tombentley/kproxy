@@ -11,7 +11,7 @@ import java.util.function.ToIntFunction;
 /**
  * A function that always returns the same {@code int}, regardless of context.
  */
-public class ConstantIntSupplier implements ToIntFunction<Context> {
+public class ConstantIntSupplier implements ToIntFunction<OpContext> {
     private final int value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantIntSupplier implements ToIntFunction<Context> {
     }
 
     @Override
-    public int applyAsInt(Context context) {
+    public int applyAsInt(OpContext opContext) {
         return value;
     }
 }

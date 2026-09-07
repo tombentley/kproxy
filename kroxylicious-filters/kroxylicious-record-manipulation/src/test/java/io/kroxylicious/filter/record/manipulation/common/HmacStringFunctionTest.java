@@ -21,7 +21,7 @@ class HmacStringFunctionTest {
 
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
     private static final byte[] OTHER_KEY = { 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
-    private static final Context CONTEXT = new Context(new Random(), KEY);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), KEY);
 
     @Test
     void hmacMatchesIndependentlyComputedHmacSha256() throws Exception {
@@ -32,7 +32,7 @@ class HmacStringFunctionTest {
         String expected = Base64.getEncoder().encodeToString(oracle.doFinal("hello".getBytes(StandardCharsets.UTF_8)));
 
         // When
-        String actual = hmac.apply("hello", CONTEXT);
+        String actual = hmac.apply("hello", OP_CONTEXT);
 
         // Then
         assertThat(actual).isEqualTo(expected);
@@ -44,8 +44,8 @@ class HmacStringFunctionTest {
         HmacStringFunction hmac = new HmacStringFunction();
 
         // When
-        String first = hmac.apply("hello", CONTEXT);
-        String second = hmac.apply("hello", CONTEXT);
+        String first = hmac.apply("hello", OP_CONTEXT);
+        String second = hmac.apply("hello", OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(second);
@@ -57,8 +57,8 @@ class HmacStringFunctionTest {
         HmacStringFunction hmac = new HmacStringFunction();
 
         // When
-        String helloHmac = hmac.apply("hello", CONTEXT);
-        String worldHmac = hmac.apply("world", CONTEXT);
+        String helloHmac = hmac.apply("hello", OP_CONTEXT);
+        String worldHmac = hmac.apply("world", OP_CONTEXT);
 
         // Then
         assertThat(helloHmac).isNotEqualTo(worldHmac);
@@ -68,12 +68,12 @@ class HmacStringFunctionTest {
     void oneSharedInstanceHandlesInterleavedDifferentKeysCorrectly() {
         // Given
         HmacStringFunction hmac = new HmacStringFunction();
-        Context otherContext = new Context(new Random(), OTHER_KEY);
+        OpContext otherOpContext = new OpContext(new Random(), OTHER_KEY);
 
         // When
-        String withFirstKey = hmac.apply("hello", CONTEXT);
-        String withOtherKey = hmac.apply("hello", otherContext);
-        String withFirstKeyAgain = hmac.apply("hello", CONTEXT);
+        String withFirstKey = hmac.apply("hello", OP_CONTEXT);
+        String withOtherKey = hmac.apply("hello", otherOpContext);
+        String withFirstKeyAgain = hmac.apply("hello", OP_CONTEXT);
 
         // Then
         assertThat(withFirstKey).isNotEqualTo(withOtherKey);

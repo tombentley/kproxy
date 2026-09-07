@@ -10,7 +10,7 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RegexReplaceStringFunction implements BiFunction<String, Context, String> {
+public class RegexReplaceStringFunction implements BiFunction<String, OpContext, String> {
 
     public sealed interface Replacement {
     }
@@ -37,9 +37,9 @@ public class RegexReplaceStringFunction implements BiFunction<String, Context, S
      */
     public record First(String replacement) implements Replacement {}
 
-    public record AllOp(BiFunction<String, Context, String> groupOp) implements Replacement {}
+    public record AllOp(BiFunction<String, OpContext, String> groupOp) implements Replacement {}
 
-    public record FirstOp(BiFunction<String, Context, String> groupOp) implements Replacement {}
+    public record FirstOp(BiFunction<String, OpContext, String> groupOp) implements Replacement {}
 
     private final Pattern pattern;
     private final Replacement replacement;
@@ -51,13 +51,13 @@ public class RegexReplaceStringFunction implements BiFunction<String, Context, S
     }
 
     @Override
-    public String apply(String s, Context context) {
+    public String apply(String s, OpContext opContext) {
         Matcher matcher = pattern.matcher(s);
         return switch (replacement) {
             case All(String string) -> matcher.replaceAll(string);
             case First(String string) -> matcher.replaceFirst(string);
-            case AllOp(BiFunction<String, Context, String> op) -> matcher.replaceAll(matchResult -> op.apply(matchResult.group(), context));
-            case FirstOp(BiFunction<String, Context, String> op) -> matcher.replaceFirst(matchResult -> op.apply(matchResult.group(), context));
+            case AllOp(BiFunction<String, OpContext, String> op) -> matcher.replaceAll(matchResult -> op.apply(matchResult.group(), opContext));
+            case FirstOp(BiFunction<String, OpContext, String> op) -> matcher.replaceFirst(matchResult -> op.apply(matchResult.group(), opContext));
         };
     }
 }

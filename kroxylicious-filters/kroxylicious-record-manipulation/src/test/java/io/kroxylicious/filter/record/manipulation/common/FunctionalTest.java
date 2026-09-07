@@ -60,10 +60,10 @@ class FunctionalTest {
     }
 
     @Test
-    void toFnRunsTheRunnableAndReturnsTheGivenResultRegardlessOfInput() {
+    void asFunctionRunsTheRunnableAndReturnsTheGivenResultRegardlessOfInput() {
         // Given
         AtomicInteger invocations = new AtomicInteger();
-        Function<Object, String> function = Functional.toFn(invocations::incrementAndGet, "result");
+        Function<Object, String> function = Functional.asFunction(invocations::incrementAndGet, "result");
 
         // When
         String resultForOneInput = function.apply("input-a");

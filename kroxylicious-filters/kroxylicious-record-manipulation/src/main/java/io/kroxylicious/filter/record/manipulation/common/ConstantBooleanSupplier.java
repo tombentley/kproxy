@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 /**
  * A function that always returns the same {@code int}, regardless of context.
  */
-public class ConstantBooleanSupplier implements Predicate<Context> {
+public class ConstantBooleanSupplier implements Predicate<OpContext> {
     private final boolean value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantBooleanSupplier implements Predicate<Context> {
     }
 
     @Override
-    public boolean test(Context context) {
+    public boolean test(OpContext opContext) {
         return value;
     }
 }

@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseFloatSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -38,10 +38,10 @@ class ChooseFloatSupplierTest {
         // Given
         Set<Float> from = Set.of(1.5f, 2.5f, 3.5f);
         ChooseFloatSupplier supplier = new ChooseFloatSupplier(from);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        Float[] drawn = IntStream.range(0, 200).mapToObj(i -> supplier.apply(context)).toArray(Float[]::new);
+        Float[] drawn = IntStream.range(0, 200).mapToObj(i -> supplier.apply(opContext)).toArray(Float[]::new);
 
         // Then
         assertThat(Stream.of(drawn).allMatch(from::contains)).isTrue();

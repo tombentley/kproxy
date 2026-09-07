@@ -7,10 +7,8 @@
 package io.kroxylicious.filter.record.manipulation.avro;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.ListElements;
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.ArrayNodes} for Avro array values.
@@ -25,7 +23,17 @@ public class AvroArrays {
      * @param itemsFn the function applied to each element of the array
      * @return a function mapping an array to a new array with {@code itemsFn} applied to each element
      */
-    public static BiFunction<List<Object>, Context, List<Object>> items(BiFunction<Object, Context, Object> itemsFn) {
-        return (array, context) -> new ListElements().modifyAll(array, itemsFn, context);
+    public static BaseTypedOp<List<Object>, List<Object>> items(BaseTypedOp<Object, Object> itemsFn) {
+        return null; /*(array, context) -> new ListElements().modifyAll(array, new StaticTypedOp<Object, Object>() {
+            @Override
+            public Object apply(Object value, OpContext opContext) {
+                return itemsFn.apply(value, opContext);
+            }
+
+            @Override
+            public Type outputType(Type inputType) {
+                return Object.class;
+            }
+        }, context);*/
     }
 }

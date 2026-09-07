@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantDoubleSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -22,8 +22,8 @@ class ConstantDoubleSupplierTest {
         ConstantDoubleSupplier supplier = new ConstantDoubleSupplier(3.14);
 
         // When
-        double first = supplier.applyAsDouble(CONTEXT);
-        double second = supplier.applyAsDouble(CONTEXT);
+        double first = supplier.applyAsDouble(OP_CONTEXT);
+        double second = supplier.applyAsDouble(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(3.14);

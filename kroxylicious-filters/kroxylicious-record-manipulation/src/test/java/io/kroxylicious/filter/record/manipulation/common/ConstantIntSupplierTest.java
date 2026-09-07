@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantIntSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -22,8 +22,8 @@ class ConstantIntSupplierTest {
         ConstantIntSupplier supplier = new ConstantIntSupplier(42);
 
         // When
-        int first = supplier.applyAsInt(CONTEXT);
-        int second = supplier.applyAsInt(CONTEXT);
+        int first = supplier.applyAsInt(OP_CONTEXT);
+        int second = supplier.applyAsInt(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(42);

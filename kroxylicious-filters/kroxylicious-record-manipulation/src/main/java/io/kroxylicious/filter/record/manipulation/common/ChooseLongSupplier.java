@@ -12,7 +12,7 @@ import java.util.function.ToLongFunction;
 /**
  * A function that returns a {@code long} drawn at random from a fixed set.
  */
-public class ChooseLongSupplier implements ToLongFunction<Context> {
+public class ChooseLongSupplier implements ToLongFunction<OpContext> {
     private final long[] values;
 
     /**
@@ -24,8 +24,8 @@ public class ChooseLongSupplier implements ToLongFunction<Context> {
     }
 
     @Override
-    public long applyAsLong(Context context) {
-        int index = context.random().nextInt(0, values.length);
+    public long applyAsLong(OpContext opContext) {
+        int index = opContext.random().nextInt(0, values.length);
         return values[index];
     }
 }

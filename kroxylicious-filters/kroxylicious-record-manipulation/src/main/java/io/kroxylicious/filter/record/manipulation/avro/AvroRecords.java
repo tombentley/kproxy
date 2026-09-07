@@ -13,7 +13,8 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.ObjectNodes} for Avro record values -
@@ -37,23 +38,23 @@ public class AvroRecords {
      *                 over unchanged
      * @return a function building a fresh {@link GenericRecord} per the rules above
      */
-    public static BiFunction<GenericRecord, Context, GenericRecord> mapFields(
+    public static BiFunction<GenericRecord, OpContext, GenericRecord> mapFields(
                                                                               Schema schema,
-                                                                              Map<String, ? extends BiFunction<Object, Context, Object>> fieldFns) {
+                                                                              Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns) {
         return new AvroRecordFieldsFunction(schema, fieldFns);
     }
 
     private record AvroRecordFieldsFunction(Schema schema,
-                                            Map<String, ? extends BiFunction<Object, Context, Object>> fieldFns)
-            implements BiFunction<GenericRecord, Context, GenericRecord> {
+                                            Map<String, ? extends BaseTypedOp<Object, Object>> fieldFns)
+            implements BiFunction<GenericRecord, OpContext, GenericRecord> {
 
         @Override
-        public GenericRecord apply(GenericRecord record, Context context) {
+        public GenericRecord apply(GenericRecord record, OpContext opContext) {
             GenericData.Record result = new GenericData.Record(schema);
             for (Schema.Field field : schema.getFields()) {
                 Object value = record.get(field.name());
                 var fieldFn = fieldFns.get(field.name());
-                result.put(field.name(), fieldFn != null ? fieldFn.apply(value, context) : value);
+                result.put(field.name(), fieldFn != null ? fieldFn.apply(value, opContext) : value);
             }
             return result;
         }

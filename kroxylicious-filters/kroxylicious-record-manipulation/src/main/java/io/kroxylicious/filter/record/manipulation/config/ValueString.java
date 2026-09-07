@@ -6,19 +6,21 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Replaces a value with a fixed {@link String}.
  */
 @Plugin(configType = ValueString.Config.class)
-public class ValueString implements OpFactory<String, String> {
+public class ValueString implements OpFactory<Object, String> {
 
     /**
      * Configuration for {@link ValueString}.
@@ -27,8 +29,18 @@ public class ValueString implements OpFactory<String, String> {
     public record Config(String value) {}
 
     @Override
-    public TypedOp<String, String> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(String.class, (ignored, context) -> config.value());
+    public BaseTypedOp<Object, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        return new StaticTypedOp<Object, String>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return String.class;
+            }
+
+            @Override
+            public String apply(Object value, OpContext opContext) {
+                return config.value();
+            }
+        };
     }
 }

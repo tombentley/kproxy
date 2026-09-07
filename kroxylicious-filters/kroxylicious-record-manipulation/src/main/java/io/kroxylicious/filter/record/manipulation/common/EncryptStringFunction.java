@@ -24,12 +24,12 @@ import javax.crypto.spec.SecretKeySpec;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Encrypts a string with AES/GCM, using a raw key drawn from the invocation's {@link Context}, returning a
+ * Encrypts a string with AES/GCM, using a raw key drawn from the invocation's {@link OpContext}, returning a
  * Base64-encoded ciphertext with the IV appended. A fresh {@link Cipher} is created per invocation - the key
  * isn't known until then, and a shared, cached instance would not be safe to reuse across concurrent
  * invocations regardless.
  */
-public class EncryptStringFunction implements BiFunction<String, Context, String> {
+public class EncryptStringFunction implements BiFunction<String, OpContext, String> {
 
     private static final int IV_LENGTH = 12;
 
@@ -42,12 +42,12 @@ public class EncryptStringFunction implements BiFunction<String, Context, String
     @Override
     @SuppressFBWarnings(value = "PREDICTABLE_RANDOM", justification = "The PRNG is deliberately injected rather than SecureRandom, "
             + "so that masking can eventually be made to have repeatable-read semantics (e.g. seeded from topic/partition/offset)")
-    public String apply(String value, Context context) {
+    public String apply(String value, OpContext opContext) {
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             byte[] iv = new byte[IV_LENGTH];
-            context.random().nextBytes(iv);
-            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(context.key(), "AES"), new GCMParameterSpec(96, iv));
+            opContext.random().nextBytes(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(opContext.key(), "AES"), new GCMParameterSpec(96, iv));
             byte[] plaintext = value.getBytes(StandardCharsets.UTF_8);
             int ciphertextSize = cipher.getOutputSize(plaintext.length);
             byte[] output = new byte[ciphertextSize + IV_LENGTH];

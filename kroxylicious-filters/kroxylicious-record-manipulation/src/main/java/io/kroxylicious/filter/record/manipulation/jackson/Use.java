@@ -7,9 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.jackson;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Random;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -17,11 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 
@@ -153,27 +147,27 @@ public class Use {
         SchemaConfig maskTree = MAPPER.readValue(maskContent, SchemaConfig.class);
         SchemaConfig unmaskTree = MAPPER.readValue(maskContent.replace("EncryptString", "DecryptString"), SchemaConfig.class);
 
-        Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
-
-        Context maskContext = new Context(new Random(), KEY);
-        JacksonFunction maskFn = JacksonFunction.buildMask(maskTree, LOOKUP);
-        Pipeline maskPipeline = new Pipeline(List.of(deserializer, maskFn.bind(maskContext), serializer));
-        ByteBuffer result = maskPipeline.apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
-        String masked = StandardCharsets.UTF_8.decode(result.duplicate()).toString();
-        LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
-
-        Context unmaskContext = new Context(new Random(), KEY);
-        JacksonFunction unmaskFn = JacksonFunction.buildMask(unmaskTree, LOOKUP);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, unmaskFn.bind(unmaskContext), serializer));
-        ByteBuffer result2 = unmaskPipeline.apply(result);
-        String unmasked = StandardCharsets.UTF_8.decode(result2.duplicate()).toString();
-        LOGGER.atInfo().addKeyValue("unmasked", unmasked).log("applied unmask");
-
-        // Root-level generation is just this same traversal, started from MissingNode instead of a real value.
-        Context generateContext = new Context(new Random(), KEY);
-        JsonNode generatedResult = JacksonFunction.buildMask(maskTree, LOOKUP).apply(MissingNode.getInstance(), generateContext);
-        String generated = MAPPER.writeValueAsString(generatedResult);
-        LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
+//        Function<JsonNode, ByteBuffer> serializer = new JacksonSerializer(MAPPER);
+//
+//        OpContext maskOpContext = new OpContext(new Random(), KEY);
+//        TypedOp<JsonNode, JsonNode> maskFn = JacksonFunction.buildMask(maskTree, LOOKUP);
+//        Pipeline<ByteBuffer, Void, ByteBuffer> maskPipeline = new Pipeline<>(List.of(deserializer, maskFn.bind(maskOpContext), serializer));
+//        ByteBuffer result = Functional.bind(maskPipeline, null).apply(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
+//        String masked = StandardCharsets.UTF_8.decode(result.duplicate()).toString();
+//        LOGGER.atInfo().addKeyValue("masked", masked).log("applied mask");
+//
+//        OpContext unmaskOpContext = new OpContext(new Random(), KEY);
+//        TypedOp<JsonNode, JsonNode> unmaskFn = JacksonFunction.buildMask(unmaskTree, LOOKUP);
+//        Pipeline<ByteBuffer, Void, ByteBuffer> unmaskPipeline = new Pipeline<>(List.of(deserializer, unmaskFn.bind(unmaskOpContext), serializer));
+//        ByteBuffer result2 = Functional.bind(unmaskPipeline, null).apply(result);
+//        String unmasked = StandardCharsets.UTF_8.decode(result2.duplicate()).toString();
+//        LOGGER.atInfo().addKeyValue("unmasked", unmasked).log("applied unmask");
+//
+//        // Root-level generation is just this same traversal, started from MissingNode instead of a real value.
+//        OpContext generateOpContext = new OpContext(new Random(), KEY);
+//        JsonNode generatedResult = JacksonFunction.buildMask(maskTree, LOOKUP).apply(MissingNode.getInstance(), generateOpContext);
+//        String generated = MAPPER.writeValueAsString(generatedResult);
+//        LOGGER.atInfo().addKeyValue("generated", generated).log("generated data");
 
     }
 

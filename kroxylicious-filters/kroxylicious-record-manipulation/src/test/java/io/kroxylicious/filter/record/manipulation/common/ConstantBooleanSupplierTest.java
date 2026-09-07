@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantBooleanSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -22,8 +22,8 @@ class ConstantBooleanSupplierTest {
         ConstantBooleanSupplier supplier = new ConstantBooleanSupplier(true);
 
         // When
-        boolean first = supplier.test(CONTEXT);
-        boolean second = supplier.test(CONTEXT);
+        boolean first = supplier.test(OP_CONTEXT);
+        boolean second = supplier.test(OP_CONTEXT);
 
         // Then
         assertThat(first).isTrue();
@@ -36,7 +36,7 @@ class ConstantBooleanSupplierTest {
         ConstantBooleanSupplier supplier = new ConstantBooleanSupplier(false);
 
         // When
-        boolean value = supplier.test(CONTEXT);
+        boolean value = supplier.test(OP_CONTEXT);
 
         // Then
         assertThat(value).isFalse();

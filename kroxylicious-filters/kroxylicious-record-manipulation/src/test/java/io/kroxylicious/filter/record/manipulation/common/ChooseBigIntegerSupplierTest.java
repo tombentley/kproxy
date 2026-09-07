@@ -18,8 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseBigIntegerSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -28,7 +28,7 @@ class ChooseBigIntegerSupplierTest {
         ChooseBigIntegerSupplier supplier = new ChooseBigIntegerSupplier(Set.of(BigInteger.valueOf(7)));
 
         // When
-        BigInteger value = supplier.apply(contextWithSeed(0));
+        BigInteger value = supplier.apply(BigInteger.ONE, contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(BigInteger.valueOf(7));
@@ -39,10 +39,10 @@ class ChooseBigIntegerSupplierTest {
         // Given
         Set<BigInteger> from = Set.of(BigInteger.ONE, BigInteger.TWO, BigInteger.TEN);
         ChooseBigIntegerSupplier supplier = new ChooseBigIntegerSupplier(from);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        BigInteger[] drawn = IntStream.range(0, 200).mapToObj(i -> supplier.apply(context)).toArray(BigInteger[]::new);
+        BigInteger[] drawn = IntStream.range(0, 200).mapToObj(i -> supplier.apply(BigInteger.ONE, opContext)).toArray(BigInteger[]::new);
 
         // Then
         assertThat(Stream.of(drawn).allMatch(from::contains)).isTrue();

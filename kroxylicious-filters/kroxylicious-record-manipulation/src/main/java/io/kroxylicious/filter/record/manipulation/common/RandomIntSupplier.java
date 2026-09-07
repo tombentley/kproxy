@@ -11,7 +11,7 @@ import java.util.function.ToIntFunction;
 /**
  * A function that returns an {@code int} drawn at random from a range.
  */
-public class RandomIntSupplier implements ToIntFunction<Context> {
+public class RandomIntSupplier implements ToIntFunction<OpContext> {
     private final int minInclusive;
     private final int maxExclusive;
 
@@ -29,7 +29,7 @@ public class RandomIntSupplier implements ToIntFunction<Context> {
     }
 
     @Override
-    public int applyAsInt(Context context) {
-        return context.random().nextInt(minInclusive, maxExclusive);
+    public int applyAsInt(OpContext opContext) {
+        return opContext.random().nextInt(minInclusive, maxExclusive);
     }
 }

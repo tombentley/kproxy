@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantBigIntegerSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -23,8 +23,8 @@ class ConstantBigIntegerSupplierTest {
         ConstantBigIntegerSupplier supplier = new ConstantBigIntegerSupplier(BigInteger.valueOf(42));
 
         // When
-        BigInteger first = supplier.apply(CONTEXT);
-        BigInteger second = supplier.apply(CONTEXT);
+        BigInteger first = supplier.apply(OP_CONTEXT);
+        BigInteger second = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(BigInteger.valueOf(42));
@@ -38,7 +38,7 @@ class ConstantBigIntegerSupplierTest {
         ConstantBigIntegerSupplier supplier = new ConstantBigIntegerSupplier(huge);
 
         // When
-        BigInteger value = supplier.apply(CONTEXT);
+        BigInteger value = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(value).isEqualTo(huge);

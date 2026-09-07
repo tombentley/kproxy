@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantBytesSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -23,8 +23,8 @@ class ConstantBytesSupplierTest {
         ConstantBytesSupplier supplier = new ConstantBytesSupplier(configured);
 
         // When
-        byte[] first = supplier.apply(CONTEXT);
-        byte[] second = supplier.apply(CONTEXT);
+        byte[] first = supplier.apply(OP_CONTEXT);
+        byte[] second = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(configured);

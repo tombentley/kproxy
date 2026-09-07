@@ -14,6 +14,8 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 
 import io.kroxylicious.filter.record.manipulation.config.OpConfig;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 /**
  * A JSON-Schema-shaped node describing where {@code apply} chains attach.
  * <p>
@@ -31,7 +33,8 @@ import io.kroxylicious.filter.record.manipulation.config.OpConfig;
  *                       and re-emitted at this node's top level (not nested) if this config is serialized
  */
 public record SchemaConfig(String type,
-                           Map<String, SchemaConfig> properties,
-                           SchemaConfig items,
-                           List<OpConfig> apply,
+                           @Nullable Map<String, SchemaConfig> properties,
+                           //List<String> required,
+                           @Nullable SchemaConfig items,
+                           @Nullable List<OpConfig> apply,
                            @JsonAnySetter @JsonAnyGetter Map<String, Object> otherKeywords) {}

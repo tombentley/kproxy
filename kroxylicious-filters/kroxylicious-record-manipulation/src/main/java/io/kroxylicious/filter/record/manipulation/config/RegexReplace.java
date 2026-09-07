@@ -6,13 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RegexReplaceStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.TypeException;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = RegexReplace.Config.class)
@@ -25,8 +28,22 @@ public class RegexReplace implements OpFactory<String, String> {
                          RegexReplaceStringFunction.Replacement replacement) {}
 
     @Override
-    public TypedOp<String, String> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(String.class, new RegexReplaceStringFunction(config.pattern(), config.replacement()));
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        RegexReplaceStringFunction regexReplaceStringFunction = new RegexReplaceStringFunction(config.pattern(), config.replacement());
+        return new StaticTypedOp<String, String>() {
+            @Override
+            public Type outputType(Type inputType) {
+                if (inputType != String.class) {
+                    throw new TypeException();
+                }
+                return String.class;
+            }
+
+            @Override
+            public String apply(String value, OpContext opContext) {
+                return regexReplaceStringFunction.apply(value, opContext);
+            }
+        };
     }
 }

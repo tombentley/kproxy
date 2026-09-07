@@ -6,12 +6,14 @@
 
 package io.kroxylicious.filter.record.manipulation.jackson;
 
-import java.util.function.BiFunction;
+import java.lang.reflect.Type;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 
 /**
  * https://json-schema.org/understanding-json-schema/reference/array
@@ -31,8 +33,18 @@ public class ArrayNodes {
      * @param itemsFn the function applied to each element of the array
      * @return a function mapping an {@link ArrayNode} to a new array with {@code itemsFn} applied to each element
      */
-    public static BiFunction<ArrayNode, Context, JsonNode> items(BiFunction<? super JsonNode, Context, ? extends JsonNode> itemsFn) {
-        return (arrayNode, context) -> new ArrayItems().modifyAll(arrayNode, itemsFn::apply, context);
+    public static BaseTypedOp<ArrayNode, JsonNode> items(BaseTypedOp<JsonNode, JsonNode> itemsFn) {
+        return BaseTypedOp.of(ArrayNode.class, JsonNode.class, (arrayNode, context) -> new ArrayItems().modifyAll(arrayNode, new StaticTypedOp<JsonNode, JsonNode>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return null;
+            }
+
+            @Override
+            public JsonNode apply(JsonNode value, OpContext opContext) {
+                return itemsFn.apply(value, context);
+            }
+        }, context));
     }
 
     /*

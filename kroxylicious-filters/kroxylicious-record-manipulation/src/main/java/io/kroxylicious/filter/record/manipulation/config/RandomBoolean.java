@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomBooleanSupplier;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -27,8 +29,18 @@ public class RandomBoolean implements OpFactory<Boolean, Boolean> {
     public record Config() {}
 
     @Override
-    public TypedOp<Boolean, Boolean> create(Map<String, Object> configMap) {
+    public BaseTypedOp<Boolean, Boolean> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         var generator = new RandomBooleanSupplier();
-        return TypedOp.of(Boolean.class, (ignored, context) -> generator.test(context));
+        return new StaticTypedOp<Boolean, Boolean>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return Boolean.class;
+            }
+
+            @Override
+            public Boolean apply(Boolean value, OpContext opContext) {
+                return generator.test(opContext);
+            }
+        };
     }
 }
