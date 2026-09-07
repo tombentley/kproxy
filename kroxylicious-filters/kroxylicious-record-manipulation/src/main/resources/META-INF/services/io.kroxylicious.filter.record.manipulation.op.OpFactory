@@ -13,6 +13,9 @@ io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson
 io.kroxylicious.filter.record.manipulation.format.avro.DeserializeAvro
 io.kroxylicious.filter.record.manipulation.format.avro.AvroTransform
 io.kroxylicious.filter.record.manipulation.format.avro.SerializeAvro
+io.kroxylicious.filter.record.manipulation.format.protobuf.DeserializeProtobuf
+io.kroxylicious.filter.record.manipulation.format.protobuf.ProtobufTransform
+io.kroxylicious.filter.record.manipulation.format.protobuf.SerializeProtobuf
 
 io.kroxylicious.filter.record.manipulation.ops.random.RandomString
 io.kroxylicious.filter.record.manipulation.ops.constant.ValueString

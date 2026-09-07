@@ -6,9 +6,9 @@ the design generalizes to synthetic data generation and other ad-hoc transforms.
 
 **Status:** wired into the real Kroxylicious filter framework - `RecordManipulation` is a
 `FilterFactory`, discoverable via `META-INF/services`, and `RecordManipulationFilter` transforms a
-record's key/value/timestamp on produce (`IN`) or fetch (`OUT`) traffic for one topic. **JSON and
-Avro (binary encoding) are wired up today.** Avro's own JSON encoding and Protobuf masking exist
-under `format/avro` and `format/protobuf` but aren't reachable from the filter yet - see "Known
+record's key/value/timestamp on produce (`IN`) or fetch (`OUT`) traffic for one topic. **JSON,
+Avro (binary encoding), and Protobuf (binary encoding) are wired up today.** Avro's own JSON
+encoding exists under `format/avro` but isn't reachable from the filter yet - see "Known
 limitations" below.
 
 ## How it works
@@ -77,24 +77,55 @@ recordTransform:
         schema: *schema
 ```
 
+Protobuf (binary encoding) follows the same shape, via `DeserializeProtobuf`/`ProtobufTransform`/
+`SerializeProtobuf`, but only `DeserializeProtobuf` takes schema config - it bundles the parsed
+schema (a `.proto` file, plus a `rootMessageName` naming the top-level message type) together with
+each decoded message, so `ProtobufTransform`/`SerializeProtobuf` just use whatever schema arrives
+rather than parsing their own copy (see the `ProtoValue` javadoc for why: unlike Avro/JSON schemas,
+Protobuf's descriptors use reference identity, so every op independently re-parsing the same
+`.proto` text would produce field references that don't match each other). The `apply` chain for a
+field sits in the field's own option syntax:
+
+```yaml
+topic: my-topic
+direction: IN
+recordTransform:
+  intoRecordValue:
+    from: RecordValue
+    apply:
+      - op: DeserializeProtobuf
+        protoText: |
+          syntax = "proto3";
+          message Payment {
+              string credit_card_number = 1 [(apply) = { op: "ValueString", value: "0000 0000 0000 0000" }];
+          }
+        rootMessageName: Payment
+      - op: ProtobufTransform
+      - op: SerializeProtobuf
+```
+
 `intoRecordKey` and `intoTimestamp` follow the same `from`/`apply` shape and, if omitted, default
 to passing the original key/timestamp through unchanged.
 
 For a worked end-to-end example (including topic/direction matching and the default-passthrough
 behaviour), see
 [`RecordManipulationFilterTest`](src/test/java/io/kroxylicious/filter/record/manipulation/filter/RecordManipulationFilterTest.java)
-(JSON) and
+(JSON),
 [`RecordManipulationFilterAvroTest`](src/test/java/io/kroxylicious/filter/record/manipulation/filter/RecordManipulationFilterAvroTest.java)
-(Avro). There are also real-cluster equivalents,
-[`RecordManipulationFilterIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterIT.java)
+(Avro), and
+[`RecordManipulationFilterProtobufTest`](src/test/java/io/kroxylicious/filter/record/manipulation/filter/RecordManipulationFilterProtobufTest.java)
+(Protobuf). There are also real-cluster equivalents,
+[`RecordManipulationFilterIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterIT.java),
+[`RecordManipulationFilterAvroIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterAvroIT.java),
 and
-[`RecordManipulationFilterAvroIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterAvroIT.java).
+[`RecordManipulationFilterProtobufIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterProtobufIT.java).
 These can be run from the repo root with:
 
 ```shell
 mvn install -pl :kroxylicious-record-manipulation
 mvn verify -pl kroxylicious-integration-tests -Dit.test=RecordManipulationFilterIT
 mvn verify -pl kroxylicious-integration-tests -Dit.test=RecordManipulationFilterAvroIT
+mvn verify -pl kroxylicious-integration-tests -Dit.test=RecordManipulationFilterProtobufIT
 ```
 
 (the first command rebuilds this module's jar from source so the second and third pick up local
@@ -103,16 +134,21 @@ reactor-wide, including to upstream modules that don't have a matching test)
 
 ## Known limitations
 
-- JSON and Avro (binary encoding) only. Avro's own JSON encoding and Protobuf masking are
+- JSON, Avro (binary encoding), and Protobuf (binary encoding) only. Avro's own JSON encoding is
   implemented at the engine level but not yet wired into the filter's config or `apply`
   resolution. `AvroTransform` is also scoped to record-shaped schemas - Avro permits other schema
   shapes (array, map, a bare scalar, ...) as a serialization root, but `AvroBinaryDeserializer`/
   `AvroBinarySerializer` (which `DeserializeAvro`/`SerializeAvro` wrap) only support records today.
+  Protobuf has no equivalent ambiguity: its wire format only ever serializes a `message`, so
+  `ProtobufTransform` needs no such scoping check.
 - One topic and one direction per filter instance.
-- No schema registry integration - the record value is assumed to be plain JSON/Avro, not
-  JSON/Avro/Protobuf with a registry-ID prefix.
+- No schema registry integration - the record value is assumed to be plain JSON/Avro/Protobuf, not
+  prefixed with a registry schema ID.
 - `Delete`/insert of JSON object properties is supported; array element insert/delete is not.
-  Avro has no equivalent field insert/delete at all, since every field declared by a schema must
-  be present in any conforming record.
-- Javadoc coverage and a handful of pre-existing SpotBugs findings (mostly in the Avro/Protobuf
-  code) are known debt, not yet addressed.
+  Avro and Protobuf have no equivalent field insert/delete at all, since every field declared by a
+  schema must be present in any conforming record/message (Protobuf's implicit-presence fields
+  aside, which a mask never manufactures presence for - see `ProtobufMessages`).
+- Protobuf `map` fields and message-level `apply` (as opposed to field-level) aren't supported yet
+  - see `ProtobufFunction`'s validation for both.
+- Javadoc coverage and a handful of pre-existing SpotBugs findings are known debt, not yet
+  addressed.
