@@ -32,6 +32,11 @@
         <maven.deploy.skip>true</maven.deploy.skip>
         <central.publishing.skip>true</central.publishing.skip>
 
+        <!-- Override for kafka version - used when Apache Kafka is ahead of the Strimzi (or
+             strimzi-test-clients image) release. Kept in sync by hand with the identical override
+             in kroxylicious-systemtests/pom.xml. -->
+        <kafka.version>4.2.0</kafka.version>
+
         <!-- Base image for the OAuthBearer-capable test client image. Kept in sync by hand with
              Environment.TEST_CLIENTS_IMAGE_DEFAULT in kroxylicious-systemtests, the same way the
              kroxylicious-operator/webhook image names are kept in sync with their Environment.java
