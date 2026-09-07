@@ -7,9 +7,11 @@
 package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.ProduceRequestData;
 import org.apache.kafka.common.message.RequestHeaderData;
@@ -30,8 +32,10 @@ import io.kroxylicious.proxy.filter.ProduceRequestFilter;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import io.kroxylicious.proxy.filter.ShareFetchResponseFilter;
+import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class RecordManipulationFilter implements
         ProduceRequestFilter,
@@ -70,16 +74,23 @@ public class RecordManipulationFilter implements
                                                                  RequestHeaderData header,
                                                                  ProduceRequestData request,
                                                                  FilterContext context) {
-        if (this.direction == Direction.IN) {
+        if (this.direction != Direction.IN) {
+            return context.forwardRequest(header, request);
+        }
+        List<Uuid> idsToResolve = request.topicData().stream()
+                .filter(topicData -> topicData.name().isEmpty())
+                .map(ProduceRequestData.TopicProduceData::topicId)
+                .toList();
+        return context.topicNames(idsToResolve).thenCompose(topicNameMapping -> {
             for (var topicData : request.topicData()) {
-                if (topicData.name().equals(topic)) {
+                if (topic.equals(resolveTopicName(topicData.name(), topicData.topicId(), topicNameMapping))) {
                     for (var partitionData : topicData.partitionData()) {
                         partitionData.setRecords(transformRecords(partitionData.records(), partitionData.index()));
                     }
                 }
             }
-        }
-        return context.forwardRequest(header, request);
+            return context.forwardRequest(header, request);
+        });
     }
 
     @Override
@@ -87,16 +98,33 @@ public class RecordManipulationFilter implements
                                                                  ResponseHeaderData header,
                                                                  FetchResponseData response,
                                                                  FilterContext context) {
-        if (this.direction == Direction.OUT) {
+        if (this.direction != Direction.OUT) {
+            return context.forwardResponse(header, response);
+        }
+        List<Uuid> idsToResolve = response.responses().stream()
+                .filter(topicData -> topicData.topic().isEmpty())
+                .map(FetchResponseData.FetchableTopicResponse::topicId)
+                .toList();
+        return context.topicNames(idsToResolve).thenCompose(topicNameMapping -> {
             for (var topicData : response.responses()) {
-                if (topicData.topic().equals(topic)) {
+                if (topic.equals(resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping))) {
                     for (var partitionData : topicData.partitions()) {
                         partitionData.setRecords(transformRecords(partitionData.records(), partitionData.partitionIndex()));
                     }
                 }
             }
-        }
-        return context.forwardResponse(header, response);
+            return context.forwardResponse(header, response);
+        });
+    }
+
+    /**
+     * Resolves a topic's name, falling back to {@code topicNameMapping} when {@code name} is absent -
+     * true from Produce (v13+, KIP-951) and Fetch (v13+, KIP-516) protocol versions onwards, which
+     * identify topics by {@code topicId} alone.
+     */
+    @Nullable
+    private static String resolveTopicName(String name, Uuid topicId, TopicNameMapping topicNameMapping) {
+        return name.isEmpty() ? topicNameMapping.topicNames().get(topicId) : name;
     }
 
     @NonNull
