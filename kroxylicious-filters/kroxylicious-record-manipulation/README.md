@@ -57,6 +57,18 @@ to passing the original key/timestamp through unchanged.
 For a worked end-to-end example (including topic/direction matching and the default-passthrough
 behaviour), see
 [`RecordManipulationFilterTest`](src/test/java/io/kroxylicious/filter/record/manipulation/filter/RecordManipulationFilterTest.java).
+There's also a real-cluster equivalent,
+[`RecordManipulationFilterIT`](../../kroxylicious-integration-tests/src/test/java/io/kroxylicious/it/filter/manipulation/RecordManipulationFilterIT.java).
+These can be run from the repo root with:
+
+```shell
+mvn install -pl :kroxylicious-record-manipulation
+mvn verify -pl kroxylicious-integration-tests -Dit.test=RecordManipulationFilterIT
+```
+
+(the first command rebuilds this module's jar from source so the second picks up local changes;
+`-Dtest` combined with `-am` in a single command fails because it's applied reactor-wide, including
+to upstream modules that don't have a matching test)
 
 ## Known limitations
 
