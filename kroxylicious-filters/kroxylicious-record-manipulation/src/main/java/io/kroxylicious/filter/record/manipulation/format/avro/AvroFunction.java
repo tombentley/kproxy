@@ -172,7 +172,7 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
                 var fn = AvroArrays.items(buildMask(schema.getElementType(), requirements, lookup));
                 yield new AvroFunction((value, opContext) -> fn.apply(castToList(value), opContext));
             }
-            case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES -> new AvroFunction((value, context) -> value);
+            case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES, ENUM, FIXED -> new AvroFunction((value, context) -> value);
             default -> throw new IllegalArgumentException("Avro mask not yet supported for schema type: " + schema.getType());
         };
     }

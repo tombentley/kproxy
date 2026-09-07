@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.common.ListElements;
 import io.kroxylicious.filter.record.manipulation.format.jackson.ArrayNodes;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
@@ -25,19 +26,6 @@ public class AvroArrays {
      * @return a function mapping an array to a new array with {@code itemsFn} applied to each element
      */
     public static BaseTypedOp<List<Object>, List<Object>> items(BaseTypedOp<Object, Object> itemsFn) {
-        return null; /*
-                      * (array, context) -> new ListElements().modifyAll(array, new StaticTypedOp<Object, Object>() {
-                      *
-                      * @Override
-                      * public Object apply(Object value, OpContext opContext) {
-                      * return itemsFn.apply(value, opContext);
-                      * }
-                      *
-                      * @Override
-                      * public Type outputType(Type inputType) {
-                      * return Object.class;
-                      * }
-                      * }, context);
-                      */
+        return BaseTypedOp.of(List.class, List.class, (array, context) -> new ListElements().modifyAll(array, itemsFn, context));
     }
 }
