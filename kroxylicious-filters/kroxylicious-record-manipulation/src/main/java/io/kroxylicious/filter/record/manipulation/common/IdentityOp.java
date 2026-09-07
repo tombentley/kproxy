@@ -10,6 +10,9 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 public class IdentityOp<T> implements BaseTypedOp<T, T> {
 
     private static IdentityOp INSTANCE = new IdentityOp();

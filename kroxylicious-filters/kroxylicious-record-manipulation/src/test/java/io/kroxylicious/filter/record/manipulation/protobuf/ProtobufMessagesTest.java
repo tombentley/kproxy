@@ -14,8 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseStringSupplierTest {

@@ -8,7 +8,7 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.List;
 
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

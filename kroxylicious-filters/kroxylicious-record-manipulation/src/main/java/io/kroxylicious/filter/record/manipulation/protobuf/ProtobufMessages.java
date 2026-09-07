@@ -12,8 +12,8 @@ import java.util.function.BiFunction;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.avro.AvroRecords} for Protobuf message values,

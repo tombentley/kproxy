@@ -13,8 +13,8 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 /**
  * Mirrors {@link io.kroxylicious.filter.record.manipulation.jackson.ObjectNodes} for Avro record values -

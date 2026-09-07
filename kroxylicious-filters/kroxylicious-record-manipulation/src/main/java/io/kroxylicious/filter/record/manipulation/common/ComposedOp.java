@@ -6,12 +6,13 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Type;
 
 import io.leangen.geantyref.GenericTypeReflector;
+
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
 

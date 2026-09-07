@@ -8,11 +8,12 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import io.leangen.geantyref.GenericTypeReflector;
 import io.leangen.geantyref.TypeToken;
+
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 /**
  * An operation on a value of type {@code T}, given some {@link OpContext}, producing a value of type

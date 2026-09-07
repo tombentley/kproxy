@@ -16,8 +16,8 @@ import org.apache.kafka.common.record.Record;
 import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.Functional;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.kafka.transform.RecordTransform;

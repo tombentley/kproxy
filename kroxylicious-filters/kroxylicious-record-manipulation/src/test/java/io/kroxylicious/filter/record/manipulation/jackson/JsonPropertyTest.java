@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
-import io.kroxylicious.filter.record.manipulation.common.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

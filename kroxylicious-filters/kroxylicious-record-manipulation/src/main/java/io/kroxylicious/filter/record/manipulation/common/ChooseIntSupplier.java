@@ -9,6 +9,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 import java.util.Set;
 import java.util.function.ToIntFunction;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * A function that returns an {@code int} drawn at random from a fixed set.
  */

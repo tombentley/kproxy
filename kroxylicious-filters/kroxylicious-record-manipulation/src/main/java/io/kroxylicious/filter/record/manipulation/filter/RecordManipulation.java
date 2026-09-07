@@ -16,9 +16,9 @@ import org.apache.kafka.common.record.Record;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.common.TypeException;
-import io.kroxylicious.filter.record.manipulation.config.OpConfig;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;

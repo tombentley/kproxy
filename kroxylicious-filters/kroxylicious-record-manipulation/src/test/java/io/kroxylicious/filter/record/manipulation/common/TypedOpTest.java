@@ -11,6 +11,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TypedOpTest {

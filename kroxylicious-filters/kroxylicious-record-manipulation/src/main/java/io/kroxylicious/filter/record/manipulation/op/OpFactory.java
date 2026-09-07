@@ -4,10 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.common;
+package io.kroxylicious.filter.record.manipulation.op;
 
 import java.lang.reflect.Type;
 import java.util.Map;
+
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 
 /**
  * A plugin that builds a {@link TypedOp} from {@code T} to {@code R} from some configuration.

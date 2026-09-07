@@ -15,6 +15,8 @@ import java.util.function.BiFunction;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
+
 /**
  * Computes the Base64-encoded HMAC-SHA256 of a string, using a raw key drawn from the invocation's
  * {@link OpContext}. A fresh {@link Mac} is created per invocation - the key isn't known until then, and a

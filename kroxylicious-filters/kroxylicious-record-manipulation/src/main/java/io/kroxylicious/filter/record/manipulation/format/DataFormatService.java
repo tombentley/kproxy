@@ -6,7 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.format;
 
-import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 /**
  * A factory for {@link DataFormat}s which do not require a schema, such as JSON or XML.
