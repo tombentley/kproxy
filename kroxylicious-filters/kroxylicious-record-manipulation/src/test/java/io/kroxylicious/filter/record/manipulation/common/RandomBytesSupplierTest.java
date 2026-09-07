@@ -16,10 +16,10 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomBytesSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -28,7 +28,7 @@ class RandomBytesSupplierTest {
         RandomBytesSupplier supplier = new RandomBytesSupplier(3, 4);
 
         // When
-        byte[] value = supplier.apply(CONTEXT);
+        byte[] value = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(value).hasSize(3);
@@ -40,7 +40,7 @@ class RandomBytesSupplierTest {
         RandomBytesSupplier supplier = new RandomBytesSupplier(0, 1);
 
         // When
-        byte[] value = supplier.apply(CONTEXT);
+        byte[] value = supplier.apply(OP_CONTEXT);
 
         // Then
         assertThat(value).isEmpty();
@@ -50,10 +50,10 @@ class RandomBytesSupplierTest {
     void lengthFallsWithinConfiguredRange() {
         // Given
         RandomBytesSupplier supplier = new RandomBytesSupplier(3, 15);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        int[] lengths = IntStream.range(0, 200).map(i -> supplier.apply(context).length).toArray();
+        int[] lengths = IntStream.range(0, 200).map(i -> supplier.apply(opContext).length).toArray();
 
         // Then
         assertThat(IntStream.of(lengths).allMatch(length -> length >= 3 && length < 15)).isTrue();

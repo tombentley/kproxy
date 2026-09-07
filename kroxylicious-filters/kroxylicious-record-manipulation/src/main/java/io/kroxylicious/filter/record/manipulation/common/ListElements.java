@@ -8,7 +8,6 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * A {@link Traversal} focusing on every element of a plain {@link List} - shared by every format whose
@@ -25,10 +24,10 @@ public record ListElements() implements Traversal<List<Object>, Object> {
     }
 
     @Override
-    public List<Object> modifyAll(List<Object> list, BiFunction<Object, Context, Object> f, Context context) {
+    public List<Object> modifyAll(List<Object> list, BaseTypedOp<Object, Object> f, OpContext opContext) {
         List<Object> result = new ArrayList<>(list.size());
         for (Object element : list) {
-            result.add(f.apply(element, context));
+            result.add(f.apply(element, opContext));
         }
         return result;
     }

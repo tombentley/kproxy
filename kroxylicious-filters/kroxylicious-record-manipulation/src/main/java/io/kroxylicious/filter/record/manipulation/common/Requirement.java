@@ -7,7 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.common;
 
 /**
- * A property a caller can require of a composed {@link ContextPipeline}, verified once at construction time
+ * A property a caller can require of a composed {@link OpPipeline}, verified once at construction time
  * rather than assumed. Deliberately consumed as a set of requirements at every call site that accepts one,
  * even though only one member exists today, so a future addition (e.g. a determinism requirement) doesn't
  * change any call site's type.

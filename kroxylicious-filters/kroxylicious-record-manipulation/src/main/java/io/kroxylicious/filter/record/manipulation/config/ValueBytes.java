@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -50,8 +52,18 @@ public class ValueBytes implements OpFactory<byte[], byte[]> {
     }
 
     @Override
-    public TypedOp<byte[], byte[]> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(byte[].class, (ignored, context) -> config.value());
+    public BaseTypedOp<byte[], byte[]> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        return new StaticTypedOp<byte[], byte[]>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return byte[].class;
+            }
+
+            @Override
+            public byte[] apply(byte[] value, OpContext opContext) {
+                return config.value();
+            }
+        };
     }
 }

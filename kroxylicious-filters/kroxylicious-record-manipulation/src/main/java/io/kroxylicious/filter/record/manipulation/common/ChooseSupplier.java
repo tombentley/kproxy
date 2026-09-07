@@ -14,7 +14,7 @@ import java.util.function.Function;
  *
  * @param <T> the type of the values
  */
-public class ChooseSupplier<T> implements Function<Context, T> {
+public class ChooseSupplier<T> implements Function<OpContext, T> {
     private final Object[] values;
 
     /**
@@ -27,7 +27,7 @@ public class ChooseSupplier<T> implements Function<Context, T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public T apply(Context context) {
-        return (T) values[context.random().nextInt(0, values.length)];
+    public T apply(OpContext opContext) {
+        return (T) values[opContext.random().nextInt(0, values.length)];
     }
 }

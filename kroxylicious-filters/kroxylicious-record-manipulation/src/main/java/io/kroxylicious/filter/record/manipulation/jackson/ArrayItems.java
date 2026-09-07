@@ -7,12 +7,12 @@
 package io.kroxylicious.filter.record.manipulation.jackson;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.Traversal;
 
 /**
@@ -26,9 +26,9 @@ public record ArrayItems() implements Traversal<ArrayNode, JsonNode> {
     }
 
     @Override
-    public ArrayNode modifyAll(ArrayNode array, BiFunction<JsonNode, Context, JsonNode> f, Context context) {
+    public ArrayNode modifyAll(ArrayNode array, BaseTypedOp<JsonNode, JsonNode> f, OpContext opContext) {
         ArrayNode result = array.arrayNode(array.size());
-        array.valueStream().map(node -> f.apply(node, context)).forEach(result::add);
+        array.valueStream().map(node -> f.apply(node, opContext)).forEach(result::add);
         return result;
     }
 }

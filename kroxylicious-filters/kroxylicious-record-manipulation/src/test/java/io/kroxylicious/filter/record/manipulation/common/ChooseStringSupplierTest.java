@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseStringSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -37,10 +37,10 @@ class ChooseStringSupplierTest {
         // Given
         Set<String> from = Set.of("a", "b", "c");
         ChooseStringSupplier supplier = new ChooseStringSupplier(from);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        boolean allMembers = Stream.generate(() -> supplier.apply(context)).limit(200).allMatch(from::contains);
+        boolean allMembers = Stream.generate(() -> supplier.apply(opContext)).limit(200).allMatch(from::contains);
 
         // Then
         assertThat(allMembers).isTrue();

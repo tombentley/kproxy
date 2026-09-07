@@ -14,13 +14,13 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JacksonTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void convertStringGeneratorWrapsSuppliedValueInTextNode() {
@@ -28,7 +28,7 @@ class JacksonTest {
         var generator = Jackson.convertString(context -> "hello");
 
         // When
-        TextNode node = generator.apply(CONTEXT);
+        TextNode node = generator.apply(OP_CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new TextNode("hello"));
@@ -37,11 +37,11 @@ class JacksonTest {
     @Test
     void convertStringFunctionAppliesFunctionToNodeTextAndWrapsResult() {
         // Given
-        var function = Jackson.convertString((String s, Context context) -> s.toUpperCase());
+        var function = Jackson.convertString((String s, OpContext context) -> s.toUpperCase());
         TextNode input = new TextNode("hello");
 
         // When
-        TextNode result = function.apply(input, CONTEXT);
+        TextNode result = function.apply(input, OP_CONTEXT);
 
         // Then
         assertThat(result).isEqualTo(new TextNode("HELLO"));
@@ -53,7 +53,7 @@ class JacksonTest {
         var generator = Jackson.convertInt(context -> 42);
 
         // When
-        IntNode node = generator.apply(CONTEXT);
+        IntNode node = generator.apply(OP_CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new IntNode(42));
@@ -65,7 +65,7 @@ class JacksonTest {
         var generator = Jackson.convertLong(context -> 42L);
 
         // When
-        LongNode node = generator.apply(CONTEXT);
+        LongNode node = generator.apply(OP_CONTEXT);
 
         // Then
         assertThat(node).isEqualTo(new LongNode(42L));

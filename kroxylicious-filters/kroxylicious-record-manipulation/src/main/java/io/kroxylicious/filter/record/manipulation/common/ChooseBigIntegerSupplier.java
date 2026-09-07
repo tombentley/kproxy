@@ -8,12 +8,12 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.math.BigInteger;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * A function that returns a {@code BigInteger} drawn at random from a fixed set.
  */
-public class ChooseBigIntegerSupplier implements Function<Context, BigInteger> {
+public class ChooseBigIntegerSupplier implements BiFunction<BigInteger, OpContext, BigInteger> {
     private final BigInteger[] values;
 
     /**
@@ -25,8 +25,8 @@ public class ChooseBigIntegerSupplier implements Function<Context, BigInteger> {
     }
 
     @Override
-    public BigInteger apply(Context context) {
-        int index = context.random().nextInt(0, values.length);
+    public BigInteger apply(BigInteger ignored, OpContext opContext) {
+        int index = opContext.random().nextInt(0, values.length);
         return values[index];
     }
 }

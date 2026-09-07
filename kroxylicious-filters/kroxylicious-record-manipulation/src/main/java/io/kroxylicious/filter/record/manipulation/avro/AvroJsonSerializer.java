@@ -18,12 +18,14 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
+import io.kroxylicious.filter.record.manipulation.format.Serializer;
+
 /**
  * Serializes a {@link GenericRecord} to a {@link ByteBuffer} ready to be read, using Avro's JSON encoding -
  * the inverse of {@link AvroJsonDeserializer}. Mirrors {@link AvroBinarySerializer}, but via
  * {@link org.apache.avro.io.JsonEncoder} rather than {@link org.apache.avro.io.BinaryEncoder}.
  */
-public class AvroJsonSerializer implements Function<GenericRecord, ByteBuffer> {
+public class AvroJsonSerializer implements Function<GenericRecord, ByteBuffer>, Serializer<GenericRecord> {
 
     private final Schema schema;
     private final GenericDatumWriter<GenericRecord> writer;
@@ -39,6 +41,11 @@ public class AvroJsonSerializer implements Function<GenericRecord, ByteBuffer> {
 
     @Override
     public ByteBuffer apply(GenericRecord record) {
+        return serialize(record);
+    }
+
+    @Override
+    public ByteBuffer serialize(GenericRecord record) {
         // TODO buffer recycling
         try (var os = new ByteBufferOutputStream(10000)) {
             Encoder encoder = EncoderFactory.get().jsonEncoder(schema, os);

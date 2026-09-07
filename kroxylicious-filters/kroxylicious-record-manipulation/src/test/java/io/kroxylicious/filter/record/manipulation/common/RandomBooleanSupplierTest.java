@@ -15,19 +15,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RandomBooleanSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
     void drawsBothTrueAndFalseOverManyCalls() {
         // Given
         RandomBooleanSupplier supplier = new RandomBooleanSupplier();
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
         boolean[] values = new boolean[50];
-        IntStream.range(0, values.length).forEach(i -> values[i] = supplier.test(context));
+        IntStream.range(0, values.length).forEach(i -> values[i] = supplier.test(opContext));
 
         // Then
         assertThat(values).contains(true).contains(false);

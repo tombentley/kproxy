@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DecryptStringFunctionTest {
 
     private static final byte[] KEY = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
-    private static final Context CONTEXT = new Context(new Random(), KEY);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), KEY);
 
     @ParameterizedTest
     @ValueSource(strings = { "", "hello world", "unicode: héllo wörld 日本語" })
@@ -29,8 +29,8 @@ class DecryptStringFunctionTest {
         DecryptStringFunction decrypt = new DecryptStringFunction();
 
         // When
-        String ciphertext = encrypt.apply(plaintext, CONTEXT);
-        String roundTripped = decrypt.apply(ciphertext, CONTEXT);
+        String ciphertext = encrypt.apply(plaintext, OP_CONTEXT);
+        String roundTripped = decrypt.apply(ciphertext, OP_CONTEXT);
 
         // Then
         assertThat(roundTripped).isEqualTo(plaintext);
@@ -41,13 +41,13 @@ class DecryptStringFunctionTest {
         // Given
         EncryptStringFunction encrypt = new EncryptStringFunction();
         DecryptStringFunction decrypt = new DecryptStringFunction();
-        String ciphertext = encrypt.apply("hello", CONTEXT);
+        String ciphertext = encrypt.apply("hello", OP_CONTEXT);
         byte[] tampered = Base64.getDecoder().decode(ciphertext);
         tampered[0] ^= 0xFF;
         String tamperedCiphertext = Base64.getEncoder().encodeToString(tampered);
 
         // When/Then
-        assertThatThrownBy(() -> decrypt.apply(tamperedCiphertext, CONTEXT))
+        assertThatThrownBy(() -> decrypt.apply(tamperedCiphertext, OP_CONTEXT))
                 .isInstanceOf(RuntimeException.class);
     }
 

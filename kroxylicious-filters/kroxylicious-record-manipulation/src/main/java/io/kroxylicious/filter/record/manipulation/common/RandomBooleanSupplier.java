@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 /**
  * A function that returns an {@code int} drawn at random from a range.
  */
-public class RandomBooleanSupplier implements Predicate<Context> {
+public class RandomBooleanSupplier implements Predicate<OpContext> {
 
     /**
      * Creates an instance.
@@ -20,7 +20,7 @@ public class RandomBooleanSupplier implements Predicate<Context> {
     }
 
     @Override
-    public boolean test(Context context) {
-        return context.random().nextBoolean();
+    public boolean test(OpContext opContext) {
+        return opContext.random().nextBoolean();
     }
 }

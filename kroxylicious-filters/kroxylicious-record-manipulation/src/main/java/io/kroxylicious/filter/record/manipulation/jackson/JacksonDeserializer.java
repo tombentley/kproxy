@@ -15,10 +15,13 @@ import org.apache.kafka.common.utils.ByteBufferInputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
+import io.kroxylicious.filter.record.manipulation.format.Deserializer;
+
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link JsonNode}.
  */
-public class JacksonDeserializer implements Function<ByteBuffer, JsonNode> {
+public class JacksonDeserializer implements Function<ByteBuffer, JsonNode>, Deserializer<JsonNode> {
 
     private final ObjectMapper mapper;
 
@@ -32,18 +35,23 @@ public class JacksonDeserializer implements Function<ByteBuffer, JsonNode> {
 
     @Override
     public JsonNode apply(ByteBuffer bb) {
+        return deserialize(bb);
+    }
+
+    @Override
+    public JsonNode deserialize(ByteBuffer byteBuffer) {
         try {
-            if (bb.hasArray()) {
-                return mapper.readTree(bb.array(), bb.arrayOffset(), bb.remaining());
+            if (byteBuffer.hasArray()) {
+                return mapper.readTree(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.remaining());
             }
             else {
-                try (var is = new ByteBufferInputStream(bb)) {
+                try (var is = new ByteBufferInputStream(byteBuffer)) {
                     return mapper.readTree(is);
                 }
             }
         }
-        catch (IOException e) {
-            throw new RuntimeException(e);
+        catch (Exception e) {
+            throw new DeserializationException(e);
         }
     }
 }

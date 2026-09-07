@@ -2,7 +2,7 @@
 
 ## What?
 
-A Filter for flexibly manipulating Kafka record data on it way to or from a broker.
+A Filter for flexibly manipulating Kafka record data on its way to, or from, a broker.
 
 **Status: experimental.** This module is not yet wired into the Kroxylicious filter framework (no
 `Filter`/`FilterFactory`, no `META-INF/services` entry). It is a set of building blocks, driven by
@@ -20,13 +20,35 @@ There are a lot of use cases for this kind of manipulation, including:
 
 ## How?
 
-While the concept is simple, the reality is complex because:
+While the concept is simple, the reality is complex.
 
-* The Kafka protocol is completely unopinionated about data formats, so clients can use whatever serialization they like. In practice JSON, Apache Avro, and Protocol Buffers (Protobuf) are most commonly used, with along tail of more niche formats.
-* Each data format defines its own type system, with its own rules. Each data format's schema language is specific to that format. These differences are extremely difficult to abstract over, and any such abstraction is likely to be brittle.
-* Some data formats, like Avro and Protobuf require a schema to (de)serialize. This means that either the transformation on that data must be type-preserving, so that the transformation's input schema is the same as its output schema; or a separate output schema needs to be used, and be type compatible with the transformation. 
-* Some data formats, like JSON or XML, don't require a schema, but one may be used. If it is then again the transformations being applied to the input (assumed schema-valid) data must not result in schema-invalid data, or otherwise a separate output schema is needed. The schemas for these formats often function more like "constraint languages", than "type schemas". For example, although JSON Schema allows to say that a `name` property of an `object` is of type `string`, it can also provide limits on the length of that `string`, or mandate that it matches a given regular expression.
-* Clients may, or may not, be using a schema registry. If they are using a schema registry then there are a number of pick between, and they don't all work the same way.
+The Kafka protocol is completely unopinionated about data formats, so clients can use whatever format they like. 
+In practice JSON, Apache Avro, and Protocol Buffers (Protobuf) are most commonly used, with a long tail of more niche formats.
+Formats like JSON and XML are, to an extent, self-describing: They can be read and written without a schema. Other formats, like Avro and Protobuf, require a schema to (de)serialize.
+Often a self-describing format will support ways of constraining data, effectively creating a more specific subformat. 
+For example, JSON Schema is a popular way of constraining JSON so that documents valid to a given schema are more structured. XML supports several constaint languagews.
+
+Each data format's schema language is specific to that format, and each defines its own type system, with its own rules.
+These differences are extremely difficult to abstract over, and any such abstraction is likely to be brittle.
+For example, in Avro the keys of a `map` in Avro must be `strings`, but Protobuf allows maps with integral keys, as well as strings, but a format like CSV does not have a map concept, while a format like XML doesn't have a single way of representing a map.
+
+The `RecordManipulation` filter does not attempt to define some grand type system or abstract over the differences. 
+It supplies an abstraction for defining operations on values of Java types, for example operations that return a given (configured) `String`, or `int`, or that replace regular expression matches in a `String`. 
+It supports composing such operations, and it takes responsibility for type-checking that compositions of such operations are type-safe.
+
+It is the user's responsibility to ensure:
+* That input data is schema-valid
+* That the transformation is compatible with the schema, so that the output data is schema-valid
+
+For required-schema formats, like Avro and Protobuf, either:
+* the transformation on that data must be type-preserving, so that the transformation's input schema is the same as its output schema; 
+* or a separate output schema needs to be used, and be type compatible with the transformation.
+
+For schema-constrained formats, like JSON Schema, then if a schema is used then either 
+* the transformations being applied to the input (assumed schema-valid) data must not result in schema-invalid data, 
+* or otherwise a separate output schema is needed. 
+
+Clients may, or may not, be using a schema registry. If they are using a schema registry then there are a number of pick between, and they don't all work the same way.
 
 ## Idea
 

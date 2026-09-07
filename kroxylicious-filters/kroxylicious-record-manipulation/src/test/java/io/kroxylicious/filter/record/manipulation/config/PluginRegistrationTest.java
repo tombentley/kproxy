@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import io.leangen.geantyref.TypeToken;
 
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
 import io.kroxylicious.proxy.config.PluginFactoryRegistry;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 
@@ -255,8 +255,8 @@ class PluginRegistrationTest {
         OpFactory<?, ?> randomString = REGISTRY.pluginFactory(OpFactory.class).pluginInstance("RandomString");
 
         // When
-        TypedOp<?, ?> intOp = randomInt.create(Map.of("minInclusive", 0, "maxExclusive", 10));
-        TypedOp<?, ?> stringOp = randomString.create(Map.of("alphabet", "abc", "minLengthInclusive", 1, "maxLengthExclusive", 5));
+        BaseTypedOp<?, ?> intOp = randomInt.create(Map.of("minInclusive", 0, "maxExclusive", 10), null, null);
+        BaseTypedOp<?, ?> stringOp = randomString.create(Map.of("alphabet", "abc", "minLengthInclusive", 1, "maxLengthExclusive", 5), null, null);
 
         // Then
         assertThat(intOp.inputType()).isEqualTo(TypeToken.get(Integer.class));

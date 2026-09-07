@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseDoubleSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -27,7 +27,7 @@ class ChooseDoubleSupplierTest {
         ChooseDoubleSupplier supplier = new ChooseDoubleSupplier(Set.of(7.5));
 
         // When
-        double value = supplier.applyAsDouble(contextWithSeed(0));
+        double value = supplier.apply(3.4, contextWithSeed(0));
 
         // Then
         assertThat(value).isEqualTo(7.5);
@@ -38,10 +38,10 @@ class ChooseDoubleSupplierTest {
         // Given
         Set<Double> from = Set.of(1.5, 2.5, 3.5);
         ChooseDoubleSupplier supplier = new ChooseDoubleSupplier(from);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        double[] drawn = IntStream.range(0, 200).mapToDouble(i -> supplier.applyAsDouble(context)).toArray();
+        double[] drawn = IntStream.range(0, 200).mapToDouble(i -> supplier.apply(3.4, opContext)).toArray();
 
         // Then
         assertThat(DoubleStream.of(drawn).allMatch(from::contains)).isTrue();

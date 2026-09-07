@@ -13,7 +13,7 @@ import java.util.function.Function;
  * A provider of strings of a random length composed of
  * codepoints taken at random from a given alphabet.
  */
-public class RandomStringSupplier implements Function<Context, String> {
+public class RandomStringSupplier implements Function<OpContext, String> {
 
     private final String alphabet;
     private final int minLengthInclusive;
@@ -40,8 +40,8 @@ public class RandomStringSupplier implements Function<Context, String> {
     }
 
     @Override
-    public String apply(Context context) {
-        Random prng = context.random();
+    public String apply(OpContext opContext) {
+        Random prng = opContext.random();
         var codePoints = alphabet.codePoints().toArray();
         var length = prng.nextInt(minLengthInclusive, maxLengthExclusive);
         StringBuilder sb = new StringBuilder();

@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ChooseLongSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
@@ -37,10 +37,10 @@ class ChooseLongSupplierTest {
         // Given
         Set<Long> from = Set.of(1L, 2L, 3L);
         ChooseLongSupplier supplier = new ChooseLongSupplier(from);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        long[] drawn = LongStream.range(0, 200).map(i -> supplier.applyAsLong(context)).toArray();
+        long[] drawn = LongStream.range(0, 200).map(i -> supplier.applyAsLong(opContext)).toArray();
 
         // Then
         assertThat(LongStream.of(drawn).allMatch(from::contains)).isTrue();

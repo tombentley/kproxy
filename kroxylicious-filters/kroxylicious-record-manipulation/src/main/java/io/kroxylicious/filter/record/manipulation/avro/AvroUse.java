@@ -8,7 +8,6 @@ package io.kroxylicious.filter.record.manipulation.avro;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Function;
 
 import org.apache.avro.Schema;
@@ -17,8 +16,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.jackson.Use;
@@ -101,22 +98,22 @@ public class AvroUse {
         Function<GenericRecord, ByteBuffer> serializer = new AvroBinarySerializer(maskSchema);
         ByteBuffer data = serializer.apply(user);
 
-        Context maskContext = new Context(new Random(), KEY);
-        Pipeline maskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskContext), serializer));
-        ByteBuffer masked = maskPipeline.apply(data.duplicate());
-        LOGGER.atInfo().addKeyValue("masked", deserializer.apply(masked.duplicate())).log("applied mask");
-
-        Context unmaskContext = new Context(new Random(), KEY);
-        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskContext), serializer));
-        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
-        LOGGER.atInfo().addKeyValue("unmasked", deserializer.apply(unmasked.duplicate())).log("applied unmask");
-
-        // The same mask, applied via Avro's JSON encoding rather than its binary encoding.
-        Function<ByteBuffer, GenericRecord> jsonDeserializer = new AvroJsonDeserializer(maskSchema);
-        Function<GenericRecord, ByteBuffer> jsonSerializer = new AvroJsonSerializer(maskSchema);
-        Pipeline jsonMaskPipeline = new Pipeline(
-                List.of(jsonDeserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(new Context(new Random(), KEY)), jsonSerializer));
-        ByteBuffer jsonMasked = jsonMaskPipeline.apply(jsonSerializer.apply(user));
-        LOGGER.atInfo().addKeyValue("jsonMasked", jsonDeserializer.apply(jsonMasked.duplicate())).log("applied mask via Avro JSON encoding");
+//        OpContext maskOpContext = new OpContext(new Random(), KEY);
+//        Pipeline maskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskOpContext), serializer));
+//        ByteBuffer masked = maskPipeline.apply(data.duplicate());
+//        LOGGER.atInfo().addKeyValue("masked", deserializer.apply(masked.duplicate())).log("applied mask");
+//
+//        OpContext unmaskOpContext = new OpContext(new Random(), KEY);
+//        Pipeline unmaskPipeline = new Pipeline(List.of(deserializer, AvroFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskOpContext), serializer));
+//        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
+//        LOGGER.atInfo().addKeyValue("unmasked", deserializer.apply(unmasked.duplicate())).log("applied unmask");
+//
+//        // The same mask, applied via Avro's JSON encoding rather than its binary encoding.
+//        Function<ByteBuffer, GenericRecord> jsonDeserializer = new AvroJsonDeserializer(maskSchema);
+//        Function<GenericRecord, ByteBuffer> jsonSerializer = new AvroJsonSerializer(maskSchema);
+//        Pipeline jsonMaskPipeline = new Pipeline(
+//                List.of(jsonDeserializer, AvroFunction.buildMask(maskSchema, LOOKUP).bindRecord(new OpContext(new Random(), KEY)), jsonSerializer));
+//        ByteBuffer jsonMasked = jsonMaskPipeline.apply(jsonSerializer.apply(user));
+//        LOGGER.atInfo().addKeyValue("jsonMasked", jsonDeserializer.apply(jsonMasked.duplicate())).log("applied mask via Avro JSON encoding");
     }
 }

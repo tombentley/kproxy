@@ -15,7 +15,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.Maybe;
 
 /**
@@ -67,17 +68,17 @@ public class ObjectNodes {
      * @param map the per-property functions, keyed by property name
      * @return a function building a fresh object per the rules above
      */
-    public BiFunction<ObjectNode, Context, ObjectNode> mapProperties(
-                                                                     Map<String, ? extends BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>>> map) {
+    public BiFunction<ObjectNode, OpContext, ObjectNode> mapProperties(
+                                                                     Map<String, ? extends BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>> map) {
         return new JsonNodePropertiesFunction(nodeFactory, map);
     }
 
     private record JsonNodePropertiesFunction(JsonNodeFactory nodeFactory,
-                                              Map<String, ? extends BiFunction<Maybe<JsonNode>, Context, Maybe<JsonNode>>> propertyFns)
-            implements BiFunction<ObjectNode, Context, ObjectNode> {
+                                              Map<String, ? extends BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>> propertyFns)
+            implements BiFunction<ObjectNode, OpContext, ObjectNode> {
 
         @Override
-        public ObjectNode apply(ObjectNode object, Context context) {
+        public ObjectNode apply(ObjectNode object, OpContext opContext) {
             // result.set(...) below mutates result directly, rather than going through Property.set (which
             // always defensively copies, precisely so it stays safe for arbitrary/possibly-aliased callers).
             // That's safe here specifically because result was *just* allocated on the line below and handed
@@ -93,7 +94,7 @@ public class ObjectNodes {
             for (var property : object.properties()) {
                 handled.add(property.getKey());
                 var mapFn = propertyFns.get(property.getKey());
-                Maybe<JsonNode> mapped = mapFn != null ? mapFn.apply(Maybe.some(property.getValue()), context) : Maybe.some(property.getValue());
+                Maybe<JsonNode> mapped = mapFn != null ? mapFn.apply(Maybe.some(property.getValue()), opContext) : Maybe.some(property.getValue());
                 if (mapped instanceof Maybe.Some<JsonNode> some) {
                     result.set(property.getKey(), some.value());
                 }
@@ -102,7 +103,7 @@ public class ObjectNodes {
                 if (handled.contains(entry.getKey())) {
                     continue;
                 }
-                Maybe<JsonNode> mapped = entry.getValue().apply(Maybe.none(), context);
+                Maybe<JsonNode> mapped = entry.getValue().apply(Maybe.none(), opContext);
                 if (mapped instanceof Maybe.Some<JsonNode> some) {
                     result.set(entry.getKey(), some.value());
                 }

@@ -22,11 +22,11 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Decrypts a Base64-encoded ciphertext produced by {@link EncryptStringFunction}, using a raw key drawn
- * from the invocation's {@link Context}. A fresh {@link Cipher} is created per invocation - the key isn't
+ * from the invocation's {@link OpContext}. A fresh {@link Cipher} is created per invocation - the key isn't
  * known until then, and a shared, cached instance would not be safe to reuse across concurrent invocations
  * regardless.
  */
-public class DecryptStringFunction implements BiFunction<String, Context, String> {
+public class DecryptStringFunction implements BiFunction<String, OpContext, String> {
 
     private static final int IV_LENGTH = 12;
 
@@ -37,14 +37,14 @@ public class DecryptStringFunction implements BiFunction<String, Context, String
     }
 
     @Override
-    public String apply(String value, Context context) {
+    public String apply(String value, OpContext opContext) {
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             byte[] iv = new byte[IV_LENGTH];
             byte[] ciphertextAndIv = Base64.getDecoder().decode(value);
             System.arraycopy(ciphertextAndIv, ciphertextAndIv.length - IV_LENGTH, iv, 0, IV_LENGTH);
 
-            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(context.key(), "AES"), new GCMParameterSpec(96, iv));
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(opContext.key(), "AES"), new GCMParameterSpec(96, iv));
             return new String(cipher.doFinal(ciphertextAndIv, 0, ciphertextAndIv.length - iv.length), StandardCharsets.UTF_8);
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | InvalidKeyException

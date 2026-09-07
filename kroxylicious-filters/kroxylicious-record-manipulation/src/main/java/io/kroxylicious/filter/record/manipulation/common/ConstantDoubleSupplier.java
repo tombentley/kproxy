@@ -11,7 +11,7 @@ import java.util.function.ToDoubleFunction;
 /**
  * A function that always returns the same {@code double}, regardless of context.
  */
-public class ConstantDoubleSupplier implements ToDoubleFunction<Context> {
+public class ConstantDoubleSupplier implements ToDoubleFunction<OpContext> {
     private final double value;
 
     /**
@@ -23,7 +23,7 @@ public class ConstantDoubleSupplier implements ToDoubleFunction<Context> {
     }
 
     @Override
-    public double applyAsDouble(Context context) {
+    public double applyAsDouble(OpContext opContext) {
         return value;
     }
 }

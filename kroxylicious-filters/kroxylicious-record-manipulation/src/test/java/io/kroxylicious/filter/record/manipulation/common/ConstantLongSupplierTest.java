@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ConstantLongSupplierTest {
 
-    private static final Context CONTEXT = new Context(new Random(), new byte[0]);
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
 
     @Test
     void returnsConfiguredValueEveryTime() {
@@ -22,8 +22,8 @@ class ConstantLongSupplierTest {
         ConstantLongSupplier supplier = new ConstantLongSupplier(42);
 
         // When
-        long first = supplier.applyAsLong(CONTEXT);
-        long second = supplier.applyAsLong(CONTEXT);
+        long first = supplier.applyAsLong(OP_CONTEXT);
+        long second = supplier.applyAsLong(OP_CONTEXT);
 
         // Then
         assertThat(first).isEqualTo(42L);
@@ -36,7 +36,7 @@ class ConstantLongSupplierTest {
         ConstantLongSupplier supplier = new ConstantLongSupplier(Long.MAX_VALUE);
 
         // When
-        long value = supplier.applyAsLong(CONTEXT);
+        long value = supplier.applyAsLong(OP_CONTEXT);
 
         // Then
         assertThat(value).isEqualTo(Long.MAX_VALUE);

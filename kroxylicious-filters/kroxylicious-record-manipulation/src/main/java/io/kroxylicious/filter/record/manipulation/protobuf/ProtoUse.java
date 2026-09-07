@@ -7,8 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.protobuf;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Random;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -16,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.Context;
-import io.kroxylicious.filter.record.manipulation.common.Pipeline;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.jackson.Use;
@@ -25,11 +21,11 @@ import io.kroxylicious.filter.record.manipulation.jackson.Use;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * A demo of building a Protobuf mask {@link ProtoFunction} from raw {@code .proto} IDL text, reusing the
+ * A demo of building a Protobuf mask {@link ProtobufFunction} from raw {@code .proto} IDL text, reusing the
  * schema's own option syntax plus the non-standard {@code apply} option - the Protobuf equivalent of
  * {@link Use}.
  * <p>
- * Scoped to what {@link ProtoFunction} currently supports: {@code message}/{@code repeated}/{@code string}/
+ * Scoped to what {@link ProtobufFunction} currently supports: {@code message}/{@code repeated}/{@code string}/
  * {@code int32}. See the module README's "Current state" section for what's still open ({@code oneof},
  * {@code map}, other scalar types, ...).
  */
@@ -71,8 +67,8 @@ public class ProtoUse {
                 }
                 """;
 
-        ParsedProtoSchema maskSchema = ProtoSchemaParser.parse(maskSchemaProto, "User");
-        ParsedProtoSchema unmaskSchema = ProtoSchemaParser.parse(maskSchemaProto.replace("EncryptString", "DecryptString"), "User");
+        ParsedProtoSchema maskSchema = ProtobufSchemaParser.parse(maskSchemaProto, "User");
+        ParsedProtoSchema unmaskSchema = ProtobufSchemaParser.parse(maskSchemaProto.replace("EncryptString", "DecryptString"), "User");
 
         DynamicMessage address = DynamicMessage.newBuilder(maskSchema.descriptor().findNestedTypeByName("Address"))
                 .setField(maskSchema.descriptor().findNestedTypeByName("Address").findFieldByName("street_address"), "Hogwarts")
@@ -92,19 +88,19 @@ public class ProtoUse {
         // function it feeds must be built from the very same ParsedProtoSchema, even if two schemas are
         // structurally identical, or every field access throws "FieldDescriptor does not match message
         // type." So mask and unmask each get their own deserializer, unlike AvroUse, which reuses one.
-        Function<ByteBuffer, DynamicMessage> maskDeserializer = new ProtoBinaryDeserializer(maskSchema.descriptor());
-        Function<ByteBuffer, DynamicMessage> unmaskDeserializer = new ProtoBinaryDeserializer(unmaskSchema.descriptor());
-        Function<DynamicMessage, ByteBuffer> serializer = new ProtoBinarySerializer();
+        Function<ByteBuffer, DynamicMessage> maskDeserializer = new ProtobufBinaryDeserializer(maskSchema.descriptor());
+        Function<ByteBuffer, DynamicMessage> unmaskDeserializer = new ProtobufBinaryDeserializer(unmaskSchema.descriptor());
+        Function<DynamicMessage, ByteBuffer> serializer = new ProtobufBinarySerializer();
         ByteBuffer data = serializer.apply(user);
 
-        Context maskContext = new Context(new Random(), KEY);
-        Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtoFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskContext), serializer));
-        ByteBuffer masked = maskPipeline.apply(data.duplicate());
-        LOGGER.atInfo().addKeyValue("masked", maskDeserializer.apply(masked.duplicate())).log("applied mask");
-
-        Context unmaskContext = new Context(new Random(), KEY);
-        Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtoFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskContext), serializer));
-        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
-        LOGGER.atInfo().addKeyValue("unmasked", unmaskDeserializer.apply(unmasked.duplicate())).log("applied unmask");
+//        OpContext maskOpContext = new OpContext(new Random(), KEY);
+//        Pipeline maskPipeline = new Pipeline(List.of(maskDeserializer, ProtobufFunction.buildMask(maskSchema, LOOKUP).bindRecord(maskOpContext), serializer));
+//        ByteBuffer masked = maskPipeline.apply(data.duplicate());
+//        LOGGER.atInfo().addKeyValue("masked", maskDeserializer.apply(masked.duplicate())).log("applied mask");
+//
+//        OpContext unmaskOpContext = new OpContext(new Random(), KEY);
+//        Pipeline unmaskPipeline = new Pipeline(List.of(unmaskDeserializer, ProtobufFunction.buildMask(unmaskSchema, LOOKUP).bindRecord(unmaskOpContext), serializer));
+//        ByteBuffer unmasked = unmaskPipeline.apply(masked.duplicate());
+//        LOGGER.atInfo().addKeyValue("unmasked", unmaskDeserializer.apply(unmasked.duplicate())).log("applied unmask");
     }
 }

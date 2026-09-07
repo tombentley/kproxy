@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RandomDoubleSupplier;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -29,9 +31,19 @@ public class RandomDouble implements OpFactory<Double, Double> {
     public record Config(double minInclusive, double maxExclusive) {}
 
     @Override
-    public TypedOp<Double, Double> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
+    public BaseTypedOp<Double, Double> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomDoubleSupplier(config.minInclusive(), config.maxExclusive());
-        return TypedOp.of(Double.class, (ignored, context) -> generator.applyAsDouble(context));
+        return new StaticTypedOp<Double, Double>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return Double.class;
+            }
+
+            @Override
+            public Double apply(Double value, OpContext opContext) {
+                return generator.applyAsDouble(opContext);
+            }
+        };
     }
 }

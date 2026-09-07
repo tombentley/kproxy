@@ -12,7 +12,7 @@ import java.util.function.Function;
 /**
  * A function that always returns the same {@code BigInteger}, regardless of context.
  */
-public class ConstantBigIntegerSupplier implements Function<Context, BigInteger> {
+public class ConstantBigIntegerSupplier implements Function<OpContext, BigInteger> {
     private final BigInteger value;
 
     /**
@@ -24,7 +24,7 @@ public class ConstantBigIntegerSupplier implements Function<Context, BigInteger>
     }
 
     @Override
-    public BigInteger apply(Context context) {
+    public BigInteger apply(OpContext opContext) {
         return value;
     }
 }

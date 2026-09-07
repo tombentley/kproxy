@@ -6,13 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.common.OpContext;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -28,8 +30,18 @@ public class ValueBigInteger implements OpFactory<BigInteger, BigInteger> {
     public record Config(BigInteger value) {}
 
     @Override
-    public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
-        return TypedOp.of(BigInteger.class, (ignored, context) -> config.value());
+    public BaseTypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        return new StaticTypedOp<BigInteger, BigInteger>() {
+            @Override
+            public Type outputType(Type inputType) {
+                return BigInteger.class;
+            }
+
+            @Override
+            public BigInteger apply(BigInteger value, OpContext opContext) {
+                return config.value();
+            }
+        };
     }
 }

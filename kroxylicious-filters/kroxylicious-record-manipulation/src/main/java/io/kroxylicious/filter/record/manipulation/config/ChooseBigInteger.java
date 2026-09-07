@@ -6,16 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
+import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.kroxylicious.filter.record.manipulation.common.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.common.ChooseBigIntegerSupplier;
 import io.kroxylicious.filter.record.manipulation.common.OpFactory;
-import io.kroxylicious.filter.record.manipulation.common.TypedOp;
+import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
@@ -31,9 +31,9 @@ public class ChooseBigInteger implements OpFactory<BigInteger, BigInteger> {
     public record Config(List<BigInteger> from) {}
 
     @Override
-    public TypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap) {
-        Config config = OpConfigs.MAPPER.convertValue(configMap, Config.class);
+    public BaseTypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseBigIntegerSupplier(new HashSet<>(config.from()));
-        return TypedOp.of(BigInteger.class, (ignored, context) -> generator.apply(context));
+        return BaseTypedOp.of(BigInteger.class, BigInteger.class, generator);
     }
 }

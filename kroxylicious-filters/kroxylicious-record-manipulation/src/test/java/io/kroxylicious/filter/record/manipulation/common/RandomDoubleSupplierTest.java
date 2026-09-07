@@ -17,18 +17,18 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 class RandomDoubleSupplierTest {
 
-    private static Context contextWithSeed(long seed) {
-        return new Context(new Random(seed), new byte[0]);
+    private static OpContext contextWithSeed(long seed) {
+        return new OpContext(new Random(seed), new byte[0]);
     }
 
     @Test
     void valuesFallWithinRange() {
         // Given
         RandomDoubleSupplier supplier = new RandomDoubleSupplier(10.0, 20.0);
-        Context context = contextWithSeed(0);
+        OpContext opContext = contextWithSeed(0);
 
         // When
-        double[] values = IntStream.range(0, 500).mapToDouble(i -> supplier.applyAsDouble(context)).toArray();
+        double[] values = IntStream.range(0, 500).mapToDouble(i -> supplier.applyAsDouble(opContext)).toArray();
 
         // Then
         assertThat(DoubleStream.of(values).allMatch(value -> value >= 10.0 && value < 20.0)).isTrue();
