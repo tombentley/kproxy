@@ -41,6 +41,7 @@ import io.kroxylicious.systemtests.Constants;
 import io.kroxylicious.systemtests.Environment;
 import io.kroxylicious.systemtests.clients.KafkaClient;
 import io.kroxylicious.systemtests.clients.KafkaClients;
+import io.kroxylicious.systemtests.clients.StrimziTestClient;
 import io.kroxylicious.systemtests.clients.records.ConsumerRecord;
 import io.kroxylicious.systemtests.enums.KafkaClientType;
 import io.kroxylicious.systemtests.installation.kroxylicious.Kroxylicious;
@@ -80,8 +81,13 @@ class SaslTerminationST extends AbstractSystemTests {
 
     @BeforeAll
     void setUp() {
-        KafkaClients.getKafkaClient().preloadImage();
-        KafkaClients.getKafkaClient().withImage(Environment.TEST_CLIENTS_OAUTH_IMAGE).preloadImage();
+        KafkaClient defaultClient = KafkaClients.getKafkaClient();
+        defaultClient.preloadImage();
+        // Only the JVM client needs the jose4j-augmented image (see testOauthBearerAuthentication);
+        // preload it once here rather than in every test that might use it.
+        if (defaultClient instanceof StrimziTestClient strimziTestClient) {
+            strimziTestClient.withImage(Environment.TEST_CLIENTS_OAUTH_IMAGE).preloadImage();
+        }
         List<Pod> kafkaPods = kubeClient().listPodsByPrefixInName(Constants.KAFKA_DEFAULT_NAMESPACE, clusterName);
         if (!kafkaPods.isEmpty()) {
             LOGGER.atInfo().log("Skipping kafka deployment. It is already deployed!");
@@ -205,12 +211,15 @@ class SaslTerminationST extends AbstractSystemTests {
         Map<String, String> allowedUrlsSystemProps = Map.of(
                 "org.apache.kafka.sasl.oauthbearer.allowed.urls", tokenUrl + "," + jwksUrl);
 
+        KafkaClient client = KafkaClients.getKafkaClient().inNamespace(namespace);
         // Kafka 4.1+ clients eagerly load jose4j during OAUTHBEARER login (KAFKA-20184), but
         // due to https://issues.apache.org/jira/browse/KAFKA-20184 jose4j is not treated
         // as a runtime dependency of kafka-clients. The upstream Strimzi test-clients image
-        // doesn't bundle it, so use our jose4j-augmented build of that image for this test only.
-        KafkaClient client = KafkaClients.getKafkaClient().inNamespace(namespace).withImage(Environment.TEST_CLIENTS_OAUTH_IMAGE);
-        client.preloadImage();
+        // doesn't bundle it, so the JVM client uses our jose4j-augmented build of that image for
+        // this test only (already preloaded in setUp()).
+        if (client instanceof StrimziTestClient strimziTestClient) {
+            strimziTestClient.withImage(Environment.TEST_CLIENTS_OAUTH_IMAGE);
+        }
 
         // When
         String kafkaBootstrap = clusterName + "-kafka-bootstrap." + Constants.KAFKA_DEFAULT_NAMESPACE + ".svc.cluster.local:9092";

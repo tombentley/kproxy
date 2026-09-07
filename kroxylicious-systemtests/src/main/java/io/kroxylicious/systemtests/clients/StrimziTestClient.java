@@ -81,8 +81,13 @@ public class StrimziTestClient implements KafkaClient {
         return this;
     }
 
-    @Override
-    public KafkaClient withImage(String image) {
+    /**
+     * Overrides the container image used for this client instance.
+     *
+     * @param image the image
+     * @return  this client
+     */
+    public StrimziTestClient withImage(String image) {
         this.image = image;
         return this;
     }
