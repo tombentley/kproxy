@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.format.protobuf;
 
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,7 +185,8 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
                                                          PluginLookup lookup) {
         return switch (field.getType()) {
             case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
-            case STRING, INT32, INT64, FLOAT, DOUBLE, BOOL, BYTES -> new ProtobufFunction((value, context) -> value);
+            case STRING, INT32, FIXED32, SINT32, SFIXED32, UINT32, INT64, FIXED64, SINT64, SFIXED64, UINT64, FLOAT, DOUBLE, BOOL, BYTES, ENUM -> new ProtobufFunction(
+                    (value, context) -> value);
             default -> throw new IllegalArgumentException("Proto mask not yet supported for field type: " + field.getType());
         };
     }
@@ -233,19 +233,19 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
             }
             case ENUM -> {
                 var pipeline = OpConfigs.compose(String.class, ops, requirements, lookup);
+                Descriptors.EnumDescriptor enumType = field.getEnumType();
                 yield new ProtobufFunction((value, context) -> {
-                    Enum<?> enumSymbol = (Enum<?>) value;
-                    Class<? extends Enum> enumClass = enumSymbol.getClass();
-                    var allowedSymbols = Arrays.stream(enumClass.getEnumConstants()).map(Enum::name).collect(Collectors.toSet());
-                    String result = (String) pipeline.apply(enumSymbol.name(), context);
+                    Descriptors.EnumValueDescriptor enumValue = (Descriptors.EnumValueDescriptor) value;
+                    String result = (String) pipeline.apply(enumValue.getName(), context);
                     if (result == null) {
                         return null;
                     }
-                    if (!allowedSymbols.contains(result)) {
+                    Descriptors.EnumValueDescriptor resolved = enumType.findValueByName(result);
+                    if (resolved == null) {
                         throw new IllegalArgumentException(
-                                "Enum type '" + enumClass.getName() + "' requires symbol in " + allowedSymbols + " but transformation resulted in '" + result + "'");
+                                "Enum type '" + enumType.getFullName() + "' requires a symbol declared in it but transformation resulted in '" + result + "'");
                     }
-                    return Enum.valueOf(enumClass, result);
+                    return resolved;
                 });
             }
             default -> throw new IllegalArgumentException("apply is not yet supported for field type: " + field.getType());
