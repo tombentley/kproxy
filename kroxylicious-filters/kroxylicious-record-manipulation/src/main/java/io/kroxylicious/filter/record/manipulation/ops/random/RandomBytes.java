@@ -10,10 +10,8 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -34,16 +32,6 @@ public class RandomBytes implements OpFactory<byte[], byte[]> {
     public BaseTypedOp<byte[], byte[]> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomBytesSupplier(config.minLengthInclusive(), config.maxLengthExclusive());
-        return new StaticTypedOp<byte[], byte[]>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return byte[].class;
-            }
-
-            @Override
-            public byte[] apply(byte[] value, OpContext opContext) {
-                return generator.apply(opContext);
-            }
-        };
+        return BaseTypedOp.of(byte[].class, byte[].class, (value, opContext) -> generator.apply(opContext));
     }
 }

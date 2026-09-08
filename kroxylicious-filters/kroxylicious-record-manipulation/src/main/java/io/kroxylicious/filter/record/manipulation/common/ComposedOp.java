@@ -8,11 +8,9 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.lang.reflect.Type;
 
-import io.leangen.geantyref.GenericTypeReflector;
-
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
 
 public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
 
@@ -22,12 +20,7 @@ public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
     public ComposedOp(BaseTypedOp<T, R> first, BaseTypedOp<R, S> then) {
         this.first = first;
         this.then = then;
-        if (GenericTypeReflector.isFullyBound(first.outputType())
-                && GenericTypeReflector.isFullyBound(then.inputType())) {
-            if (!GenericTypeReflector.isSuperType(then.inputType(), first.outputType())) {
-                throw new TypeException("Cannot compose " + first + " with " + then);
-            }
-        }
+        OpTypeChecker.requireComposable(first, then);
     }
 
     @Override

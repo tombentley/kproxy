@@ -15,9 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -36,16 +34,6 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
                 .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, config1.orderMapEntriesByKeys());
 
         var d = new JacksonSerializer(mapper);
-        return new StaticTypedOp<JsonNode, ByteBuffer>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return ByteBuffer.class;
-            }
-
-            @Override
-            public ByteBuffer apply(JsonNode value, OpContext opContext) {
-                return d.serialize(value);
-            }
-        };
+        return BaseTypedOp.of(JsonNode.class, ByteBuffer.class, (value, opContext) -> d.serialize(value));
     }
 }

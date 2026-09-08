@@ -12,10 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -35,16 +33,6 @@ public class ChooseInt implements OpFactory<Integer, Integer> {
     public BaseTypedOp<Integer, Integer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseIntSupplier(new HashSet<>(config.from()));
-        return new StaticTypedOp<Integer, Integer>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return Integer.class;
-            }
-
-            @Override
-            public Integer apply(Integer value, OpContext opContext) {
-                return generator.applyAsInt(opContext);
-            }
-        };
+        return BaseTypedOp.of(Integer.class, Integer.class, (value, opContext) -> generator.applyAsInt(opContext));
     }
 }
