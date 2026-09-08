@@ -53,9 +53,10 @@ recordTransform:
 ```
 
 Avro (binary encoding) follows the same shape, via `DeserializeAvro`/`AvroTransform`/
-`SerializeAvro`. Since Avro binary data isn't self-describing, each op takes the same Avro schema
-(as JSON text) - the `apply` chain for a field sits as a sibling of its own `type`, the same way it
-sits alongside a JSON Schema field's `type` above:
+`SerializeAvro`, but only `DeserializeAvro` takes schema config - it bundles the parsed `Schema`
+together with each decoded value (an `AvroValue`), so `AvroTransform`/`SerializeAvro` just use
+whatever schema arrives rather than parsing their own copy. The `apply` chain for a field sits as a
+sibling of its own `type`, the same way it sits alongside a JSON Schema field's `type` above:
 
 ```yaml
 topic: my-topic
@@ -65,17 +66,19 @@ recordTransform:
     from: RecordValue
     apply:
       - op: DeserializeAvro
-        schema: &schema |
+        schema: |
           {"type": "record", "name": "Payment", "fields": [
               {"name": "creditCardNumber", "type": "string", "apply": [
                   {"op": "ValueString", "value": "0000 0000 0000 0000"}
               ]}
           ]}
       - op: AvroTransform
-        schema: *schema
       - op: SerializeAvro
-        schema: *schema
 ```
+
+Avro's schema format doesn't require the root to be a `record` - a schema of just `array`/scalar/
+`enum`/`fixed` (with `apply` sitting directly on that root schema, the same way it sits on `items`
+for an array's elements) works too; only `map` schemas (root or field) aren't supported yet.
 
 Protobuf (binary encoding) follows the same shape, via `DeserializeProtobuf`/`ProtobufTransform`/
 `SerializeProtobuf`, but only `DeserializeProtobuf` takes schema config - it bundles the parsed
@@ -136,11 +139,7 @@ reactor-wide, including to upstream modules that don't have a matching test)
 
 - JSON, Avro (binary encoding), and Protobuf (binary encoding) only. Avro's own JSON encoding is
   implemented at the engine level but not yet wired into the filter's config or `apply`
-  resolution. `AvroTransform` is also scoped to record-shaped schemas - Avro permits other schema
-  shapes (array, map, a bare scalar, ...) as a serialization root, but `AvroBinaryDeserializer`/
-  `AvroBinarySerializer` (which `DeserializeAvro`/`SerializeAvro` wrap) only support records today.
-  Protobuf has no equivalent ambiguity: its wire format only ever serializes a `message`, so
-  `ProtobufTransform` needs no such scoping check.
+  resolution.
 - One topic and one direction per filter instance.
 - No schema registry integration - the record value is assumed to be plain JSON/Avro/Protobuf, not
   prefixed with a registry schema ID.
@@ -148,7 +147,8 @@ reactor-wide, including to upstream modules that don't have a matching test)
   Avro and Protobuf have no equivalent field insert/delete at all, since every field declared by a
   schema must be present in any conforming record/message (Protobuf's implicit-presence fields
   aside, which a mask never manufactures presence for - see `ProtobufMessages`).
-- Protobuf `map` fields and message-level `apply` (as opposed to field-level) aren't supported yet
-  - see `ProtobufFunction`'s validation for both.
+- Avro `map` schemas (as a root or a field type) aren't supported yet - see
+  `AvroFunction.buildStructural`'s validation. Protobuf `map` fields and message-level `apply` (as
+  opposed to field-level) aren't supported yet either - see `ProtobufFunction`'s validation for both.
 - Javadoc coverage and a handful of pre-existing SpotBugs findings are known debt, not yet
   addressed.

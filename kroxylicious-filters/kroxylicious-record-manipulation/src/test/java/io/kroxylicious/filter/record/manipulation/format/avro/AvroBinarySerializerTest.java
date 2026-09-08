@@ -49,7 +49,7 @@ class AvroBinarySerializerTest {
 
         // When
         ByteBuffer buffer = serializer.apply(record);
-        GenericRecord roundTripped = deserializer.apply(buffer);
+        GenericRecord roundTripped = (GenericRecord) deserializer.apply(buffer);
 
         // Then
         assertThat(roundTripped.get("text").toString()).isEqualTo("hello");

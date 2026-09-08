@@ -7,13 +7,12 @@
 package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 
 import io.kroxylicious.filter.record.manipulation.format.DataFormat;
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
 import io.kroxylicious.filter.record.manipulation.format.Serializer;
 
-public class AvroBinaryFormat implements DataFormat<GenericRecord> {
+public class AvroBinaryFormat implements DataFormat<Object> {
 
     private final Schema schema;
 
@@ -22,12 +21,12 @@ public class AvroBinaryFormat implements DataFormat<GenericRecord> {
     }
 
     @Override
-    public Serializer<GenericRecord> serializer() {
+    public Serializer<Object> serializer() {
         return new AvroBinarySerializer(schema);
     }
 
     @Override
-    public Deserializer<GenericRecord> deserializer() {
+    public Deserializer<Object> deserializer() {
         return new AvroBinaryDeserializer(schema);
     }
 }

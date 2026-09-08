@@ -208,4 +208,32 @@ class AvroFunctionTest {
                 .hasMessageContaining("Fingerprint");
     }
 
+    @Test
+    void buildMaskAppliesOpDirectlyToABareScalarRootSchema() {
+        // Given
+        Schema schema = parse("""
+                {"type": "string", "apply": [{"op": "ValueString", "value": "REDACTED"}]}
+                """);
+
+        // When
+        Object result = AvroFunction.buildMask(schema, LOOKUP).apply("Harry", OP_CONTEXT);
+
+        // Then
+        assertThat(result).isEqualTo("REDACTED");
+    }
+
+    @Test
+    void buildMaskAppliesOpToEachElementOfAnArrayRootSchema() {
+        // Given
+        Schema schema = parse("""
+                {"type": "array", "items": {"type": "string", "apply": [{"op": "ValueString", "value": "REDACTED"}]}}
+                """);
+
+        // When
+        Object result = AvroFunction.buildMask(schema, LOOKUP).apply(List.of("Vernon Dudley", "Barny Weasley"), OP_CONTEXT);
+
+        // Then
+        assertThat((List<Object>) result).containsExactly("REDACTED", "REDACTED");
+    }
+
 }
