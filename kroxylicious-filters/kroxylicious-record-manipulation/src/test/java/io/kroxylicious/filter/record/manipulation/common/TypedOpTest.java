@@ -6,9 +6,13 @@
 
 package io.kroxylicious.filter.record.manipulation.common;
 
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+
+import io.leangen.geantyref.TypeFactory;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
@@ -24,7 +28,7 @@ class TypedOpTest {
     }
 
     @Test
-    void testWithLambda() {
+    void testWithClassLiterals() {
         BaseTypedOp<?, ?> op = BaseTypedOp.of(String.class, Integer.class, (String str, OpContext context) -> null);
         assertThat(op.inputType()).isEqualTo(String.class);
         assertThat(op.outputType()).isEqualTo(Integer.class);
@@ -32,20 +36,30 @@ class TypedOpTest {
     }
 
     @Test
-    void testWithAnonClass() {
-        StaticTypedOp<?, ?> op = new StaticTypedOp<String, Integer>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return null;
-            }
+    void testWithRuntimeComputedType() {
+        // Simulates the case (e.g. ListFirst) where T/R aren't statically known at the call site, so
+        // Class literals aren't available - only a Type value computed from something else at runtime.
+        Type listOfStrings = TypeFactory.parameterizedClass(List.class, String.class);
+        BaseTypedOp<?, ?> op = BaseTypedOp.of(listOfStrings, String.class, (List<?> list, OpContext context) -> null);
+        assertThat(op.inputType()).isEqualTo(listOfStrings);
+        assertThat(op.outputType()).isEqualTo(String.class);
+    }
 
+    @Test
+    void testWithAnonClassForParameterizedType() {
+        // StaticTypedOp is only needed when T/R is a genuinely parameterized type that can't be
+        // expressed as a bare Class literal - mirrors JacksonFunction.asMaybe()'s real use of it.
+        StaticTypedOp<List<String>, String> op = new StaticTypedOp<List<String>, String>() {
             @Override
-            public Integer apply(String str, OpContext context) {
-                return 0;
+            public String apply(List<String> value, OpContext context) {
+                return String.join(",", value);
             }
         };
-        assertThat(op.inputType()).isEqualTo(String.class);
-        assertThat(op.outputType()).isEqualTo(Integer.class);
+        assertThat(op.inputType()).isInstanceOfSatisfying(ParameterizedType.class, pt -> {
+            assertThat(pt.getRawType()).isEqualTo(List.class);
+            assertThat(pt.getActualTypeArguments()).containsExactly(String.class);
+        });
+        assertThat(op.outputType()).isEqualTo(String.class);
         assertThat(op.typeParameters()).isEmpty();
     }
 

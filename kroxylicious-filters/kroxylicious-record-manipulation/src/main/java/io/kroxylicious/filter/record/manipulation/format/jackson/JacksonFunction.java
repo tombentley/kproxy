@@ -6,7 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.format.jackson;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,7 +32,6 @@ import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link SchemaConfig} tree - or, invoked with
@@ -41,7 +39,7 @@ import io.kroxylicious.filter.record.manipulation.op.TypeException;
  * same traversal started from nothing instead of a real value, rather than a separate code path.
  *
  */
-public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
+public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
 
     private final BiFunction<JsonNode, OpContext, JsonNode> fn;
 
@@ -50,7 +48,12 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
     }
 
     @Override
-    public Type outputType(Type inputType) {
+    public Type inputType() {
+        return JsonNode.class;
+    }
+
+    @Override
+    public Type outputType() {
         return JsonNode.class;
     }
 
@@ -114,15 +117,6 @@ public class JacksonFunction extends StaticTypedOp<JsonNode, JsonNode> {
      */
     BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>> asMaybe() {
         return new StaticTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>() {
-
-            @Override
-            public Type outputType(Type inputType) {
-                if (inputType instanceof ParameterizedType pt
-                        && pt.getRawType().equals(Maybe.class)
-                        && pt.getActualTypeArguments()[0].equals(JsonNode.class)) {
-                }
-                throw new TypeException();
-            }
 
             @Override
             public Maybe<JsonNode> apply(Maybe<JsonNode> maybe, OpContext opContext) {

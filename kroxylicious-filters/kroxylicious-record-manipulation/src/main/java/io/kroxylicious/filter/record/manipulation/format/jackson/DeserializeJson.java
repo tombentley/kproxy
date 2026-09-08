@@ -16,9 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -43,16 +41,6 @@ public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
                 .configure(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature(), deserializationConfig.allowTrailingComma())
                 .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, deserializationConfig.allowUnquotedFieldNames());
         var deserializer = new JacksonDeserializer(deserializationMapper);
-        return new StaticTypedOp<ByteBuffer, JsonNode>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return JsonNode.class;
-            }
-
-            @Override
-            public JsonNode apply(ByteBuffer value, OpContext opContext) {
-                return deserializer.deserialize(value);
-            }
-        };
+        return BaseTypedOp.of(ByteBuffer.class, JsonNode.class, (value, opContext) -> deserializer.deserialize(value));
     }
 }

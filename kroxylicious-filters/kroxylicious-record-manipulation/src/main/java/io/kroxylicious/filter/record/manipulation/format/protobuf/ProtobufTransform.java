@@ -12,7 +12,6 @@ import java.util.Map;
 import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -35,28 +34,30 @@ public class ProtobufTransform implements OpFactory<ProtoValue, ProtoValue> {
 
     @Override
     public BaseTypedOp<ProtoValue, ProtoValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        return new StaticTypedOp<ProtoValue, ProtoValue>() {
-            private volatile ParsedProtoSchema cachedSchema;
-            private volatile ProtobufFunction cachedMask;
+        return BaseTypedOp.of(ProtoValue.class, ProtoValue.class, new CachingMask(lookup));
+    }
 
-            @Override
-            public Type outputType(Type inputType) {
-                return ProtoValue.class;
-            }
+    private static final class CachingMask implements java.util.function.BiFunction<ProtoValue, OpContext, ProtoValue> {
+        private final PluginLookup lookup;
+        private volatile ParsedProtoSchema cachedSchema;
+        private volatile ProtobufFunction cachedMask;
 
-            @Override
-            @SuppressWarnings("ReferenceEquality") // deliberate identity check: a schema instance is reused verbatim across calls, see class javadoc
-            public ProtoValue apply(ProtoValue value, OpContext opContext) {
-                ParsedProtoSchema schema = value.schema();
-                ProtobufFunction mask = cachedMask;
-                if (mask == null || cachedSchema != schema) {
-                    mask = ProtobufFunction.buildMask(schema, lookup);
-                    cachedSchema = schema;
-                    cachedMask = mask;
-                }
-                DynamicMessage masked = (DynamicMessage) mask.apply(value.message(), opContext);
-                return new ProtoValue(masked, schema);
+        private CachingMask(PluginLookup lookup) {
+            this.lookup = lookup;
+        }
+
+        @Override
+        @SuppressWarnings("ReferenceEquality") // deliberate identity check: a schema instance is reused verbatim across calls, see class javadoc
+        public ProtoValue apply(ProtoValue value, OpContext opContext) {
+            ParsedProtoSchema schema = value.schema();
+            ProtobufFunction mask = cachedMask;
+            if (mask == null || cachedSchema != schema) {
+                mask = ProtobufFunction.buildMask(schema, lookup);
+                cachedSchema = schema;
+                cachedMask = mask;
             }
-        };
+            DynamicMessage masked = (DynamicMessage) mask.apply(value.message(), opContext);
+            return new ProtoValue(masked, schema);
+        }
     }
 }

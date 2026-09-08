@@ -21,7 +21,7 @@ import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
 
 /**
  * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an
@@ -54,10 +54,8 @@ public final class OpConfigs {
             for (var opConfig : opConfigs) {
                 OpFactory<?, ?> factory = lookup.pluginInstance(OpFactory.class, opConfig.op());
                 BaseTypedOp<?, ?> op = factory.create(opConfig.config(), lookup, currentType);
-                if (!GenericTypeReflector.isSuperType(op.inputType(), currentType)) {
-                    throw new TypeException("Op " + opConfig.op() + " has input type " + GenericTypeReflector.getTypeName(op.inputType())
-                            + " which is not a subtype of the expected type " + GenericTypeReflector.getTypeName(currentType));
-                }
+                OpTypeChecker.requireAssignable(op.inputType(), currentType, "Op " + opConfig.op() + " has input type " + GenericTypeReflector.getTypeName(op.inputType())
+                        + " which is not a subtype of the expected type " + GenericTypeReflector.getTypeName(currentType));
                 currentType = op.outputType();
                 if (last == null) {
                     last = op;

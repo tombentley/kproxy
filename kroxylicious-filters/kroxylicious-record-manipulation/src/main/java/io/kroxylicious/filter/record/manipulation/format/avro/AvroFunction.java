@@ -20,19 +20,13 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.leangen.geantyref.GenericTypeReflector;
-
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * A mask/transform over an Avro generic value (a {@link GenericRecord}, a {@link java.util.List} for an
@@ -45,7 +39,7 @@ import io.kroxylicious.filter.record.manipulation.op.TypeException;
  * "absent" starting point equivalent to Jackson's {@link com.fasterxml.jackson.databind.node.MissingNode}
  * to generate from yet (that needs Avro's union/default mechanism first).
  */
-public class AvroFunction extends StaticTypedOp<Object, Object> {
+public class AvroFunction implements BaseTypedOp<Object, Object> {
 
     private final BiFunction<Object, OpContext, Object> fn;
 
@@ -54,12 +48,13 @@ public class AvroFunction extends StaticTypedOp<Object, Object> {
     }
 
     @Override
-    public Type outputType(Type inputType) {
-        if (!GenericTypeReflector.isSuperType(JsonNode.class, inputType)) {
-            throw new TypeException("Input type " + GenericTypeReflector.getTypeName(inputType)
-                    + " is not a subtype of " + GenericTypeReflector.getTypeName(JsonNode.class));
-        }
-        return JsonNode.class;
+    public Type inputType() {
+        return Object.class;
+    }
+
+    @Override
+    public Type outputType() {
+        return Object.class;
     }
 
     @Override

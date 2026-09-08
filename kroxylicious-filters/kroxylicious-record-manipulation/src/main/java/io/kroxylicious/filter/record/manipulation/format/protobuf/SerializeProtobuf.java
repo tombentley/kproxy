@@ -11,9 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -31,16 +29,6 @@ public class SerializeProtobuf implements OpFactory<ProtoValue, ByteBuffer> {
     @Override
     public BaseTypedOp<ProtoValue, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
         var serializer = new ProtobufBinarySerializer();
-        return new StaticTypedOp<ProtoValue, ByteBuffer>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return ByteBuffer.class;
-            }
-
-            @Override
-            public ByteBuffer apply(ProtoValue value, OpContext opContext) {
-                return serializer.serialize(value.message());
-            }
-        };
+        return BaseTypedOp.of(ProtoValue.class, ByteBuffer.class, (value, opContext) -> serializer.serialize(value.message()));
     }
 }

@@ -10,9 +10,7 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -30,16 +28,6 @@ public class RandomBoolean implements OpFactory<Boolean, Boolean> {
     @Override
     public BaseTypedOp<Boolean, Boolean> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         var generator = new RandomBooleanSupplier();
-        return new StaticTypedOp<Boolean, Boolean>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return Boolean.class;
-            }
-
-            @Override
-            public Boolean apply(Boolean value, OpContext opContext) {
-                return generator.test(opContext);
-            }
-        };
+        return BaseTypedOp.of(Boolean.class, Boolean.class, (value, opContext) -> generator.test(opContext));
     }
 }

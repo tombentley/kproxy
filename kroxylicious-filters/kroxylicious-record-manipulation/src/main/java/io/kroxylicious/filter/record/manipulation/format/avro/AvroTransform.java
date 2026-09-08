@@ -8,11 +8,11 @@ package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import org.apache.avro.Schema;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -40,27 +40,29 @@ public class AvroTransform implements OpFactory<AvroValue, AvroValue> {
 
     @Override
     public BaseTypedOp<AvroValue, AvroValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        return new StaticTypedOp<AvroValue, AvroValue>() {
-            private volatile Schema cachedSchema;
-            private volatile AvroFunction cachedMask;
+        return BaseTypedOp.of(AvroValue.class, AvroValue.class, new CachingMask(lookup));
+    }
 
-            @Override
-            public Type outputType(Type inputType) {
-                return AvroValue.class;
-            }
+    private static final class CachingMask implements BiFunction<AvroValue, OpContext, AvroValue> {
+        private final PluginLookup lookup;
+        private volatile Schema cachedSchema;
+        private volatile AvroFunction cachedMask;
 
-            @Override
-            public AvroValue apply(AvroValue value, OpContext opContext) {
-                Schema schema = value.schema();
-                AvroFunction mask = cachedMask;
-                if (mask == null || !schema.equals(cachedSchema)) {
-                    mask = AvroFunction.buildMask(schema, lookup);
-                    cachedSchema = schema;
-                    cachedMask = mask;
-                }
-                Object masked = mask.apply(value.value(), opContext);
-                return new AvroValue(masked, schema);
+        private CachingMask(PluginLookup lookup) {
+            this.lookup = lookup;
+        }
+
+        @Override
+        public AvroValue apply(AvroValue value, OpContext opContext) {
+            Schema schema = value.schema();
+            AvroFunction mask = cachedMask;
+            if (mask == null || !schema.equals(cachedSchema)) {
+                mask = AvroFunction.buildMask(schema, lookup);
+                cachedSchema = schema;
+                cachedMask = mask;
             }
-        };
+            Object masked = mask.apply(value.value(), opContext);
+            return new AvroValue(masked, schema);
+        }
     }
 }

@@ -13,9 +13,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -37,16 +35,6 @@ public class DeserializeProtobuf implements OpFactory<ByteBuffer, ProtoValue> {
         ProtoSchema c = MAPPER.convertValue(config, ProtoSchema.class);
         ParsedProtoSchema schema = ProtobufSchemaParser.parse(c.protoText(), c.rootMessageName());
         var deserializer = new ProtobufBinaryDeserializer(schema.descriptor());
-        return new StaticTypedOp<ByteBuffer, ProtoValue>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return ProtoValue.class;
-            }
-
-            @Override
-            public ProtoValue apply(ByteBuffer value, OpContext opContext) {
-                return new ProtoValue(deserializer.deserialize(value), schema);
-            }
-        };
+        return BaseTypedOp.of(ByteBuffer.class, ProtoValue.class, (value, opContext) -> new ProtoValue(deserializer.deserialize(value), schema));
     }
 }

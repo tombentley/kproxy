@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.format.avro;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
@@ -26,6 +27,8 @@ public class AvroArrays {
      * @return a function mapping an array to a new array with {@code itemsFn} applied to each element
      */
     public static BaseTypedOp<List<Object>, List<Object>> items(BaseTypedOp<Object, Object> itemsFn) {
-        return BaseTypedOp.of(List.class, List.class, (array, context) -> new ListElements().modifyAll(array, itemsFn, context));
+        // Raw List.class can't be expressed as Class<List<Object>>, so this must use the Type-based
+        // overload rather than the Class-based one.
+        return BaseTypedOp.of((Type) List.class, (Type) List.class, (array, context) -> new ListElements().modifyAll(array, itemsFn, context));
     }
 }

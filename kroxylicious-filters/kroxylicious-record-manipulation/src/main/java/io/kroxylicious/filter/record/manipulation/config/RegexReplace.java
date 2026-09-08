@@ -11,11 +11,8 @@ import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RegexReplaceStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = RegexReplace.Config.class)
@@ -31,19 +28,6 @@ public class RegexReplace implements OpFactory<String, String> {
     public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         RegexReplaceStringFunction regexReplaceStringFunction = new RegexReplaceStringFunction(config.pattern(), config.replacement());
-        return new StaticTypedOp<String, String>() {
-            @Override
-            public Type outputType(Type inputType) {
-                if (inputType != String.class) {
-                    throw new TypeException();
-                }
-                return String.class;
-            }
-
-            @Override
-            public String apply(String value, OpContext opContext) {
-                return regexReplaceStringFunction.apply(value, opContext);
-            }
-        };
+        return BaseTypedOp.of(String.class, String.class, regexReplaceStringFunction);
     }
 }

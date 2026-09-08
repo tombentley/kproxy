@@ -6,7 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.config;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -14,13 +13,11 @@ import java.util.NoSuchElementException;
 
 import com.fasterxml.jackson.databind.JavaType;
 
-import io.leangen.geantyref.GenericTypeReflector;
-
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
 
 /**
  * Factory for the {@code ListFirst} operation, which returns the first item from a list.
@@ -43,12 +40,7 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
         var config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         // TODO we would be nice if we knew the TypeReference at this point
         // That would mean we'd need to type check the factories, so that I know what ListFirst is going to be called on
-        Type listSuperType = GenericTypeReflector.getExactSuperType(argumentType, List.class);
-        if (!(listSuperType instanceof ParameterizedType parameterizedType)) {
-            throw new TypeException("Argument type " + GenericTypeReflector.getTypeName(argumentType) + " is not a subtype of " + List.class);
-        }
-
-        Type listTypeArgument = parameterizedType.getActualTypeArguments()[0];
+        Type listTypeArgument = OpTypeChecker.singleTypeArgumentOf(argumentType, List.class);
         // if (listTypeArgument instanceof TypeVariable<?> || listTypeArgument instanceof WildcardType) {
         // throw new TypeException("List type argument " + GenericTypeReflector.getTypeName(listTypeArgument) + " is not supported");
         // }
