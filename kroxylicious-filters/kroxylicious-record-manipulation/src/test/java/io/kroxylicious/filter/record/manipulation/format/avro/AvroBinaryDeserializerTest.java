@@ -7,6 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -36,7 +37,7 @@ class AvroBinaryDeserializerTest {
         ByteBuffer buffer = serializer.apply(record("hello"));
 
         // When
-        GenericRecord result = deserializer.apply(buffer);
+        GenericRecord result = (GenericRecord) deserializer.apply(buffer);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -55,7 +56,7 @@ class AvroBinaryDeserializerTest {
         ByteBuffer slice = buffer.slice();
 
         // When
-        GenericRecord result = deserializer.apply(slice);
+        GenericRecord result = (GenericRecord) deserializer.apply(slice);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -69,7 +70,7 @@ class AvroBinaryDeserializerTest {
         buffer.put(encoded).flip();
 
         // When
-        GenericRecord result = deserializer.apply(buffer);
+        GenericRecord result = (GenericRecord) deserializer.apply(buffer);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -83,6 +84,22 @@ class AvroBinaryDeserializerTest {
         // When/Then
         assertThatThrownBy(() -> deserializer.apply(buffer))
                 .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void deserializesAValueConformingToANonRecordRootSchema() {
+        // Given
+        Schema arraySchema = new Schema.Parser().parse("{\"type\":\"array\",\"items\":\"string\"}");
+        var arraySerializer = new AvroBinarySerializer(arraySchema);
+        var arrayDeserializer = new AvroBinaryDeserializer(arraySchema);
+        ByteBuffer buffer = arraySerializer.apply(List.of("Vernon Dudley", "Barny Weasley"));
+
+        // When
+        Object result = arrayDeserializer.apply(buffer);
+
+        // Then
+        // decoded string elements are Utf8, not String, so compare via toString() (as elsewhere in this suite)
+        assertThat((List<?>) result).extracting(Object::toString).containsExactly("Vernon Dudley", "Barny Weasley");
     }
 
 }

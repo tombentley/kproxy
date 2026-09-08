@@ -83,8 +83,8 @@ class RecordManipulationFilterAvroTest {
     private static PipelineConfig avroMaskingValuePipeline() {
         return new PipelineConfig(Origin.RecordValue, List.of(
                 new OpConfig(DeserializeAvro.class, Map.of("schema", SCHEMA_JSON)),
-                new OpConfig(AvroTransform.class, Map.of("schema", SCHEMA_JSON)),
-                new OpConfig(SerializeAvro.class, Map.of("schema", SCHEMA_JSON))));
+                new OpConfig(AvroTransform.class),
+                new OpConfig(SerializeAvro.class)));
     }
 
     private RecordManipulationFilter buildFilter(Direction direction) {
@@ -214,7 +214,44 @@ class RecordManipulationFilterAvroTest {
     }
 
     private static GenericRecord readValue(Record record) {
-        return new AvroBinaryDeserializer(SCHEMA).deserialize(record.value());
+        return (GenericRecord) new AvroBinaryDeserializer(SCHEMA).deserialize(record.value());
+    }
+
+    @Test
+    void masksEachElementOfAnArrayRootValue() {
+        // Given
+        String arraySchemaJson = """
+                {"type": "array", "items": {"type": "string", "apply": [{"op": "ValueString", "value": "REDACTED"}]}}
+                """;
+        Schema arraySchema = new Schema.Parser().parse(arraySchemaJson);
+        var config = new RecordManipulationConfig(TOPIC_NAME, Direction.IN,
+                new RecordTransformConfig(null, null, new PipelineConfig(Origin.RecordValue, List.of(
+                        new OpConfig(DeserializeAvro.class, Map.of("schema", arraySchemaJson)),
+                        new OpConfig(AvroTransform.class),
+                        new OpConfig(SerializeAvro.class)))));
+        var factory = new RecordManipulation();
+        var init = factory.initialize(factoryContext, config);
+        var filter = (RecordManipulationFilter) factory.createFilter(factoryContext, init);
+
+        byte[] originalValue = new AvroBinarySerializer(arraySchema).serialize(List.of("Vernon Dudley", "Barny Weasley")).array();
+        var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, originalValue);
+        var header = new RequestHeaderData();
+        var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();
+
+        // When
+        var stage = filter.onProduceRequest(produceRequest.apiKey(), header, produceRequest, mockFilterContext);
+
+        // Then
+        assertThat(stage).succeedsWithin(Duration.ZERO).satisfies(result -> {
+            MockFilterContextAssert.assertThat(result)
+                    .isForwardRequest().hasMessageInstanceOfSatisfying(ProduceRequestData.class, filteredRequest -> {
+                        var record = onlyRecord(filteredRequest);
+                        List<?> maskedValue = (List<?>) new AvroBinaryDeserializer(arraySchema).deserialize(record.value());
+                        assertThat(maskedValue).extracting(Object::toString)
+                                .withFailMessage("expected every array element to have been masked")
+                                .containsExactly("REDACTED", "REDACTED");
+                    });
+        });
     }
 
 }

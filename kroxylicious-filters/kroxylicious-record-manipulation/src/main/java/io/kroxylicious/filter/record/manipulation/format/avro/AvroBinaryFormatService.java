@@ -10,17 +10,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 
 import io.kroxylicious.filter.record.manipulation.format.DataFormat;
 import io.kroxylicious.filter.record.manipulation.format.DataFormatService;
 import io.kroxylicious.filter.record.manipulation.format.SchemaParseException;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
-public class AvroBinaryFormatService implements DataFormatService<GenericRecord, byte[], Schema> {
+public class AvroBinaryFormatService implements DataFormatService<Object, byte[], Schema> {
 
     @Override
-    public DataFormat<GenericRecord> create(byte[] schemaConfiguration) {
+    public DataFormat<Object> create(byte[] schemaConfiguration) {
         try (var in = new ByteArrayInputStream(schemaConfiguration)) {
             return new AvroBinaryFormat(new Schema.Parser().parse(in));
         }
@@ -30,7 +29,7 @@ public class AvroBinaryFormatService implements DataFormatService<GenericRecord,
     }
 
     @Override
-    public BaseTypedOp<GenericRecord, GenericRecord> operator(Schema operatorConfiguration) {
+    public BaseTypedOp<Object, Object> operator(Schema operatorConfiguration) {
         return (BaseTypedOp) AvroFunction.buildMask(operatorConfiguration, null, null);
     }
 

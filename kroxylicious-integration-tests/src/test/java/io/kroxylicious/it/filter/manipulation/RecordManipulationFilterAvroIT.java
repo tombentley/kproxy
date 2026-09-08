@@ -141,7 +141,7 @@ class RecordManipulationFilterAvroIT extends BaseIT {
     }
 
     private void assertMasked(ConsumerRecord<String, byte[]> record) {
-        GenericRecord maskedValue = new AvroBinaryDeserializer(SCHEMA).deserialize(ByteBuffer.wrap(record.value()));
+        GenericRecord maskedValue = (GenericRecord) new AvroBinaryDeserializer(SCHEMA).deserialize(ByteBuffer.wrap(record.value()));
         assertThat(maskedValue.get("firstName").toString())
                 .withFailMessage("expected firstName to have been masked")
                 .isEqualTo("REDACTED");
@@ -156,8 +156,8 @@ class RecordManipulationFilterAvroIT extends BaseIT {
                         "from", "RecordValue",
                         "apply", List.of(
                                 Map.of("op", "DeserializeAvro", "schema", SCHEMA_JSON),
-                                Map.of("op", "AvroTransform", "schema", SCHEMA_JSON),
-                                Map.of("op", "SerializeAvro", "schema", SCHEMA_JSON))));
+                                Map.of("op", "AvroTransform"),
+                                Map.of("op", "SerializeAvro"))));
 
         String className = RecordManipulation.class.getName();
         return new NamedFilterDefinitionBuilder(name, className)

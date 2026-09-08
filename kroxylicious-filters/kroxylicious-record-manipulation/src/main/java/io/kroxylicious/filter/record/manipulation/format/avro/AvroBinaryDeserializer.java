@@ -21,14 +21,18 @@ import io.kroxylicious.filter.record.manipulation.format.Deserializer;
 import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonDeserializer;
 
 /**
- * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link GenericRecord}, decoded per Avro's
- * single-object binary encoding against a fixed {@link Schema} (no schema evolution: the same schema is
- * used to write and read). Mirrors {@link JacksonDeserializer},
- * except a {@link Schema} is required up front - unlike JSON, Avro binary data isn't self-describing.
+ * Deserializes the remaining bytes of a {@link ByteBuffer}, decoded per Avro's single-object binary
+ * encoding against a fixed {@link Schema} (no schema evolution: the same schema is used to write and
+ * read). Mirrors {@link JacksonDeserializer}, except a {@link Schema} is required up front - unlike JSON,
+ * Avro binary data isn't self-describing.
+ * <p>
+ * Typed to {@link Object} rather than {@link GenericRecord} because {@code schema} isn't required to be a
+ * {@code record} - Avro's generic codec already decodes to whatever Java type matches {@code schema}
+ * (a {@link GenericRecord}, a {@link java.util.List} for an array, or a scalar/enum/fixed leaf value).
  */
-public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecord>, Deserializer<GenericRecord> {
+public class AvroBinaryDeserializer implements Function<ByteBuffer, Object>, Deserializer<Object> {
 
-    private final GenericDatumReader<GenericRecord> reader;
+    private final GenericDatumReader<Object> reader;
 
     /**
      * Creates a deserializer.
@@ -39,12 +43,12 @@ public class AvroBinaryDeserializer implements Function<ByteBuffer, GenericRecor
     }
 
     @Override
-    public GenericRecord apply(ByteBuffer bb) {
+    public Object apply(ByteBuffer bb) {
         return deserialize(bb);
     }
 
     @Override
-    public GenericRecord deserialize(ByteBuffer bb) {
+    public Object deserialize(ByteBuffer bb) {
         try {
             if (bb.hasArray()) {
                 Decoder decoder = DecoderFactory.get().binaryDecoder(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining(), null);
