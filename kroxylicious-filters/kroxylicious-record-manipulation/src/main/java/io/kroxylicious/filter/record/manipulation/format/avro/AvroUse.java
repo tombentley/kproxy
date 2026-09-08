@@ -94,8 +94,8 @@ public class AvroUse {
         user.put("aliases", List.of("Vernon Dudley", "Barny Weasley"));
         user.put("address", address);
 
-        Function<ByteBuffer, GenericRecord> deserializer = new AvroBinaryDeserializer(maskSchema);
-        Function<GenericRecord, ByteBuffer> serializer = new AvroBinarySerializer(maskSchema);
+        Function<ByteBuffer, Object> deserializer = new AvroBinaryDeserializer(maskSchema);
+        Function<Object, ByteBuffer> serializer = new AvroBinarySerializer(maskSchema);
         ByteBuffer data = serializer.apply(user);
 
         // OpContext maskOpContext = new OpContext(new Random(), KEY);

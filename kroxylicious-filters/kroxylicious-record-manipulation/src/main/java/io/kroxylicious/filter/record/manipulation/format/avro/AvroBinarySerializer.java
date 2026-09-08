@@ -21,33 +21,35 @@ import io.kroxylicious.filter.record.manipulation.format.Serializer;
 import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonSerializer;
 
 /**
- * Serializes a {@link GenericRecord} to a {@link ByteBuffer} ready to be read, using Avro's single-object
- * binary encoding - the inverse of {@link AvroBinaryDeserializer}. Mirrors
- * {@link JacksonSerializer}.
+ * Serializes a value to a {@link ByteBuffer} ready to be read, using Avro's single-object binary encoding -
+ * the inverse of {@link AvroBinaryDeserializer}. Mirrors {@link JacksonSerializer}.
+ * <p>
+ * Typed to {@link Object} rather than {@link GenericRecord} because {@code schema} isn't required to be a
+ * {@code record} - see {@link AvroBinaryDeserializer}.
  */
-public class AvroBinarySerializer implements Function<GenericRecord, ByteBuffer>, Serializer<GenericRecord> {
+public class AvroBinarySerializer implements Function<Object, ByteBuffer>, Serializer<Object> {
 
-    private final GenericDatumWriter<GenericRecord> writer;
+    private final GenericDatumWriter<Object> writer;
 
     /**
      * Creates a serializer.
-     * @param schema the schema written records conform to
+     * @param schema the schema written values conform to
      */
     public AvroBinarySerializer(Schema schema) {
         this.writer = new GenericDatumWriter<>(schema);
     }
 
     @Override
-    public ByteBuffer apply(GenericRecord record) {
-        return serialize(record);
+    public ByteBuffer apply(Object value) {
+        return serialize(value);
     }
 
     @Override
-    public ByteBuffer serialize(GenericRecord record) {
+    public ByteBuffer serialize(Object value) {
         // TODO buffer recycling
         try (var os = new ByteBufferOutputStream(10000)) {
             Encoder encoder = EncoderFactory.get().binaryEncoder(os, null);
-            writer.write(record, encoder);
+            writer.write(value, encoder);
             encoder.flush();
             ByteBuffer buffer = os.buffer();
             buffer.flip();
