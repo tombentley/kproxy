@@ -22,7 +22,6 @@ import com.google.protobuf.DynamicMessage;
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroFunction;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
@@ -42,7 +41,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
  * than as a whole-list operation (which nothing in {@code common} implements anyway) - a Protobuf-specific
  * design choice forced by its schema shape, not an accident of mirroring Avro too literally.
  */
-public class ProtobufFunction extends StaticTypedOp<Object, Object> {
+public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds a mask function from a {@link ParsedProtoSchema}, with no additional requirement beyond each
@@ -282,7 +281,12 @@ public class ProtobufFunction extends StaticTypedOp<Object, Object> {
     }
 
     @Override
-    public Type outputType(Type inputType) {
+    public Type inputType() {
+        return Object.class;
+    }
+
+    @Override
+    public Type outputType() {
         return Object.class;
     }
 

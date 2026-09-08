@@ -15,9 +15,7 @@ import org.apache.avro.Schema;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -38,16 +36,6 @@ public class DeserializeAvro implements OpFactory<ByteBuffer, AvroValue> {
         Config c = MAPPER.convertValue(config, Config.class);
         Schema schema = new Schema.Parser().parse(c.schema());
         var deserializer = new AvroBinaryDeserializer(schema);
-        return new StaticTypedOp<ByteBuffer, AvroValue>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return AvroValue.class;
-            }
-
-            @Override
-            public AvroValue apply(ByteBuffer value, OpContext opContext) {
-                return new AvroValue(deserializer.deserialize(value), schema);
-            }
-        };
+        return BaseTypedOp.of(ByteBuffer.class, AvroValue.class, (value, opContext) -> new AvroValue(deserializer.deserialize(value), schema));
     }
 }

@@ -21,7 +21,7 @@ import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
@@ -81,10 +81,9 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
         }
 
         BaseTypedOp<Record, ?> compose = OpConfigs.compose(Record.class, configs, Set.of(), filterFactoryContext::pluginInstance);
-        if (!GenericTypeReflector.isSuperType(expectedType, compose.outputType())) {
-            throw new TypeException("Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
-                    + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");
-        }
+        OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
+                "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
+                        + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");
         return (BaseTypedOp) compose;
     }
 

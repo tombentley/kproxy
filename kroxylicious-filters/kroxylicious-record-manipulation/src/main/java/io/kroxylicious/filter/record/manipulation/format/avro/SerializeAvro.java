@@ -9,11 +9,11 @@ package io.kroxylicious.filter.record.manipulation.format.avro;
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import org.apache.avro.Schema;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -34,26 +34,23 @@ public class SerializeAvro implements OpFactory<AvroValue, ByteBuffer> {
 
     @Override
     public BaseTypedOp<AvroValue, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        return new StaticTypedOp<AvroValue, ByteBuffer>() {
-            private volatile Schema cachedSchema;
-            private volatile AvroBinarySerializer cachedSerializer;
+        return BaseTypedOp.of(AvroValue.class, ByteBuffer.class, new CachingSerializer());
+    }
 
-            @Override
-            public Type outputType(Type inputType) {
-                return ByteBuffer.class;
-            }
+    private static final class CachingSerializer implements BiFunction<AvroValue, OpContext, ByteBuffer> {
+        private volatile Schema cachedSchema;
+        private volatile AvroBinarySerializer cachedSerializer;
 
-            @Override
-            public ByteBuffer apply(AvroValue value, OpContext opContext) {
-                Schema schema = value.schema();
-                AvroBinarySerializer serializer = cachedSerializer;
-                if (serializer == null || !schema.equals(cachedSchema)) {
-                    serializer = new AvroBinarySerializer(schema);
-                    cachedSchema = schema;
-                    cachedSerializer = serializer;
-                }
-                return serializer.serialize(value.value());
+        @Override
+        public ByteBuffer apply(AvroValue value, OpContext opContext) {
+            Schema schema = value.schema();
+            AvroBinarySerializer serializer = cachedSerializer;
+            if (serializer == null || !schema.equals(cachedSchema)) {
+                serializer = new AvroBinarySerializer(schema);
+                cachedSchema = schema;
+                cachedSerializer = serializer;
             }
-        };
+            return serializer.serialize(value.value());
+        }
     }
 }

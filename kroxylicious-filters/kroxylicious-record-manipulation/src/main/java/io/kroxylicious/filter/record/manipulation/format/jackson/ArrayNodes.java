@@ -6,14 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.format.jackson;
 
-import java.lang.reflect.Type;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 /**
  * https://json-schema.org/understanding-json-schema/reference/array
@@ -34,17 +30,7 @@ public class ArrayNodes {
      * @return a function mapping an {@link ArrayNode} to a new array with {@code itemsFn} applied to each element
      */
     public static BaseTypedOp<ArrayNode, JsonNode> items(BaseTypedOp<JsonNode, JsonNode> itemsFn) {
-        return BaseTypedOp.of(ArrayNode.class, JsonNode.class, (arrayNode, context) -> new ArrayItems().modifyAll(arrayNode, new StaticTypedOp<JsonNode, JsonNode>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return null;
-            }
-
-            @Override
-            public JsonNode apply(JsonNode value, OpContext opContext) {
-                return itemsFn.apply(value, context);
-            }
-        }, context));
+        return BaseTypedOp.of(ArrayNode.class, JsonNode.class, (arrayNode, context) -> new ArrayItems().modifyAll(arrayNode, itemsFn, context));
     }
 
     /*

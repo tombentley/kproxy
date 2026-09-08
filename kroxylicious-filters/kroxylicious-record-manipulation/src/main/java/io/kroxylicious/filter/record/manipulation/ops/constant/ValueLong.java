@@ -10,10 +10,8 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -32,16 +30,6 @@ public class ValueLong implements OpFactory<Long, Long> {
     @Override
     public BaseTypedOp<Long, Long> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
-        return new StaticTypedOp<Long, Long>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return Long.class;
-            }
-
-            @Override
-            public Long apply(Long value, OpContext opContext) {
-                return config.value();
-            }
-        };
+        return BaseTypedOp.of(Long.class, Long.class, (value, opContext) -> config.value());
     }
 }

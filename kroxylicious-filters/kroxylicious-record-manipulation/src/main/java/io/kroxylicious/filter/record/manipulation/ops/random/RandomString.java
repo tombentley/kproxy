@@ -10,10 +10,8 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
@@ -35,16 +33,6 @@ public class RandomString implements OpFactory<String, String> {
     public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomStringSupplier(config.alphabet(), config.minLengthInclusive(), config.maxLengthExclusive());
-        return new StaticTypedOp<String, String>() {
-            @Override
-            public Type outputType(Type inputType) {
-                return String.class;
-            }
-
-            @Override
-            public String apply(String value, OpContext opContext) {
-                return generator.apply(opContext);
-            }
-        };
+        return BaseTypedOp.of(String.class, String.class, (value, opContext) -> generator.apply(opContext));
     }
 }
