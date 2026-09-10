@@ -1,0 +1,33 @@
+read_json = io.kroxylicious.op.jackson2.Json;
+read_avro = io.kroxylicious.op.avro.Binary {
+ schema = <avro schema>
+};
+hmac = io.kroxylicious....Hmac{
+  key =
+};
+encrypt = io.kroxylicious....Encrypt{
+  kek = my-kek,
+  kms = io.kroxylicious...AwsKms {
+  }
+};
+your_mask = io.kroxylicious.op.xform.Avro {
+  xform = {"firstName": "REDACTED",
+           "customerId": hmac($customerId),
+           "email": encrypt($email),
+           "area": regexReplace("(([A-Z]+[0-9]{2}).*", $address.postCode, "$1"),
+           "city": $address.city,
+           },
+  schema = <avro schema>
+};
+
+
+my_mask = io.kroxylicious.op.jsonata.Jsonata {
+  jsonata = <jsonata>
+};
+
+{
+ key = your_mask(read_avro($key))
+ value = my_mask(read_json($value))
+ timestamp = $value.timestamp
+ headers = $headers[2,1]
+};

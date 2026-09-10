@@ -14,14 +14,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns a {@code double} drawn at random from a fixed set.
  */
-public class ChooseDoubleSupplier implements BiFunction<Object, OpContext, Double> {
+class ChooseDoubleSupplier implements BiFunction<Object, OpContext, Double> {
     private final double[] values;
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseDoubleSupplier(Set<Double> from) {
+    ChooseDoubleSupplier(Set<Double> from) {
         values = from.stream().mapToDouble(i -> i).toArray();
     }
 

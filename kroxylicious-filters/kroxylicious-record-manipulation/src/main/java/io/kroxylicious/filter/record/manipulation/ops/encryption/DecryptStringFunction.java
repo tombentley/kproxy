@@ -28,14 +28,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
  * known until then, and a shared, cached instance would not be safe to reuse across concurrent invocations
  * regardless.
  */
-public class DecryptStringFunction implements BiFunction<String, OpContext, String> {
+class DecryptStringFunction implements BiFunction<String, OpContext, String> {
 
     private static final int IV_LENGTH = 12;
 
     /**
      * Creates an instance.
      */
-    public DecryptStringFunction() {
+    DecryptStringFunction() {
     }
 
     @Override

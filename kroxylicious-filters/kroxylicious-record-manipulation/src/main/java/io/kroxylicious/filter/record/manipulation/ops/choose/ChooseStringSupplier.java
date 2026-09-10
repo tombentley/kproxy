@@ -11,13 +11,13 @@ import java.util.Set;
 /**
  * A function that returns a {@link String} drawn at random from a fixed set.
  */
-public class ChooseStringSupplier extends ChooseSupplier<String> {
+class ChooseStringSupplier extends ChooseSupplier<String> {
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseStringSupplier(Set<String> from) {
+    ChooseStringSupplier(Set<String> from) {
         super(from);
     }
 }

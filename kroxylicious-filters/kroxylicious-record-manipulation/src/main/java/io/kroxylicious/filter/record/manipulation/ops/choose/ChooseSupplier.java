@@ -16,14 +16,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
  *
  * @param <T> the type of the values
  */
-public class ChooseSupplier<T> implements Function<OpContext, T> {
+class ChooseSupplier<T> implements Function<OpContext, T> {
     private final Object[] values;
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseSupplier(Set<T> from) {
+    ChooseSupplier(Set<T> from) {
         values = from.toArray(Object[]::new);
     }
 

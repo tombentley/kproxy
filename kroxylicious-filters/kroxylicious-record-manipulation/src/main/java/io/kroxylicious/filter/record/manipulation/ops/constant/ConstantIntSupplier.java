@@ -13,14 +13,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that always returns the same {@code int}, regardless of context.
  */
-public class ConstantIntSupplier implements ToIntFunction<OpContext> {
+class ConstantIntSupplier implements ToIntFunction<OpContext> {
     private final int value;
 
     /**
      * Creates an instance.
      * @param value the value to always return
      */
-    public ConstantIntSupplier(int value) {
+    ConstantIntSupplier(int value) {
         this.value = value;
     }
 

@@ -13,14 +13,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that always returns the same {@link String}, regardless of context.
  */
-public class ConstantBytesSupplier implements Function<OpContext, byte[]> {
+class ConstantBytesSupplier implements Function<OpContext, byte[]> {
     private final byte[] value;
 
     /**
      * Creates an instance.
      * @param value the value to always return
      */
-    public ConstantBytesSupplier(byte[] value) {
+    ConstantBytesSupplier(byte[] value) {
         this.value = value;
     }
 
