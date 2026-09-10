@@ -15,14 +15,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns a {@code BigInteger} drawn at random from a fixed set.
  */
-public class ChooseBigIntegerSupplier implements BiFunction<BigInteger, OpContext, BigInteger> {
+class ChooseBigIntegerSupplier implements BiFunction<BigInteger, OpContext, BigInteger> {
     private final BigInteger[] values;
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseBigIntegerSupplier(Set<BigInteger> from) {
+    ChooseBigIntegerSupplier(Set<BigInteger> from) {
         values = from.stream().toArray(BigInteger[]::new);
     }
 

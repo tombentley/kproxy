@@ -14,14 +14,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns a {@code long} drawn at random from a fixed set.
  */
-public class ChooseLongSupplier implements ToLongFunction<OpContext> {
+class ChooseLongSupplier implements ToLongFunction<OpContext> {
     private final long[] values;
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseLongSupplier(Set<Long> from) {
+    ChooseLongSupplier(Set<Long> from) {
         values = from.stream().mapToLong(i -> i).toArray();
     }
 

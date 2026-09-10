@@ -76,6 +76,12 @@
             <artifactId>spotbugs-annotations</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.ibm.jsonata4java</groupId>
+            <artifactId>JSONata4Java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
         <!-- third party dependencies - test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

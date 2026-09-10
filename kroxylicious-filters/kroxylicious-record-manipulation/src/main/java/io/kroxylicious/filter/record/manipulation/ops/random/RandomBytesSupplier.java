@@ -15,7 +15,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
  * A provider of strings of a random length composed of
  * codepoints taken at random from a given alphabet.
  */
-public class RandomBytesSupplier implements Function<OpContext, byte[]> {
+class RandomBytesSupplier implements Function<OpContext, byte[]> {
 
     private final int minLengthInclusive;
     private final int maxLengthExclusive;
@@ -27,7 +27,7 @@ public class RandomBytesSupplier implements Function<OpContext, byte[]> {
      * @param minLengthInclusive The minimum length of the string (inclusive)
      * @param maxLengthExclusive The maximum length of the string (exclusive)
      */
-    public RandomBytesSupplier(int minLengthInclusive, int maxLengthExclusive) {
+    RandomBytesSupplier(int minLengthInclusive, int maxLengthExclusive) {
         if (minLengthInclusive < 0) {
             throw new IllegalArgumentException("minLengthInclusive (" + minLengthInclusive + ") must be >= 0");
         }

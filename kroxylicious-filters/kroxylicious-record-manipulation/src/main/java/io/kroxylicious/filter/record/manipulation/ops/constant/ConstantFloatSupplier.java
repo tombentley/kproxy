@@ -13,14 +13,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that always returns the same {@code double}, regardless of context.
  */
-public class ConstantFloatSupplier implements Function<OpContext, Float> {
+class ConstantFloatSupplier implements Function<OpContext, Float> {
     private final float value;
 
     /**
      * Creates an instance.
      * @param value the value to always return
      */
-    public ConstantFloatSupplier(float value) {
+    ConstantFloatSupplier(float value) {
         this.value = value;
     }
 
