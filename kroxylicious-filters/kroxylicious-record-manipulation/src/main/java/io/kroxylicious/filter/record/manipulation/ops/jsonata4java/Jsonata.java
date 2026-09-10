@@ -21,9 +21,12 @@ import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import com.api.jsonata4java.expressions.Expressions;
 
 public class Jsonata implements OpFactory<JsonNode, JsonNode> {
+
+    public static final String CONF_PARAM_EXPRESSION = "expression";
+
     @Override
     public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        var expressions = extracted(config);
+        var expressions = createExpressions(config);
 
         return BaseTypedOp.of(JsonNode.class, JsonNode.class, (value, context) -> {
             try {
@@ -33,16 +36,22 @@ public class Jsonata implements OpFactory<JsonNode, JsonNode> {
                 throw new RuntimeException(e);
             }
         });
-
     }
 
-    private static Expressions extracted(Map<String, Object> config) {
-        String expression = (String) config.get("expression");
-        try {
-            return Expressions.parse(expression);
-        }
-        catch (ParseException | IOException e) {
-            throw new IllegalArgumentException("The 'expression' property contained invalid JSONata expression(s)", e);
+    private static Expressions createExpressions(Map<String, Object> config) {
+        Object exprObj = config.get(CONF_PARAM_EXPRESSION);
+        if (exprObj instanceof String expression) {
+            try {
+                // TODO support the re2 regex engine
+                return Expressions.parse(expression);
+            }
+            catch (ParseException | IOException e) {
+                throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property contained invalid JSONata expression(s)", e);
+            }
+        } else if (exprObj != null) {
+            throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property must be a string, but was " + exprObj.getClass().getName());
+        } else {
+            throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property is required");
         }
     }
 }

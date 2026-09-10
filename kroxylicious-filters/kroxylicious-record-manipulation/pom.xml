@@ -81,6 +81,11 @@
             <artifactId>JSONata4Java</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.dashjoin</groupId>
+            <artifactId>jsonata</artifactId>
+            <version>0.9.10</version>
+        </dependency>
 
         <!-- third party dependencies - test -->
         <dependency>
