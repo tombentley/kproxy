@@ -1,14 +1,23 @@
 result:
-  value: my_mask(read_json($.value))
+  value: my_mask(validate_json(read_json($.value)))
   key: your_mask(read_avro($.key))
   timestamp: $.value.timestamp
   headers: $.headers[2,1]
 where:
   read_json:
     op: io.kroxylicious.op.jackson2.Json
+    outputType: java.lang.Object
+  validate_json:
+    op: io.kroxylicious.op.jackson2.Validate
+    jsonSchema: |
+      type: object
+      properties: 
+        c: 
+          type: array
+          items: integer
   my_mask:
-    op: io.kroxylicious.op.jsonata.Jsonata
-    jsonata: ""
+    op: io.kroxylicious.ops.dashjoin.Jsonata
+    jsonata: $sum(c)
   
   read_avro:
     op: io.kroxylicious.op.avro.Binary
