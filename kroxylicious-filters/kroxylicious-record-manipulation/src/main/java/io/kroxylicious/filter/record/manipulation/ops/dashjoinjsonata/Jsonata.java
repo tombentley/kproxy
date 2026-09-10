@@ -4,48 +4,48 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.ops.jsonata4java;
+package io.kroxylicious.filter.record.manipulation.ops.dashjoinjsonata;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.api.jsonata4java.expressions.EvaluateException;
-import com.api.jsonata4java.expressions.ParseException;
-import tools.jackson.databind.JsonNode;
+import com.dashjoin.jsonata.JException;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 
-import com.api.jsonata4java.expressions.Expressions;
-
-public class Jsonata implements OpFactory<JsonNode, JsonNode> {
+public class Jsonata implements OpFactory<Object, Object> {
 
     public static final String CONF_PARAM_EXPRESSION = "expression";
 
     @Override
-    public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Object, Object> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
         var expressions = createExpressions(config);
 
-        return BaseTypedOp.of(JsonNode.class, JsonNode.class, (value, context) -> {
+        return BaseTypedOp.of(Object.class, Object.class, (value, context) -> {
             try {
                 return expressions.evaluate(value);
             }
-            catch (EvaluateException e) {
+            catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    private static Expressions createExpressions(Map<String, Object> config) {
+    private static com.dashjoin.jsonata.Jsonata createExpressions(Map<String, Object> config) {
         Object exprObj = config.get(CONF_PARAM_EXPRESSION);
         if (exprObj instanceof String expression) {
             try {
-                // TODO support the re2 regex engine
-                return Expressions.parse(expression);
+                com.dashjoin.jsonata.Jsonata jsonata = com.dashjoin.jsonata.Jsonata.jsonata(expression);
+                // TODO jsonata.getErrors()
+                // TODO jsonata.setValidateInput();
+                // TODO jsonata.assign();
+                // TODO jsonata.registerFunction();
+                // TODO jsonata.setOutputConvertNulls();
+                return jsonata;
             }
-            catch (ParseException | IOException e) {
+            catch (JException e) {
                 throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property contained invalid JSONata expression(s)", e);
             }
         } else if (exprObj != null) {
