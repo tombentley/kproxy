@@ -31,9 +31,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson;
-import io.kroxylicious.filter.record.manipulation.format.jackson.JsonTransform;
-import io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson;
 import io.kroxylicious.filter.record.manipulation.kafka.Origin;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;

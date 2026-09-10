@@ -16,7 +16,7 @@ import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
-import io.kroxylicious.filter.record.manipulation.format.jackson.Use;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.Use;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 

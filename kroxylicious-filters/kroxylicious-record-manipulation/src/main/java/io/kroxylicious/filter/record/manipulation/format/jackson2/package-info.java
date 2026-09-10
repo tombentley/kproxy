@@ -7,7 +7,7 @@
 @ReturnValuesAreNonnullByDefault
 @DefaultAnnotationForParameters(NonNull.class)
 @DefaultAnnotation(NonNull.class)
-package io.kroxylicious.filter.record.manipulation.format.jackson;
+package io.kroxylicious.filter.record.manipulation.format.jackson2;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.DefaultAnnotationForParameters;

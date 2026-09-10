@@ -18,7 +18,7 @@ import org.apache.kafka.common.utils.ByteBufferInputStream;
 
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
-import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonDeserializer;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.JacksonDeserializer;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer}, decoded per Avro's single-object binary

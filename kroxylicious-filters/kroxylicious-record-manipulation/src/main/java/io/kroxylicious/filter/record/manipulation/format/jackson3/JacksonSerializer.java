@@ -11,25 +11,25 @@ import java.util.function.Function;
 
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 import io.kroxylicious.filter.record.manipulation.format.SerializationException;
 import io.kroxylicious.filter.record.manipulation.format.Serializer;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectWriter;
 
 /**
  * Serializes a {@link JsonNode} to a {@link ByteBuffer} ready to be read.
  */
 public class JacksonSerializer implements Function<JsonNode, ByteBuffer>, Serializer<JsonNode> {
 
-    private final ObjectMapper mapper;
+    private final ObjectWriter writer;
 
     /**
      * Creates a serializer.
-     * @param mapper the mapper used to write the node's contents
+     * @param writer the mapper used to write the node's contents
      */
-    public JacksonSerializer(ObjectMapper mapper) {
-        this.mapper = mapper;
+    public JacksonSerializer(ObjectWriter writer) {
+        this.writer = writer;
     }
 
     @Override
@@ -41,7 +41,7 @@ public class JacksonSerializer implements Function<JsonNode, ByteBuffer>, Serial
     public ByteBuffer serialize(JsonNode node) {
         // TODO buffer recycling
         try (var is = new ByteBufferOutputStream(10000)) {
-            mapper.writeValue(is, node);
+            writer.writeValue(is, node);
             ByteBuffer buffer = is.buffer();
             buffer.flip();
             return buffer;

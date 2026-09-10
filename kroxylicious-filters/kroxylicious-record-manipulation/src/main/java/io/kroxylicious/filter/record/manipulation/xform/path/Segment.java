@@ -19,6 +19,7 @@ public sealed interface Segment {
             return selectors.toString();
         }
     }
+
     record Descendant(List<Selector> selectors) implements Segment {
         Descendant(Selector selector) {
             this(List.of(selector));
@@ -32,4 +33,3 @@ public sealed interface Segment {
     }
 
 }
-

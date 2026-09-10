@@ -30,7 +30,7 @@ spec:
       - GROUP_ID
       - TRANSACTIONAL_ID
     mapper: PrincipalEntityNameMapperService
-    mapperConfig:
+    readerConfig:
       separator: "-"
       principalType: <principal implementation>
 ----

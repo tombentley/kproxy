@@ -9,10 +9,6 @@ package io.kroxylicious.filter.record.manipulation.xform.avro;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.Decoder;
-import org.apache.avro.io.DecoderFactory;
-
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroValue;
@@ -62,9 +58,9 @@ public class AvroXform implements OpFactory<AvroValue, AvroValue> {
             public AvroValue apply(AvroValue value, OpContext opContext) {
                 // TODO merge the types from the schema with the paths from the xform
                 // and check the paths have result types which match any target schema
-//                var reader = new GenericDatumReader<>(value.schema());
-//                Decoder decoder = DecoderFactory.get().jsonDecoder(value.schema(), is);
-//                return reader.read(null, decoder);
+                // var reader = new GenericDatumReader<>(value.schema());
+                // Decoder decoder = DecoderFactory.get().jsonDecoder(value.schema(), is);
+                // return reader.read(null, decoder);
 
                 return null;
             }

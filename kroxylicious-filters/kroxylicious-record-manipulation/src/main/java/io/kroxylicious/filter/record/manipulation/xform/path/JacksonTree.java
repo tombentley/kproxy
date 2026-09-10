@@ -108,7 +108,8 @@ public class JacksonTree {
                                 if (accessor.equals(name)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                         results.add(child);
                                     }
@@ -117,7 +118,8 @@ public class JacksonTree {
                             case Selector.Children() -> {
                                 if (isFinalSegment) {
                                     path.path.consumer().accept(child);
-                                } else {
+                                }
+                                else {
                                     path.incrementIndex();
                                     results.add(child);
                                 }
@@ -126,7 +128,8 @@ public class JacksonTree {
                                 if (accessor.equals(index)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                         results.add(child);
                                     }
@@ -138,7 +141,8 @@ public class JacksonTree {
                                         && i <= end) { // TODO step
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                         results.add(child);
                                     }
@@ -148,7 +152,8 @@ public class JacksonTree {
                                 if (predicate.test(child)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                         results.add(child);
                                     }
@@ -164,7 +169,8 @@ public class JacksonTree {
                                 if (accessor.equals(name)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                     }
                                 }
@@ -173,8 +179,9 @@ public class JacksonTree {
                             case Selector.Children() -> {
                                 if (isFinalSegment) {
                                     path.path.consumer().accept(child);
-                                } else {
-                                    //path.incrementIndex();
+                                }
+                                else {
+                                    // path.incrementIndex();
                                 }
                                 results.add(child);
                             }
@@ -182,7 +189,8 @@ public class JacksonTree {
                                 if (accessor.equals(index)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                     }
                                 }
@@ -194,7 +202,8 @@ public class JacksonTree {
                                         && i <= end) { // TODO step
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                     }
                                 }
@@ -204,7 +213,8 @@ public class JacksonTree {
                                 if (predicate.test(child)) {
                                     if (isFinalSegment) {
                                         path.path.consumer().accept(child);
-                                    } else {
+                                    }
+                                    else {
                                         path.incrementIndex();
                                     }
                                     results.add(child);
