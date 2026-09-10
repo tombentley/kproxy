@@ -13,7 +13,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns an {@code int} drawn at random from a range.
  */
-public class RandomIntSupplier implements ToIntFunction<OpContext> {
+class RandomIntSupplier implements ToIntFunction<OpContext> {
     private final int minInclusive;
     private final int maxExclusive;
 
@@ -22,7 +22,7 @@ public class RandomIntSupplier implements ToIntFunction<OpContext> {
      * @param minInclusive the minimum value (inclusive)
      * @param maxExclusive the maximum value (exclusive)
      */
-    public RandomIntSupplier(int minInclusive, int maxExclusive) {
+    RandomIntSupplier(int minInclusive, int maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
         }

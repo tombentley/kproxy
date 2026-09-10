@@ -13,12 +13,12 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns an {@code int} drawn at random from a range.
  */
-public class RandomBooleanSupplier implements Predicate<OpContext> {
+class RandomBooleanSupplier implements Predicate<OpContext> {
 
     /**
      * Creates an instance.
      */
-    public RandomBooleanSupplier() {
+    RandomBooleanSupplier() {
     }
 
     @Override

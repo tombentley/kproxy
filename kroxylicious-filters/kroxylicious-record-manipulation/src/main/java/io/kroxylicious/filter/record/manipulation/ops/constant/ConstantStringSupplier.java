@@ -13,14 +13,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that always returns the same {@link String}, regardless of context.
  */
-public class ConstantStringSupplier implements Function<OpContext, String> {
+class ConstantStringSupplier implements Function<OpContext, String> {
     private final String value;
 
     /**
      * Creates an instance.
      * @param value the value to always return
      */
-    public ConstantStringSupplier(String value) {
+    ConstantStringSupplier(String value) {
         this.value = value;
     }
 

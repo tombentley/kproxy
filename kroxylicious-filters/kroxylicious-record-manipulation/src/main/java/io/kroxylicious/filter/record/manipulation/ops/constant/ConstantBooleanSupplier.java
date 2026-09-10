@@ -13,14 +13,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that always returns the same {@code int}, regardless of context.
  */
-public class ConstantBooleanSupplier implements Predicate<OpContext> {
+class ConstantBooleanSupplier implements Predicate<OpContext> {
     private final boolean value;
 
     /**
      * Creates an instance.
      * @param value the value to always return
      */
-    public ConstantBooleanSupplier(boolean value) {
+    ConstantBooleanSupplier(boolean value) {
         this.value = value;
     }
 

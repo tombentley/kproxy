@@ -31,14 +31,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * isn't known until then, and a shared, cached instance would not be safe to reuse across concurrent
  * invocations regardless.
  */
-public class EncryptStringFunction implements BiFunction<String, OpContext, String> {
+class EncryptStringFunction implements BiFunction<String, OpContext, String> {
 
     private static final int IV_LENGTH = 12;
 
     /**
      * Creates an instance.
      */
-    public EncryptStringFunction() {
+    EncryptStringFunction() {
     }
 
     @Override

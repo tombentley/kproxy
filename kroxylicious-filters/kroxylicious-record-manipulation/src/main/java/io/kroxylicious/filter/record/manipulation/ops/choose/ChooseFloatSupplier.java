@@ -14,7 +14,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns a {@code double} drawn at random from a fixed set.
  */
-public class ChooseFloatSupplier implements Function<OpContext, Float> {
+class ChooseFloatSupplier implements Function<OpContext, Float> {
 
     private final float[] values;
 
@@ -22,7 +22,7 @@ public class ChooseFloatSupplier implements Function<OpContext, Float> {
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseFloatSupplier(Set<Float> from) {
+    ChooseFloatSupplier(Set<Float> from) {
         values = new float[from.size()];
         var iter = from.iterator();
         for (int i = 0; i < values.length; i++) {

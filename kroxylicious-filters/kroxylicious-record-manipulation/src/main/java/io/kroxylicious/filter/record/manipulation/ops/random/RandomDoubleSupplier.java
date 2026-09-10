@@ -13,7 +13,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns a {@code double} drawn at random from a range.
  */
-public class RandomDoubleSupplier implements ToDoubleFunction<OpContext> {
+class RandomDoubleSupplier implements ToDoubleFunction<OpContext> {
     private final double minInclusive;
     private final double maxExclusive;
 
@@ -22,7 +22,7 @@ public class RandomDoubleSupplier implements ToDoubleFunction<OpContext> {
      * @param minInclusive the minimum value (inclusive)
      * @param maxExclusive the maximum value (exclusive)
      */
-    public RandomDoubleSupplier(double minInclusive, double maxExclusive) {
+    RandomDoubleSupplier(double minInclusive, double maxExclusive) {
         if (minInclusive >= maxExclusive) {
             throw new IllegalArgumentException("minInclusive (" + minInclusive + ") must be < maxExclusive (" + maxExclusive + ")");
         }

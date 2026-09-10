@@ -14,14 +14,14 @@ import io.kroxylicious.filter.record.manipulation.op.OpContext;
 /**
  * A function that returns an {@code int} drawn at random from a fixed set.
  */
-public class ChooseIntSupplier implements ToIntFunction<OpContext> {
+class ChooseIntSupplier implements ToIntFunction<OpContext> {
     private final int[] values;
 
     /**
      * Creates an instance.
      * @param from the set of values to choose from
      */
-    public ChooseIntSupplier(Set<Integer> from) {
+    ChooseIntSupplier(Set<Integer> from) {
         values = from.stream().mapToInt(i -> i).toArray();
     }
 
