@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.format.jackson;
+package io.kroxylicious.filter.record.manipulation.format.jackson2;
 
 import java.lang.reflect.Type;
 import java.util.Map;

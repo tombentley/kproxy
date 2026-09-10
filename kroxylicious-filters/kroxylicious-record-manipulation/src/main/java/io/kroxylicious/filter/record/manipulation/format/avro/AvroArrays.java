@@ -10,7 +10,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 import io.kroxylicious.filter.record.manipulation.common.ListElements;
-import io.kroxylicious.filter.record.manipulation.format.jackson.ArrayNodes;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.ArrayNodes;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 /**

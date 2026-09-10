@@ -11,25 +11,25 @@ import java.util.function.Function;
 
 import org.apache.kafka.common.utils.ByteBufferInputStream;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectReader;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link JsonNode}.
  */
 public class JacksonDeserializer implements Function<ByteBuffer, JsonNode>, Deserializer<JsonNode> {
 
-    private final ObjectMapper mapper;
+    private final ObjectReader reader;
 
     /**
      * Creates a deserializer.
-     * @param mapper the mapper used to parse the buffer's contents
+     * @param reader the mapper used to parse the buffer's contents
      */
-    public JacksonDeserializer(ObjectMapper mapper) {
-        this.mapper = mapper;
+    public JacksonDeserializer(ObjectReader reader) {
+        this.reader = reader;
     }
 
     @Override
@@ -41,11 +41,11 @@ public class JacksonDeserializer implements Function<ByteBuffer, JsonNode>, Dese
     public JsonNode deserialize(ByteBuffer byteBuffer) {
         try {
             if (byteBuffer.hasArray()) {
-                return mapper.readTree(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.remaining());
+                return reader.readTree(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.remaining());
             }
             else {
                 try (var is = new ByteBufferInputStream(byteBuffer)) {
-                    return mapper.readTree(is);
+                    return reader.readTree(is);
                 }
             }
         }

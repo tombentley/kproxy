@@ -23,7 +23,7 @@ import org.apache.avro.generic.GenericRecord;
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
-import io.kroxylicious.filter.record.manipulation.format.jackson.JacksonFunction;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.JacksonFunction;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;

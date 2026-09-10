@@ -21,7 +21,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Deserializes a record value/key from Avro's single-object binary encoding to an {@link AvroValue} -
- * the Avro equivalent of {@link io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson}.
+ * the Avro equivalent of {@link io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson}.
  * The only Avro op that parses schema config - see {@link AvroValue}.
  */
 @Plugin(configType = DeserializeAvro.Config.class)

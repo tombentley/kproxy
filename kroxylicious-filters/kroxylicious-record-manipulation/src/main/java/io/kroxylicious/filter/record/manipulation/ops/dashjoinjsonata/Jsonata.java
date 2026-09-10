@@ -48,9 +48,11 @@ public class Jsonata implements OpFactory<Object, Object> {
             catch (JException e) {
                 throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property contained invalid JSONata expression(s)", e);
             }
-        } else if (exprObj != null) {
+        }
+        else if (exprObj != null) {
             throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property must be a string, but was " + exprObj.getClass().getName());
-        } else {
+        }
+        else {
             throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property is required");
         }
     }

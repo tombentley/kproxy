@@ -7,9 +7,9 @@
 io.kroxylicious.filter.record.manipulation.filter.RecordValue
 io.kroxylicious.filter.record.manipulation.filter.RecordKey
 io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp
-io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson
-io.kroxylicious.filter.record.manipulation.format.jackson.JsonTransform
-io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson
+io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson
+io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform
+io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson
 io.kroxylicious.filter.record.manipulation.format.avro.DeserializeAvro
 io.kroxylicious.filter.record.manipulation.format.avro.AvroTransform
 io.kroxylicious.filter.record.manipulation.format.avro.SerializeAvro
