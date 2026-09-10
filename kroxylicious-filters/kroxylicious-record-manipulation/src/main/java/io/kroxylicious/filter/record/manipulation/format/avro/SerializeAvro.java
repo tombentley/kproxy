@@ -21,7 +21,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Serializes an {@link AvroValue} to Avro's single-object binary encoding - the Avro equivalent of
- * {@link io.kroxylicious.filter.record.manipulation.format.jackson.SerializeJson}, and the inverse of
+ * {@link io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson}, and the inverse of
  * {@link DeserializeAvro}.
  * <p>
  * Takes no schema config of its own - see {@link AvroValue}; it builds an {@link AvroBinarySerializer} from

@@ -11,7 +11,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kroxylicious.filter.record.manipulation.format.jackson.SchemaConfig;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.SchemaConfig;
 
 /**
  * Names a pluggable operation and carries its configuration, not yet deserialized into a concrete type.

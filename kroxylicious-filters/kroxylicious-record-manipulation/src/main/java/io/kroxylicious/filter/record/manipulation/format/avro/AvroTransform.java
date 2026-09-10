@@ -21,7 +21,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 /**
  * Masks/transforms an {@link AvroValue} per its bundled schema's {@code apply} annotations (see
  * {@link AvroSchemas}) - the Avro equivalent of
- * {@link io.kroxylicious.filter.record.manipulation.format.jackson.JsonTransform}.
+ * {@link io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform}.
  * <p>
  * Takes no schema config of its own - see {@link AvroValue} for why it instead builds its mask from
  * whatever {@link Schema} arrives bundled with each value. {@link AvroFunction} itself is deliberately

@@ -11,14 +11,14 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import com.api.jsonata4java.expressions.EvaluateException;
+import com.api.jsonata4java.expressions.Expressions;
 import com.api.jsonata4java.expressions.ParseException;
-import tools.jackson.databind.JsonNode;
 
 import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 
-import com.api.jsonata4java.expressions.Expressions;
+import tools.jackson.databind.JsonNode;
 
 public class Jsonata implements OpFactory<JsonNode, JsonNode> {
 
@@ -48,9 +48,11 @@ public class Jsonata implements OpFactory<JsonNode, JsonNode> {
             catch (ParseException | IOException e) {
                 throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property contained invalid JSONata expression(s)", e);
             }
-        } else if (exprObj != null) {
+        }
+        else if (exprObj != null) {
             throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property must be a string, but was " + exprObj.getClass().getName());
-        } else {
+        }
+        else {
             throw new IllegalArgumentException("The '" + CONF_PARAM_EXPRESSION + "' property is required");
         }
     }

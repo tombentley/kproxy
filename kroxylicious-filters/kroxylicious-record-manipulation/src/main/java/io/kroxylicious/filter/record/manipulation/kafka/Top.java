@@ -11,7 +11,5 @@ import java.util.Map;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 public record Top(
-        RecordTransformConfig2 result,
-        Map<String, OpConfig> where
-) {
-}
+                  RecordTransformConfig2 result,
+                  Map<String, OpConfig> where) {}

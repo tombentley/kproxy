@@ -51,8 +51,7 @@ import java.util.Map;
  * @param where F
  */
 record RecordTransformConfig2(Expr key,
-                                     Expr value,
-                                     Expr timestamp,
-                                     Expr headers,
-                                     Map<String, String> where) {
-}
+                              Expr value,
+                              Expr timestamp,
+                              Expr headers,
+                              Map<String, String> where) {}
