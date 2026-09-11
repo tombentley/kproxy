@@ -15,7 +15,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 

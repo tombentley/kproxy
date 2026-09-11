@@ -4,14 +4,14 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.ops.dashjoinjsonata;
+package io.kroxylicious.filter.record.manipulation.ops.jsonata.dashjoin;
 
 import java.lang.reflect.Type;
 import java.util.Map;
 
 import com.dashjoin.jsonata.JException;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 

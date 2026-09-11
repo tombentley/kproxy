@@ -10,7 +10,7 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.common.HmacStringFunction;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -32,7 +32,7 @@ public class HmacString implements OpFactory<String, String> {
 
     @Override
     public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var fn = new HmacStringFunction();
         return BaseTypedOp.of(String.class, String.class, (String value, OpContext opContext) -> value == null ? null : fn.apply(value, opContext));
     }

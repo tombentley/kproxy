@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.ops.random;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -31,7 +31,7 @@ public class RandomString implements OpFactory<String, String> {
 
     @Override
     public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomStringSupplier(config.alphabet(), config.minLengthInclusive(), config.maxLengthExclusive());
         return BaseTypedOp.of(String.class, String.class, (value, opContext) -> generator.apply(opContext));
     }

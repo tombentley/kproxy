@@ -14,11 +14,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.kafka.common.record.Record;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
@@ -29,6 +28,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
+import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 

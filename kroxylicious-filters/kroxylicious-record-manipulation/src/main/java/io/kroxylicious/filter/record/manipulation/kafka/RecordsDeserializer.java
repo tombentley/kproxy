@@ -8,9 +8,8 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.function.Function;
 
-import org.apache.kafka.common.record.BaseRecords;
-import org.apache.kafka.common.record.MemoryRecords;
-
+import io.kroxylicious.kafka.common.record.internal.BaseRecords;
+import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.transform.RecordStream;
 
 public class RecordsDeserializer implements Function<BaseRecords, RecordStream<Void>> {

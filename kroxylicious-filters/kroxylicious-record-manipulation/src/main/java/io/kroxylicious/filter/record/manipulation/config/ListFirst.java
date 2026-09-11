@@ -13,11 +13,11 @@ import java.util.NoSuchElementException;
 
 import com.fasterxml.jackson.databind.JavaType;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
+import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
 
 /**
  * Factory for the {@code ListFirst} operation, which returns the first item from a list.
@@ -37,7 +37,7 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
 
     @Override
     public BaseTypedOp<List<T>, T> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        var config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        var config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         // TODO we would be nice if we knew the TypeReference at this point
         // That would mean we'd need to type check the factories, so that I know what ListFirst is going to be called on
         Type listTypeArgument = OpTypeChecker.singleTypeArgumentOf(argumentType, List.class);
@@ -66,7 +66,7 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
 
     private T getT(Type actualTypeArgument, Object ifEmptyObj) {
         JavaType jt;
-        jt = OpConfigs.OP_CONFIG_MAPPER.getTypeFactory().constructType(actualTypeArgument);
+        jt = Mapper.OP_CONFIG_MAPPER.getTypeFactory().constructType(actualTypeArgument);
         // if (actualTypeArgument instanceof Class c) {
         // jt = OpConfigs.MAPPER.getTypeFactory().constructType(c);
         // }
@@ -82,6 +82,6 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
         // else {
         // throw new TypeException("Unable to map type " + GenericTypeReflector.getTypeName(actualTypeArgument));
         // }
-        return (T) OpConfigs.OP_CONFIG_MAPPER.convertValue(ifEmptyObj, jt);
+        return (T) Mapper.OP_CONFIG_MAPPER.convertValue(ifEmptyObj, jt);
     }
 }

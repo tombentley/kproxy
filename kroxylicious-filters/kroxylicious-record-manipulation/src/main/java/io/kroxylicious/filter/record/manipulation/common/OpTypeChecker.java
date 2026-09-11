@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.op;
+package io.kroxylicious.filter.record.manipulation.common;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 import io.leangen.geantyref.GenericTypeReflector;
+
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 /**
  * Centralizes the type-compatibility reasoning that {@link BaseTypedOp} composition needs, so it isn't

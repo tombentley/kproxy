@@ -1,15 +1,30 @@
 result:
-  value: my_mask(validate_json(read_json($.value)))
+  # TODO there's an assumption lurking here
+  # We cannot write foo($.key, $.value) (not an "unary op")
+  # Nor can we write foo($) (we don't have an evaluate which we cross trees
+  value: write_json(my_mask(validate_json(read_json($.value))))
   key: your_mask(read_avro($.key))
-  timestamp: $.value.timestamp
-  headers: $.headers[2,1]
+  timestamp: $.timestamp
+  headers: $.headers
+catch:
+  # TODO this would depend on the direction
+  # For a produce request we can:
+  # * reject the data +- dead letter
+  # * accept the data +- dead letter
+  # * replace the data with something else +- dead letter
+  # For a fetch request we can:
+  # * let the data out +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
+  # * don't let the data out +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key TOPIC-PARTITION-OFFSET-)
+  # * replace the data +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
+  #
+  # Note that "replace the data" is just a different pipeline
 where:
   read_json:
-    op: io.kroxylicious.op.jackson2.Json
-    outputType: java.lang.Object
+    op: io.kroxylicious.op.jackson3.DeserializeJson
+    format: json
   validate_json:
-    op: io.kroxylicious.op.jackson2.Validate
-    jsonSchema: |
+    op: io.kroxylicious.op.jackson3.Validate
+    yamlSchema: |
       type: object
       properties: 
         c: 
@@ -18,9 +33,16 @@ where:
   my_mask:
     op: io.kroxylicious.ops.dashjoin.Jsonata
     jsonata: $sum(c)
-  
+  write_json:
+    op: io.kroxylicious.op.jackson3.SerializeJson
+    format: yaml
+
   read_avro:
-    op: io.kroxylicious.op.avro.Binary
+    op: io.kroxylicious.op.avro.ReadAvro
+    schema: avro_schema
+  write_avro:
+    op: io.kroxylicious.op.avro.WriteAvro
+    format: json
     schema: avro_schema
 
   your_mask:

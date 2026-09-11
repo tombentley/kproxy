@@ -14,11 +14,11 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.kafka.common.utils.ByteBufferInputStream;
 
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.JacksonDeserializer;
+import io.kroxylicious.kafka.common.utils.ByteBufferInputStream;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer}, decoded per Avro's single-object binary
