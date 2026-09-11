@@ -9,8 +9,6 @@ package io.kroxylicious.filter.record.manipulation.op;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
-
 /**
  * A plugin that builds a {@link TypedOp} from {@code T} to {@code R} from some configuration.
  * Parameterised over input and output type directly, rather than over a fixed, named operation shape

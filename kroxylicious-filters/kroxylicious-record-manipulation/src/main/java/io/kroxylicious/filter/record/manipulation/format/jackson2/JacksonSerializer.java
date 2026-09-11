@@ -9,13 +9,12 @@ package io.kroxylicious.filter.record.manipulation.format.jackson2;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-import org.apache.kafka.common.utils.ByteBufferOutputStream;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.format.SerializationException;
 import io.kroxylicious.filter.record.manipulation.format.Serializer;
+import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 
 /**
  * Serializes a {@link JsonNode} to a {@link ByteBuffer} ready to be read.

@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.ops.jsonata4java;
+package io.kroxylicious.filter.record.manipulation.ops.jsonata.jsonata4java;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -14,7 +14,7 @@ import com.api.jsonata4java.expressions.EvaluateException;
 import com.api.jsonata4java.expressions.Expressions;
 import com.api.jsonata4java.expressions.ParseException;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 

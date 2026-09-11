@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.xform.avro;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroValue;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
@@ -31,9 +31,9 @@ import io.kroxylicious.filter.record.manipulation.op.OpFactory;
  * <table>
  * <tr>
  * <th>Tgt Avro</th>                        <th>Xform JSON</th></tr>
- * <tr><td>{@code record}</td>              <td>Object with string keys and Path values</td></tr>                           object<String, String>
- * <tr><td>{@code array<T>}</td>            <td>List of T-typed path values (but would need functions on lists)</td></tr>   array<String>
- * <tr><td>{@code map<String, T>}</td>      <td>Object with String-typed path keys and T-typed path values</td></tr>        object<String, String>
+ * <tr><td>{@code record}</td>              <td>Object with string keys and Path values</td></tr>
+ * <tr><td>{@code array<T>}</td>            <td>List of T-typed path values (but would need functions on lists)</td></tr>
+ * <tr><td>{@code map<String, T>}</td>      <td>Object with String-typed path keys and T-typed path values</td></tr>
  * <tr><td>{@code enum}</td>                <td>String-typed path</td></tr>                                                 string
  * <tr><td>{@code fixed}</td>               <td>byte[] typed path</td></tr>                                                 string
  * <tr><td>{@code bytes}</td>               <td>byte[] typed path (length check at runtime)</td></tr>                       string

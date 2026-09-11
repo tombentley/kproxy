@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import java.util.ServiceLoader;
 
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+
 /**
  * A {@link PluginLookup} backed directly by the JDK's {@link ServiceLoader}, matching a plugin
  * implementation by its simple class name. Deliberately independent of Kroxylicious's own

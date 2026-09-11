@@ -9,18 +9,17 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import org.apache.kafka.common.record.Record;
-
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
+import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = Void.class)
-public class RecordTimestamp implements OpFactory<org.apache.kafka.common.record.Record, Long> {
+public class RecordTimestamp implements OpFactory<Record, Long> {
 
     @Override
-    public BaseTypedOp<org.apache.kafka.common.record.Record, Long> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Record, Long> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
         return BaseTypedOp.of(Record.class, Long.class,
                 (record, opContext) -> record.timestamp());
     }

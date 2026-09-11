@@ -8,9 +8,8 @@ package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.nio.ByteBuffer;
 
-import org.apache.kafka.common.record.Record;
-
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.kafka.common.record.internal.Record;
 
 public record Init(String topic,
                    Direction direction,

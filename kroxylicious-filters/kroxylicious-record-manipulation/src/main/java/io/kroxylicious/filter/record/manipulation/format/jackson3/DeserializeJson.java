@@ -15,12 +15,13 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectReader;
@@ -35,75 +36,81 @@ import tools.jackson.dataformat.yaml.YAMLReadFeature;
 @Plugin(configType = DeserializeJson.JsonReaderConfig.class)
 public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "format")
+    public static final String FORMAT_PARAMETER = "format";
+    public static final String FORMAT_VALUE_JSON = "json";
+    public static final String FORMAT_VALUE_YAML = "yaml";
+    public static final String FORMAT_VALUE_CSV = "csv";
+
+    public static final String TYPE_PARAMETER = "type";
+    public static final String TYPE_VALUE_JSON_NODE = JsonNode.class.getName();
+
+    public static final String READ_FEATURES_PARAMETER = "readFeatures";
+    public static final String DESERIALIZER_FEATURES_PARAMETER = "deserializerFeatures";
+
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = FORMAT_PARAMETER)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = JsonReaderConfig.class, name = "json"),
-            @JsonSubTypes.Type(value = YamlReaderConfig.class, name = "yaml"),
-            @JsonSubTypes.Type(value = CsvReaderConfig.class, name = "csv")
+            @JsonSubTypes.Type(value = JsonReaderConfig.class, name = FORMAT_VALUE_JSON),
+            @JsonSubTypes.Type(value = YamlReaderConfig.class, name = FORMAT_VALUE_YAML),
+            @JsonSubTypes.Type(value = CsvReaderConfig.class, name = FORMAT_VALUE_CSV)
     })
     interface ReaderConfig {
         String type();
+
         ObjectReader createReader(JavaType javaType);
     }
 
     @JsonTypeName("json")
     public record JsonReaderConfig(
-            String type,
-                                   boolean allowJavaComments,
-                                   boolean allowYamlComments,
-                                   boolean allowSingleQuotes,
-                                   boolean allowTrailingComma,
-                                   boolean allowUnquotedProperty) implements ReaderConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+                                   String type,
+                                   Map<String, Boolean> readFeatures,
+                                   Map<String, Boolean> deserializationFeatures)
+            implements ReaderConfig {
+        @Override
         public ObjectReader createReader(JavaType javaType) {
-            return JsonMapper.builder()
-                    .configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, allowJavaComments())
-                    .configure(JsonReadFeature.ALLOW_YAML_COMMENTS, allowYamlComments())
-                    .configure(JsonReadFeature.ALLOW_SINGLE_QUOTES, allowSingleQuotes())
-                    .configure(JsonReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
-                    .configure(JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES, allowUnquotedProperty())
+            JsonMapper.Builder builder = JsonMapper.builder();
+            FeatureConfigurations.asJacksonFeatureMap(readFeatures, JsonReadFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(deserializationFeatures, DeserializationFeature.class).forEach(builder::configure);
+            return builder
                     .build().readerFor(javaType);
         }
-    }
-
-    record ColumnConfig(String name,
-                        CsvSchema.ColumnType type) {
-
     }
 
     @JsonTypeName("csv")
     public record CsvReaderConfig(
             String type,
-                                  List<ColumnConfig> columnConfigs,
-                                  boolean allowComments,
-                                  boolean allowTrailingComma) implements ReaderConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+            List<ColumnConfig> columnConfigs,
+            Map<String, Boolean> readFeatures,
+            Map<String, Boolean> deserializationFeatures)
+            implements ReaderConfig {
+        @Override
         public ObjectReader createReader(JavaType javaType) {
             CsvSchema.Builder schemaBuilder = CsvSchema.builder();
             for (ColumnConfig columnConfig : columnConfigs) {
-                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type());
+                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type(), c ->
+                        c.withArrayElementSeparator(columnConfig.arrayElementSep()));
             }
 
-            CsvMapper mapper = CsvMapper.builder()
-                    .configure(CsvReadFeature.ALLOW_COMMENTS, allowComments())
-                    .configure(CsvReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
-                    .build();
-            return mapper.reader(schemaBuilder.build());
+            CsvMapper.Builder builder = CsvMapper.builder();
+            FeatureConfigurations.asJacksonFeatureMap(readFeatures, CsvReadFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(deserializationFeatures, DeserializationFeature.class).forEach(builder::configure);
+            CsvMapper mapper = builder.build();
+            return mapper.reader(schemaBuilder.build()).forType(javaType);
         }
     }
 
     @JsonTypeName("yaml")
     public record YamlReaderConfig(
-            String type,
-            boolean parseOctalNumbers) implements ReaderConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+                                   String type,
+                                   Map<String, Boolean> readFeatures,
+                                   Map<String, Boolean> deserializationFeatures)
+            implements ReaderConfig {
+        @Override
         public ObjectReader createReader(JavaType javaType) {
-            return YAMLMapper.builder()
-                    .configure(YAMLReadFeature.PARSE_OCTAL_NUMBERS, parseOctalNumbers())
-                    .build().readerFor(javaType);
+            YAMLMapper.Builder builder = YAMLMapper.builder();
+            FeatureConfigurations.asJacksonFeatureMap(readFeatures, YAMLReadFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(deserializationFeatures, DeserializationFeature.class).forEach(builder::configure);
+            return builder.build().readerFor(javaType);
         }
     }
 
@@ -125,6 +132,9 @@ public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
         var deserializer = new JacksonDeserializer(reader);
 
         // TODO We shouldn't pass a Jackson JavaType into BaseTypedOp
-        return BaseTypedOp.of(ByteBuffer.class, javaType, (value, opContext) -> deserializer.deserialize(value));
+        // but that means we need to parse the Java type expression ourselves and
+        // construct both a JavaType and a (vanilla) Type in a consistent way!
+
+        return BaseTypedOp.of(ByteBuffer.class, (Type) javaType.getRawClass(), (value, opContext) -> deserializer.deserialize(value));
     }
 }

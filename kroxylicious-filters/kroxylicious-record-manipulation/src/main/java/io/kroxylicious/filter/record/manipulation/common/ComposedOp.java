@@ -10,7 +10,6 @@ import java.lang.reflect.Type;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
 
 public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
 
