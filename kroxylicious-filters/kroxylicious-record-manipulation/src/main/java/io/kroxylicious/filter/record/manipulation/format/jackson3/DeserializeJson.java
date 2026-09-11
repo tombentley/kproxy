@@ -21,6 +21,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
@@ -40,26 +41,28 @@ public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
             @JsonSubTypes.Type(value = CsvReaderConfig.class, name = "csv")
     })
     interface ReaderConfig {
-        ObjectReader createReader();
+        String type();
+        ObjectReader createReader(JavaType javaType);
     }
 
     @JsonTypeName("json")
     public record JsonReaderConfig(
+            String type,
                                    boolean allowJavaComments,
                                    boolean allowYamlComments,
                                    boolean allowSingleQuotes,
                                    boolean allowTrailingComma,
-                                   boolean allowUnquotedProperty) {
+                                   boolean allowUnquotedProperty) implements ReaderConfig {
         // TODO and the rest
         // or use a less verbose way to do this?
-        ObjectReader createMapper() {
+        public ObjectReader createReader(JavaType javaType) {
             return JsonMapper.builder()
                     .configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, allowJavaComments())
                     .configure(JsonReadFeature.ALLOW_YAML_COMMENTS, allowYamlComments())
                     .configure(JsonReadFeature.ALLOW_SINGLE_QUOTES, allowSingleQuotes())
                     .configure(JsonReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
                     .configure(JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES, allowUnquotedProperty())
-                    .build().reader();
+                    .build().readerFor(javaType);
         }
     }
 
@@ -70,41 +73,57 @@ public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
 
     @JsonTypeName("csv")
     public record CsvReaderConfig(
+            String type,
                                   List<ColumnConfig> columnConfigs,
                                   boolean allowComments,
-                                  boolean allowTrailingComma) {
+                                  boolean allowTrailingComma) implements ReaderConfig {
         // TODO and the rest
         // or use a less verbose way to do this?
-        ObjectReader createMapper() {
+        public ObjectReader createReader(JavaType javaType) {
             CsvSchema.Builder schemaBuilder = CsvSchema.builder();
             for (ColumnConfig columnConfig : columnConfigs) {
                 schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type());
             }
-            return CsvMapper.builder()
+
+            CsvMapper mapper = CsvMapper.builder()
                     .configure(CsvReadFeature.ALLOW_COMMENTS, allowComments())
                     .configure(CsvReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
-                    .build().reader(schemaBuilder.build());
+                    .build();
+            return mapper.reader(schemaBuilder.build());
         }
     }
 
     @JsonTypeName("yaml")
     public record YamlReaderConfig(
-                                   boolean parseOctalNumbers) {
+            String type,
+            boolean parseOctalNumbers) implements ReaderConfig {
         // TODO and the rest
         // or use a less verbose way to do this?
-        ObjectReader createMapper() {
+        public ObjectReader createReader(JavaType javaType) {
             return YAMLMapper.builder()
                     .configure(YAMLReadFeature.PARSE_OCTAL_NUMBERS, parseOctalNumbers())
-                    .build().reader();
+                    .build().readerFor(javaType);
         }
     }
 
     @Override
     public BaseTypedOp<ByteBuffer, JsonNode> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         ReaderConfig readerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(configMap, ReaderConfig.class);
-        var deserializer = new JacksonDeserializer(readerConfig.createReader());
+
+        JavaType javaType;
+        String type = readerConfig.type();
+        if (type != null) {
+            javaType = ConfigMapper.CONFIG_MAPPER.getTypeFactory().constructFromCanonical(type);
+        }
+        else {
+            javaType = ConfigMapper.CONFIG_MAPPER.getTypeFactory().constructType(JsonNode.class);
+        }
+
+        ObjectReader reader = readerConfig.createReader(javaType);
+        var deserializer = new JacksonDeserializer(reader);
         // TODO not just JsonNode, we could make to Object/Map/List, or to some given Java type
         // TODO plug in type parser
+
         return BaseTypedOp.of(ByteBuffer.class, JsonNode.class, (value, opContext) -> deserializer.deserialize(value));
     }
 }
