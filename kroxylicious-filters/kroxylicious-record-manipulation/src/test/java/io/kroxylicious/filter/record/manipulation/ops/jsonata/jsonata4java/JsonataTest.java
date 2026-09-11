@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.ops.dashjoinjsonata;
+package io.kroxylicious.filter.record.manipulation.ops.jsonata.jsonata4java;
 
 import java.lang.reflect.Type;
 import java.util.Map;
@@ -17,16 +17,18 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.LongNode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
-class JsonataTest {
+public class JsonataTest {
 
     @Mock
     PluginLookup lookup;
@@ -56,7 +58,7 @@ class JsonataTest {
     @Test
     void createRejectsWronglyTypedExpression() {
         Jsonata jsonata = new Jsonata();
-        Map<String, Object> conf = Map.of(io.kroxylicious.filter.record.manipulation.ops.jsonata4java.Jsonata.CONF_PARAM_EXPRESSION, 1);
+        Map<String, Object> conf = Map.of(Jsonata.CONF_PARAM_EXPRESSION, 1);
         assertThatThrownBy(() -> jsonata.create(conf, lookup, type))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("The 'expression' property must be a string, but was java.lang.Integer");
@@ -67,11 +69,15 @@ class JsonataTest {
         Jsonata jsonata = new Jsonata();
         var op = jsonata.create(Map.of(Jsonata.CONF_PARAM_EXPRESSION, "$sum(c)"), lookup, type);
 
-        var input = JsonMapper.builder().build().readValue("{ \"a\":1, \"b\":2, \"c\":[1,2,3,4,5] }", Object.class);
-        Object apply = op.apply(input, opContext);
+
+        var input = JsonMapper.builder().build().readTree("{ \"a\":1, \"b\":2, \"c\":[1,2,3,4,5] }");
+        JsonNode apply = op.apply(input, opContext);
+
 
         assertThat(apply)
-                .asInstanceOf(InstanceOfAssertFactories.type(Integer.class))
-                .isEqualTo(15);
+                .asInstanceOf(InstanceOfAssertFactories.type(LongNode.class))
+                .extracting(LongNode::asLong)
+                .as("The sum of the array property 'c' should be 15")
+                .isEqualTo(15L);
     }
 }

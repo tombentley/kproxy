@@ -41,7 +41,7 @@ sealed interface Selector {
     }
 
     record Slice(int start, int end, int step) implements Selector {
-        public Slice(int start, int end) {
+        Slice(int start, int end) {
             this(start, end, 1);
         }
 

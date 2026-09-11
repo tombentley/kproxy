@@ -15,20 +15,21 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.proxy.plugin.Plugin;
 
-import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.core.json.JsonWriteFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectWriter;
+import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.dataformat.csv.CsvMapper;
-import tools.jackson.dataformat.csv.CsvReadFeature;
 import tools.jackson.dataformat.csv.CsvSchema;
+import tools.jackson.dataformat.csv.CsvWriteFeature;
 import tools.jackson.dataformat.yaml.YAMLMapper;
-import tools.jackson.dataformat.yaml.YAMLReadFeature;
+import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 
 @Plugin(configType = SerializeJson.WriterConfig.class)
 public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
@@ -45,59 +46,53 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
 
     @JsonTypeName("json")
     public record JsonWriterConfig(
-                                   boolean allowJavaComments,
-                                   boolean allowYamlComments,
-                                   boolean allowSingleQuotes,
-                                   boolean allowTrailingComma,
-                                   boolean allowUnquotedProperty)
+            Map<String, Boolean> writeFeatures,
+            Map<String, Boolean> serializationFeatures)
             implements WriterConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+        @Override
         public ObjectWriter createWriter() {
-            return JsonMapper.builder()
-                    .configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, allowJavaComments())
-                    .configure(JsonReadFeature.ALLOW_YAML_COMMENTS, allowYamlComments())
-                    .configure(JsonReadFeature.ALLOW_SINGLE_QUOTES, allowSingleQuotes())
-                    .configure(JsonReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
-                    .configure(JsonReadFeature.ALLOW_UNQUOTED_PROPERTY_NAMES, allowUnquotedProperty())
+            JsonMapper.Builder builder = JsonMapper.builder();
+            builder.configure(SerializationFeature.INDENT_OUTPUT, true);
+            FeatureConfigurations.asJacksonFeatureMap(writeFeatures, JsonWriteFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(serializationFeatures, SerializationFeature.class).forEach(builder::configure);
+            return builder
                     .build().writer();
         }
     }
 
-    record ColumnConfig(String name,
-                        CsvSchema.ColumnType type) {
-
-    }
-
     @JsonTypeName("csv")
     public record CsvWriterConfig(
-                                  List<DeserializeJson.ColumnConfig> columnConfigs,
-                                  boolean allowComments,
-                                  boolean allowTrailingComma)
+                                  List<ColumnConfig> columnConfigs,
+                                  Map<String, Boolean> writeFeatures,
+                                  Map<String, Boolean> serializationFeatures)
             implements WriterConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+        @Override
         public ObjectWriter createWriter() {
             CsvSchema.Builder schemaBuilder = CsvSchema.builder();
-            for (DeserializeJson.ColumnConfig columnConfig : columnConfigs) {
-                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type());
+            for (ColumnConfig columnConfig : columnConfigs) {
+                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type(), c ->
+                        c.withArrayElementSeparator(columnConfig.arrayElementSep()));
             }
-            return CsvMapper.builder()
-                    .configure(CsvReadFeature.ALLOW_COMMENTS, allowComments())
-                    .configure(CsvReadFeature.ALLOW_TRAILING_COMMA, allowTrailingComma())
-                    .build().writer(schemaBuilder.build());
+            CsvMapper.Builder builder = CsvMapper.builder();
+            FeatureConfigurations.asJacksonFeatureMap(writeFeatures, CsvWriteFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(serializationFeatures, SerializationFeature.class).forEach(builder::configure);
+            return builder.build().writer(schemaBuilder.build());
         }
     }
 
     @JsonTypeName("yaml")
     public record YamlWriterConfig(
-                                   boolean parseOctalNumbers)
+            boolean indentArrays,
+            Map<String, Boolean> writeFeatures,
+            Map<String, Boolean> serializationFeatures)
             implements WriterConfig {
-        // TODO and the rest
-        // or use a less verbose way to do this?
+        @Override
         public ObjectWriter createWriter() {
-            return YAMLMapper.builder()
-                    .configure(YAMLReadFeature.PARSE_OCTAL_NUMBERS, parseOctalNumbers())
+            YAMLMapper.Builder builder = YAMLMapper.builder();
+            FeatureConfigurations.asJacksonFeatureMap(writeFeatures, YAMLWriteFeature.class).forEach(builder::configure);
+            FeatureConfigurations.asConfigFeatureMap(serializationFeatures, SerializationFeature.class).forEach(builder::configure);
+            return builder
+                    .configure(YAMLWriteFeature.INDENT_ARRAYS, indentArrays())
                     .build().writer();
         }
     }

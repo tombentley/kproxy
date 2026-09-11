@@ -16,12 +16,12 @@ import io.leangen.geantyref.GenericTypeReflector;
 
 import io.kroxylicious.filter.record.manipulation.common.ComposedOp;
 import io.kroxylicious.filter.record.manipulation.common.IdentityOp;
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
+import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
 
 /**
  * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an
@@ -29,11 +29,6 @@ import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
  * here once rather than being duplicated in each engine's own {@code buildOp}.
  */
 public final class OpConfigs {
-
-    // TODO if we're going to use a single ObjectMapper then different OpFactories might want to register
-    // modules/types for use when deserializing their config
-    // But then there's risk of collision. So maybe better for each to use its own ObjectMapper?
-    public static final ObjectMapper OP_CONFIG_MAPPER = new ObjectMapper();
 
     private OpConfigs() {
     }

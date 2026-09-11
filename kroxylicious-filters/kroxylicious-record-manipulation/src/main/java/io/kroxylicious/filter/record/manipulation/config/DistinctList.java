@@ -12,11 +12,11 @@ import java.util.Map;
 
 import io.leangen.geantyref.TypeFactory;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.OpTypeChecker;
+import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
 
 /**
  * Factory for the {@code DistinctList} operation, which returns a copy of the given list with duplicates removed
@@ -32,7 +32,7 @@ public class DistinctList<T> implements OpFactory<List<T>, List<T>> {
 
     @Override
     public BaseTypedOp<List<T>, List<T>> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        var config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        var config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
 
         Type listTypeArgument = OpTypeChecker.singleTypeArgumentOf(argumentType, List.class);
         Type resultType = TypeFactory.parameterizedClass(List.class, listTypeArgument);

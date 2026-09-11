@@ -16,9 +16,9 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
-import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 import io.kroxylicious.filter.record.manipulation.format.Serializer;
+import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 
 /**
  * Serializes a {@link GenericRecord} to a {@link ByteBuffer} ready to be read, using Avro's JSON encoding -

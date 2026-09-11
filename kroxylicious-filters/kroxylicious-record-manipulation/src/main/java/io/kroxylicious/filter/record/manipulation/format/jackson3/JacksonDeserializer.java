@@ -9,10 +9,9 @@ package io.kroxylicious.filter.record.manipulation.format.jackson3;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-import org.apache.kafka.common.utils.ByteBufferInputStream;
-
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
+import io.kroxylicious.kafka.common.utils.ByteBufferInputStream;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectReader;
@@ -20,7 +19,7 @@ import tools.jackson.databind.ObjectReader;
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link JsonNode}.
  */
-public class JacksonDeserializer implements Function<ByteBuffer, JsonNode>, Deserializer<JsonNode> {
+class JacksonDeserializer {
 
     private final ObjectReader reader;
 
@@ -28,20 +27,14 @@ public class JacksonDeserializer implements Function<ByteBuffer, JsonNode>, Dese
      * Creates a deserializer.
      * @param reader the mapper used to parse the buffer's contents
      */
-    public JacksonDeserializer(ObjectReader reader) {
+    JacksonDeserializer(ObjectReader reader) {
         this.reader = reader;
     }
 
-    @Override
-    public JsonNode apply(ByteBuffer bb) {
-        return deserialize(bb);
-    }
-
-    @Override
-    public JsonNode deserialize(ByteBuffer byteBuffer) {
+    Object deserialize(ByteBuffer byteBuffer) {
         try {
             if (byteBuffer.hasArray()) {
-                return reader.readTree(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.remaining());
+                return reader.readValue(byteBuffer.array(), byteBuffer.arrayOffset(), byteBuffer.remaining());
             }
             else {
                 try (var is = new ByteBufferInputStream(byteBuffer)) {

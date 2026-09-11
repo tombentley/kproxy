@@ -8,9 +8,9 @@ package io.kroxylicious.filter.record.manipulation.format.jackson3;
 
 import tools.jackson.databind.ObjectMapper;
 
-public class ConfigMapper {
+class ConfigMapper {
 
-    // Note for the _config_ we use jackson2, because that's what the rest of kroxy currently used for config parsing
+    // Note for the _config_ we use jackson2, because that's what the readFeatures of kroxy currently used for config parsing
     static final ObjectMapper CONFIG_MAPPER = new ObjectMapper();
 
     private ConfigMapper() {

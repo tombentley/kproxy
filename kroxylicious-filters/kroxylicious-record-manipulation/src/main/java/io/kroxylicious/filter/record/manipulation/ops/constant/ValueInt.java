@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.ops.constant;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -29,7 +29,7 @@ public class ValueInt implements OpFactory<Integer, Integer> {
 
     @Override
     public BaseTypedOp<Integer, Integer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         return BaseTypedOp.of(Integer.class, Integer.class, (value, opContext) -> config.value());
     }
 }

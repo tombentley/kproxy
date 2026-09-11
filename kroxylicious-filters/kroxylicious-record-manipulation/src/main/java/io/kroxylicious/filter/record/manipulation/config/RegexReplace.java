@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.config;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.common.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.RegexReplaceStringFunction;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -26,7 +26,7 @@ public class RegexReplace implements OpFactory<String, String> {
 
     @Override
     public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
-        Config config = OpConfigs.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
+        Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         RegexReplaceStringFunction regexReplaceStringFunction = new RegexReplaceStringFunction(config.pattern(), config.replacement());
         return BaseTypedOp.of(String.class, String.class, regexReplaceStringFunction);
     }
