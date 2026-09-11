@@ -25,6 +25,7 @@ import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.TypeFactory;
 import tools.jackson.dataformat.csv.CsvMapper;
 import tools.jackson.dataformat.csv.CsvReadFeature;
 import tools.jackson.dataformat.csv.CsvSchema;
@@ -32,7 +33,7 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 import tools.jackson.dataformat.yaml.YAMLReadFeature;
 
 @Plugin(configType = DeserializeJson.JsonReaderConfig.class)
-public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
+public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "format")
     @JsonSubTypes({
@@ -107,23 +108,23 @@ public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
     }
 
     @Override
-    public BaseTypedOp<ByteBuffer, JsonNode> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, Object> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         ReaderConfig readerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(configMap, ReaderConfig.class);
 
         JavaType javaType;
         String type = readerConfig.type();
+        TypeFactory typeFactory = ConfigMapper.CONFIG_MAPPER.getTypeFactory();
         if (type != null) {
-            javaType = ConfigMapper.CONFIG_MAPPER.getTypeFactory().constructFromCanonical(type);
+            javaType = typeFactory.constructFromCanonical(type);
         }
         else {
-            javaType = ConfigMapper.CONFIG_MAPPER.getTypeFactory().constructType(JsonNode.class);
+            javaType = typeFactory.constructType(JsonNode.class);
         }
 
         ObjectReader reader = readerConfig.createReader(javaType);
         var deserializer = new JacksonDeserializer(reader);
-        // TODO not just JsonNode, we could make to Object/Map/List, or to some given Java type
-        // TODO plug in type parser
 
-        return BaseTypedOp.of(ByteBuffer.class, JsonNode.class, (value, opContext) -> deserializer.deserialize(value));
+        // TODO We shouldn't pass a Jackson JavaType into BaseTypedOp
+        return BaseTypedOp.of(ByteBuffer.class, javaType, (value, opContext) -> deserializer.deserialize(value));
     }
 }
