@@ -654,9 +654,6 @@
          update the relevant intermediate aggregator pom.xml (kroxylicious-proxy-core/,
          kroxylicious-runtime-plugins/, kroxylicious-supplementary/, or kroxylicious-kubernetes/) — not this file.
          Enforced by the module-profile lint check. -->
-    <modules>
-        <module>kroxylicious-filters/kroxylicious-record-manipulation</module>
-    </modules>
 
     <build>
         <!-- Keep alphabetic order -->
