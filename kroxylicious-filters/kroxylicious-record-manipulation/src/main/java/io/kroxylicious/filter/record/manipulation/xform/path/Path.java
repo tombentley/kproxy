@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public record Path(Identifier identifier, List<Segment> segments, Consumer<JsonNode> consumer) {
+public record Path<N>(Identifier identifier, List<Segment<N>> segments, Consumer<N> consumer) {
     @Override
     public String toString() {
         return identifier.symbol +

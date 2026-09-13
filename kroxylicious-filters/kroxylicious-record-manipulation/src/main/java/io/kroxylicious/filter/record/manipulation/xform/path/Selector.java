@@ -12,8 +12,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-sealed interface Selector {
-    record Name(String name) implements Selector {
+sealed interface Selector<N> {
+    record Name<N>(String name) implements Selector<N> {
         boolean matches(String n) {
             return name.equals(n);
         }
@@ -24,14 +24,14 @@ sealed interface Selector {
         }
     }
 
-    record Children() implements Selector {
+    record Children<N>() implements Selector<N> {
         @Override
         public String toString() {
             return "*";
         }
     }
 
-    record Index(int index) implements Selector {
+    record Index<N>(int index) implements Selector<N> {
         /** Whether the selector picks index {@code i} of an array of length {@code len}; negatives count from the end (RFC 9535 §2.3.1). */
         boolean matches(int i, int len) {
             return (index < 0 ? len + index : index) == i;
@@ -43,7 +43,7 @@ sealed interface Selector {
         }
     }
 
-    record Slice(@Nullable Integer start, @Nullable Integer end, int step) implements Selector {
+    record Slice<N>(@Nullable Integer start, @Nullable Integer end, int step) implements Selector<N> {
         Slice(@Nullable Integer start, @Nullable Integer end) {
             this(start, end, 1);
         }
@@ -81,8 +81,8 @@ sealed interface Selector {
     }
 
     /** A filter selector {@code ?<expr>}; the predicate is applied to the candidate node ({@code @}) and the document root ({@code $}). */
-    record Filter(BiPredicate<JsonNode, JsonNode> predicate) implements Selector {
-        boolean matches(JsonNode node, JsonNode root) {
+    record Filter<N>(BiPredicate<N, N> predicate) implements Selector<N> {
+        boolean matches(N node, N root) {
             return predicate.test(node, root);
         }
 
