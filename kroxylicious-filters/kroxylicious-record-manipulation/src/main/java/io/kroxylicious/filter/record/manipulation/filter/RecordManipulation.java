@@ -14,12 +14,12 @@ import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
+import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
 import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;

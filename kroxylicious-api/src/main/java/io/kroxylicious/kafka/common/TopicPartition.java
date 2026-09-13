@@ -6,5 +6,4 @@
 
 package io.kroxylicious.kafka.common;
 
-public record TopicPartition(String topic, int partition) {
-}
+public record TopicPartition(String topic, int partition) {}

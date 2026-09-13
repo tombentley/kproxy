@@ -15,9 +15,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 import tools.jackson.core.json.JsonWriteFeature;
@@ -46,8 +46,8 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
 
     @JsonTypeName("json")
     public record JsonWriterConfig(
-            Map<String, Boolean> writeFeatures,
-            Map<String, Boolean> serializationFeatures)
+                                   Map<String, Boolean> writeFeatures,
+                                   Map<String, Boolean> serializationFeatures)
             implements WriterConfig {
         @Override
         public ObjectWriter createWriter() {
@@ -70,8 +70,7 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
         public ObjectWriter createWriter() {
             CsvSchema.Builder schemaBuilder = CsvSchema.builder();
             for (ColumnConfig columnConfig : columnConfigs) {
-                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type(), c ->
-                        c.withArrayElementSeparator(columnConfig.arrayElementSep()));
+                schemaBuilder = schemaBuilder.addColumn(columnConfig.name(), columnConfig.type(), c -> c.withArrayElementSeparator(columnConfig.arrayElementSep()));
             }
             CsvMapper.Builder builder = CsvMapper.builder();
             FeatureConfigurations.asJacksonFeatureMap(writeFeatures, CsvWriteFeature.class).forEach(builder::configure);
@@ -82,9 +81,9 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
 
     @JsonTypeName("yaml")
     public record YamlWriterConfig(
-            boolean indentArrays,
-            Map<String, Boolean> writeFeatures,
-            Map<String, Boolean> serializationFeatures)
+                                   boolean indentArrays,
+                                   Map<String, Boolean> writeFeatures,
+                                   Map<String, Boolean> serializationFeatures)
             implements WriterConfig {
         @Override
         public ObjectWriter createWriter() {

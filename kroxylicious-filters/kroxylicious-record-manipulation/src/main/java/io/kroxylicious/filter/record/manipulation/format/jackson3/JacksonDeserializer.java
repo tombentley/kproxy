@@ -7,10 +7,8 @@
 package io.kroxylicious.filter.record.manipulation.format.jackson3;
 
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
-import io.kroxylicious.filter.record.manipulation.format.Deserializer;
 import io.kroxylicious.kafka.common.utils.ByteBufferInputStream;
 
 import tools.jackson.databind.JsonNode;

@@ -17,8 +17,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -69,10 +69,8 @@ public class JsonataTest {
         Jsonata jsonata = new Jsonata();
         var op = jsonata.create(Map.of(Jsonata.CONF_PARAM_EXPRESSION, "$sum(c)"), lookup, type);
 
-
         var input = JsonMapper.builder().build().readTree("{ \"a\":1, \"b\":2, \"c\":[1,2,3,4,5] }");
         JsonNode apply = op.apply(input, opContext);
-
 
         assertThat(apply)
                 .asInstanceOf(InstanceOfAssertFactories.type(LongNode.class))
