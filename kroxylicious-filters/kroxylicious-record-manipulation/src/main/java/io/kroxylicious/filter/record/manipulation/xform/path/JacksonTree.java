@@ -9,10 +9,6 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 /**
  * Evaluates several {@link Path} expressions in a single traversal of a Jackson tree.
  * <p>
@@ -24,18 +20,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * The traversal holds no mutable state, so a predicate may start a fresh traversal from either
  * node (e.g. to resolve an embedded {@code $}-rooted query) by calling {@link #eval} re-entrantly.
  */
-public class JacksonTree {
+public class JacksonTree<N> {
 
     /**
      * A {@link Path} together with the index of the segment it is currently trying to match.
      * Immutable: advancing forks a new instance so sibling branches stay independent.
      */
-    record IndexedPath(Path path, int index) {
-        IndexedPath(Path path) {
+    record IndexedPath<N>(Path<N> path, int index) {
+        IndexedPath(Path<N> path) {
             this(path, 0);
         }
 
-        Segment segment() {
+        Segment<N> segment() {
             return path.segments().get(index);
         }
 
@@ -43,31 +39,37 @@ public class JacksonTree {
             return index == path.segments().size() - 1;
         }
 
-        IndexedPath next() {
-            return new IndexedPath(path, index + 1);
+        IndexedPath<N> next() {
+            return new IndexedPath<>(path, index + 1);
         }
     }
 
-    public void eval(JsonNode node, List<Path> paths) {
+    private final TreeAdapter<N> adapter;
+
+    public JacksonTree(TreeAdapter<N> adapter) {
+        this.adapter = adapter;
+    }
+
+    public void eval(N node, List<Path<N>> paths) {
         evalInternal(node, node, paths.stream().map(IndexedPath::new).toList());
     }
 
-    private void evalInternal(JsonNode root, JsonNode node, List<IndexedPath> active) {
-        if (node instanceof ObjectNode object) {
-            for (var entry : object.properties()) {
+    private void evalInternal(N root, N node, List<IndexedPath<N>> active) {
+        if (adapter.isObject(node)) {
+            for (var entry : adapter.objectProperties(node)) {
                 descend(root, entry.getValue(), entry.getKey(), 0, active);
             }
         }
-        else if (node instanceof ArrayNode array) {
-            int length = array.size();
+        else if (adapter.isArray(node)) {
+            int length = adapter.arrayLength(node);
             for (int i = 0; i < length; i++) {
-                descend(root, array.get(i), i, length, active);
+                descend(root, adapter.arrayItem(node, i), i, length, active);
             }
         }
     }
 
-    private void descend(JsonNode root, JsonNode child, Object accessor, int length, List<IndexedPath> active) {
-        List<IndexedPath> childActive = new ArrayList<>();
+    private void descend(N root, N child, Object accessor, int length, List<IndexedPath<N>> active) {
+        List<IndexedPath<N>> childActive = new ArrayList<>();
         for (var ip : active) {
             switch (ip.segment()) {
                 case Segment.Child(var selectors) -> {
@@ -88,7 +90,7 @@ public class JacksonTree {
         }
     }
 
-    private void advance(IndexedPath ip, JsonNode child, List<IndexedPath> childActive) {
+    private void advance(IndexedPath<N> ip, N child, List<IndexedPath<N>> childActive) {
         if (ip.isFinalSegment()) {
             ip.path().consumer().accept(child); // a match
         }
@@ -97,7 +99,7 @@ public class JacksonTree {
         }
     }
 
-    private static boolean matches(List<Selector> selectors, Object accessor, JsonNode child, int length, JsonNode root) {
+    private static <N> boolean matches(List<Selector<N>> selectors, Object accessor, N child, int length, N root) {
         for (var selector : selectors) {
             boolean matched = switch (selector) {
                 case Selector.Name(var name) -> name.equals(accessor); // objects only
