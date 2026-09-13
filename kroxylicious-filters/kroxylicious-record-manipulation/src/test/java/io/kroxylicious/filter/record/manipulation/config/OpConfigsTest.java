@@ -17,7 +17,6 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
@@ -26,6 +25,7 @@ import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
 import io.kroxylicious.kafka.common.record.internal.Record;

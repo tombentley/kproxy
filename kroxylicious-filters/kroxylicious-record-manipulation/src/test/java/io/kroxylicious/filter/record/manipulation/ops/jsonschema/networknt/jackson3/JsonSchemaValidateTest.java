@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
@@ -47,7 +46,7 @@ class JsonSchemaValidateTest {
     @Test
     void validationAcceptsValidJson() {
         var factory = new JsonSchemaValidate();
-        var config = Map.<String, Object>of(
+        var config = Map.<String, Object> of(
                 "jsonSchema", """
                         {
                           "type": "object",
@@ -57,8 +56,7 @@ class JsonSchemaValidateTest {
                             }
                           }
                         }
-                        """
-        );
+                        """);
         var op = factory.create(config, pluginLookup, argumentType);
         assertThat(op.inputType()).isEqualTo(JsonNode.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -74,7 +72,7 @@ class JsonSchemaValidateTest {
     @Test
     void validationRejectsInvalidJson() {
         var factory = new JsonSchemaValidate();
-        var config = Map.<String, Object>of(
+        var config = Map.<String, Object> of(
                 "jsonSchema", """
                         {
                           "type": "object",
@@ -85,8 +83,7 @@ class JsonSchemaValidateTest {
                           },
                           "additionalProperties": false
                         }
-                        """
-        );
+                        """);
         var op = factory.create(config, pluginLookup, argumentType);
         assertThat(op.inputType()).isEqualTo(JsonNode.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -101,11 +98,10 @@ class JsonSchemaValidateTest {
     @Test
     void factoryRejectsSchemaNotJson() {
         var factory = new JsonSchemaValidate();
-        var config = Map.<String, Object>of(
+        var config = Map.<String, Object> of(
                 "jsonSchema", """
                         this is not json
-                        """
-        );
+                        """);
         assertThatThrownBy(() -> factory.create(config, pluginLookup, argumentType))
                 .isInstanceOf(SchemaNotValidException.class)
                 .hasMessage("Given value for 'jsonSchema' was not valid JSON");
@@ -115,11 +111,10 @@ class JsonSchemaValidateTest {
     @Test
     void factoryRejectsSchemaNotValid() {
         var factory = new JsonSchemaValidate();
-        var config = Map.<String, Object>of(
+        var config = Map.<String, Object> of(
                 "jsonSchema", """
                         ["mouse"]
-                        """
-        );
+                        """);
         assertThatThrownBy(() -> factory.create(config, pluginLookup, argumentType))
                 .isInstanceOf(SchemaNotValidException.class)
                 .hasMessage("Given value for 'jsonSchema' was not a valid JsonSchema: : array found, [object, boolean] expected");

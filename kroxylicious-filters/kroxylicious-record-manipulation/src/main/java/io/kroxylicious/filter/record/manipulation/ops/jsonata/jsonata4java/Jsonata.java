@@ -14,9 +14,9 @@ import com.api.jsonata4java.expressions.EvaluateException;
 import com.api.jsonata4java.expressions.Expressions;
 import com.api.jsonata4java.expressions.ParseException;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 import tools.jackson.databind.JsonNode;
 

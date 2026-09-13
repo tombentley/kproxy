@@ -16,9 +16,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.Use;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 

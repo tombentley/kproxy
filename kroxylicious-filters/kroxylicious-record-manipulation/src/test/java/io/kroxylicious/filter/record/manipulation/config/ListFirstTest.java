@@ -23,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.leangen.geantyref.TypeFactory;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 
 import static org.assertj.core.api.Assertions.assertThat;

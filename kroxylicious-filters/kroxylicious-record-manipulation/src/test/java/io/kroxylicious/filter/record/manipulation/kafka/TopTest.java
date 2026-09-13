@@ -28,11 +28,11 @@ class TopTest {
                           my_mask:
                             op: io.kroxylicious.op.jsonata.Jsonata
                             jsonata: ""
-                        
+
                           read_avro:
                             op: io.kroxylicious.op.avro.Binary
                             schema: avro_schema
-                        
+
                           your_mask:
                             op: io.kroxylicious.op.xform.Avro
                             xform:
@@ -41,7 +41,7 @@ class TopTest {
                               email: encrypt($[email])
                               area: regexReplace("(([A-Z]+[0-9]{2}).*", $[address][postCode], "$1");
                               city: $[address][city]
-                        
+
                           resultSchema:
                             op: AvroSchema
                           # OR
@@ -49,18 +49,18 @@ class TopTest {
                             op: Apicurio
                             url: "https://my.apicurio.internal.example.com:8888"
                             contentId: 1234
-                        
-                        
+
+
                           regexReplace:
                             op: io.kroxylicious.op.regex.RegexReplace
                             engine: "re2j"
-                        
+
                           hmac:
                             op: io.kroxylicious.op.hmac.Hmac
                             key:
                               op: Base64Decode
                               data: "my-key"
-                        
+
                           encrypt:
                             op: io.kroxylicious.op.encryption.Encrypt
                             kek: "my-kek"

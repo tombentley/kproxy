@@ -14,9 +14,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 @Plugin(configType = SerializeJson.Config.class)

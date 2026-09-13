@@ -9,12 +9,12 @@ package io.kroxylicious.filter.record.manipulation.xform.avro;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroValue;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 /**
  * Example:

@@ -10,5 +10,4 @@ import tools.jackson.dataformat.csv.CsvSchema;
 
 public record ColumnConfig(String name,
                            CsvSchema.ColumnType type,
-                           String arrayElementSep) {
-}
+                           String arrayElementSep) {}

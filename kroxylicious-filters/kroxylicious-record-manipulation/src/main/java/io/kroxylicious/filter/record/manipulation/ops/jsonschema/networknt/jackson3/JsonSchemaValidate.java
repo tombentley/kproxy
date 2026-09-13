@@ -12,7 +12,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.networknt.schema.Error;
-import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaLocation;
@@ -46,6 +45,7 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
             }
         }
     }
+
     @Override
     public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -71,13 +71,12 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
          */
 
         SchemaRegistry schemaRegistry = SchemaRegistry.withDefaultDialect(SpecificationVersion.fromDialectId(config.defaultDialectId()).orElse(
-                SpecificationVersion.DRAFT_2020_12
-        ));
+                SpecificationVersion.DRAFT_2020_12));
 
         JsonNode schemaNode = parseSchema(objectMapper, config);
         validateSchema(schemaRegistry, schemaNode);
         Schema schema = getSchema(schemaRegistry, schemaNode);
-        return BaseTypedOp.<JsonNode, JsonNode>of(JsonNode.class, JsonNode.class,
+        return BaseTypedOp.<JsonNode, JsonNode> of(JsonNode.class, JsonNode.class,
                 (value, context) -> validate(value, schema));
     }
 
@@ -85,9 +84,11 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
         Schema schema;
         try {
             schema = schemaRegistry.getSchema(schemaNode);
-        } catch (SchemaException e) {
+        }
+        catch (SchemaException e) {
             throw new SchemaNotValidException("Given value for 'jsonSchema' was not a valid JsonSchema", e);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new SchemaNotValidException("Given value for 'jsonSchema' was not accepted", e);
         }
         return schema;
@@ -111,7 +112,8 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
         JsonNode schemaNode;
         try {
             schemaNode = objectMapper.readTree(config.jsonSchema());
-        } catch (JacksonException e) {
+        }
+        catch (JacksonException e) {
             throw new SchemaNotValidException("Given value for 'jsonSchema' was not valid JSON", e);
         }
         return schemaNode;

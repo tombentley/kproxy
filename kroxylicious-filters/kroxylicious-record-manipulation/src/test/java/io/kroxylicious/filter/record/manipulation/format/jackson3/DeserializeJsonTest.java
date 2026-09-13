@@ -23,9 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.leangen.geantyref.TypeFactory;
 
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -63,8 +63,7 @@ public class DeserializeJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).
-                extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
     }
 
     @Test
@@ -72,7 +71,7 @@ public class DeserializeJsonTest {
         // Given
         Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON,
                 DeserializeJson.READ_FEATURES_PARAMETER, Map.of(
-                "ALLOW_UNQUOTED_PROPERTY_NAMES", true));
+                        "ALLOW_UNQUOTED_PROPERTY_NAMES", true));
         // When
         var op = new DeserializeJson().create(config, pluginLookup, argumentType);
         // Then
@@ -81,8 +80,7 @@ public class DeserializeJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("{hello: \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).
-                extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
 
     }
 
@@ -100,8 +98,7 @@ public class DeserializeJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Map.class)).
-                extracting(Map::keySet).isEqualTo(Set.of("hello"));
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Map.class)).extracting(Map::keySet).isEqualTo(Set.of("hello"));
     }
 
     record Greeting(String hello) {}
@@ -120,8 +117,7 @@ public class DeserializeJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).
-                extracting(Greeting::hello).isEqualTo("world");
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).extracting(Greeting::hello).isEqualTo("world");
     }
 
     @Test
@@ -151,11 +147,10 @@ public class DeserializeJsonTest {
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
-        hello: world
-        """.getBytes(StandardCharsets.UTF_8)), opContext);
+                hello: world
+                """.getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).
-                extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
     }
 
     @Test
@@ -170,11 +165,10 @@ public class DeserializeJsonTest {
         assertThat(op.outputType()).isEqualTo(Greeting.class);
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
-        hello: world
-        """.getBytes(StandardCharsets.UTF_8)), opContext);
+                hello: world
+                """.getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).
-                extracting(Greeting::hello).isEqualTo("world");
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).extracting(Greeting::hello).isEqualTo("world");
     }
 
     @Test
@@ -189,11 +183,10 @@ public class DeserializeJsonTest {
         assertThat(op.outputType()).isEqualTo(TypeFactory.parameterizedClass(List.class, Greeting.class));
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
-        - hello: world
-        """.getBytes(StandardCharsets.UTF_8)), opContext);
+                - hello: world
+                """.getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).
-                singleElement().extracting(Greeting::hello).isEqualTo("world");
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
     }
 
     @Test
@@ -208,11 +201,10 @@ public class DeserializeJsonTest {
         assertThat(op.outputType()).isEqualTo(TypeFactory.parameterizedClass(List.class, Greeting.class));
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
-        - hello: world
-        """.getBytes(StandardCharsets.UTF_8)), opContext);
+                - hello: world
+                """.getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).
-                singleElement().extracting(Greeting::hello).isEqualTo("world");
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
     }
 
     record Row(String name, int num) {}
@@ -224,8 +216,7 @@ public class DeserializeJsonTest {
                 DeserializeJson.TYPE_PARAMETER, Row.class.getName(),
                 "columnConfigs", List.of(
                         new ColumnConfig("name", CsvSchema.ColumnType.STRING, null),
-                        new ColumnConfig("num", CsvSchema.ColumnType.NUMBER, null)
-                ));
+                        new ColumnConfig("num", CsvSchema.ColumnType.NUMBER, null)));
         // When
         var op = new DeserializeJson().create(config, pluginLookup, argumentType);
         // Then
