@@ -8,228 +8,109 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Evaluates several {@link Path} expressions in a single traversal of a Jackson tree.
+ * <p>
+ * Each {@link Path} is tracked by an {@link IndexedPath} recording how far it has matched.
+ * When descending into a child we compute the set of {@code IndexedPath}s that can still
+ * match somewhere in that child's subtree; if the set is empty the subtree is pruned.
+ * <p>
+ * Filter predicates receive the candidate node ({@code @}) and the document root ({@code $}).
+ * The traversal holds no mutable state, so a predicate may start a fresh traversal from either
+ * node (e.g. to resolve an embedded {@code $}-rooted query) by calling {@link #eval} re-entrantly.
+ */
 public class JacksonTree {
 
-    static final class IndexedPath {
-        private final Path path;
-        private int index;
-
+    /**
+     * A {@link Path} together with the index of the segment it is currently trying to match.
+     * Immutable: advancing forks a new instance so sibling branches stay independent.
+     */
+    record IndexedPath(Path path, int index) {
         IndexedPath(Path path) {
-            this.path = path;
-            this.index = 0;
+            this(path, 0);
         }
 
-        public Path path() {
-            return path;
-        }
-
-        public int index() {
-            return index;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj == null || obj.getClass() != this.getClass()) {
-                return false;
-            }
-            var that = (IndexedPath) obj;
-            return Objects.equals(this.path, that.path) &&
-                    this.index == that.index;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, index);
-        }
-
-        @Override
-        public String toString() {
-            return "IndexedPath[" +
-                    "path=" + path + ", " +
-                    "index=" + index + ']';
-        }
-
-        public Segment segment() {
+        Segment segment() {
             return path.segments().get(index);
         }
 
-        public boolean isFinalSegment() {
+        boolean isFinalSegment() {
             return index == path.segments().size() - 1;
         }
 
-        public void incrementIndex() {
-            index++;
+        IndexedPath next() {
+            return new IndexedPath(path, index + 1);
         }
     }
 
     public void eval(JsonNode node, List<Path> paths) {
-        evalInternal(node, paths.stream().map(IndexedPath::new).toList());
+        evalInternal(node, node, paths.stream().map(IndexedPath::new).toList());
     }
 
-    private void evalInternal(JsonNode node, List<IndexedPath> paths) {
-
+    private void evalInternal(JsonNode root, JsonNode node, List<IndexedPath> active) {
         if (node instanceof ObjectNode object) {
-            for (var propertyEntry : object.properties()) {
-                var property = propertyEntry.getKey();
-                final JsonNode child = propertyEntry.getValue();
-                extracted(paths, property, child);
+            for (var entry : object.properties()) {
+                descend(root, entry.getValue(), entry.getKey(), 0, active);
             }
         }
         else if (node instanceof ArrayNode array) {
-            for (int index = 0; index < array.size(); index++) {
-                var child = array.get(index);
-                extracted(paths, index, child);
+            int length = array.size();
+            for (int i = 0; i < length; i++) {
+                descend(root, array.get(i), i, length, active);
             }
-        }
-        else {
-            // no match
         }
     }
 
-    private void extracted(List<IndexedPath> paths, Object accessor, JsonNode child) {
-        for (var path : paths) {
-
-            Segment segment = path.segment();
-            boolean isFinalSegment = path.isFinalSegment();
-            List<JsonNode> results = new ArrayList<>();
-
-            switch (segment) {
+    private void descend(JsonNode root, JsonNode child, Object accessor, int length, List<IndexedPath> active) {
+        List<IndexedPath> childActive = new ArrayList<>();
+        for (var ip : active) {
+            switch (ip.segment()) {
                 case Segment.Child(var selectors) -> {
-                    for (var selector : selectors) {
-                        switch (selector) {
-                            case Selector.Name(var name) -> {
-                                if (accessor.equals(name)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                        results.add(child);
-                                    }
-                                }
-                            }
-                            case Selector.Children() -> {
-                                if (isFinalSegment) {
-                                    path.path.consumer().accept(child);
-                                }
-                                else {
-                                    path.incrementIndex();
-                                    results.add(child);
-                                }
-                            }
-                            case Selector.Index(var index) -> {
-                                if (accessor.equals(index)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                        results.add(child);
-                                    }
-                                }
-                            }
-                            case Selector.Slice(var start, var end, var step) -> {
-                                if (accessor instanceof Integer i
-                                        && start <= i
-                                        && i <= end) { // TODO step
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                        results.add(child);
-                                    }
-                                }
-                            }
-                            case Selector.Filter(var predicate) -> {
-                                if (predicate.test(child)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                        results.add(child);
-                                    }
-                                }
-                            }
-                        }
+                    if (matches(selectors, accessor, child, length, root)) {
+                        advance(ip, child, childActive);
                     }
                 }
                 case Segment.Descendant(var selectors) -> {
-                    for (var selector : selectors) {
-                        switch (selector) {
-                            case Selector.Name(var name) -> {
-                                if (accessor.equals(name)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                    }
-                                }
-                                results.add(child);
-                            }
-                            case Selector.Children() -> {
-                                if (isFinalSegment) {
-                                    path.path.consumer().accept(child);
-                                }
-                                else {
-                                    // path.incrementIndex();
-                                }
-                                results.add(child);
-                            }
-                            case Selector.Index(var index) -> {
-                                if (accessor.equals(index)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                    }
-                                }
-                                results.add(child);
-                            }
-                            case Selector.Slice(var start, var end, var step) -> {
-                                if (accessor instanceof Integer i
-                                        && start <= i
-                                        && i <= end) { // TODO step
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                    }
-                                }
-                                results.add(child);
-                            }
-                            case Selector.Filter(var predicate) -> {
-                                if (predicate.test(child)) {
-                                    if (isFinalSegment) {
-                                        path.path.consumer().accept(child);
-                                    }
-                                    else {
-                                        path.incrementIndex();
-                                    }
-                                    results.add(child);
-                                }
-                            }
-                        }
+                    childActive.add(ip); // '..' stays active for deeper nodes
+                    if (matches(selectors, accessor, child, length, root)) {
+                        advance(ip, child, childActive); // ...and also completes here
                     }
                 }
             }
-            for (var r : results) {
-                evalInternal(r, paths);
+        }
+        if (!childActive.isEmpty()) {
+            evalInternal(root, child, childActive);
+        }
+    }
+
+    private void advance(IndexedPath ip, JsonNode child, List<IndexedPath> childActive) {
+        if (ip.isFinalSegment()) {
+            ip.path().consumer().accept(child); // a match
+        }
+        else {
+            childActive.add(ip.next()); // fork forward one segment
+        }
+    }
+
+    private static boolean matches(List<Selector> selectors, Object accessor, JsonNode child, int length, JsonNode root) {
+        for (var selector : selectors) {
+            boolean matched = switch (selector) {
+                case Selector.Name(var name) -> name.equals(accessor); // objects only
+                case Selector.Index index -> accessor instanceof Integer i && index.matches(i, length); // arrays only
+                case Selector.Children() -> true; // wildcard '*'
+                case Selector.Slice slice -> accessor instanceof Integer i && slice.matches(i, length); // arrays only
+                case Selector.Filter filter -> filter.matches(child, root); // '?<expr>', evaluated against the candidate node and root
+            };
+            if (matched) {
+                return true;
             }
         }
+        return false;
     }
 
 }
