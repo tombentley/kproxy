@@ -20,7 +20,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AvroJsonDeserializerTest {
 
     private static final Schema SCHEMA = new Schema.Parser()
-            .parse("{\"type\":\"record\",\"name\":\"Greeting\",\"fields\":[{\"name\":\"text\",\"type\":\"string\"}]}");
+            .parse("""
+                    {
+                      "type":"record",
+                      "name":"Greeting",
+                      "fields":[{
+                        "name":"text",
+                        "type":"string
+                      "}]}
+                    """);
 
     private final AvroJsonSerializer serializer = new AvroJsonSerializer(SCHEMA);
     private final AvroJsonDeserializer deserializer = new AvroJsonDeserializer(SCHEMA);

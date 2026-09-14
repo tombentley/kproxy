@@ -13,6 +13,11 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record Path<N>(Identifier identifier, List<Segment<N>> segments, Consumer<N> consumer) {
+
+    public Path(Identifier identifier, Segment<N> segment, Consumer<N> consumer) {
+        this(identifier, List.of(segment), consumer);
+    }
+
     @Override
     public String toString() {
         return identifier.symbol +

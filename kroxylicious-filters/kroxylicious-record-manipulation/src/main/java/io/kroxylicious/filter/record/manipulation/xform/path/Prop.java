@@ -6,10 +6,5 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-public interface TreeAdapter<N> {
-    boolean isObject(N node);
-    boolean isArray(N node);
-    Iterable<? extends Prop<N>> objectProperties(N node);
-    int arrayLength(N node);
-    N arrayItem(N node, int index);
+public record Prop<N>(String propertyName, N propertyValue) {
 }

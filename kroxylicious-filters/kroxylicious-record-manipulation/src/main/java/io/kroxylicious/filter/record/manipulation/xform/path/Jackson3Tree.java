@@ -8,9 +8,9 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
-public class Jackson2Tree implements TreeAdapter<JsonNode> {
+public class Jackson3Tree implements TreeAdapter<JsonNode> {
     @Override
     public boolean isObject(JsonNode node) {
         return node.isObject();
