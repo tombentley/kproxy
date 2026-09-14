@@ -6,12 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-import java.util.Map;
-
 public interface TreeAdapter<N> {
     boolean isObject(N node);
     boolean isArray(N node);
-    Iterable<? extends Map.Entry<String, N>> objectProperties(N node);
+    Iterable<? extends Prop<N>> objectProperties(N node);
     int arrayLength(N node);
     N arrayItem(N node, int index);
 }

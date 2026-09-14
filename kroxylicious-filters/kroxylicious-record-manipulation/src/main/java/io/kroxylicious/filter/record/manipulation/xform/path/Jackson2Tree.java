@@ -22,8 +22,8 @@ public class Jackson2Tree implements TreeAdapter<JsonNode> {
     }
 
     @Override
-    public Iterable<? extends Map.Entry<String, JsonNode>> objectProperties(JsonNode node) {
-        return (Iterable) node.properties();
+    public Iterable<? extends Prop<JsonNode>> objectProperties(JsonNode node) {
+        return node.propertyStream().map(entry -> new Prop<>(entry.getKey(), entry.getValue())).toList();
     }
 
     @Override

@@ -20,7 +20,7 @@ import java.util.List;
  * The traversal holds no mutable state, so a predicate may start a fresh traversal from either
  * node (e.g. to resolve an embedded {@code $}-rooted query) by calling {@link #eval} re-entrantly.
  */
-public class JacksonTree<N> {
+public class PathEvaluator<N> {
 
     /**
      * A {@link Path} together with the index of the segment it is currently trying to match.
@@ -46,8 +46,12 @@ public class JacksonTree<N> {
 
     private final TreeAdapter<N> adapter;
 
-    public JacksonTree(TreeAdapter<N> adapter) {
+    public PathEvaluator(TreeAdapter<N> adapter) {
         this.adapter = adapter;
+    }
+
+    public void eval(N node, Path<N> path) {
+        evalInternal(node, node, List.of(new IndexedPath<>(path)));
     }
 
     public void eval(N node, List<Path<N>> paths) {
@@ -57,7 +61,7 @@ public class JacksonTree<N> {
     private void evalInternal(N root, N node, List<IndexedPath<N>> active) {
         if (adapter.isObject(node)) {
             for (var entry : adapter.objectProperties(node)) {
-                descend(root, entry.getValue(), entry.getKey(), 0, active);
+                descend(root, entry.propertyValue(), entry.propertyName(), 0, active);
             }
         }
         else if (adapter.isArray(node)) {

@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JacksonTreeTest {
+class PathEvaluatorTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -70,7 +70,7 @@ class JacksonTreeTest {
 
     private static List<JsonNode> evalOn(JsonNode document, Segment<JsonNode>... segments) {
         var results = new ArrayList<JsonNode>();
-        new JacksonTree<>(new Jackson2Tree()).eval(document, List.of(new Path<>(Identifier.ROOT, List.of(segments), results::add)));
+        new PathEvaluator<>(new Jackson2Tree()).eval(document, List.of(new Path<>(Identifier.ROOT, List.of(segments), results::add)));
         return results;
     }
 
@@ -150,7 +150,7 @@ class JacksonTreeTest {
         var prices = new ArrayList<JsonNode>();
 
         // When
-        new JacksonTree<>(new Jackson2Tree()).eval(BOOKSTORE, List.of(
+        new PathEvaluator<>(new Jackson2Tree()).eval(BOOKSTORE, List.of(
                 new Path<>(Identifier.ROOT, List.of(new Segment.Descendant<>(new Selector.Name<>("author"))), authors::add),
                 new Path<>(Identifier.ROOT, List.of(new Segment.Descendant<>(new Selector.Name<>("price"))), prices::add)));
 
@@ -299,7 +299,7 @@ class JacksonTreeTest {
     /** Runs a nested query against {@code node}, returning its single result (or {@code null} if there is none). */
     private static JsonNode queryOne(JsonNode node, Segment<JsonNode>... segments) {
         var results = new ArrayList<JsonNode>();
-        new JacksonTree<>(new Jackson2Tree()).eval(node, List.of(new Path<>(Identifier.ROOT, List.of(segments), results::add)));
+        new PathEvaluator<>(new Jackson2Tree()).eval(node, List.of(new Path<>(Identifier.ROOT, List.of(segments), results::add)));
         return results.isEmpty() ? null : results.getFirst();
     }
 
