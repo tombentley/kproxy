@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -82,6 +83,17 @@ public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
                                   Map<String, Boolean> readFeatures,
                                   Map<String, Boolean> deserializationFeatures)
             implements ReaderConfig {
+
+        public CsvReaderConfig {
+            Map<String, List<ColumnConfig>> collect = columnConfigs.stream().collect(Collectors.groupingBy(ColumnConfig::name));
+            for (var entry : collect.entrySet()) {
+                if (entry.getValue().size() != 1) {
+                    throw new IllegalArgumentException("Columns must have unique names, but there are " + entry.getValue().size()
+                            + " columns with name: " + entry.getKey());
+                }
+            }
+        }
+
         @Override
         public ObjectReader createReader(JavaType javaType) {
             CsvSchema.Builder schemaBuilder = CsvSchema.builder();
