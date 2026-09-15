@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.common;
+package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -48,7 +48,7 @@ public class Union implements Type {
         return new Union(members1);
     }
 
-    static Union of(List<Type> types) {
+    public static Union of(List<Type> types) {
         LinkedHashSet<Type> members = new LinkedHashSet<>();
         eliminateUnions(types, members);
         List<Type> remove = new ArrayList<>();
