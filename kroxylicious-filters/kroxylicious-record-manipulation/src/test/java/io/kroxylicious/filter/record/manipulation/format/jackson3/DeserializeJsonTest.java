@@ -17,6 +17,9 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,10 +54,17 @@ public class DeserializeJsonTest {
         Mockito.verifyNoInteractions(pluginLookup, argumentType, opContext);
     }
 
-    @Test
-    void readJsonAsJsonNode() {
-        // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON);
+    static List<Arguments> readJsonAsJsonNode() {
+        return List.of(
+                Arguments.argumentSet("{format:json}", Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON)),
+                Arguments.argumentSet("{} => defaults to JSON format with JsonNode values", Map.of()),
+                Arguments.argumentSet("null => defaults to JSON format with JsonNode values", new Object[]{null})
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void readJsonAsJsonNode(Map<String, Object> config) {
         // When
         var op = new DeserializeJson().create(config, pluginLookup, argumentType);
         // Then
@@ -214,7 +224,7 @@ public class DeserializeJsonTest {
         // Given
         Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_CSV,
                 DeserializeJson.TYPE_PARAMETER, Row.class.getName(),
-                "columnConfigs", List.of(
+                "columns", List.of(
                         new ColumnConfig("name", CsvSchema.ColumnType.STRING, null),
                         new ColumnConfig("num", CsvSchema.ColumnType.NUMBER, null)));
         // When

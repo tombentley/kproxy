@@ -31,7 +31,7 @@ class JacksonSerializer {
 
     ByteBuffer serialize(JsonNode node) {
         // TODO buffer recycling
-        try (var is = new ByteBufferOutputStream(10000)) {
+        try (var is = new ByteBufferOutputStream(10_000)) {
             writer.writeValue(is, node);
             ByteBuffer buffer = is.buffer();
             buffer.flip();

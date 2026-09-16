@@ -36,9 +36,9 @@ class UnionTest {
     @Test
     void subclassEliminatedByConstructor() {
         var union = Union.of(String.class, CharSequence.class);
-        assertThat(union.members()).isEqualTo(Set.of(CharSequence.class));
+        assertThat(Union.members(union)).isEqualTo(Set.of(CharSequence.class));
         var union2 = Union.of(CharSequence.class, String.class);
-        assertThat(union2.members()).isEqualTo(Set.of(CharSequence.class));
+        assertThat(Union.members(union2)).isEqualTo(Set.of(CharSequence.class));
     }
 
     @Test
@@ -53,24 +53,24 @@ class UnionTest {
         var union3_6 = Union.of(Union.of(String.class), CharSequence.class);
         var union3_7 = Union.of(Union.of(String.class), Union.of(CharSequence.class));
         var union3_8 = Union.of(Union.of(String.class), Union.of(Integer.class));
-        assertThat(union1.members()).isEqualTo(Set.of(String.class));
-        assertThat(union2.members()).isEqualTo(Set.of(String.class));
-        assertThat(union3_1.members()).isEqualTo(Set.of(String.class));
-        assertThat(union3_2.members()).isEqualTo(Set.of(String.class));
-        assertThat(union3_3.members()).isEqualTo(Set.of(String.class));
-        assertThat(union3_4.members()).isEqualTo(Set.of(Integer.class, String.class));
-        assertThat(union3_5.members()).isEqualTo(Set.of(CharSequence.class));
-        assertThat(union3_6.members()).isEqualTo(Set.of(CharSequence.class));
-        assertThat(union3_7.members()).isEqualTo(Set.of(CharSequence.class));
-        assertThat(union3_8.members()).isEqualTo(Set.of(String.class, Integer.class));
+        assertThat(Union.members(union1)).isEqualTo(Set.of(String.class));
+        assertThat(Union.members(union2)).isEqualTo(Set.of(String.class));
+        assertThat(Union.members(union3_1)).isEqualTo(Set.of(String.class));
+        assertThat(Union.members(union3_2)).isEqualTo(Set.of(String.class));
+        assertThat(Union.members(union3_3)).isEqualTo(Set.of(String.class));
+        assertThat(Union.members(union3_4)).isEqualTo(Set.of(Integer.class, String.class));
+        assertThat(Union.members(union3_5)).isEqualTo(Set.of(CharSequence.class));
+        assertThat(Union.members(union3_6)).isEqualTo(Set.of(CharSequence.class));
+        assertThat(Union.members(union3_7)).isEqualTo(Set.of(CharSequence.class));
+        assertThat(Union.members(union3_8)).isEqualTo(Set.of(String.class, Integer.class));
     }
 
     @Test
     void pairUnion() {
-        var stringInteger = Union.of(String.class, Integer.class);
-        assertThat(stringInteger.members()).isEqualTo(Set.of(String.class, Integer.class));
-        var integerString = Union.of(Integer.class, String.class);
-        assertThat(integerString.members()).isEqualTo(Set.of(Integer.class, String.class));
+        var stringInteger = (Union) Union.of(String.class, Integer.class);
+        assertThat(Union.members(stringInteger)).isEqualTo(Set.of(String.class, Integer.class));
+        var integerString = (Union) Union.of(Integer.class, String.class);
+        assertThat(Union.members(integerString)).isEqualTo(Set.of(Integer.class, String.class));
         assertThat(stringInteger).isEqualTo(integerString);
         assertThat(stringInteger).hasToString("class java.lang.String|class java.lang.Integer");
         assertThat(integerString).hasToString("class java.lang.Integer|class java.lang.String");

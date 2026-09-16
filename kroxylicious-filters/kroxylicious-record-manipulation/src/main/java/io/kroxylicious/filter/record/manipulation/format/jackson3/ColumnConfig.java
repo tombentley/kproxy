@@ -6,8 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.format.jackson3;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.dataformat.csv.CsvSchema;
 
 public record ColumnConfig(String name,
                            CsvSchema.ColumnType type,
-                           String arrayElementSep) {}
+                           @Nullable String arrayElementSep) {}

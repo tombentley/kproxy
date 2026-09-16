@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
+ * Return the type which the evaluation of path against an instance value would have assuming it conforms to the given schema.
  * @param <N> The Java type of the data tree nodes (e.g. {@code JsonNode} for a Jackson JSON tree).
  * For some libraries there is no specific type than {@link Object}.
  * @param <S> The type of schema object.
@@ -83,7 +84,7 @@ public class TypeEvaluator<N, S> {
                     } // switch(selector)
 
                 } // for
-                yield typeSystem.unionType(types);
+                yield Union.of(types);
             } // child segment case
             case Segment.Descendant(var selectors) -> {
                 // In theory, we could explore the types reachable from the root type
