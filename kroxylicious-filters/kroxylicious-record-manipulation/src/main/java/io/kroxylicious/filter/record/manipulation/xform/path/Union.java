@@ -32,7 +32,7 @@ public class Union implements Type {
         return new Union(Set.of(type));
     }
 
-    static Union of(Type type, Type type2) {
+    static Type of(Type type, Type type2) {
         if (type instanceof Union || type2 instanceof Union) {
             return of(List.of(type, type2));
         }
@@ -48,7 +48,10 @@ public class Union implements Type {
         return new Union(members1);
     }
 
-    public static Union of(List<Type> types) {
+    public static Type of(List<Type> types) {
+        if (types.size() == 1) {
+            return types.getFirst();
+        }
         LinkedHashSet<Type> members = new LinkedHashSet<>();
         eliminateUnions(types, members);
         List<Type> remove = new ArrayList<>();
@@ -68,7 +71,7 @@ public class Union implements Type {
         return new Union(new LinkedHashSet<>(members));
     }
 
-    Union add(Type type) {
+    Type add(Type type) {
         ArrayList<Type> members1;
         if (type instanceof Union union) {
             members1 = new ArrayList(this.members.size() + union.members.size());
@@ -92,6 +95,13 @@ public class Union implements Type {
                 members.add(type);
             }
         }
+    }
+
+    public static Set<Type> members(Type type) {
+        if (type instanceof Union union) {
+            return union.members;
+        }
+        return Set.of();
     }
 
     public Set<Type> members() {
