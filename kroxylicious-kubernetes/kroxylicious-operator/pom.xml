@@ -137,6 +137,15 @@
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
+            <artifactId>openshift-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>ovn-client</artifactId>
+            <version>7.9.0</version> <!-- or latest 7.x release -->
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
             <artifactId>openshift-model-operator</artifactId>
             <scope>test</scope>
         </dependency>
