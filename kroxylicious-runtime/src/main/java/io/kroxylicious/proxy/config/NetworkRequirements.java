@@ -23,6 +23,7 @@ public record NetworkRequirements(
      * @param port The port number, if known
      */
     public record Ingress(
+            String reason,
             @Nullable String address,
             @Nullable Integer port) {
     }
@@ -34,22 +35,22 @@ public record NetworkRequirements(
      * @param port The port number, if known
      */
     public record Egress(
+            String reason,
             String host,
             String protocol,
             @Nullable Integer port) {
 
         public enum Type {
             DNS_NAME,
-            IPV4,
-            IPV6
+            IP_ADDRESS
         }
 
         public Type type() {
             if (isIpv6()) {
-                return Type.IPV6;
+                return Type.IP_ADDRESS;
             }
             else if (isIpv4()) {
-                return Type.IPV4;
+                return Type.IP_ADDRESS;
             }
             else {
                 return Type.DNS_NAME;

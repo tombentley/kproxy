@@ -6,7 +6,6 @@
 
 package io.kroxylicious.kubernetes.operator.reconciler.kafkaproxy;
 
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -46,10 +45,12 @@ public class ClusterDomain {
         CLUSTER_DOMAIN = clusterDomain;
     }
 
-    // matches service DNS names
-    // IP-based pod DNS names
-    // hostname and subdomain pod DNS names
-    private static final Pattern COMPILE = Pattern.compile(".*\\.(a-z0-9-+)\\.(a-z0-9-+)\\.(svc|pod)\\." + Pattern.quote(CLUSTER_DOMAIN) + "$");
+    // matches
+    // * service DNS names, like my-service.default.svc.cluster.local (standard format),
+    //             or _http._tcp.my-service.default.svc.cluster.local (named ports)
+    // * IP-based pod DNS names like 172-17-0-3.default.pod.cluster.local (default pod DNS)
+    //                           or web-0.nginx.default.svc.cluster.local (PodSpec with hostname and subdomain)
+    private static final Pattern COMPILE = Pattern.compile("(?:.*\\.)?(?<serviceNameIfService>[a-z0-9-]+)\\.(?<namespace>[a-z0-9-]+)\\.(?<svcOrPod>svc|pod)\\." + Pattern.quote(CLUSTER_DOMAIN) + "$");
 
     /**
      * Determines whether the given DNS name ends with the cluster domain suffix.
@@ -70,7 +71,7 @@ public class ClusterDomain {
     static @Nullable String namespaceFromClusterDnsName(String clusterDnsName) {
         Matcher matcher = COMPILE.matcher(clusterDnsName);
         if (matcher.matches()) {
-            return matcher.group(2);
+            return matcher.group("namespace");
         }
         return null;
     }
@@ -85,7 +86,7 @@ public class ClusterDomain {
     private static @Nullable String dnsNameType(String clusterDnsName) {
         Matcher matcher = COMPILE.matcher(clusterDnsName);
         if (matcher.matches()) {
-            return matcher.group(3);
+            return matcher.group("svcOrPod");
         }
         return null;
     }
@@ -115,8 +116,8 @@ public class ClusterDomain {
      */
     public static @Nullable String serviceNameFromClusterDnsName(String clusterDnsName) {
         Matcher matcher = COMPILE.matcher(clusterDnsName);
-        if (matcher.matches() && "svc".equals(matcher.group(3))) {
-            return matcher.group(1);
+        if (matcher.matches() && "svc".equals(matcher.group("svcOrPod"))) {
+            return matcher.group("serviceNameIfService");
         }
         return null;
     }
@@ -124,20 +125,30 @@ public class ClusterDomain {
     record Cidr(byte[] prefixAddr, int prefixLength) {
         static Cidr fromString(String cidr) {
             var parts = cidr.split("/");
-            InetAddress prefixAddr = InetAddress.getByName(parts[0]);
+            InetAddress prefixAddr = null;
+            try {
+                prefixAddr = InetAddress.getByName(parts[0]);
+            }
+            catch (UnknownHostException e) {
+                throw new RuntimeException(e);
+            }
             int prefixLength = Integer.parseInt(parts[1]);
             return new Cidr(prefixAddr.getAddress(), prefixLength);
         }
 
         private boolean matches(byte[] ipAddress) {
-            int b = prefixLength / 8;
-            for (int i = 0; i < b; i++) {
+            int numWholeByte = prefixLength / 8;
+            for (int i = 0; i < numWholeByte; i++) {
                 if (ipAddress[i] != prefixAddr[i]) {
                     return false;
                 }
             }
-            int c = prefixLength % 8;
-            return ipAddress[b+1] == ((prefixAddr[b+1] >> c) << c);
+            int numBits = prefixLength % 8;
+            if (numBits == 0) {
+                return true;
+            }
+            byte mask = (byte) (0xFFFFFFFF << (8 - numBits));
+            return (ipAddress[numWholeByte] & mask) == prefixAddr[numWholeByte];
         }
 
         boolean matches(String ipAddress) {
@@ -152,8 +163,17 @@ public class ClusterDomain {
 
     }
 
-    private static List<Cidr> clusterCidr() {
-        return List.of(Cidr.fromString("10.22.0.0/16"));
+    private static List<Cidr> CLUSTER_CIDRS = null;
+    static void setClusterCidrs(List<String> clusterCidrs) {
+        var cidrs = clusterCidrs.stream().map(Cidr::fromString).toList();
+        synchronized(ClusterDomain.class) {
+            CLUSTER_CIDRS = cidrs;
+        }
+    }
+
+    private static synchronized List<Cidr> clusterCidr() {
+        // TODO replace with ENV VAR lookup, or an operator config cluster-scoped CR.
+        return CLUSTER_CIDRS;
     }
 
     static boolean isClusterIp(String clusterDnsName) {

@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.LabelSelectorBuilder;
 import io.fabric8.kubernetes.api.model.Service;
@@ -26,25 +25,8 @@ import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyEgressRuleBuil
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRuleBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyPeer;
-import io.fabric8.kubernetes.api.model.ovn.v1.EgressFirewall;
-import io.fabric8.kubernetes.api.model.ovn.v1.EgressFirewallBuilder;
-import io.fabric8.openshift.api.model.Route;
 
 import io.kroxylicious.proxy.config.NetworkRequirements;
-
-/**
- * A factory for resources representing any kind of network policy/firewall rules or similar
- * @param <R> The type of resources built
- */
-interface NetworkPolicyFactory<R extends HasMetadata> {
-
-    R buildPolicy(String clusterLocalDomain,
-                  Map<String, String> proxyPodSelector,
-                  BiFunction<String, String, Service> proxyServices,
-                  List<Route> proxyRoutes,
-                  NetworkRequirements proxyNetworkRequirements);
-
-}
 
 /**
  * <p>A factory for Kubernetes {@code NetworkPolicy} resources which will
@@ -64,8 +46,8 @@ interface NetworkPolicyFactory<R extends HasMetadata> {
  * what's allowed is more strictly limited to the IPs to which those DNS names resolve from
  * the PoV of the proxy pod.
  */
-class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(K8sNetworkPolicyBuilder.class);
+class NetworkPolicyFactory implements NetworkingPolicyFactory<NetworkPolicy> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NetworkPolicyFactory.class);
 
     /**
      * We use this to group ingress and egress requirements into classes according to how
@@ -77,16 +59,13 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
                         boolean clusterLocal) {
         static PartitionKey INTERNAL_DNS = new PartitionKey(NetworkRequirements.Egress.Type.DNS_NAME, true);
         static PartitionKey EXTERNAL_DNS = new PartitionKey(NetworkRequirements.Egress.Type.DNS_NAME, false);
-        static PartitionKey INTERNAL_IPV4 = new PartitionKey(NetworkRequirements.Egress.Type.IPV4, true);
-        static PartitionKey EXTERNAL_IPV4 = new PartitionKey(NetworkRequirements.Egress.Type.IPV4, false);
-        static PartitionKey INTERNAL_IPV6 = new PartitionKey(NetworkRequirements.Egress.Type.IPV6, true);
-        static PartitionKey EXTERNAL_IPV6 = new PartitionKey(NetworkRequirements.Egress.Type.IPV6, false);
+        static PartitionKey INTERNAL_IP = new PartitionKey(NetworkRequirements.Egress.Type.IP_ADDRESS, true);
+        static PartitionKey EXTERNAL_IP = new PartitionKey(NetworkRequirements.Egress.Type.IP_ADDRESS, false);
     }
+
     @Override
-    public NetworkPolicy buildPolicy(String clusterLocalDomain,
-                                     Map<String, String> proxyPodSelector,
+    public NetworkPolicy buildPolicy(Map<String, String> proxyPodSelector,
                                      BiFunction<String, String, Service> proxyServices,
-                                     List<Route> proxyRoutes,
                                      NetworkRequirements proxyNetworkRequirements) {
 
         var partitioned = proxyNetworkRequirements.egresses().stream()
@@ -95,38 +74,35 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
                         egress.isDnsName() ?
                                 ClusterDomain.isClusterDomain(egress.host()) :
                                 ClusterDomain.isClusterIp(egress.host())
-                        )));
+                )));
 
         List<NetworkRequirements.Egress> internalDnsName = partitioned.getOrDefault(PartitionKey.INTERNAL_DNS, List.of());
         List<NetworkRequirements.Egress> externalDnsName = partitioned.getOrDefault(PartitionKey.EXTERNAL_DNS, List.of());
-        List<NetworkRequirements.Egress> internalIpv4 = partitioned.getOrDefault(PartitionKey.INTERNAL_IPV4, List.of());
-        List<NetworkRequirements.Egress> externalIpv4 = partitioned.getOrDefault(PartitionKey.EXTERNAL_IPV4, List.of());
-        List<NetworkRequirements.Egress> internalIpv6 = partitioned.getOrDefault(PartitionKey.INTERNAL_IPV6, List.of());
-        List<NetworkRequirements.Egress> externalIpv6 = partitioned.getOrDefault(PartitionKey.EXTERNAL_IPV6, List.of());
+        List<NetworkRequirements.Egress> internalIp = partitioned.getOrDefault(PartitionKey.INTERNAL_IP, List.of());
+        List<NetworkRequirements.Egress> externalIp = partitioned.getOrDefault(PartitionKey.EXTERNAL_IP, List.of());
 
-        if (!internalIpv4.isEmpty() || !internalIpv6.isEmpty()) {
+        if (!internalIp.isEmpty()) {
             // There's no good way to look up a namespace from a cluster-internal IP address.
             // Using an IPBlock rule for internal IP is an anti-pattern.
             // So we disallow this case.
             throw new IllegalArgumentException("Use cluster DNS name to refer to cluster-local pods and services");
         }
 
-        var egressRules = Stream.<NetworkPolicyEgressRule>builder();
+        var egressRules = Stream.<NetworkPolicyEgressRule> builder();
 
         // If the config requires to connect to any cluster-local DNS name we can resolve the namespace (and maybe the pods too)
-        internalDnsName.stream().map(egress -> allowToNamespaceAndPod(proxyServices, egress)).forEach(egressRules::add);;
+        internalDnsName.stream().map(egress -> allowToNamespaceAndPod(proxyServices, egress)).forEach(egressRules::add);
         if (!externalDnsName.isEmpty()) {
             // If the config requires to connect to any off-cluster DNS name:
             // 1. we will need to allow DNS
             egressRules.add(allowExternalDns());
             // 2. NetworkPolicy only groks ip addresses, so we need to allow any IP to the matching port.
-            externalDnsName.stream().map(K8sNetworkPolicyBuilder::allowToAnyIpMatchingPort).forEach(egressRules::add);
+            externalDnsName.stream().map(NetworkPolicyFactory::allowToAnyIpMatchingPort).forEach(egressRules::add);
         }
         // If the config requires to connect to any off-cluster IP address we allow just that IP and the matching port.
-        externalIpv4.stream().map(egress -> buildExternalIpBlockEgressRule(egress, egress.host() + "/32")).forEach(egressRules::add);;
-        externalIpv6.stream().map(egress -> buildExternalIpBlockEgressRule(egress, egress.host() + "/128")).forEach(egressRules::add);;
+        externalIp.stream().map(NetworkPolicyFactory::buildExternalIpBlockEgressRule).forEach(egressRules::add);
 
-        var ingressRules = proxyNetworkRequirements.ingresses().stream().map(K8sNetworkPolicyBuilder::ingressRule).toList();
+        var ingressRules = proxyNetworkRequirements.ingresses().stream().map(NetworkPolicyFactory::ingressRule).toList();
         // @formatter:off
         return new NetworkPolicyBuilder()
                 .withNewSpec()
@@ -156,7 +132,6 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
                 .build();
         // @formatter:on
     }
-
 
     private static NetworkPolicyEgressRule allowExternalDns() {
 
@@ -202,12 +177,12 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
         // @formatter:on
     }
 
-    private static NetworkPolicyEgressRule buildExternalIpBlockEgressRule(NetworkRequirements.Egress egress, String cidr) {
+    private static NetworkPolicyEgressRule buildExternalIpBlockEgressRule(NetworkRequirements.Egress egress) {
         // @formatter:off
         return new NetworkPolicyEgressRuleBuilder()
                 .addNewTo()
                     .withNewIpBlock()
-                        .withCidr(cidr)
+                        .withCidr(egress.host() + (egress.isIpv4() ? "/32" : "/128"))
                     .endIpBlock()
                 .endTo()
                 .addNewPort()
@@ -223,29 +198,34 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
 
         String namespace = ClusterDomain.namespaceFromClusterDnsName(egress.host());
         var peer = new NetworkPolicyPeer();
-        peer.setNamespaceSelector(new LabelSelectorBuilder()
-                .withMatchLabels(Map.of("kubernetes.io/metadata.name", namespace))
-                .build());
-        if (ClusterDomain.isServiceDnsName(egress.host())) {
-            String serviceName = ClusterDomain.serviceNameFromClusterDnsName(egress.host());
-            Service service = proxyServices.apply(namespace, serviceName);
-            if (service == null) {
-                LOGGER.atInfo()
-                        .addKeyValue("namespace", namespace)
-                        .addKeyValue("serviceName", serviceName)
-                        .addKeyValue("host", egress.host())
-                        .log("Could not get Service implied by cluster-local egress host; egress policy will lack a pod selector");
-            } else if (service.getSpec() == null
-                    || service.getSpec().getSelector() == null) {
-                LOGGER.atInfo()
-                        .addKeyValue("namespace", namespace)
-                        .addKeyValue("serviceName", serviceName)
-                        .addKeyValue("host", egress.host())
-                        .log("Service implied by cluster-local egress host lacked a pod selector; egress policy will lack a pod selector");
-            } else {
-                peer.setPodSelector(new LabelSelectorBuilder()
-                        .withMatchLabels(service.getSpec().getSelector())
-                        .build());
+        if (namespace != null) {
+            peer.setNamespaceSelector(new LabelSelectorBuilder()
+                    .withMatchLabels(Map.of("kubernetes.io/metadata.name", namespace))
+                    .build());
+
+            if (ClusterDomain.isServiceDnsName(egress.host())) {
+                String serviceName = ClusterDomain.serviceNameFromClusterDnsName(egress.host());
+                Service service = proxyServices.apply(namespace, serviceName);
+                if (service == null) {
+                    LOGGER.atInfo()
+                            .addKeyValue("namespace", namespace)
+                            .addKeyValue("serviceName", serviceName)
+                            .addKeyValue("host", egress.host())
+                            .log("Could not get Service implied by cluster-local egress host; egress policy will lack a pod selector");
+                }
+                else if (service.getSpec() == null
+                        || service.getSpec().getSelector() == null) {
+                    LOGGER.atInfo()
+                            .addKeyValue("namespace", namespace)
+                            .addKeyValue("serviceName", serviceName)
+                            .addKeyValue("host", egress.host())
+                            .log("Service implied by cluster-local egress host lacked a pod selector; egress policy will lack a pod selector");
+                }
+                else {
+                    peer.setPodSelector(new LabelSelectorBuilder()
+                            .withMatchLabels(service.getSpec().getSelector())
+                            .build());
+                }
             }
         }
         // @formatter:off
@@ -255,39 +235,6 @@ class K8sNetworkPolicyBuilder implements NetworkPolicyFactory<NetworkPolicy> {
                     .withPort(new IntOrString(egress.port()))
                 .endPort()
                 .withTo(peer)
-            .build();
-        // @formatter:on
-    }
-}
-
-/**
- * Traffic is evaluated by {@code NetworkPolicy} rules first at the pod network level,
- * and then by {@code EgressFirewall} rules at the cluster egress gateway level.
- * Because this applies only to traffic exiting the cluster we shoud omit rules
- * for intra-cluster connections.
- */
-class OvnEgressFirewallPolicyBuilder implements NetworkPolicyFactory<EgressFirewall> {
-
-    @Override
-    public EgressFirewall buildPolicy(String clusterLocalDomain,
-                                      Map<String, String> proxyPodSelector,
-                                      BiFunction<String, String, Service> proxyServices,
-                                      List<Route> proxyRoutes,
-                                      NetworkRequirements proxyNetworkRequirements) {
-        // @formatter:off
-        return new EgressFirewallBuilder()
-                .withNewMetadata()
-                    .withName("default")
-                    .withNamespace("my-namespace")
-                .endMetadata()
-                .withNewSpec()
-                    .addNewEgress()
-                        .withType("Allow")
-                        .withNewTo()
-                            .withDnsName("203.0.113.0/24")
-                        .endTo()
-                    .endEgress()
-                .endSpec()
             .build();
         // @formatter:on
     }

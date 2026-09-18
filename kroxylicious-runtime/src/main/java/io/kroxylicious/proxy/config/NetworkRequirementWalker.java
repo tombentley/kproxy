@@ -13,6 +13,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +26,6 @@ import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 
 import io.kroxylicious.proxy.config.admin.ManagementConfiguration;
 import io.kroxylicious.proxy.service.HostPort;
-import io.kroxylicious.proxy.service.NodeIdentificationStrategy;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -38,14 +39,97 @@ public class NetworkRequirementWalker {
      * Walk a configuration and determine its network requirements, in terms of ingress and egress connectivity
      * @param obj The configuration
      */
+    @SuppressWarnings({ "deprecate", "removal" })
     public NetworkRequirements walk(Configuration obj) throws Exception {
         var ingressRequirements = new HashSet<NetworkRequirements.Ingress>();
         var egressRequirements = new HashSet<NetworkRequirements.Egress>();
-        walkRecursive(obj, new HashSet<>(), ingressRequirements, egressRequirements);
+
+        HashSet<Object> visited = new HashSet<>();
+        var filterDefsByName = Optional.ofNullable(obj.filterDefinitions()).orElse(List.of()).stream()
+                .collect(Collectors.toMap(NamedFilterDefinition::name, Function.identity()));
+        var clusterDefsByName = Optional.ofNullable(obj.clusterDefinitions()).orElse(List.of()).stream()
+                .collect(Collectors.toMap(ClusterDefinition::name, Function.identity()));
+        var routerDefsByName = Optional.ofNullable(obj.routerDefinitions()).orElse(List.of()).stream()
+                .collect(Collectors.toMap(RouterDefinition::name, Function.identity()));
+
+        if (obj.management() != null) {
+            addManagementIngress(ingressRequirements,
+                    "management",
+                    obj.management());
+        }
+
+//        for (var clusterDefn : Optional.ofNullable(obj.clusterDefinitions()).orElse(List.of())) {
+//            addClusterDefinitionEgresses(egressRequirements, clusterDefn);
+//        }
+        for (var vc : obj.virtualClusters()) {
+            for (var g : vc.gateways()) {
+                if (g.portIdentifiesNode() != null) {
+                    addIngresses(ingressRequirements,
+                            "vc-" + vc.name() + "-portgateway-" + g.name(),
+                            g.portIdentifiesNode());
+                }
+                if (g.sniHostIdentifiesNode() != null) {
+                    addIngress(ingressRequirements,
+                            "vc-" + vc.name() + "-snigateway-" + g.name(),
+                            g.sniHostIdentifiesNode());
+                }
+            }
+
+            if (vc.targetCluster() != null) {
+                addTargetClusterEgresses(egressRequirements, vc.name(), vc.targetCluster());
+            }
+            walkRecursive(vc.subjectBuilder(),
+                    "vc-" + vc.name() + "-subject-builder",
+                    visited, ingressRequirements, egressRequirements);
+
+            if (vc.filters() != null) {
+                for (var filter : vc.filters()) {
+                    NamedFilterDefinition namedFilterDefinition = filterDefsByName.get(filter);
+                    walkRecursive(namedFilterDefinition.config(),
+                            "filter-" + namedFilterDefinition.name(),
+                            visited, ingressRequirements, egressRequirements);
+                }
+            }
+
+            if (vc.target() != null) {
+
+                RouteTarget target = vc.target();
+                if (target.cluster() != null) {
+                    ClusterDefinition clusterDefinition = clusterDefsByName.get(target.cluster());
+                    walkRecursive(clusterDefinition,
+                            "cluster-" + clusterDefinition.name(),
+                            visited,
+                            ingressRequirements,
+                            egressRequirements);
+                    addClusterDefinitionEgresses(egressRequirements,
+                            "cluster-" + clusterDefinition.name(),
+                            clusterDefinition);
+                }
+                if (target.router() != null) {
+                    RouterDefinition routerDefinition = routerDefsByName.get(target.router());
+                    for (var router : routerDefinition.routes()) {
+                        for (var filter : Optional.ofNullable(router.filters()).orElse(List.of())) {
+                            NamedFilterDefinition namedFilterDefinition = filterDefsByName.get(filter);
+                            walkRecursive(namedFilterDefinition.config(),
+                                    "filter-" + namedFilterDefinition.name(),
+                                    visited,
+                                    ingressRequirements,
+                                    egressRequirements);
+                        }
+                    }
+                    walkRecursive(routerDefinition, "router-" + routerDefinition.name(), visited, ingressRequirements, egressRequirements);
+                }
+                //walkRecursive(target, visited, ingressRequirements, egressRequirements);
+            }
+        }
+
+
+        //walkRecursive(obj, visited, ingressRequirements, egressRequirements);
         return new NetworkRequirements(List.copyOf(ingressRequirements), List.copyOf(egressRequirements));
     }
 
     private void walkRecursive(@Nullable Object obj,
+                               String reason,
                                Set<Object> visited,
                                Set<NetworkRequirements.Ingress> ingresses,
                                Set<NetworkRequirements.Egress> egresses) throws Exception {
@@ -60,67 +144,87 @@ public class NetworkRequirementWalker {
             return;
         }
 
-        if (obj instanceof ManagementConfiguration mc) {
-            addManagementIngress(ingresses, mc);
-        }
-        if (obj instanceof NodeIdentificationStrategy) {
-            if (obj instanceof PortIdentifiesNodeIdentificationStrategy strategy) {
-                addIngresses(ingresses, strategy);
-            }
-            else if (obj instanceof SniHostIdentifiesNodeIdentificationStrategy strategy) {
-                addIngress(ingresses, strategy);
-            }
-            else {
-                throw new IllegalArgumentException("Unknown node identification strategy: " + clazz.getName());
-            }
-        }
-        if (obj instanceof TargetCluster tc) {
-            addTargetClusterEgresses(egresses, tc);
-        }
-
         BeanDescription beanDesc = mapper.getSerializationConfig().introspect(javaType);
 
         for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
             if (prop.couldSerialize()) {
                 Object value = prop.getAccessor().getValue(obj);
                 if (value instanceof URI uri) {
-                    addUriEgress(egresses, uri, prop);
+                    addUriEgress(egresses, reason, uri, prop);
                 } else if (value instanceof HostPort hostPort) {
-                    addHostPortIngress(ingresses, hostPort);
+                    addHostPortIngress(ingresses, reason, hostPort);
                 } else if (value != null) {
-                    walkRecursive(value, visited, ingresses, egresses);
+                    walkRecursive(value, reason, visited, ingresses, egresses);
                 }
             }
         }
     }
 
-    private static void addManagementIngress(Set<NetworkRequirements.Ingress> ingresses, ManagementConfiguration mc) {
-        ingresses.add(new NetworkRequirements.Ingress(mc.bindAddress(), mc.getEffectivePort()));
-    }
-
-    private static void addTargetClusterEgresses(Set<NetworkRequirements.Egress> egresses, TargetCluster tc) {
-        for (var hostPort : tc.bootstrapServersList()) {
-            egresses.add(new NetworkRequirements.Egress(hostPort.host(), "TCP", hostPort.port()));
+    private void addClusterDefinitionEgresses(Set<NetworkRequirements.Egress> egresses,
+                                              String reason,
+                                              ClusterDefinition clusterDefinition) {
+        for (var hostPort : clusterDefinition.toTargetCluster().bootstrapServersList()) {
+            // TODO this is only the bootstrap, not the whole topology.
+            // TODO for Strimzi, if this is a cluster DNS then we could assume the brokers are in the same subdomain
+            // TODO more generally, it's difficult to know for sure.
+            // TODO I suppose in the CR (not the proxy config) we could let the user express
+            // how to identify the other brokers -- e.g. by listing them (DNS or IP)
+            // or saying, "same subdomain as the boostrap"
+            egresses.add(new NetworkRequirements.Egress(reason,
+                    hostPort.host(),
+                    "TCP",
+                    hostPort.port()));
         }
     }
 
-    private static void addIngresses(Set<NetworkRequirements.Ingress> ingresses, PortIdentifiesNodeIdentificationStrategy strategy) {
+    private static void addManagementIngress(Set<NetworkRequirements.Ingress> ingresses,
+                                             String reason,
+                                             ManagementConfiguration mc) {
+        ingresses.add(new NetworkRequirements.Ingress(
+                reason,
+                mc.getEffectiveBindAddress(),
+                mc.getEffectivePort()));
+    }
+
+    private static void addTargetClusterEgresses(Set<NetworkRequirements.Egress> egresses,
+                                                 String vcName,
+                                                 TargetCluster tc) {
+        for (var hostPort : tc.bootstrapServersList()) {
+            egresses.add(new NetworkRequirements.Egress("vc-" + vcName + "-target-cluster" + tc, hostPort.host(), "TCP", hostPort.port()));
+        }
+    }
+
+    private static void addIngresses(
+            Set<NetworkRequirements.Ingress> ingresses,
+                                     String reason,
+                                     PortIdentifiesNodeIdentificationStrategy strategy) {
         var port = Optional.ofNullable(strategy.getNodeStartPort()).orElse(strategy.getBootstrapAddress().port() + 1);
         List<NamedRange> nodeIdRanges = strategy.getNodeIdRanges();
         if (nodeIdRanges != null && !nodeIdRanges.isEmpty()) {
             for (var nodeIdRange : nodeIdRanges) {
                 for (int nodeId = nodeIdRange.start(); nodeId <= nodeIdRange.end(); nodeId++) {
-                    ingresses.add(new NetworkRequirements.Ingress(strategy.getBootstrapAddress().host(), port++));
+                    ingresses.add(new NetworkRequirements.Ingress(
+                            reason,
+                            strategy.getBootstrapAddress().host(),
+                            port++));
                 }
             }
         }
     }
 
-    private static void addIngress(Set<NetworkRequirements.Ingress> ingresses, SniHostIdentifiesNodeIdentificationStrategy strategy) {
-        ingresses.add(new NetworkRequirements.Ingress(strategy.getBootstrapAddress(), strategy.getBootstrapPort()));
+    private static void addIngress(Set<NetworkRequirements.Ingress> ingresses,
+                                   String reason,
+                                   SniHostIdentifiesNodeIdentificationStrategy strategy) {
+        ingresses.add(new NetworkRequirements.Ingress(
+                reason,
+                strategy.getBootstrapAddress(),
+                strategy.getBootstrapPort()));
     }
 
-    private static void addUriEgress(Set<NetworkRequirements.Egress> egresses, URI uri, BeanPropertyDefinition prop) {
+    private static void addUriEgress(Set<NetworkRequirements.Egress> egresses,
+                                     String reason,
+                                     URI uri,
+                                     BeanPropertyDefinition prop) {
         if (uri.isAbsolute()
                 && uri.getAuthority() != null
                 && uri.getHost() != null) {
@@ -129,6 +233,7 @@ public class NetworkRequirementWalker {
                 port = defaultPort(uri.getScheme());
             }
             egresses.add(new NetworkRequirements.Egress(
+                    reason,
                     uri.getHost(),
                     "TCP",
                     port != -1 ? port : null));
@@ -141,8 +246,10 @@ public class NetworkRequirementWalker {
         }
     }
 
-    private static void addHostPortIngress(Set<NetworkRequirements.Ingress> ingresses, HostPort hostPort) {
-        ingresses.add(new NetworkRequirements.Ingress(hostPort.host(), hostPort.port()));
+    private static void addHostPortIngress(Set<NetworkRequirements.Ingress> ingresses,
+                                           String reason,
+                                           HostPort hostPort) {
+        ingresses.add(new NetworkRequirements.Ingress(reason, hostPort.host(), hostPort.port()));
     }
 
     private static final Map<String, Integer> DEFAULT_PORTS = Map.ofEntries(
