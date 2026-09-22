@@ -48,19 +48,27 @@ where:
   your_mask:
     op: io.kroxylicious.op.xform.AvroXform
     xform:
-      firstName: "REDACTED";
-      customerId: hmac($.customerId);
-      email: encrypt($[email]);
-      area: regexReplace("(([A-Z]+[0-9]{2}).*", $[address][postCode], "$1");
-      city: $[address][city]
-      "$[address][city]": $[address][city]
-    resultSchema:
-      op: AvroSchema
-    # OR
-    resultSchemaFrom:
-      op: Apicurio
-      url: "https://my.apicurio.internal.example.com:8888"
-      contentId: 1234
+      - select: $.customerId
+        apply: hmac(@)
+      - select: $.firstName
+        apply: redacted(@)
+      - select: $.email
+        apply: encrypt(@)
+      - select: $.address.postCode
+        apply: regexReplace("(([A-Z]+[0-9]{2}).*", @, "$1");
+#      firstName: "REDACTED";
+#      customerId: hmac($.customerId);
+#      email: encrypt($[email]);
+#      area: regexReplace("(([A-Z]+[0-9]{2}).*", $[address][postCode], "$1");
+#      city: $[address][city]
+#      "$[address][city]": $[address][city]
+#    resultSchema:
+#      op: AvroSchema
+#    # OR
+#    resultSchemaFrom:
+#      op: Apicurio
+#      url: "https://my.apicurio.internal.example.com:8888"
+#      contentId: 1234
 
 
   regexReplace:

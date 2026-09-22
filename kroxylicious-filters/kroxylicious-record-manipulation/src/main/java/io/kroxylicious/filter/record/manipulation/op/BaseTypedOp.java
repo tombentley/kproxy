@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.op;
 
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 
