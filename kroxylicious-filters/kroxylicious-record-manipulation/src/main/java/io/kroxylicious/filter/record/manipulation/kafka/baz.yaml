@@ -1,3 +1,4 @@
+# Imagine that this info is stored in apicurio
 given:
   recordValue:
     format: json
@@ -9,7 +10,7 @@ given:
     headerKey: my-key
     format: kafka
     type: int
-
+# given that, then a transformation like below can be type checked
 result:
   # TODO there's an assumption lurking here
   # We cannot write foo($.key, $.value) (not an "unary op")

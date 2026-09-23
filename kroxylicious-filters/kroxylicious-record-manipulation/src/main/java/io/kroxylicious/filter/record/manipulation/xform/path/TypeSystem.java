@@ -8,17 +8,16 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Set;
 
 interface TypeSystem<S> {
     /** The most general type. In type systems without declarative subclassing, this would be the union of all the types. */
     Type topType();
 
     ///** Create a union type from the given types */
-    //Type unionType(List<Type> caseTypes);
+    // Type unionType(List<Type> caseTypes);
 
     ///** Get the cases which make up the given union type */
-    //Set<Type> caseTypes(S unionSchema);
+    // Set<Type> caseTypes(S unionSchema);
 
     /** Determine whether the given type is a union type */
     boolean isUnionType(S schema);

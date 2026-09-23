@@ -8,6 +8,12 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.io.IOException;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -18,15 +24,20 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import io.kroxylicious.filter.record.manipulation.expr.ExprBaseListener;
+import io.kroxylicious.filter.record.manipulation.expr.ExprLexer;
+import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
+
 @JsonDeserialize(using = Expr.Deser.class)
 @JsonSerialize(using = Expr.Ser.class)
 public class Expr {
+
     static class Deser extends JsonDeserializer<Expr> {
 
         @Override
         public Expr deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
             String text = p.getText();
-            return new Expr(text);
+            return fromString(text);
         }
     }
 
@@ -34,14 +45,40 @@ public class Expr {
 
         @Override
         public void serialize(Expr expr, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeString(expr.value);
+            gen.writeString(expr.text);
         }
     }
 
-    private final String value;
+    private final ExprParser.ExprContext tree;
+    private final String text;
 
-    public Expr(String value) {
-        this.value = value;
+    @JsonCreator
+    public static Expr fromString(String text) {
+        var stream = CharStreams.fromString(text);
+        var lexer = new ExprLexer(stream);
+        var tokenStream = new CommonTokenStream(lexer);
+        var parser = new ExprParser(tokenStream);
+        parser.removeErrorListeners();
+        ExprParser.ExprContext tree = parser.expr();
+
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(new ExprBaseListener() {
+        }, tree);
+
+        return new Expr(text, tree);
     }
 
+    @JsonValue
+    public String text() {
+        return text;
+    }
+
+    private Expr(String text, ExprParser.ExprContext tree) {
+        this.text = text;
+        this.tree = tree;
+    }
+
+    public ExprParser.ExprContext tree() {
+        return tree;
+    }
 }

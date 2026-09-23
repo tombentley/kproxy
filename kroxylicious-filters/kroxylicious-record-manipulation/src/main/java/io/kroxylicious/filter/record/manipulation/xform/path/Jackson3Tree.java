@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-import java.util.Map;
-
 import tools.jackson.databind.JsonNode;
 
 public class Jackson3Tree implements TreeAdapter<JsonNode> {

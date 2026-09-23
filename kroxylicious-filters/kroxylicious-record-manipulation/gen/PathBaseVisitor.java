@@ -1,4 +1,4 @@
-// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/op/parser/Path.g4 by ANTLR 4.13.2
+// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Path.g4 by ANTLR 4.13.2
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
 /**
@@ -45,35 +45,7 @@ public class PathBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements P
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitStringLiteral(PathParser.StringLiteralContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitDoubleQuoted(PathParser.DoubleQuotedContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitSingleQuoted(PathParser.SingleQuotedContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
 	@Override public T visitIndexSelector(PathParser.IndexSelectorContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitInt(PathParser.IntContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -248,27 +220,6 @@ public class PathBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements P
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitNumber(PathParser.NumberContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitFrac(PathParser.FracContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitExp(PathParser.ExpContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
 	@Override public T visitFunctionName(PathParser.FunctionNameContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -353,20 +304,6 @@ public class PathBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements P
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitDigit(PathParser.DigitContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitUnescaped(PathParser.UnescapedContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
 	@Override public T visitAlpha(PathParser.AlphaContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -374,5 +311,5 @@ public class PathBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements P
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitLower(PathParser.LowerContext ctx) { return visitChildren(ctx); }
+	@Override public T visitS(PathParser.SContext ctx) { return visitChildren(ctx); }
 }

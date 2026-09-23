@@ -8,6 +8,10 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kroxylicious.filter.record.manipulation.op.OpConfig;
+
 /**
  * <pre>{@code
  * key: your_mask(my_avro($key))
@@ -44,14 +48,14 @@ import java.util.Map;
  * }</pre>
  *
  *
- * @param key F
- * @param value F
- * @param timestamp F
- * @param headers F
- * @param where F
+ * @param key An expression for the new record key
+ * @param value An expression for the new record value
+ * @param timestamp An expression for the new record timestamp
+ * @param headers An expression for the new record headers
+ * @param where The function declarations, keyed on function name
  */
-record RecordTransformConfig2(Expr key,
-                              Expr value,
-                              Expr timestamp,
-                              Expr headers,
-                              Map<String, String> where) {}
+record RecordTransformConfig2(@JsonProperty(required = true) Expr key,
+                              @JsonProperty(required = true) Expr value,
+                              @JsonProperty(required = true) Expr timestamp,
+                              @JsonProperty(required = true) Expr headers,
+                              Map<String, OpConfig> where) {}

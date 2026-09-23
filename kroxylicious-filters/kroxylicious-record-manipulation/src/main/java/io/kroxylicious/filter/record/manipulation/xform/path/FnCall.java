@@ -6,5 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-public record FnCall(String fnName, Path<?>... args) {
-}
+import java.util.List;
+
+public record FnCall(String fnName,
+                     List<Path<?>> args) {}

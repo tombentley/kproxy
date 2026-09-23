@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-public record Prop<N>(String propertyName, N propertyValue) {
-}
+public record Prop<N>(String propertyName, N propertyValue) {}

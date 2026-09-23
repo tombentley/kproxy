@@ -8,10 +8,6 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.function.BiPredicate;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 sealed interface Selector<N> {
@@ -94,14 +90,14 @@ sealed interface Selector<N> {
         }
     }
 
-//    record Filter2<N>(BaseTypedOp<N, Boolean> predicate) implements Selector<N> {
-//        boolean matches(N node, N root) {
-//            return predicate.apply(node, root);
-//        }
-//
-//        @Override
-//        public String toString() {
-//            return "?" + predicate;
-//        }
-//    }
+    // record Filter2<N>(BaseTypedOp<N, Boolean> predicate) implements Selector<N> {
+    // boolean matches(N node, N root) {
+    // return predicate.apply(node, root);
+    // }
+    //
+    // @Override
+    // public String toString() {
+    // return "?" + predicate;
+    // }
+    // }
 }

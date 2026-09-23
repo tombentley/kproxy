@@ -15,7 +15,6 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 class JsonSchemaTypeSystemTest {
 

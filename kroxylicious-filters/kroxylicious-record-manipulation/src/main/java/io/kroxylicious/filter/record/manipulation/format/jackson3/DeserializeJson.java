@@ -61,17 +61,15 @@ public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
     public static final String READ_FEATURES_PARAMETER = "readFeatures";
     public static final String DESERIALIZER_FEATURES_PARAMETER = "deserializerFeatures";
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.PROPERTY,
-            property = FORMAT_PARAMETER,
-            defaultImpl = JsonReaderConfig.class)
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = FORMAT_PARAMETER, defaultImpl = JsonReaderConfig.class)
     @JsonSubTypes({
             @JsonSubTypes.Type(value = JsonReaderConfig.class, name = FORMAT_VALUE_JSON),
             @JsonSubTypes.Type(value = YamlReaderConfig.class, name = FORMAT_VALUE_YAML),
             @JsonSubTypes.Type(value = CsvReaderConfig.class, name = FORMAT_VALUE_CSV)
     })
     interface ReaderConfig {
-        @Nullable String type();
+        @Nullable
+        String type();
 
         ObjectReader createReader(JavaType javaType);
     }
@@ -145,7 +143,8 @@ public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
         ReaderConfig readerConfig;
         if (configMap == null) {
             readerConfig = new JsonReaderConfig(null, null, null);
-        } else {
+        }
+        else {
             readerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(configMap, ReaderConfig.class);
         }
 

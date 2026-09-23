@@ -9,13 +9,13 @@ result:
 catch:
   # TODO this would depend on the direction
   # For a produce request we can:
-  # * reject the data +- dead letter
-  # * accept the data +- dead letter
-  # * replace the data with something else +- dead letter
+  # * reject the data +/- dead letter
+  # * accept the data +/- dead letter
+  # * replace the data with something else +/- dead letter
   # For a fetch request we can:
-  # * let the data out +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
-  # * don't let the data out +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key TOPIC-PARTITION-OFFSET-)
-  # * replace the data +- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
+  # * let the data out +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
+  # * don't let the data out +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key TOPIC-PARTITION-OFFSET-)
+  # * replace the data +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
   #
   # Note that "replace the data" is just a different pipeline
 where:

@@ -8,15 +8,11 @@ package io.kroxylicious.filter.record.manipulation.format.kafka;
 
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
-import java.nio.file.StandardOpenOption;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.apache.kafka.common.serialization.Deserializer;
-
-import io.leangen.geantyref.TypeFactory;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
@@ -34,7 +30,8 @@ public class DeserializeKafka implements OpFactory<ByteBuffer, Object> {
         BYTE_ARRAY(org.apache.kafka.common.serialization.ByteArrayDeserializer::new, byte[].class),
         STRING(org.apache.kafka.common.serialization.StringDeserializer::new, String.class),
         UUID(org.apache.kafka.common.serialization.UUIDDeserializer::new, UUID.class);
-        //LIST(org.apache.kafka.common.serialization.ListDeserializer::new, TypeFactory.parameterizedClass(List.class, TypeFactory.unboundWildcard()));
+
+        // LIST(org.apache.kafka.common.serialization.ListDeserializer::new, TypeFactory.parameterizedClass(List.class, TypeFactory.unboundWildcard()));
         private final Supplier<Deserializer<?>> supplier;
         private final Type type;
 
@@ -42,15 +39,17 @@ public class DeserializeKafka implements OpFactory<ByteBuffer, Object> {
             this.supplier = supplier;
             this.type = type;
         }
+
         public Deserializer<?> deserializer() {
             return supplier.get();
         }
     }
+
     record Config(
-            KafkaType kafkaType,
-            Map<String, ?> deserializerConfigs,
-            boolean isKey
-    ) {}
+                  KafkaType kafkaType,
+                  Map<String, ?> deserializerConfigs,
+                  boolean isKey) {}
+
     @Override
     public BaseTypedOp<ByteBuffer, Object> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
         Config config1 = null;
@@ -60,8 +59,8 @@ public class DeserializeKafka implements OpFactory<ByteBuffer, Object> {
         return BaseTypedOp.of(ByteBuffer.class, config1.kafkaType().type,
                 (buffer, op) -> {
                     return deserializer.deserialize(
-                            null /*TODO op.topic()*/,
-                            null /* TODO op.headers()*/,
+                            null /* TODO op.topic() */,
+                            null /* TODO op.headers() */,
                             buffer);
                 });
     }

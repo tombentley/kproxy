@@ -21,15 +21,15 @@ public class AvroGenericTypeSystem implements TypeSystem<Schema> {
         return null;
     }
 
-//    @Override
-//    public Type unionType(List<Type> caseTypes) {
-//        return null;
-//    }
+    // @Override
+    // public Type unionType(List<Type> caseTypes) {
+    // return null;
+    // }
 
-//    @Override
-//    public Set<Type> caseTypes(Schema unionSchema) {
-//        return Set.of();
-//    }
+    // @Override
+    // public Set<Type> caseTypes(Schema unionSchema) {
+    // return Set.of();
+    // }
 
     @Override
     public boolean isUnionType(Schema schema) {
@@ -121,7 +121,7 @@ public class AvroGenericTypeSystem implements TypeSystem<Schema> {
     public Type typeOf(Schema schema) {
         return switch (schema.getType()) {
             case RECORD -> GenericRecord.class;
-            case INT ->  Integer.class;
+            case INT -> Integer.class;
             case LONG -> Long.class;
             case DOUBLE -> Double.class;
             case FLOAT -> Float.class;

@@ -171,13 +171,18 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>4.13.2</version>
+                <configuration>
+                    <visitor>true</visitor>
+                    <listener>true</listener>
+                    <treatWarningsAsErrors>false</treatWarningsAsErrors>
+                    <libDirectory>src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr</libDirectory>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
                             <goal>antlr4</goal>
                         </goals>
                         <phase>generate-sources</phase>
-
                     </execution>
                 </executions>
             </plugin>

@@ -1,10 +1,14 @@
 grammar Path;
 
+@lexer::members { }
+
 // I _think_ this is a fairly solid ANTLR-ification of the ABNF grammar given in
 // https://www.rfc-editor.org/info/rfc9535/#appendix-A
-// with the notable exception of whitespace handling.
-// Here we're just skipping all whitespace
-// but the grammar in the RFC is very selective about where whitespace is allowed
+// Some differences:
+// String escaping for unicode is a bit looser
+// -0 is allowed in slice and index where the ABNF would reject it
+// these would need to be detected and rejected in the visitor/listener in order for a parser built on this to be a
+// conforming implementation of the RFC.
 
 jsonpathQuery:
     DOLLAR segments
@@ -12,7 +16,7 @@ jsonpathQuery:
     ;
 
 segments:
-    (segment)*
+    (s segment)*
     ;
 
 selector:
@@ -24,56 +28,53 @@ selector:
     ;
 
 nameSelector:
-    stringLiteral
+    STRING
     ;
 
-stringLiteral:
-    DQUOT doubleQuoted* DQUOT   // "string"
-    | SQUOT singleQuoted* SQUOT // 'string'
-    ;
+//stringLiteral:
+//    DQUOT doubleQuoted* DQUOT   // "string"
+//    | SQUOT singleQuoted* SQUOT // 'string'
+//    ;
 
-doubleQuoted:
-    unescaped
-    | SQUOT         // '
-    | ESC DQUOT     // \"
-    | ESCAPED
-    ;
-
-singleQuoted:
-    unescaped
-    | DQUOT         // "
-    | ESC SQUOT     // \'
-    | ESCAPED
-    ;
+//doubleQuoted:
+//    unescaped
+//    | SQUOT         // '
+//    | ESC DQUOT     // \"
+//    | ESCAPED
+//    ;
+//
+//singleQuoted:
+//    unescaped
+//    | DQUOT         // "
+//    | ESC SQUOT     // \'
+//    | ESCAPED
+//    ;
 
 indexSelector:
-    int                        // decimal integer
+    INT                        // decimal integer
     ;
 
-int:
-    ZERO
-    | (MINUS? NON_0_DIGIT digit*)      // - optional, octal-like 01 or -01 not allowed
-    ;
+
 
 //DIGIT              : '1..9';                    // 1-9 non-zero digit
 sliceSelector:
-    (start)? COLON (end)? (COLON (step)?)?
+    (start s)? COLON s (end s)? (COLON (s step)?)?
     ;
 
 start:
-    int       // included in selection
+    INT       // included in selection
     ;
 
 end:
-    int       // not included in selection
+    INT       // not included in selection
     ;
 
 step:
-    int       // default: 1
+    INT       // default: 1
     ;
 
 filterSelector:
-    QUEST logicalExpr
+    QUEST s logicalExpr
     ;
 
 logicalExpr:
@@ -81,12 +82,12 @@ logicalExpr:
     ;
 
 logicalOrExpr: // disjunction
-    logicalAndExpr (OR logicalAndExpr)* // binds less tightly than conjunction
+    logicalAndExpr (s OR s logicalAndExpr)* // binds less tightly than conjunction
     ;
 
 
 logicalAndExpr: // conjunction
-    basicExpr (AND basicExpr)* // binds more tightly than disjunction
+    basicExpr (s AND s basicExpr)* // binds more tightly than disjunction
     ;
 
 basicExpr:
@@ -103,7 +104,7 @@ logicalNotOp: NOT                // logical NOT operator
     ;
 
 testExpr:
-    (logicalNotOp)? (
+    (logicalNotOp s)? (
         filterQuery     // existence|non-existence
         | functionExpr  // LogicalType or NodesType
     )
@@ -119,12 +120,12 @@ relQuery:
     ;
 
 comparisonExpr:
-    comparable comparisonOp comparable
+    comparable s comparisonOp s comparable
     ;
 
 literal:
-    number
-    | stringLiteral
+    NUMBER
+    | STRING
     | TRUE
     | FALSE
     | NULL
@@ -159,7 +160,7 @@ absSingularQuery:
     ;
 
 singularQuerySegments:
-    ( nameSegment | indexSegment )*
+    ( s ( nameSegment | indexSegment ) )*
     ;
 
 nameSegment:
@@ -171,32 +172,22 @@ indexSegment:
     LSQ indexSelector RSQ
     ;
 
-number:
-    (int | MINUS_ZERO) frac? exp? // decimal number
-    ;
 
-frac:
-    DOT digit+                  // decimal fraction
-    ;
-
-exp:
-    EXPONENT ( MINUS | PLUS )? digit+ // decimal exponent
-    ;
 
 functionName:
-    functionNameFirst *functionNameChar
+    functionNameFirst functionNameChar*
     ;
 
 functionNameFirst:
-    lower
+    LOWER
     ;
 
 functionNameChar:
-    functionNameFirst | UNDERSCORE | digit
+    functionNameFirst | UNDERSCORE | DIGIT
     ;
 
 functionExpr:
-    functionName LPAR ( functionArgument ( COMMA functionArgument )* )? RPAR
+    functionName LPAR ( s functionArgument ( s COMMA s functionArgument )* )? s RPAR
     ;
 
 functionArgument:
@@ -217,11 +208,11 @@ childSegment:
     ;
 
 bracketedSelection:
-    LSQ selector (COMMA selector)* RSQ
+    LSQ s selector (s COMMA s selector)* s RSQ
     ;
 
 memberNameShorthand:
-    nameFirst *nameChar
+    nameFirst nameChar*
     ;
 
 nameFirst:
@@ -232,7 +223,7 @@ nameFirst:
 
 nameChar:
     nameFirst
-    | digit
+    | DIGIT
     ;
 
 descendantSegment:
@@ -241,43 +232,59 @@ descendantSegment:
         | memberNameShorthand)
     ;
 
-digit:
+alpha:
+    UCALPHA   // A-Z | a-z
+    | LOWER
+    ;
+
+s                   : B* ;        // || optional blank space
+
+// Lexer rules
+INT:
+    (MINUS? DIGIT+)      // - optional, octal-like 01 or -01 not allowed
+    ;
+
+NUMBER:
+    (INT | MINUS_ZERO) FRAC? EXP? // decimal number
+    ;
+
+fragment FRAC:
+    DOT DIGIT+                  // decimal fraction
+    ;
+
+fragment EXP:
+    EXPONENT ( MINUS | PLUS )? DIGIT+ // decimal exponent
+    ;
+fragment EXPONENT: 'e' ;
+
+STRING : DSTRING | SSTRING;
+fragment DSTRING: '"' (DESC|.)*? '"';
+fragment SSTRING: '\'' (SESC|.)*? '\'';
+fragment DESC: '\\"' | ESC;
+fragment SESC: '\\\'' | ESC;
+fragment ESC: '\\\\' | '\\\n' | '\\\r' | '\\\f' | '\\/' | ('\\u' HEX HEX HEX HEX);
+fragment HEX: [0-9] | [A-F] | [a-f];
+
+
+
+LOWER:
+    EXPONENT
+    | LCALPHA
+    ;
+fragment LCALPHA: 'a'..'z' ;
+
+DIGIT:
     ZERO | NON_0_DIGIT     // 0-9
     ;
 
-unescaped:
-    SPACE | NOT | '#' | DOLLAR | '%' | '&'
-    | LPAR | RPAR | STAR | PLUS | COMMA | MINUS | DOT | '/'
-    | digit | COLON | ';' | LT | '=' | GT | QUEST | AT
-    | UCALPHA | LSQ | '\\' | RSQ | '^' | UNDERSCORE | '`'
-    | lower
-    | HI_ASCII
-    | NON_ASCII
-    | MINUS_ZERO
-    ;
-
-alpha:
-    UCALPHA   // A-Z | a-z
-    | lower
-    ;
-
-lower:
-    LCALPHA
-    | EXPONENT
-    ;
-
-// Lexer rules
-
 NOT: '!';
-EXPONENT: 'e' ;
-LCALPHA: 'a'..'z' ;
+
+
 UCALPHA: 'A'..'Z';
 
 HI_ASCII : [\u007B-\u007F] ; // top of ascii range, above z
 NON_ASCII : [\u0080-\uD7FF] // up to last non-surrogate pair
     | [\u{00E000}-\u{10FFFF}]; // high range
-
-SPACE: ' ';
 
 UNDERSCORE: '_' ;
 MINUS : '-' ;
@@ -290,18 +297,14 @@ COMMA : ',' ;
 
 OR : '||' ;
 AND : '&&' ;
-EQ : '::' ;
-NE : '!:' ;
+EQ : '==' ;
+NE : '!=' ;
 LT : '<' ;
-LE : '<:' ;
+LE : '<=' ;
 GT : '>' ;
-GE : '>:' ;
-
+GE : '>=' ;
 QUEST : '?' ;
-
 COLON : ':' ;
-
-
 RPAR : ')' ;
 LPAR : '(' ;
 LSQ : '[' ;
@@ -317,25 +320,18 @@ TRUE: 'true' ;
 FALSE: 'false' ;
 NULL: 'null' ;
 
+B: ' ' | //   || Space
+   '\t' | //   || Horizontal tab
+   '\n' | //   || Line feed or New line
+   '\r'      // ||Carriage return
+   ;
 
-
-
-
-
-//B: ' ' | //   || Space
-//   '\t' | //   || Horizontal tab
-//   '\n' | //   || Line feed or New line
-//   '\r'      // ||Carriage return
-//   ;
-//fragment S                   : B* ;        // || optional blank space
-
-WS: (SPACE | [\t\r\n]) + -> skip;
-ESC: '\\';                           // \ backslash
-ESCAPED
-    : ESC ( [\\/bfnrt] | 'u' HEX HEX HEX HEX )
-    ;
-fragment HEX
-    : [0-9a-fA-F]
-    ;
+//ESC: '\\';                           // \ backslash
+//ESCAPED
+//    : ESC ( [\\/bfnrt] | 'u' HEX HEX HEX HEX )
+//    ;
+//fragment HEX
+//    : [0-9a-fA-F]
+//    ;
 SQUOT: '\'' ;
 DQUOT: '"' ;

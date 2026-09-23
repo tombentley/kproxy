@@ -78,7 +78,7 @@ public class TypeEvaluator<N, S> {
                             // TODO union type which admits object/array
                         }
                         case Selector.Filter(var predicate) -> {
-                            //yield null; // TODO assume the predicate will match
+                            // yield null; // TODO assume the predicate will match
                             // TODO we also need to type check the predicate!
                         }
                     } // switch(selector)

@@ -39,20 +39,20 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
         return null;
     }
 
-//    @Override
-//    public Type unionType(List<Type> caseTypes) {
-//        return Union.of(caseTypes);
-//    }
+    // @Override
+    // public Type unionType(List<Type> caseTypes) {
+    // return Union.of(caseTypes);
+    // }
 
-//    @Override
-//    public Set<Type> caseTypes(JsonNode unionSchema) {
-//        if (unionSchema.get("type") instanceof ArrayNode types) {
-//            return types.valueStream().map(this::typeOf).collect(Collectors.toSet());
-//        }
-//        else {
-//            return Collections.emptySet();
-//        }
-//    }
+    // @Override
+    // public Set<Type> caseTypes(JsonNode unionSchema) {
+    // if (unionSchema.get("type") instanceof ArrayNode types) {
+    // return types.valueStream().map(this::typeOf).collect(Collectors.toSet());
+    // }
+    // else {
+    // return Collections.emptySet();
+    // }
+    // }
 
     @Override
     public boolean isUnionType(JsonNode schema) {
@@ -69,7 +69,8 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
                     return true;
                 }
             }
-        } else if (type instanceof StringNode s) {
+        }
+        else if (type instanceof StringNode s) {
             return s.asString().equals("object");
         }
         return false;
@@ -109,10 +110,10 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
         }
         // TODO patternProperties
         // TODO note that the contract for this method is not really compatible with patternProperties
-        //   because this method can test the given propertyName against the patterns and get schema S1
-        //   but when objectPropertySchema(JsonNode objectType) is called directly it would have to take
-        //   the union of all the patternProperty schemas, which is actually wider/more general that this
-        //   objectPropertySchema(JsonNode sch, String propertyName) case
+        // because this method can test the given propertyName against the patterns and get schema S1
+        // but when objectPropertySchema(JsonNode objectType) is called directly it would have to take
+        // the union of all the patternProperty schemas, which is actually wider/more general that this
+        // objectPropertySchema(JsonNode sch, String propertyName) case
         return objectPropertySchema(objectSchema);
     }
 
@@ -149,7 +150,8 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
                     return true;
                 }
             }
-        } else if (type instanceof StringNode s) {
+        }
+        else if (type instanceof StringNode s) {
             return s.asString().equals("array");
         }
         return false;
@@ -213,7 +215,8 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
                 return JsonNode.class;
             }
             return Union.of(types);
-        } else if (typeNode instanceof StringNode typeStringNode) {
+        }
+        else if (typeNode instanceof StringNode typeStringNode) {
             return jsonNodeType(typeStringNode.asString());
         }
         return MissingNode.class;

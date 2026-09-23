@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 public record Path<N>(Identifier identifier, List<Segment<N>> segments, Consumer<N> consumer) {
 
     public Path(Identifier identifier, Segment<N> segment, Consumer<N> consumer) {

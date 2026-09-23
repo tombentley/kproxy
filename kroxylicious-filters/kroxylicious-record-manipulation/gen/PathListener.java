@@ -1,4 +1,4 @@
-// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/op/parser/Path.g4 by ANTLR 4.13.2
+// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Path.g4 by ANTLR 4.13.2
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -47,36 +47,6 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitNameSelector(PathParser.NameSelectorContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#stringLiteral}.
-	 * @param ctx the parse tree
-	 */
-	void enterStringLiteral(PathParser.StringLiteralContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#stringLiteral}.
-	 * @param ctx the parse tree
-	 */
-	void exitStringLiteral(PathParser.StringLiteralContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#doubleQuoted}.
-	 * @param ctx the parse tree
-	 */
-	void enterDoubleQuoted(PathParser.DoubleQuotedContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#doubleQuoted}.
-	 * @param ctx the parse tree
-	 */
-	void exitDoubleQuoted(PathParser.DoubleQuotedContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#singleQuoted}.
-	 * @param ctx the parse tree
-	 */
-	void enterSingleQuoted(PathParser.SingleQuotedContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#singleQuoted}.
-	 * @param ctx the parse tree
-	 */
-	void exitSingleQuoted(PathParser.SingleQuotedContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link PathParser#indexSelector}.
 	 * @param ctx the parse tree
 	 */
@@ -86,16 +56,6 @@ public interface PathListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitIndexSelector(PathParser.IndexSelectorContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#int}.
-	 * @param ctx the parse tree
-	 */
-	void enterInt(PathParser.IntContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#int}.
-	 * @param ctx the parse tree
-	 */
-	void exitInt(PathParser.IntContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link PathParser#sliceSelector}.
 	 * @param ctx the parse tree
@@ -337,36 +297,6 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitIndexSegment(PathParser.IndexSegmentContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#number}.
-	 * @param ctx the parse tree
-	 */
-	void enterNumber(PathParser.NumberContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#number}.
-	 * @param ctx the parse tree
-	 */
-	void exitNumber(PathParser.NumberContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#frac}.
-	 * @param ctx the parse tree
-	 */
-	void enterFrac(PathParser.FracContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#frac}.
-	 * @param ctx the parse tree
-	 */
-	void exitFrac(PathParser.FracContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#exp}.
-	 * @param ctx the parse tree
-	 */
-	void enterExp(PathParser.ExpContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#exp}.
-	 * @param ctx the parse tree
-	 */
-	void exitExp(PathParser.ExpContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link PathParser#functionName}.
 	 * @param ctx the parse tree
 	 */
@@ -487,26 +417,6 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitDescendantSegment(PathParser.DescendantSegmentContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#digit}.
-	 * @param ctx the parse tree
-	 */
-	void enterDigit(PathParser.DigitContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#digit}.
-	 * @param ctx the parse tree
-	 */
-	void exitDigit(PathParser.DigitContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#unescaped}.
-	 * @param ctx the parse tree
-	 */
-	void enterUnescaped(PathParser.UnescapedContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#unescaped}.
-	 * @param ctx the parse tree
-	 */
-	void exitUnescaped(PathParser.UnescapedContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link PathParser#alpha}.
 	 * @param ctx the parse tree
 	 */
@@ -517,13 +427,13 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitAlpha(PathParser.AlphaContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#lower}.
+	 * Enter a parse tree produced by {@link PathParser#s}.
 	 * @param ctx the parse tree
 	 */
-	void enterLower(PathParser.LowerContext ctx);
+	void enterS(PathParser.SContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link PathParser#lower}.
+	 * Exit a parse tree produced by {@link PathParser#s}.
 	 * @param ctx the parse tree
 	 */
-	void exitLower(PathParser.LowerContext ctx);
+	void exitS(PathParser.SContext ctx);
 }

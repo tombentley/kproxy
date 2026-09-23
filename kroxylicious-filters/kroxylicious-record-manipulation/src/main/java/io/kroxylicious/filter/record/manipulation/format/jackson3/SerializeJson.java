@@ -37,10 +37,7 @@ import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 @Plugin(configType = SerializeJson.WriterConfig.class)
 public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.PROPERTY,
-            property = "format",
-            defaultImpl = JsonWriterConfig.class)
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "format", defaultImpl = JsonWriterConfig.class)
     @JsonSubTypes({
             @JsonSubTypes.Type(value = SerializeJson.JsonWriterConfig.class, name = "json"),
             @JsonSubTypes.Type(value = SerializeJson.YamlWriterConfig.class, name = "yaml"),
@@ -48,6 +45,7 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
     })
     interface WriterConfig {
         String type();
+
         ObjectWriter createWriter();
     }
 

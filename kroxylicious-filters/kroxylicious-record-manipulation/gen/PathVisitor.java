@@ -1,4 +1,4 @@
-// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/op/parser/Path.g4 by ANTLR 4.13.2
+// Generated from /home/tom/Devel/kroxy-dm/kroxylicious-filters/kroxylicious-record-manipulation/src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Path.g4 by ANTLR 4.13.2
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -34,35 +34,11 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitNameSelector(PathParser.NameSelectorContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#stringLiteral}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitStringLiteral(PathParser.StringLiteralContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#doubleQuoted}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDoubleQuoted(PathParser.DoubleQuotedContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#singleQuoted}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSingleQuoted(PathParser.SingleQuotedContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link PathParser#indexSelector}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitIndexSelector(PathParser.IndexSelectorContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#int}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitInt(PathParser.IntContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link PathParser#sliceSelector}.
 	 * @param ctx the parse tree
@@ -208,24 +184,6 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIndexSegment(PathParser.IndexSegmentContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#number}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNumber(PathParser.NumberContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#frac}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFrac(PathParser.FracContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#exp}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitExp(PathParser.ExpContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link PathParser#functionName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -298,27 +256,15 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDescendantSegment(PathParser.DescendantSegmentContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#digit}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDigit(PathParser.DigitContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#unescaped}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUnescaped(PathParser.UnescapedContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link PathParser#alpha}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitAlpha(PathParser.AlphaContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#lower}.
+	 * Visit a parse tree produced by {@link PathParser#s}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLower(PathParser.LowerContext ctx);
+	T visitS(PathParser.SContext ctx);
 }
