@@ -28,7 +28,7 @@ selector:
     ;
 
 nameSelector:
-    STRING
+    stringLiteral
     ;
 
 //stringLiteral:
@@ -51,7 +51,7 @@ nameSelector:
 //    ;
 
 indexSelector:
-    INT                        // decimal integer
+    intLiteral                        // decimal integer
     ;
 
 
@@ -62,15 +62,15 @@ sliceSelector:
     ;
 
 start:
-    INT       // included in selection
+    intLiteral       // included in selection
     ;
 
 end:
-    INT       // not included in selection
+    intLiteral       // not included in selection
     ;
 
 step:
-    INT       // default: 1
+    intLiteral       // default: 1
     ;
 
 filterSelector:
@@ -104,7 +104,8 @@ logicalNotOp: NOT                // logical NOT operator
     ;
 
 testExpr:
-    (logicalNotOp s)? (
+    (logicalNotOp s)?
+    (
         filterQuery     // existence|non-existence
         | functionExpr  // LogicalType or NodesType
     )
@@ -124,10 +125,9 @@ comparisonExpr:
     ;
 
 literal:
-    NUMBER
-    | STRING
-    | TRUE
-    | FALSE
+    numberLiteral
+    | stringLiteral
+    | booleanLiteral
     | NULL
     ;
 
@@ -174,17 +174,7 @@ indexSegment:
 
 
 
-functionName:
-    functionNameFirst functionNameChar*
-    ;
 
-functionNameFirst:
-    LOWER
-    ;
-
-functionNameChar:
-    functionNameFirst | UNDERSCORE | DIGIT
-    ;
 
 functionExpr:
     functionName LPAR ( s functionArgument ( s COMMA s functionArgument )* )? s RPAR
@@ -195,6 +185,20 @@ functionArgument:
     | filterQuery // (includes singular-query)
     | logicalExpr
     | functionExpr
+    ;
+
+stringLiteral:
+    STRING
+    ;
+booleanLiteral:
+    TRUE
+    | FALSE
+    ;
+numberLiteral:
+    NUMBER
+    ;
+intLiteral:
+    INT
     ;
 
 segment:
@@ -211,6 +215,21 @@ bracketedSelection:
     LSQ s selector (s COMMA s selector)* s RSQ
     ;
 
+
+
+descendantSegment:
+    DOTDOT (bracketedSelection
+        | STAR
+        | memberNameShorthand)
+    ;
+
+alpha:
+    UCALPHA   // A-Z | a-z
+    | LOWER
+    ;
+
+s                   : B* ;        // || optional blank space
+
 memberNameShorthand:
     nameFirst nameChar*
     ;
@@ -226,44 +245,50 @@ nameChar:
     | DIGIT
     ;
 
-descendantSegment:
-    DOTDOT (bracketedSelection
-        | STAR
-        | memberNameShorthand)
+functionName:
+    functionNameFirst functionNameChar*
     ;
 
-alpha:
-    UCALPHA   // A-Z | a-z
-    | LOWER
+functionNameFirst:
+    LOWER
     ;
 
-s                   : B* ;        // || optional blank space
+functionNameChar:
+    functionNameFirst | UNDERSCORE | DIGIT
+    ;
 
 // Lexer rules
+//INT:
+//    (MINUS? DIGIT+)      // - optional, octal-like 01 or -01 not allowed
+//    ;
 INT:
-    (MINUS? DIGIT+)      // - optional, octal-like 01 or -01 not allowed
+    ZERO
+    | ( MINUS? DIGIT1 DIGIT* )
     ;
-
 NUMBER:
     (INT | MINUS_ZERO) FRAC? EXP? // decimal number
     ;
-
+fragment ZERO : '0' ;
+fragment MINUS_ZERO : '-0' ;
+fragment DIGIT1 : '1'..'9' ;
 fragment FRAC:
     DOT DIGIT+                  // decimal fraction
     ;
-
 fragment EXP:
     EXPONENT ( MINUS | PLUS )? DIGIT+ // decimal exponent
     ;
 fragment EXPONENT: 'e' ;
+DIGIT:
+    ZERO | DIGIT1     // 0-9
+    ;
 
-STRING : DSTRING | SSTRING;
-fragment DSTRING: '"' (DESC|.)*? '"';
-fragment SSTRING: '\'' (SESC|.)*? '\'';
-fragment DESC: '\\"' | ESC;
-fragment SESC: '\\\'' | ESC;
-fragment ESC: '\\\\' | '\\\n' | '\\\r' | '\\\f' | '\\/' | ('\\u' HEX HEX HEX HEX);
-fragment HEX: [0-9] | [A-F] | [a-f];
+//STRING : DSTRING | SSTRING;
+//fragment DSTRING: '"' (DESC|.)*? '"';
+//fragment SSTRING: '\'' (SESC|.)*? '\'';
+//fragment DESC: '\\"' | ESC;
+//fragment SESC: '\\\'' | ESC;
+//fragment ESC: '\\\\' | '\\\n' | '\\\r' | '\\\f' | '\\/' | ('\\u' HEX HEX HEX HEX);
+//fragment HEX: [0-9] | [A-F] | [a-f];
 
 
 
@@ -273,9 +298,16 @@ LOWER:
     ;
 fragment LCALPHA: 'a'..'z' ;
 
-DIGIT:
-    ZERO | NON_0_DIGIT     // 0-9
+
+
+STRING : DSTRING | SSTRING ;
+fragment DSTRING : '"' ( ~[\u0000-\u001F"\\] | ESC_SEQ )* '"' ;
+fragment SSTRING : '\'' ( ~[\u0000-\u001F'\\] | ESC_SEQ )* '\'' ;
+fragment ESC_SEQ
+    : '\\' [bfrnt/\\'"]
+    | '\\' 'u' HEX HEX HEX HEX
     ;
+fragment HEX : [0-9a-fA-F] ;
 
 NOT: '!';
 
@@ -288,7 +320,7 @@ NON_ASCII : [\u0080-\uD7FF] // up to last non-surrogate pair
 
 UNDERSCORE: '_' ;
 MINUS : '-' ;
-MINUS_ZERO : '-0' ;
+
 PLUS : '+' ;
 DOT : '.' ;
 DOTDOT : '..' ;
@@ -309,9 +341,6 @@ RPAR : ')' ;
 LPAR : '(' ;
 LSQ : '[' ;
 RSQ : ']' ;
-
-ZERO : '0' ;
-NON_0_DIGIT: '1'..'9' ;
 
 DOLLAR : '$' ;
 AT : '@' ;

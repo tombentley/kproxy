@@ -27,6 +27,7 @@ import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.type.TypeFactory;
@@ -145,7 +146,10 @@ public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
             readerConfig = new JsonReaderConfig(null, null, null);
         }
         else {
-            readerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(configMap, ReaderConfig.class);
+            ObjectMapper objectMapper = YAMLMapper.builder()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
+                    .build();
+            readerConfig = objectMapper.convertValue(configMap, ReaderConfig.class);
         }
 
         JavaType javaType = getJavaType(readerConfig.type());

@@ -297,36 +297,6 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitIndexSegment(PathParser.IndexSegmentContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#functionName}.
-	 * @param ctx the parse tree
-	 */
-	void enterFunctionName(PathParser.FunctionNameContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#functionName}.
-	 * @param ctx the parse tree
-	 */
-	void exitFunctionName(PathParser.FunctionNameContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#functionNameFirst}.
-	 * @param ctx the parse tree
-	 */
-	void enterFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#functionNameFirst}.
-	 * @param ctx the parse tree
-	 */
-	void exitFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link PathParser#functionNameChar}.
-	 * @param ctx the parse tree
-	 */
-	void enterFunctionNameChar(PathParser.FunctionNameCharContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link PathParser#functionNameChar}.
-	 * @param ctx the parse tree
-	 */
-	void exitFunctionNameChar(PathParser.FunctionNameCharContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link PathParser#functionExpr}.
 	 * @param ctx the parse tree
 	 */
@@ -346,6 +316,46 @@ public interface PathListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitFunctionArgument(PathParser.FunctionArgumentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterIntLiteral(PathParser.IntLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitIntLiteral(PathParser.IntLiteralContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link PathParser#segment}.
 	 * @param ctx the parse tree
@@ -377,6 +387,36 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitBracketedSelection(PathParser.BracketedSelectionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link PathParser#descendantSegment}.
+	 * @param ctx the parse tree
+	 */
+	void enterDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#descendantSegment}.
+	 * @param ctx the parse tree
+	 */
+	void exitDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#alpha}.
+	 * @param ctx the parse tree
+	 */
+	void enterAlpha(PathParser.AlphaContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#alpha}.
+	 * @param ctx the parse tree
+	 */
+	void exitAlpha(PathParser.AlphaContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#s}.
+	 * @param ctx the parse tree
+	 */
+	void enterS(PathParser.SContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#s}.
+	 * @param ctx the parse tree
+	 */
+	void exitS(PathParser.SContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link PathParser#memberNameShorthand}.
 	 * @param ctx the parse tree
 	 */
@@ -407,33 +447,33 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitNameChar(PathParser.NameCharContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#descendantSegment}.
+	 * Enter a parse tree produced by {@link PathParser#functionName}.
 	 * @param ctx the parse tree
 	 */
-	void enterDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	void enterFunctionName(PathParser.FunctionNameContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link PathParser#descendantSegment}.
+	 * Exit a parse tree produced by {@link PathParser#functionName}.
 	 * @param ctx the parse tree
 	 */
-	void exitDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	void exitFunctionName(PathParser.FunctionNameContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#alpha}.
+	 * Enter a parse tree produced by {@link PathParser#functionNameFirst}.
 	 * @param ctx the parse tree
 	 */
-	void enterAlpha(PathParser.AlphaContext ctx);
+	void enterFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link PathParser#alpha}.
+	 * Exit a parse tree produced by {@link PathParser#functionNameFirst}.
 	 * @param ctx the parse tree
 	 */
-	void exitAlpha(PathParser.AlphaContext ctx);
+	void exitFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link PathParser#s}.
+	 * Enter a parse tree produced by {@link PathParser#functionNameChar}.
 	 * @param ctx the parse tree
 	 */
-	void enterS(PathParser.SContext ctx);
+	void enterFunctionNameChar(PathParser.FunctionNameCharContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link PathParser#s}.
+	 * Exit a parse tree produced by {@link PathParser#functionNameChar}.
 	 * @param ctx the parse tree
 	 */
-	void exitS(PathParser.SContext ctx);
+	void exitFunctionNameChar(PathParser.FunctionNameCharContext ctx);
 }

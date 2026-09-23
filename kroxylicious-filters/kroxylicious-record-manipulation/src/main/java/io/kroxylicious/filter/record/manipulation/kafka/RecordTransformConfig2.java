@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
@@ -58,4 +59,4 @@ record RecordTransformConfig2(@JsonProperty(required = true) Expr key,
                               @JsonProperty(required = true) Expr value,
                               @JsonProperty(required = true) Expr timestamp,
                               @JsonProperty(required = true) Expr headers,
-                              Map<String, OpConfig> where) {}
+                              @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, OpConfig> where) {}

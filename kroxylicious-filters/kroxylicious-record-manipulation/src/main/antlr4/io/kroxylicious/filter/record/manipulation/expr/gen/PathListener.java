@@ -347,6 +347,46 @@ public interface PathListener extends ParseTreeListener {
 	 */
 	void exitFunctionArgument(PathParser.FunctionArgumentContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterIntLiteral(PathParser.IntLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitIntLiteral(PathParser.IntLiteralContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link PathParser#segment}.
 	 * @param ctx the parse tree
 	 */

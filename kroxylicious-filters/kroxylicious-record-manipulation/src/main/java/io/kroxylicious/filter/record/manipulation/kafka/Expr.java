@@ -6,79 +6,140 @@
 
 package io.kroxylicious.filter.record.manipulation.kafka;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import io.kroxylicious.filter.record.manipulation.expr.ExprBaseListener;
 import io.kroxylicious.filter.record.manipulation.expr.ExprLexer;
 import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 
-@JsonDeserialize(using = Expr.Deser.class)
-@JsonSerialize(using = Expr.Ser.class)
+import tools.jackson.databind.JsonNode;
+
+//@JsonDeserialize(using = Expr.Deser.class)
+//@JsonSerialize(using = Expr.Ser.class)
 public class Expr {
 
-    static class Deser extends JsonDeserializer<Expr> {
-
-        @Override
-        public Expr deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
-            String text = p.getText();
-            return fromString(text);
-        }
-    }
-
-    static class Ser extends JsonSerializer<Expr> {
-
-        @Override
-        public void serialize(Expr expr, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            gen.writeString(expr.text);
-        }
-    }
-
-    private final ExprParser.ExprContext tree;
-    private final String text;
+    // static class Deser extends JsonDeserializer<Expr> {
+    //
+    // @Override
+    // public Expr deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
+    // String text = p.getText();
+    // return fromString(text);
+    // }
+    // }
+    //
+    // static class Ser extends JsonSerializer<Expr> {
+    //
+    // @Override
+    // public void serialize(Expr expr, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    // gen.writeString(expr.text);
+    // }
+    // }
 
     @JsonCreator
-    public static Expr fromString(String text) {
-        var stream = CharStreams.fromString(text);
+    public static Expr fromString(JsonNode text) {
+        String string = text.asString();
+        var stream = CharStreams.fromString(string);
         var lexer = new ExprLexer(stream);
+        // lexer.removeErrorListeners();
+
+        ParseErrorListener listener = new ParseErrorListener(100);
+        lexer.addErrorListener(listener);
         var tokenStream = new CommonTokenStream(lexer);
         var parser = new ExprParser(tokenStream);
         parser.removeErrorListeners();
+        parser.addErrorListener(listener);
         ExprParser.ExprContext tree = parser.expr();
+        listener.maybeThrow();
 
-        ParseTreeWalker walker = new ParseTreeWalker();
-        walker.walk(new ExprBaseListener() {
-        }, tree);
-
-        return new Expr(text, tree);
+        return new Expr(tree);
     }
+
+    private final ExprParser.ExprContext tree;
 
     @JsonValue
     public String text() {
-        return text;
+        return tree.getText();
     }
 
-    private Expr(String text, ExprParser.ExprContext tree) {
-        this.text = text;
+    private Expr(ExprParser.ExprContext tree) {
         this.tree = tree;
     }
 
     public ExprParser.ExprContext tree() {
         return tree;
+    }
+
+    interface ErrorCollector {
+
+        int numErrors();
+
+        int maxErrorsToReport();
+
+        List<String> errorMessages();
+
+        default void maybeThrow(String message) {
+            if (this.numErrors() > 0) {
+                StringBuilder msg = new StringBuilder();
+                msg.append(message.formatted(this.numErrors()));
+                if (this.numErrors() > this.maxErrorsToReport()) {
+                    msg.append(" (showing first %d)".formatted(this.maxErrorsToReport()));
+                }
+                msg.append(System.lineSeparator());
+                this.errorMessages().forEach(e -> msg.append(e).append(System.lineSeparator()));
+                throw new InvalidExpressionException(msg.toString(), this.errorMessages());
+            }
+        }
+    }
+
+    static class ParseErrorListener extends BaseErrorListener implements ErrorCollector {
+        private final List<String> errorMessages;
+        private final int maxErrorsToReport;
+        private int numErrors = 0;
+
+        ParseErrorListener(int maxErrorsToReport) {
+            this.maxErrorsToReport = maxErrorsToReport;
+            this.errorMessages = new ArrayList<>(maxErrorsToReport);
+        }
+
+        @Override
+        public List<String> errorMessages() {
+            return errorMessages;
+        }
+
+        @Override
+        public int numErrors() {
+            return numErrors;
+        }
+
+        @Override
+        public int maxErrorsToReport() {
+            return maxErrorsToReport;
+        }
+
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer,
+                                Object offendingSymbol,
+                                int line,
+                                int charPositionInLine,
+                                String msg,
+                                RecognitionException e) {
+            numErrors++;
+            if (errorMessages.size() < maxErrorsToReport) {
+                errorMessages.add("%d:%d: %s".formatted(line, charPositionInLine, msg.endsWith(".") ? msg : msg + "."));
+            }
+        }
+
+        public void maybeThrow() {
+            maybeThrow("Found %d syntax errors");
+        }
     }
 }

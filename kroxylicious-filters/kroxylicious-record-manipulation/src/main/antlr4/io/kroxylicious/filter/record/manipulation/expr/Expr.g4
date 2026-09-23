@@ -8,4 +8,5 @@ expr:
 expr1:
     jsonpathQuery
     | logicalExpr
+    | literal
     ;

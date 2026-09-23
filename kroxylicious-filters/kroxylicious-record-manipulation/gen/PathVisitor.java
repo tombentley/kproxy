@@ -184,24 +184,6 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIndexSegment(PathParser.IndexSegmentContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#functionName}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFunctionName(PathParser.FunctionNameContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#functionNameFirst}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link PathParser#functionNameChar}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFunctionNameChar(PathParser.FunctionNameCharContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link PathParser#functionExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -213,6 +195,30 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitFunctionArgument(PathParser.FunctionArgumentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIntLiteral(PathParser.IntLiteralContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link PathParser#segment}.
 	 * @param ctx the parse tree
@@ -232,6 +238,24 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBracketedSelection(PathParser.BracketedSelectionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link PathParser#descendantSegment}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#alpha}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAlpha(PathParser.AlphaContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#s}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitS(PathParser.SContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link PathParser#memberNameShorthand}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -250,21 +274,21 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitNameChar(PathParser.NameCharContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#descendantSegment}.
+	 * Visit a parse tree produced by {@link PathParser#functionName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitDescendantSegment(PathParser.DescendantSegmentContext ctx);
+	T visitFunctionName(PathParser.FunctionNameContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#alpha}.
+	 * Visit a parse tree produced by {@link PathParser#functionNameFirst}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitAlpha(PathParser.AlphaContext ctx);
+	T visitFunctionNameFirst(PathParser.FunctionNameFirstContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PathParser#s}.
+	 * Visit a parse tree produced by {@link PathParser#functionNameChar}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitS(PathParser.SContext ctx);
+	T visitFunctionNameChar(PathParser.FunctionNameCharContext ctx);
 }

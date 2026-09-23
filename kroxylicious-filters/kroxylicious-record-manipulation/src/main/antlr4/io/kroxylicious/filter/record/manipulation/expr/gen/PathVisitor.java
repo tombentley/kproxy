@@ -214,6 +214,30 @@ public interface PathVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionArgument(PathParser.FunctionArgumentContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link PathParser#stringLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStringLiteral(PathParser.StringLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBooleanLiteral(PathParser.BooleanLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#numberLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNumberLiteral(PathParser.NumberLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PathParser#intLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIntLiteral(PathParser.IntLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link PathParser#segment}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
