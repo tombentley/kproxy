@@ -6,7 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.kafka;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
@@ -25,110 +29,162 @@ class CheckTest {
         }
     });
 
-    @Test
-    void detectsUndefinedFunction() {
-        // Given
-        String content = """
-                key: $.key
-                value: read_json($.value)
-                timestamp: $.timestamp
-                headers: $.headers
-                """;
-        var config = new YAMLMapper().readValue(content, RecordTransformConfig2.class);
-
-        // When/Then
-        assertThatThrownBy(() -> check.check(config)).isExactlyInstanceOf(CheckException.class)
-                .hasMessage("""
-                        Property 'value' has expression `read_json($.value)` which references an undefined function 'read_json'
-                        (Hint: functions are defined using the 'where' property)""");
+    static Arguments scenario(String name, String input, String... expected) {
+        return Arguments.argumentSet(name, input, expected);
     }
 
-    @Test
-    void detectsDefinedFunctionWithMissingOp() {
-        // Given
-        String content = """
-                key: $.key
-                value: read_json($.value)
-                timestamp: $.timestamp
-                headers: $.headers
-                where:
-                  read_json:
-                    op: io.kroxylicious.filter.record.manipulation.format.jackson100.DeserializeJson
-                    format: json
-                """;
-        var config = new YAMLMapper().readValue(content, RecordTransformConfig2.class);
-
-        // When/Then
-        assertThatThrownBy(() -> check.check(config)).isExactlyInstanceOf(CheckException.class)
-                .message().contains(
+    static Stream<Arguments> rejects() {
+        return Stream.of(
+                scenario("Undefined function",
+                        """
+                                key: $.key
+                                value: read_json($.value) # <--- read_json is not defined in the where property
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                """,
+                        """
+                                Property 'value' has expression `read_json($.value)` which references an undefined function 'read_json'
+                                (Hint: functions are defined using the 'where' property)"""),
+                scenario("Defined function, is not a known plugin",
+                        """
+                                key: $.key
+                                value: read_json($.value)
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  read_json:
+                                    op: this.package.does.not.exist.DeserializeJson # <-- that package does not exist
+                                    format: json
+                                """,
                         "Could not instantiate function 'read_json' referred to in expression for property 'value': "
-                        + "Unknown io.kroxylicious.filter.record.manipulation.op.OpFactory plugin instance for name "
-                        + "'io.kroxylicious.filter.record.manipulation.format.jackson100.DeserializeJson'. "
-                        + "Known plugin instances are [",
-                        "Plugins must be loadable by java.util.ServiceLoader and annotated with @Plugin.");
-    }
-
-    @Test
-    void detectsDefinedFunctionWithBadConfigProperties() {
-        // Given
-        String content = """
-                key: $.key
-                value: read_json($.value)
-                timestamp: $.timestamp
-                headers: $.headers
-                where:
-                  read_json:
-                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
-                    fruit: apples
-                """;
-        var config = new YAMLMapper().readValue(content, RecordTransformConfig2.class);
-
-        // When/Then
-        assertThatThrownBy(() -> check.check(config)).isExactlyInstanceOf(CheckException.class)
-                .message().contains(
+                                + "Unknown io.kroxylicious.filter.record.manipulation.op.OpFactory plugin instance for name "
+                                + "'this.package.does.not.exist.DeserializeJson'. "
+                                + "Known plugin instances are [",
+                        "Plugins must be loadable by java.util.ServiceLoader and annotated with @Plugin."),
+                scenario("Defined function with unknown config property",
+                        """
+                                key: $.key
+                                value: read_json($.value)
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  read_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    fruit: apples # <--- there is no fruit property
+                                """,
                         "Could not instantiate function 'read_json' referred to in expression for property 'value': "
                                 + "Unrecognized property \"fruit\" (class io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson$JsonReaderConfig), "
                                 + "not marked as ignorable",
                         "known properties",
                         "\"type\"",
                         "\"readFeatures\"",
-                        "\"deserializationFeatures\"");
+                        "\"deserializationFeatures\""),
+                scenario("Argument not assignable",
+                        """
+                                key: write_json('') # <--- Jackson in 'JsonNode mode' want's a StringNode
+                                value: $['value']
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  write_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    format: json
+                                """,
+                        "Property 'key' with expression `write_json('')`: Function write_json should take a tools.jackson.databind.JsonNode, but is being called with a value of type java.lang.String"),
+                scenario("Expression not assignable (path)",
+                        """
+                                key: $.timestamp  # <--- timestamp has type long, not ByteBuffer
+                                value: $['key']
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  write_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    type: java.lang.Object
+                                    format: json
+                                """,
+                        "Property 'key' with expression `$.timestamp`: Expression type is not assignable to java.nio.ByteBuffer: Expression type is long"),
+                scenario("Expression not assignable (function)",
+                        """
+                                key: $.key
+                                value: $['value']
+                                timestamp: $.timestamp
+                                headers: write_json('') # <----- `headers` has type Header[], not ByteBuffer
+                                where:
+                                  write_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    type: java.lang.Object
+                                    format: json
+                                """,
+                        "Property 'headers' with expression `write_json('')`: Expression type is not assignable to io.kroxylicious.kafka.common.header.Header[]: Expression type is java.nio.ByteBuffer"));
     }
 
-    @Test
-    void detectsIncompatibleArgumentType() {
+    @ParameterizedTest
+    @MethodSource
+    void rejects(String content,
+                 String... errorMessage) {
         // Given
-        String content = """
-                key: write_json("")
-                value: write_json(1)
-                timestamp: 12
-                headers: write_json(true)
-                where:
-                  write_json:
-                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
-                    format: json
-                """;
         var config = new YAMLMapper().readValue(content, RecordTransformConfig2.class);
 
         // When/Then
-        assertThatThrownBy(() -> check.check(config))
-                .isExactlyInstanceOf(CheckException.class)
-                .message().contains("Property 'value' with expression `read_json(1)`: Function read_json should take a java.nio.ByteBuffer, but is being called with a value of type java.lang.Long");
+        assertThatThrownBy(() -> check.check(config)).isExactlyInstanceOf(CheckException.class)
+                .message().contains(errorMessage);
     }
 
-    @Test
-    void acceptsDefinedFunction() {
+    static Stream<Arguments> acceptsWellTyped() {
+        return Stream.of(
+                Arguments.argumentSet("Identity",
+                        """
+                                key: $.key
+                                value: $.value
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                """),
+                Arguments.argumentSet("Permutation",
+                        """
+                                key: $.value
+                                value: $.key
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                """),
+                Arguments.argumentSet("Well-typed no-op",
+                        """
+                                key: $.key
+                                value: write_json(read_json($.value))
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  read_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    format: json
+                                  write_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    format: json
+                                """),
+                Arguments.argumentSet("Jsonata",
+                        """
+                                key: $.key
+                                value: write_json(jsonata(read_json($.value)))
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  read_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    format: json
+                                  jsonata:
+                                    op: io.kroxylicious.filter.record.manipulation.ops.jsonata.dashjoin.Jsonata
+                                    expression: $sum(c)
+                                  write_json:
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    format: json
+                                    type: java.lang.Object # <--- The dashjoin version of jsonata use the Map/List JSON typing
+                                """));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void acceptsWellTyped(String content) {
         // Given
-        String content = """
-                key: $.key
-                value: read_json($.value)
-                timestamp: $.timestamp
-                headers: $.headers
-                where:
-                  read_json:
-                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
-                    format: json
-                """;
         var config = new YAMLMapper().readValue(content, RecordTransformConfig2.class);
 
         // When/Then

@@ -19,6 +19,26 @@ segments:
     (s segment)*
     ;
 
+segment:
+    childSegment
+    | descendantSegment
+    ;
+
+childSegment:
+    bracketedSelection
+    | ( DOT ( STAR | memberNameShorthand ) )
+    ;
+
+descendantSegment:
+    DOTDOT (bracketedSelection
+        | STAR
+        | memberNameShorthand)
+    ;
+
+bracketedSelection:
+    LSQ s selector (s COMMA s selector)* s RSQ
+    ;
+
 selector:
     nameSelector
     | STAR
@@ -96,11 +116,12 @@ basicExpr:
     | testExpr
     ;
 
-parenExpr:
+parenExpr: // parenthesized expression
     (logicalNotOp)? LPAR logicalExpr RPAR
     ;
-                                        // parenthesized expression
-logicalNotOp: NOT                // logical NOT operator
+
+logicalNotOp:
+    NOT                // logical NOT operator
     ;
 
 testExpr:
@@ -125,7 +146,8 @@ comparisonExpr:
     ;
 
 literal:
-    numberLiteral
+    intLiteral
+    | numberLiteral
     | stringLiteral
     | booleanLiteral
     | NULL
@@ -198,30 +220,9 @@ numberLiteral:
     NUMBER
     ;
 intLiteral:
-    INT
+    DIGIT | INT
     ;
 
-segment:
-    childSegment
-    | descendantSegment
-    ;
-
-childSegment:
-    bracketedSelection
-    | ( DOT ( STAR | memberNameShorthand ) )
-    ;
-
-bracketedSelection:
-    LSQ s selector (s COMMA s selector)* s RSQ
-    ;
-
-
-
-descendantSegment:
-    DOTDOT (bracketedSelection
-        | STAR
-        | memberNameShorthand)
-    ;
 
 alpha:
     UCALPHA   // A-Z | a-z
@@ -261,6 +262,9 @@ functionNameChar:
 //INT:
 //    (MINUS? DIGIT+)      // - optional, octal-like 01 or -01 not allowed
 //    ;
+DIGIT:
+    ZERO | DIGIT1     // 0-9
+    ;
 INT:
     ZERO
     | ( MINUS? DIGIT1 DIGIT* )
@@ -278,9 +282,7 @@ fragment EXP:
     EXPONENT ( MINUS | PLUS )? DIGIT+ // decimal exponent
     ;
 fragment EXPONENT: 'e' ;
-DIGIT:
-    ZERO | DIGIT1     // 0-9
-    ;
+
 
 //STRING : DSTRING | SSTRING;
 //fragment DSTRING: '"' (DESC|.)*? '"';

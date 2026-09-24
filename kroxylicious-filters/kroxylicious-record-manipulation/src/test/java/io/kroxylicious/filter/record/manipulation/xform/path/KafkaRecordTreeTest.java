@@ -28,10 +28,11 @@ class KafkaRecordTreeTest {
         when(mockRecord.timestamp()).thenReturn(42L);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT, new Segment.Child<>(new Selector.Name<>("timestamp")), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord,
+                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("timestamp")), result::add));
         assertThat(result).singleElement().isEqualTo(42L);
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
     @Test
@@ -41,10 +42,11 @@ class KafkaRecordTreeTest {
         when(mockRecord.key()).thenReturn(valueBuffer);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT, new Segment.Child<>(new Selector.Name<>("key")), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord,
+                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("key")), result::add));
         assertThat(result).singleElement().isSameAs(valueBuffer);
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
     @Test
@@ -54,10 +56,11 @@ class KafkaRecordTreeTest {
         when(mockRecord.value()).thenReturn(valueBuffer);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT, new Segment.Child<>(new Selector.Name<>("value")), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord,
+                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("value")), result::add));
         assertThat(result).singleElement().isSameAs(valueBuffer);
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
     @Test
@@ -68,10 +71,11 @@ class KafkaRecordTreeTest {
         when(mockRecord.headers()).thenReturn(headers);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT, new Segment.Child<>(new Selector.Name<>("headers")), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord,
+                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("headers")), result::add));
         assertThat(result).singleElement().isSameAs(headers);
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
     @Test
@@ -82,13 +86,14 @@ class KafkaRecordTreeTest {
         when(mockRecord.headers()).thenReturn(headers);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT,
-                List.of(new Segment.Child<>(new Selector.Name<>("headers")),
-                        new Segment.Child<>(new Selector.Children<>()),
-                        new Segment.Child<>(new Selector.Name<>("key"))), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Ast.Path<>(Identifier.ROOT,
+                List.of(new Ast.Segment.Child<>(new Ast.Selector.Name<>("headers")),
+                        new Ast.Segment.Child<>(new Ast.Selector.Children<>()),
+                        new Ast.Segment.Child<>(new Ast.Selector.Name<>("key"))),
+                result::add));
         assertThat(result).singleElement().isEqualTo("my-key");
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
     @Test
@@ -100,13 +105,14 @@ class KafkaRecordTreeTest {
         when(mockRecord.headers()).thenReturn(headers);
 
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Path<>(Identifier.ROOT,
-                List.of(new Segment.Child<>(new Selector.Name<>("headers")),
-                        new Segment.Child<>(new Selector.Children<>()),
-                        new Segment.Child<>(new Selector.Name<>("value"))), result::add));
+        new PathEvaluator<>(new KafkaRecordTree()).eval(mockRecord, new Ast.Path<>(Identifier.ROOT,
+                List.of(new Ast.Segment.Child<>(new Ast.Selector.Name<>("headers")),
+                        new Ast.Segment.Child<>(new Ast.Selector.Children<>()),
+                        new Ast.Segment.Child<>(new Ast.Selector.Name<>("value"))),
+                result::add));
         assertThat(result).singleElement().isSameAs(bytes);
 
-        //Mockito.verifyNoMoreInteractions(mockRecord);
+        // Mockito.verifyNoMoreInteractions(mockRecord);
     }
 
 }

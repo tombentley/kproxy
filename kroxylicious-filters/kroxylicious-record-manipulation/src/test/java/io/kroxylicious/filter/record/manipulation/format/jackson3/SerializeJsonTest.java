@@ -43,12 +43,11 @@ class SerializeJsonTest {
 
     static Stream<Arguments> testSerializeJson() {
         return Stream.of(
-                Arguments.argumentSet("null", new Object[]{null, JsonNode.class}),
+                Arguments.argumentSet("null", new Object[]{ null, JsonNode.class }),
                 Arguments.argumentSet("{}", Map.of(), JsonNode.class),
                 Arguments.argumentSet("{format: json}", Map.of("format", "json"), JsonNode.class),
                 Arguments.argumentSet("{type: Object}", Map.of("type", Object.class.getName()), Object.class),
-                Arguments.argumentSet("{format: json, type: Object}", Map.of("format", "json", "type", Object.class.getName()), Object.class)
-        );
+                Arguments.argumentSet("{format: json, type: Object}", Map.of("format", "json", "type", Object.class.getName()), Object.class));
     }
 
     @AfterEach
@@ -70,8 +69,7 @@ class SerializeJsonTest {
     static Stream<Arguments> testSerializeYaml() {
         return Stream.of(
                 Arguments.argumentSet("{format: yaml}", Map.of("format", "yaml"), JsonNode.class),
-                Arguments.argumentSet("{format: yaml, type: Object}", Map.of("format", "yaml", "type", Object.class.getName()), Object.class)
-        );
+                Arguments.argumentSet("{format: yaml, type: Object}", Map.of("format", "yaml", "type", Object.class.getName()), Object.class));
     }
 
     @ParameterizedTest
@@ -93,13 +91,14 @@ class SerializeJsonTest {
                 Arguments.argumentSet("{format: csv}", Map.of("format", "csv",
                         "columns", List.of(
                                 Map.of("name", "foo", "type", "NUMBER"),
-                                Map.of("name", "bar", "type", "STRING"))), JsonNode.class),
+                                Map.of("name", "bar", "type", "STRING"))),
+                        JsonNode.class),
                 Arguments.argumentSet("{format: csv, type: Object}", Map.of("format", "csv",
                         "type", Object.class.getName(),
                         "columns", List.of(
                                 Map.of("name", "foo", "type", "NUMBER"),
-                                Map.of("name", "bar", "type", "STRING"))), Object.class)
-        );
+                                Map.of("name", "bar", "type", "STRING"))),
+                        Object.class));
     }
 
     @ParameterizedTest

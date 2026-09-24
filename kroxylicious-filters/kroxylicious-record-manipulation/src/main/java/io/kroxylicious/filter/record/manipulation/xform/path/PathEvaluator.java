@@ -9,6 +9,10 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.kroxylicious.filter.record.manipulation.xform.path.Ast.Path;
+import static io.kroxylicious.filter.record.manipulation.xform.path.Ast.Segment;
+import static io.kroxylicious.filter.record.manipulation.xform.path.Ast.Selector;
+
 /**
  * Evaluates several {@link Path} expressions in a single traversal of a Jackson tree.
  * <p>
@@ -75,17 +79,16 @@ public class PathEvaluator<N> {
     private void descend(N root, N child, Object accessor, int length, List<IndexedPath<N>> active) {
         List<IndexedPath<N>> childActive = new ArrayList<>();
         for (var ip : active) {
-            switch (ip.segment()) {
-                case Segment.Child(var selectors) -> {
-                    if (matches(selectors, accessor, child, length, root)) {
-                        advance(ip, child, childActive);
-                    }
+            Segment<N> segment = ip.segment();
+            if (segment instanceof Segment.Child<N> childSegment) {
+                if (matches(childSegment.selectors(), accessor, child, length, root)) {
+                    advance(ip, child, childActive);
                 }
-                case Segment.Descendant(var selectors) -> {
-                    childActive.add(ip); // '..' stays active for deeper nodes
-                    if (matches(selectors, accessor, child, length, root)) {
-                        advance(ip, child, childActive); // ...and also completes here
-                    }
+            }
+            else if (segment instanceof Segment.Descendant<N> descendantSegment) {
+                childActive.add(ip); // '..' stays active for deeper nodes
+                if (matches(descendantSegment.selectors(), accessor, child, length, root)) {
+                    advance(ip, child, childActive); // ...and also completes here
                 }
             }
         }
@@ -105,13 +108,23 @@ public class PathEvaluator<N> {
 
     private static <N> boolean matches(List<Selector<N>> selectors, Object accessor, N child, int length, N root) {
         for (var selector : selectors) {
-            boolean matched = switch (selector) {
-                case Selector.Name(var name) -> name.equals(accessor); // objects only
-                case Selector.Index index -> accessor instanceof Integer i && index.matches(i, length); // arrays only
-                case Selector.Children() -> true; // wildcard '*'
-                case Selector.Slice slice -> accessor instanceof Integer i && slice.matches(i, length); // arrays only
-                case Selector.Filter filter -> filter.matches(child, root); // '?<expr>', evaluated against the candidate node and root
-            };
+            boolean matched = false;
+            if (selector instanceof Selector.Name<N> name) {
+                matched = name.name().equals(accessor); // objects only
+            }
+            else if (selector instanceof Selector.Index<N> index) {
+                matched = accessor instanceof Integer i && index.matches(i, length); // arrays only
+            }
+            else if (selector instanceof Selector.Children) {
+                matched = true; // wildcard '*'
+            }
+            else if (selector instanceof Selector.Slice<N> slice) {
+                matched = accessor instanceof Integer i && slice.matches(i, length); // arrays only
+            }
+            else if (selector instanceof Selector.FilterFilter<N> filter) {
+                matched = filter.matches(child, root); // '?<expr>', evaluated against the candidate node and root
+            }
+
             if (matched) {
                 return true;
             }

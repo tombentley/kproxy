@@ -26,8 +26,8 @@ class AvroJsonDeserializerTest {
                       "name":"Greeting",
                       "fields":[{
                         "name":"text",
-                        "type":"string
-                      "}]}
+                        "type":"string"
+                      }]}
                     """);
 
     private final AvroJsonSerializer serializer = new AvroJsonSerializer(SCHEMA);

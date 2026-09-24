@@ -58,8 +58,7 @@ public class DeserializeJsonTest {
         return List.of(
                 Arguments.argumentSet("{format:json}", Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON)),
                 Arguments.argumentSet("{} => defaults to JSON format with JsonNode values", Map.of()),
-                Arguments.argumentSet("null => defaults to JSON format with JsonNode values", new Object[]{null})
-        );
+                Arguments.argumentSet("null => defaults to JSON format with JsonNode values", new Object[]{ null }));
     }
 
     @ParameterizedTest
@@ -202,7 +201,8 @@ public class DeserializeJsonTest {
     @Test
     void readYamlAsArrayOfJavaClass() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML,
+        Map<String, Object> config = Map.of(
+                DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML,
                 DeserializeJson.TYPE_PARAMETER, Greeting.class.getName() + "[]");
         // When
         var op = new DeserializeJson().create(config, pluginLookup, argumentType);

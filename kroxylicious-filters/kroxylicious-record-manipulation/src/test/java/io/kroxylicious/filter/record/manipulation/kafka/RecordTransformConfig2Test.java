@@ -30,11 +30,12 @@ class RecordTransformConfig2Test {
         // When/Then
         assertThatThrownBy(() -> yamlMapper.readValue(content, RecordTransformConfig2.class))
                 .isInstanceOf(ValueInstantiationException.class)
-                .hasMessage("""
-                        Cannot construct instance of `io.kroxylicious.filter.record.manipulation.kafka.Expr`, problem: Found 1 syntax errors
-                        1:3: no viable alternative at input 'foo'.
-                        
-                         at [Source: (StringReader); line: 4, column: 10] (through reference chain: io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig2["headers"])""");
+                .hasMessage(
+                        """
+                                Cannot construct instance of `io.kroxylicious.filter.record.manipulation.kafka.Expr`, problem: Found 1 syntax errors
+                                1:3: no viable alternative at input 'foo'.
+
+                                 at [Source: (StringReader); line: 4, column: 10] (through reference chain: io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig2["headers"])""");
 
     }
 

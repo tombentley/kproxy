@@ -14,7 +14,9 @@ import com.dashjoin.jsonata.JException;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.proxy.plugin.Plugin;
 
+@Plugin(configType = Object.class)
 public class Jsonata implements OpFactory<Object, Object> {
 
     public static final String CONF_PARAM_EXPRESSION = "expression";

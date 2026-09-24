@@ -17,9 +17,11 @@ import com.api.jsonata4java.expressions.ParseException;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.proxy.plugin.Plugin;
 
 import tools.jackson.databind.JsonNode;
 
+@Plugin(configType = Object.class)
 public class Jsonata implements OpFactory<JsonNode, JsonNode> {
 
     public static final String CONF_PARAM_EXPRESSION = "expression";

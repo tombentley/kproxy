@@ -34,7 +34,8 @@ class AvroGenericTreeTest {
         GenericData.Record record = new GenericData.Record(SCHEMA);
         record.put("text", "Hello");
         List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new AvroGenericTree()).eval(record, new Path<>(Identifier.ROOT, new Segment.Child<>(new Selector.Name<>("text")), result::add));
+        new PathEvaluator<>(new AvroGenericTree()).eval(record,
+                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("text")), result::add));
         assertThat(result).singleElement().isEqualTo("Hello");
     }
 

@@ -6,7 +6,7 @@
 
 /**
  * Provides JSON Path-like functionality over trees of arbitrary types.
- * {@link Path} is somewhat like the syntax tree of JSON Path.
+ * {@link Ast.Path} is somewhat like the syntax tree of JSON Path.
  * However, the evaluation and type systems are not the same as JSON path.
  * Evaluation via {@link PathEvaluator#eval(Object, List)} supports parallelized evaluation of multiple paths.
  * {@link TypeSystem} provides a mapping from a foreign type system onto the Java type system via {@link java.lang.reflect.Type},

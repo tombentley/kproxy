@@ -91,7 +91,7 @@ class OpConfigsTest {
         assertThatThrownBy(() -> OpConfigs.compose(expectedType, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
                 .hasMessage("Op io.kroxylicious.filter.record.manipulation.filter.RecordValue has input type "
-                        + "org.apache.kafka.common.record.Record which is not a subtype of "
+                        + "io.kroxylicious.kafka.common.record.internal.Record which is not a subtype of "
                         + "the expected type java.lang.Integer");
     }
 
@@ -104,7 +104,7 @@ class OpConfigsTest {
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
-                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson.DeserializeJson has input type "
+                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "
                         + "the expected type java.lang.Long");
     }
