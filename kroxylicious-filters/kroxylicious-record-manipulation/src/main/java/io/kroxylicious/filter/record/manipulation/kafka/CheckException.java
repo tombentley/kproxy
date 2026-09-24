@@ -6,6 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.kafka;
 
+/**
+ * Thrown when expression does not pass the type checker.
+ */
 public class CheckException extends RuntimeException {
     public CheckException(String message) {
         super(message);

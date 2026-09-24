@@ -7,75 +7,15 @@
 package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.List;
-import java.util.Map;
 
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
-import io.kroxylicious.filter.record.manipulation.expr.ExprBaseListener;
 import io.kroxylicious.filter.record.manipulation.expr.ExprBaseVisitor;
 import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.xform.path.Ast;
 import io.kroxylicious.filter.record.manipulation.xform.path.Identifier;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-
-class Resolver extends ExprBaseListener {
-    private final List<String> errors;
-    private final @Nullable Map<String, OpConfig> decls;
-    private final PluginLookup pluginLookup;
-    String propertyName;
-    private String expressionText;
-    private Map<String, BaseTypedOp<?, ?>> ops;
-    private Object result;
-
-    Resolver(
-             PluginLookup pluginLookup,
-             @Nullable Map<String, OpConfig> decls,
-             Map<String, BaseTypedOp<?, ?>> ops,
-             List<String> errors) {
-        this.pluginLookup = pluginLookup;
-        this.decls = decls;
-        this.ops = ops;
-        this.errors = errors;
-    }
-
-    void resolve(ParseTreeWalker walker, String propsertyName, ExprParser.ExprContext tree) {
-        this.propertyName = propsertyName;
-        walker.walk(this, tree);
-    }
-
-    @Override
-    public void enterExpr(ExprParser.ExprContext ctx) {
-        this.expressionText = ctx.getText();
-    }
-
-    @Override
-    public void exitFunctionName(ExprParser.FunctionNameContext ctx) {
-        var functionName = ctx.getText();
-        if (decls == null || !decls.containsKey(functionName)) {
-            errors.add(String.format("Property '%s' has expression `%s` which references an undefined function '%s'",
-                    propertyName, expressionText, functionName));
-        }
-        else {
-            try {
-                // TODO functions should probably be instantiated for each call site
-                // because their type attribution could vary by call site.
-                OpFactory<?, ?> f = pluginLookup.pluginInstance(OpFactory.class, decls.get(functionName).op());
-                var op = f.create(decls.get(functionName).config(), pluginLookup, null);
-                ops.put(functionName, op);
-            }
-            catch (Exception e) {
-                errors.add(String.format("Could not instantiate function '%s' referred to in expression for property '%s': %s", functionName, propertyName,
-                        e.getMessage()));
-            }
-        }
-    }
-}
-
+/**
+ * Visitor for the parse tree which constructs the AST.
+ */
 class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
@@ -287,60 +227,5 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
     public Ast visitFunctionExpr(ExprParser.FunctionExprContext ctx) {
         var functionName = ctx.functionName().getText();
         return new Ast.FnCall(functionName, ctx.functionArgument().stream().map(this::visit).map(Ast.class::cast).toList()).setTree(ctx);
-    }
-}
-
-class ResolverVisitor implements Ast.AstVisitor {
-    private final List<String> errors;
-    private final @Nullable Map<String, OpConfig> decls;
-    private final PluginLookup pluginLookup;
-    String propertyName;
-    private String expressionText;
-    private Map<String, BaseTypedOp<?, ?>> ops;
-    private Object result;
-
-    ResolverVisitor(
-                    PluginLookup pluginLookup,
-                    @Nullable Map<String, OpConfig> decls,
-                    Map<String, BaseTypedOp<?, ?>> ops,
-                    List<String> errors) {
-        this.pluginLookup = pluginLookup;
-        this.decls = decls;
-        this.ops = ops;
-        this.errors = errors;
-    }
-
-    void resolve(String propsertyName, Ast tree) {
-        this.propertyName = propsertyName;
-        this.expressionText = tree.tree().getText();
-        tree.accept(this);
-    }
-
-    @Override
-    public <N> void visitPath(Ast.Path<N> nPath) {
-        Ast.AstVisitor.super.visitPath(nPath);
-    }
-
-    @Override
-    public void visitFunctionExpr(Ast.FnCall fnExpr) {
-        Ast.AstVisitor.super.visitFunctionExpr(fnExpr);
-        var functionName = fnExpr.fnName();
-        if (decls == null || !decls.containsKey(functionName)) {
-            errors.add(String.format("Property '%s' has expression `%s` which references an undefined function '%s'",
-                    propertyName, expressionText, functionName));
-        }
-        else {
-            try {
-                // TODO functions should probably be instantiated for each call site
-                // because their type attribution could vary by call site.
-                OpFactory<?, ?> opFactory = pluginLookup.pluginInstance(OpFactory.class, decls.get(functionName).op());
-                var op = opFactory.create(decls.get(functionName).config(), pluginLookup, null);
-                ops.put(functionName, op);
-            }
-            catch (Exception e) {
-                errors.add(String.format("Could not instantiate function '%s' referred to in expression for property '%s': %s", functionName, propertyName,
-                        e.getMessage()));
-            }
-        }
     }
 }

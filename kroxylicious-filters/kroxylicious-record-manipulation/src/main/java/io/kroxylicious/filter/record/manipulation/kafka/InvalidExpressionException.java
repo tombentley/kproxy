@@ -8,6 +8,9 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.List;
 
+/**
+ * Thrown when expression could not be parsed.
+ */
 public class InvalidExpressionException extends RuntimeException {
     public InvalidExpressionException(String message, List<String> strings) {
         super(message);

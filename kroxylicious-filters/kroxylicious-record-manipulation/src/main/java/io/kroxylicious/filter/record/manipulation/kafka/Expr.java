@@ -23,26 +23,11 @@ import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 
 import tools.jackson.databind.JsonNode;
 
-//@JsonDeserialize(using = Expr.Deser.class)
-//@JsonSerialize(using = Expr.Ser.class)
+/**
+ * Data mapping type representing an expression in the expression language.
+ * The expression is parsed during Jackson deserialization.
+ */
 public class Expr {
-
-    // static class Deser extends JsonDeserializer<Expr> {
-    //
-    // @Override
-    // public Expr deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
-    // String text = p.getText();
-    // return fromString(text);
-    // }
-    // }
-    //
-    // static class Ser extends JsonSerializer<Expr> {
-    //
-    // @Override
-    // public void serialize(Expr expr, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-    // gen.writeString(expr.text);
-    // }
-    // }
 
     @JsonCreator
     public static Expr fromString(JsonNode text) {
