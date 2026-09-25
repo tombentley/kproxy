@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.ops.common.HmacString;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseBigInteger;

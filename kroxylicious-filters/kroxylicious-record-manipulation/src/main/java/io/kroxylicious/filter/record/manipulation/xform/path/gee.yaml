@@ -1,0 +1,88 @@
+result:
+  # TODO there's an assumption lurking here
+  # We cannot write foo($.key, $.value) (not an "unary op")
+  # Nor can we write foo($) (we don't have an evaluate which we cross trees
+  key: mask_user_id($.key)
+  value: mask_user_info($.value)
+  timestamp: $.timestamp
+  headers: $.headers
+where:
+  mask_user_info: read_json(User) |> validate_json |> my_mask |> write_json
+  mask_user_id: read_avro(UserId) |> my_mask |> write_avro
+  User:
+    type: foo.bar.User
+    schema:
+      from:
+        https://apicurio
+  UserId:
+    type: foo.bar.User
+    schema:
+      from:
+        https://apicurio
+  read_json:
+    op: io.kroxylicious.op.jackson3.DeserializeJson
+    format: json
+  validate_json:
+    op: io.kroxylicious.op.jackson3.Validate
+    yamlSchema: |
+      type: object
+      properties: 
+        c: 
+          type: array
+          items: integer
+  my_mask:
+    op: io.kroxylicious.ops.dashjoin.Jsonata
+    jsonata: $sum(c)
+  write_json:
+    op: io.kroxylicious.op.jackson3.SerializeJson
+    format: yaml
+
+  read_avro:
+    op: io.kroxylicious.op.avro.ReadAvro
+    schema: avro_schema
+  write_avro:
+    op: io.kroxylicious.op.avro.WriteAvro
+    format: json
+    schema: avro_schema
+
+  your_mask:
+    op: io.kroxylicious.op.xform.AvroXform
+    xform:
+      - select: $.customerId
+        apply: hmac(@)
+      - select: $.firstName
+        apply: redacted(@)
+      - select: $.email
+        apply: encrypt(@)
+      - select: $.address.postCode
+        apply: regexReplace("(([A-Z]+[0-9]{2}).*", @, "$1");
+#      firstName: "REDACTED";
+#      customerId: hmac($.customerId);
+#      email: encrypt($[email]);
+#      area: regexReplace("(([A-Z]+[0-9]{2}).*", $[address][postCode], "$1");
+#      city: $[address][city]
+#      "$[address][city]": $[address][city]
+#    resultSchema:
+#      op: AvroSchema
+#    # OR
+#    resultSchemaFrom:
+#      op: Apicurio
+#      url: "https://my.apicurio.internal.example.com:8888"
+#      contentId: 1234
+
+
+  regexReplace:
+    op: io.kroxylicious.op.regex.RegexReplace
+    engine: "re2j"
+
+  hmac:
+    op: io.kroxylicious.op.hmac.Hmac
+    key:
+      op: Base64Decode
+      data: "my-key"
+
+  encrypt:
+    op: io.kroxylicious.op.encryption.Encrypt
+    kek: "my-kek"
+    kms:
+     op: io.kroxylicious.AwsKms

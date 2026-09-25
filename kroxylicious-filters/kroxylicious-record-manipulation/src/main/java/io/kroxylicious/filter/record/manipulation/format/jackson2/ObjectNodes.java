@@ -15,9 +15,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Maybe;
+import io.kroxylicious.filter.record.manipulation.ops.common.Maybe;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.common.Property;
 
 /**
  * TODO patternProperties (invocation order wrt properties)
@@ -59,7 +60,7 @@ public class ObjectNodes {
      * <p>
      * This loop stays a single fused pass over {@code object}'s properties (building one fresh
      * {@link ObjectNode} directly) rather than composing {@code map}'s entries via
-     * {@link io.kroxylicious.filter.record.manipulation.common.Property}/{@code JsonProperty} - each of those
+     * {@link Property}/{@code JsonProperty} - each of those
      * would need its own copy of the accumulated object to stay non-mutating, making N independent
      * {@code Property.modify} calls quadratic in the property count where this stays linear, which matters
      * here since this runs once per record, not once at config-build time. {@code JsonProperty} still gives

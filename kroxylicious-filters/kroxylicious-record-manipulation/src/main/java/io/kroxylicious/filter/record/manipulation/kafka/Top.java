@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 
 import java.util.Map;
 
+import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 
 public record Top(

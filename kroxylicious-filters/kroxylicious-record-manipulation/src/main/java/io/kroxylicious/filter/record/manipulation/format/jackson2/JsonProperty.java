@@ -9,8 +9,8 @@ package io.kroxylicious.filter.record.manipulation.format.jackson2;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Maybe;
-import io.kroxylicious.filter.record.manipulation.common.Property;
+import io.kroxylicious.filter.record.manipulation.ops.common.Maybe;
+import io.kroxylicious.filter.record.manipulation.ops.common.Property;
 
 /**
  * A {@link Property} focusing on one named property of an {@link ObjectNode}.

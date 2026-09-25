@@ -8,6 +8,9 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.ops.common.Fail;
+import io.kroxylicious.filter.record.manipulation.ops.common.FailException;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FailTest {

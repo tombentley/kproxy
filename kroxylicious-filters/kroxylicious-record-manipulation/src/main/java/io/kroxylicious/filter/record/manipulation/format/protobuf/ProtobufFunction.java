@@ -19,9 +19,9 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.common.ListElements;
-import io.kroxylicious.filter.record.manipulation.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.ops.common.ListElements;
+import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
+import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroFunction;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;

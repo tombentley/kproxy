@@ -16,12 +16,13 @@ import org.apache.avro.generic.GenericRecord;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.ObjectNodes;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.common.Maybe;
 
 /**
  * Mirrors {@link ObjectNodes} for Avro record values -
  * but simpler, because Avro requires every field declared by a {@link Schema} to be present in any
  * conforming {@link GenericRecord}. There is no per-field absence to model the way
- * {@link io.kroxylicious.filter.record.manipulation.common.Maybe} does for JSON object properties, so
+ * {@link Maybe} does for JSON object properties, so
  * {@link #mapFields} is a total map over {@code schema}'s declared fields rather than the insert/delete
  * capable machinery {@code ObjectNodes.mapProperties} needs - inserting or deleting a field isn't
  * meaningful yet without also supporting Avro's union/default mechanism, which is its own separate piece

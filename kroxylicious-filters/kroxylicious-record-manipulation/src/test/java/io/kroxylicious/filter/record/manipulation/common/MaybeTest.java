@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.ops.common.Maybe;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MaybeTest {

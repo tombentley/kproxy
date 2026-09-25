@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.ops.common.ComposedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -16,6 +16,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.common.HmacStringFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

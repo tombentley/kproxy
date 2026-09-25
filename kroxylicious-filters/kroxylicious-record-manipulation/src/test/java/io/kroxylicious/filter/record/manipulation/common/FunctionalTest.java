@@ -12,6 +12,8 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.ops.common.Functional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FunctionalTest {

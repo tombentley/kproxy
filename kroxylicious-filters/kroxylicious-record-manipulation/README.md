@@ -17,7 +17,7 @@ Everything is built from one core abstraction,
 [`op/BaseTypedOp<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/op/BaseTypedOp.java):
 an operation from a value of type `T` to a value of type `R`, carrying its own
 `java.lang.reflect.Type` for both `T` and `R`. Operations compose
-([`ComposedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/common/ComposedOp.java)),
+([`ComposedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/ops/common/ComposedOp.java)),
 and composition is type-checked at build time (via `geantyref`'s `GenericTypeReflector`) rather
 than assumed. This one mechanism covers everything from extracting a record's key/value/timestamp,
 to (de)serializing JSON, to walking a JSON-Schema-shaped tree down to individual fields, to the

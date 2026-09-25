@@ -17,7 +17,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.filter.record.manipulation.common.Requirement;
+import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson;

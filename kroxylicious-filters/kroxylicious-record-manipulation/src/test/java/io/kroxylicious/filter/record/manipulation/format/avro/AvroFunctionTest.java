@@ -15,7 +15,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.common.ServiceLoaderPluginLookup;
+import io.kroxylicious.filter.record.manipulation.ops.common.ServiceLoaderPluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 

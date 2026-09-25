@@ -14,8 +14,8 @@ import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.filter.record.manipulation.common.OpTypeChecker;
-import io.kroxylicious.filter.record.manipulation.config.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.ops.common.OpTypeChecker;
+import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;

@@ -8,6 +8,9 @@ package io.kroxylicious.filter.record.manipulation.common;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.ops.common.RegexReplaceStringFunction;
+import io.kroxylicious.filter.record.manipulation.ops.common.UppercaseStringFunction;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegexReplaceStringFunctionTest {

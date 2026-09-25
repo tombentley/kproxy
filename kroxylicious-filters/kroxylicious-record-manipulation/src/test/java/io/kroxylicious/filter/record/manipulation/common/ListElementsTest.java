@@ -12,6 +12,7 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.common.ListElements;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

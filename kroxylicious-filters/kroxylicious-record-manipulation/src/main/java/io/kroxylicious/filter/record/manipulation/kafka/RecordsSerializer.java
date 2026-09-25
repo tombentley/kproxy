@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import io.kroxylicious.filter.record.manipulation.common.Functional;
+import io.kroxylicious.filter.record.manipulation.ops.common.Functional;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.kafka.common.TopicPartition;

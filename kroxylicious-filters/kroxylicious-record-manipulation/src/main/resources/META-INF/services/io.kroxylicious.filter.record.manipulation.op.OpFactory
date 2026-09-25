@@ -25,7 +25,7 @@ io.kroxylicious.filter.record.manipulation.ops.jsonata.jsonata4java.Jsonata
 io.kroxylicious.filter.record.manipulation.ops.random.RandomString
 io.kroxylicious.filter.record.manipulation.ops.constant.ValueString
 io.kroxylicious.filter.record.manipulation.ops.choose.ChooseString
-io.kroxylicious.filter.record.manipulation.config.HmacString
+io.kroxylicious.filter.record.manipulation.ops.common.HmacString
 io.kroxylicious.filter.record.manipulation.ops.encryption.EncryptString
 io.kroxylicious.filter.record.manipulation.ops.encryption.DecryptString
 io.kroxylicious.filter.record.manipulation.ops.random.RandomInt
@@ -46,4 +46,4 @@ io.kroxylicious.filter.record.manipulation.ops.random.RandomBytes
 io.kroxylicious.filter.record.manipulation.ops.constant.ValueBytes
 io.kroxylicious.filter.record.manipulation.ops.choose.ChooseBigInteger
 io.kroxylicious.filter.record.manipulation.ops.constant.ValueBigInteger
-io.kroxylicious.filter.record.manipulation.config.RegexReplace
+io.kroxylicious.filter.record.manipulation.ops.common.RegexReplace

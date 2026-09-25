@@ -16,6 +16,8 @@ import io.leangen.geantyref.TypeFactory;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.ops.common.IdentityOp;
+import io.kroxylicious.filter.record.manipulation.ops.common.StaticTypedOp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

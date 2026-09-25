@@ -11,10 +11,6 @@ import java.lang.reflect.TypeVariable;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import io.kroxylicious.filter.record.manipulation.common.ComposedOp;
-import io.kroxylicious.filter.record.manipulation.common.IdentityOp;
-import io.kroxylicious.filter.record.manipulation.common.StaticTypedOp;
-
 import edu.umd.cs.findbugs.annotations.UnknownNullness;
 
 /**
@@ -24,13 +20,13 @@ import edu.umd.cs.findbugs.annotations.UnknownNullness;
  * Most implementations have statically known, non-parameterized {@code T}/{@code R} (e.g.
  * {@code String}, {@code Integer}, {@code ByteBuffer}) and should use {@link #of(Class, Class, BiFunction)}.
  * Only when {@code T} or {@code R} is a genuinely parameterized type (e.g. {@code Maybe<JsonNode>}) that
- * can't be expressed as a bare {@link Class} literal is {@link StaticTypedOp} needed instead - it captures
+ * can't be expressed as a bare {@link Class} literal is {@link io.kroxylicious.filter.record.manipulation.ops.common.StaticTypedOp} needed instead - it captures
  * the static types given in its {@code extends} clause via reflection, at the cost of requiring a named or
  * anonymous class rather than a lambda.
  *
  * There are other BaseTypedOps which do not have statically known types.
- * {@link ComposedOp} represents the composition of two other operations.
- * {@link IdentityOp} represents the identity operation, which always returns
+ * {@link io.kroxylicious.filter.record.manipulation.ops.common.ComposedOp} represents the composition of two other operations.
+ * {@link io.kroxylicious.filter.record.manipulation.ops.common.IdentityOp} represents the identity operation, which always returns
  * the {@code T} it is given.
  * @param <T> The parameter type
  * @param <R> The return type

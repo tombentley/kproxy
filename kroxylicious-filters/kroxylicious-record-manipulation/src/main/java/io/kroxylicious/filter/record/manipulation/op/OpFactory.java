@@ -10,17 +10,15 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
- * A plugin that builds a {@link TypedOp} from {@code T} to {@code R} from some configuration.
+ * A plugin that builds a {@link BaseTypedOp} from {@code T} to {@code R} from some configuration.
  * Parameterised over input and output type directly, rather than over a fixed, named operation shape
- * (contrast the pre-{@link TypedOp} design, which needed a bespoke marker interface like a hypothetical
+ * (contrast the pre-{@link BaseTypedOp} design, which needed a bespoke marker interface like a hypothetical
  * {@code StringOp}/{@code IntOp} plus a matching {@code OpFactory} subinterface for every base type): a
  * plugin for a new base type, or a future non-type-preserving operation (e.g. {@code String}-to-{@code
  * Integer}), is just a new {@code OpFactory<T, R>} implementation - no new interface declaration needed.
  * <p>
  * Every implementation is registered under this one interface via {@link java.util.ServiceLoader}, so
- * plugin names are unique across every operation, not partitioned per base type - see {@link
- * io.kroxylicious.filter.record.manipulation.config.OpConfigs#resolveOp} for how a resolved instance's
- * {@link TypedOp#inputType()}/{@link TypedOp#outputType()} are checked against what the caller expected.
+ * plugin names are unique across every operation.
  * <p>
  * Deliberately narrower than the plugin config machinery used elsewhere in Kroxylicious
  * ({@code @PluginImplName}/{@code @PluginImplConfig}, which resolves a config's concrete type via Jackson

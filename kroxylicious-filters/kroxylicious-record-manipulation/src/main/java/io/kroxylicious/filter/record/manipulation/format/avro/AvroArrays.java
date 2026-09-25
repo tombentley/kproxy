@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.format.avro;
 import java.lang.reflect.Type;
 import java.util.List;
 
-import io.kroxylicious.filter.record.manipulation.common.ListElements;
+import io.kroxylicious.filter.record.manipulation.ops.common.ListElements;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.ArrayNodes;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 

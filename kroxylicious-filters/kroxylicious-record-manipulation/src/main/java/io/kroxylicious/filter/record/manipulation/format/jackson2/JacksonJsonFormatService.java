@@ -10,7 +10,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.kroxylicious.filter.record.manipulation.common.Requirement;
+import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.format.DataFormat;
 import io.kroxylicious.filter.record.manipulation.format.DataFormatService;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
