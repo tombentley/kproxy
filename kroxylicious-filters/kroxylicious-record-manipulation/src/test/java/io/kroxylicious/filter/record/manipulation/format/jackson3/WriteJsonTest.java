@@ -32,7 +32,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
-class SerializeJsonTest {
+class WriteJsonTest {
 
     @Mock
     PluginLookup lookup;
@@ -59,7 +59,7 @@ class SerializeJsonTest {
     @MethodSource
     void testSerializeJson(@Nullable Map<String, Object> config, Type expectedInputType) {
         JsonNodeFactory jsonNodeFactory = new JsonNodeFactory();
-        var op = new SerializeJson().create(config, lookup, argumentType);
+        var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
         ByteBuffer apply = op.apply(jsonNodeFactory.objectNode(), opContext);
@@ -76,7 +76,7 @@ class SerializeJsonTest {
     @MethodSource
     void testSerializeYaml(@Nullable Map<String, Object> config, Type expectedInputType) {
         JsonNodeFactory jsonNodeFactory = new JsonNodeFactory();
-        var op = new SerializeJson().create(config, lookup, argumentType);
+        var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
         ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("int", 1), opContext);
@@ -105,7 +105,7 @@ class SerializeJsonTest {
     @MethodSource
     void testSerializeCsv(@Nullable Map<String, Object> config, Type expectedInputType) {
         JsonNodeFactory jsonNodeFactory = new JsonNodeFactory();
-        var op = new SerializeJson().create(config, lookup, argumentType);
+        var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
         ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("foo", 1).put("bar", "food"), opContext);

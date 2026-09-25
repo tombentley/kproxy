@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
-public class DeserializeJsonTest {
+public class ReadJsonTest {
 
     @Mock
     PluginLookup pluginLookup;
@@ -56,7 +56,7 @@ public class DeserializeJsonTest {
 
     static List<Arguments> readJsonAsJsonNode() {
         return List.of(
-                Arguments.argumentSet("{format:json}", Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON)),
+                Arguments.argumentSet("{format:json}", Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_JSON)),
                 Arguments.argumentSet("{} => defaults to JSON format with JsonNode values", Map.of()),
                 Arguments.argumentSet("null => defaults to JSON format with JsonNode values", new Object[]{ null }));
     }
@@ -65,7 +65,7 @@ public class DeserializeJsonTest {
     @MethodSource
     void readJsonAsJsonNode(Map<String, Object> config) {
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -78,11 +78,11 @@ public class DeserializeJsonTest {
     @Test
     void readJsonWithUnquotedPropertiesAsJsonNodeWhenEnabled() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON,
-                DeserializeJson.READ_FEATURES_PARAMETER, Map.of(
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_JSON,
+                ReadJson.READ_FEATURES_PARAMETER, Map.of(
                         "ALLOW_UNQUOTED_PROPERTY_NAMES", true));
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -97,10 +97,10 @@ public class DeserializeJsonTest {
     void readJsonAsMap() {
         // Given
         Map<String, Object> config = Map.of(
-                DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON,
-                DeserializeJson.TYPE_PARAMETER, "java.util.Map");
+                ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_JSON,
+                ReadJson.TYPE_PARAMETER, "java.util.Map");
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Map.class);
@@ -116,10 +116,10 @@ public class DeserializeJsonTest {
     void readJsonAsJavaClass() {
         // Given
         Map<String, Object> config = Map.of(
-                DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON,
-                DeserializeJson.TYPE_PARAMETER, Greeting.class.getName());
+                ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_JSON,
+                ReadJson.TYPE_PARAMETER, Greeting.class.getName());
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Greeting.class);
@@ -132,9 +132,9 @@ public class DeserializeJsonTest {
     @Test
     void cannotReadCsvAsJson() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_JSON);
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_JSON);
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -148,9 +148,9 @@ public class DeserializeJsonTest {
     @Test
     void readYamlAsJsonNode() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML);
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_YAML);
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
@@ -165,10 +165,10 @@ public class DeserializeJsonTest {
     @Test
     void readYamlAsJavaClass() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML,
-                DeserializeJson.TYPE_PARAMETER, Greeting.class.getName());
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_YAML,
+                ReadJson.TYPE_PARAMETER, Greeting.class.getName());
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Greeting.class);
@@ -183,10 +183,10 @@ public class DeserializeJsonTest {
     @Test
     void readYamlAsListOfJavaClass() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML,
-                DeserializeJson.TYPE_PARAMETER, "java.util.List<" + Greeting.class.getName() + ">");
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_YAML,
+                ReadJson.TYPE_PARAMETER, "java.util.List<" + Greeting.class.getName() + ">");
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(TypeFactory.parameterizedClass(List.class, Greeting.class));
@@ -202,10 +202,10 @@ public class DeserializeJsonTest {
     void readYamlAsArrayOfJavaClass() {
         // Given
         Map<String, Object> config = Map.of(
-                DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_YAML,
-                DeserializeJson.TYPE_PARAMETER, Greeting.class.getName() + "[]");
+                ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_YAML,
+                ReadJson.TYPE_PARAMETER, Greeting.class.getName() + "[]");
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(TypeFactory.parameterizedClass(List.class, Greeting.class));
@@ -222,13 +222,13 @@ public class DeserializeJsonTest {
     @Test
     void readCsvAsJsonNode() {
         // Given
-        Map<String, Object> config = Map.of(DeserializeJson.FORMAT_PARAMETER, DeserializeJson.FORMAT_VALUE_CSV,
-                DeserializeJson.TYPE_PARAMETER, Row.class.getName(),
+        Map<String, Object> config = Map.of(ReadJson.FORMAT_PARAMETER, ReadJson.FORMAT_VALUE_CSV,
+                ReadJson.TYPE_PARAMETER, Row.class.getName(),
                 "columns", List.of(
                         new ColumnConfig("name", CsvSchema.ColumnType.STRING, null),
                         new ColumnConfig("num", CsvSchema.ColumnType.NUMBER, null)));
         // When
-        var op = new DeserializeJson().create(config, pluginLookup, argumentType);
+        var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Row.class);

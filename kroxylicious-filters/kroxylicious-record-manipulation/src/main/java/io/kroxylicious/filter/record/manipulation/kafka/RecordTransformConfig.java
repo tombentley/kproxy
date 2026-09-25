@@ -34,7 +34,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *     apply:
  *       - op: ValidateSignature # optional: We can validate the Json
  *         #...
- *       - op: DeserializeJson
+ *       - op: ReadJson
  *       - op: ValidateJsonSchema # optional: We can validate the Json
  *         schema:
  *           type: object
@@ -70,7 +70,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *               - op: ReplaceRegex # map every date of birth to the 1st of January in the same year
  *                 pattern: ([0-9]{4})-[0-9]{2}-[0-9]{2}
  *                 replacement: $1-01-01
- *       - op: SerializeJson
+ *       - op: WriteJson
  *       - op: Sign # optionally sign the value
  * }</pre>
  */

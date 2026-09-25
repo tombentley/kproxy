@@ -12,6 +12,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.format.avro.ReadAvro;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
@@ -19,7 +20,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Deserializes a record value/key from Protobuf's binary encoding to a {@link ProtoValue} - the Protobuf
- * equivalent of {@link io.kroxylicious.filter.record.manipulation.format.avro.DeserializeAvro}.
+ * equivalent of {@link ReadAvro}.
  * <p>
  * The only op in the Protobuf pipeline that parses schema text - see {@link ProtoValue} for why
  * {@link ProtobufTransform}/{@link SerializeProtobuf} instead consume whatever schema arrives bundled

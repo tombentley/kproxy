@@ -21,9 +21,9 @@ import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
@@ -54,7 +54,7 @@ class OpConfigsTest {
     void simplePipeline() {
         var pipe = OpConfigs.compose(Record.class, List.of(
                 new OpConfig(RecordValue.class),
-                new OpConfig(DeserializeJson.class),
+                new OpConfig(ReadJson.class),
                 new OpConfig(JsonTransform.class,
                         Map.of("schema",
                                 Map.of("type", "integer",
@@ -62,7 +62,7 @@ class OpConfigsTest {
                                                 Map.of(
                                                         "op", ValueInt.class.getName(),
                                                         "value", 999))))),
-                new OpConfig(SerializeJson.class)), Set.of(), lookup);
+                new OpConfig(WriteJson.class)), Set.of(), lookup);
 
         assertThat(pipe.inputType()).isEqualTo(Record.class);
         assertThat(pipe.outputType()).isEqualTo(ByteBuffer.class);
@@ -100,12 +100,12 @@ class OpConfigsTest {
     void typeCheckingDetectsOpsThatDoNotCompose() {
         List<OpConfig> opConfigs = List.of(
                 new OpConfig(RecordTimestamp.class), // returns Long
-                new OpConfig(DeserializeJson.class) // expects ByteBuffer
+                new OpConfig(ReadJson.class) // expects ByteBuffer
         );
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
-                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson has input type "
+                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "
                         + "the expected type java.lang.Long");
     }
@@ -123,7 +123,7 @@ class OpConfigsTest {
     @Test
     void throwsIfConcompatibleConfig() {
         List<OpConfig> opConfigs = List.of(
-                new OpConfig(DeserializeJson.class, Map.of("thisParameterDoesNotExist", 999)));
+                new OpConfig(ReadJson.class, Map.of("thisParameterDoesNotExist", 999)));
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(ByteBuffer.class, opConfigs, requirements, lookup))
                 .isInstanceOf(IllegalArgumentException.class)

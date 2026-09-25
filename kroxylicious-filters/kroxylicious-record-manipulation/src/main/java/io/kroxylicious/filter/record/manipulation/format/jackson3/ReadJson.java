@@ -37,8 +37,8 @@ import tools.jackson.dataformat.csv.CsvSchema;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 import tools.jackson.dataformat.yaml.YAMLReadFeature;
 
-@Plugin(configType = DeserializeJson.JsonReaderConfig.class)
-public class DeserializeJson implements OpFactory<ByteBuffer, Object> {
+@Plugin(configType = ReadJson.JsonReaderConfig.class)
+public class ReadJson implements OpFactory<ByteBuffer, Object> {
 
     /**
      * The source data format, e.g. {@code json}, {@code yaml} or {@code csv}.

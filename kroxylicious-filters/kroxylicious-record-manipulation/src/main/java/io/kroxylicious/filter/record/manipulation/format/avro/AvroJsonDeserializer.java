@@ -27,7 +27,7 @@ import io.kroxylicious.kafka.common.utils.ByteBufferInputStream;
  * {@link org.apache.avro.io.JsonDecoder} rather than {@link org.apache.avro.io.BinaryDecoder} - Avro's
  * JSON codec only decodes from a stream, so there's no array-backed fast path to mirror here.
  */
-public class AvroJsonDeserializer implements Function<ByteBuffer, GenericRecord>, Deserializer<GenericRecord> {
+public class AvroJsonDeserializer implements Deserializer<GenericRecord> {
 
     private final Schema schema;
     private final GenericDatumReader<GenericRecord> reader;
@@ -39,11 +39,6 @@ public class AvroJsonDeserializer implements Function<ByteBuffer, GenericRecord>
     public AvroJsonDeserializer(Schema schema) {
         this.schema = schema;
         this.reader = new GenericDatumReader<>(schema);
-    }
-
-    @Override
-    public GenericRecord apply(ByteBuffer bb) {
-        return deserialize(bb);
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import io.kroxylicious.filter.record.manipulation.format.avro.WriteAvro;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
@@ -17,7 +18,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 
 /**
  * Serializes a {@link ProtoValue} to Protobuf's binary encoding - the Protobuf equivalent of
- * {@link io.kroxylicious.filter.record.manipulation.format.avro.SerializeAvro}, and the inverse of
+ * {@link WriteAvro}, and the inverse of
  * {@link DeserializeProtobuf}. Takes no schema config: unlike Avro's {@code GenericRecord}, a
  * {@link com.google.protobuf.DynamicMessage} already carries its own
  * {@link com.google.protobuf.Descriptors.Descriptor}, so there's nothing to do beyond unwrapping

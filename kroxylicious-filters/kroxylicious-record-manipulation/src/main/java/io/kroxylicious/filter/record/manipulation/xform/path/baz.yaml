@@ -33,7 +33,7 @@ catch:
   # Note that "replace the data" is just a different pipeline
 where:
   read_json:
-    op: io.kroxylicious.op.jackson3.DeserializeJson
+    op: io.kroxylicious.op.jackson3.ReadJson
     format: json
   validate_json:
     op: io.kroxylicious.op.jackson3.Validate
@@ -47,7 +47,7 @@ where:
     op: io.kroxylicious.ops.dashjoin.Jsonata
     jsonata: $sum(c)
   write_json:
-    op: io.kroxylicious.op.jackson3.SerializeJson
+    op: io.kroxylicious.op.jackson3.WriteJson
     format: yaml
 
   read_avro:

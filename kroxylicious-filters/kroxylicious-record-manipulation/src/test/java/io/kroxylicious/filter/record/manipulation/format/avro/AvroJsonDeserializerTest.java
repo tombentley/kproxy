@@ -42,10 +42,10 @@ class AvroJsonDeserializerTest {
     @Test
     void deserializesABuffer() {
         // Given
-        ByteBuffer buffer = serializer.apply(record("hello"));
+        ByteBuffer buffer = serializer.serialize(record("hello"));
 
         // When
-        GenericRecord result = deserializer.apply(buffer);
+        GenericRecord result = deserializer.deserialize(buffer);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -57,7 +57,7 @@ class AvroJsonDeserializerTest {
         ByteBuffer buffer = ByteBuffer.wrap("not avro json".getBytes(StandardCharsets.UTF_8));
 
         // When/Then
-        assertThatThrownBy(() -> deserializer.apply(buffer))
+        assertThatThrownBy(() -> deserializer.deserialize(buffer))
                 .isInstanceOf(RuntimeException.class);
     }
 

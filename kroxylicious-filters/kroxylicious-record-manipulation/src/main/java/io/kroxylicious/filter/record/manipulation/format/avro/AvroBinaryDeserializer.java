@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -30,7 +29,7 @@ import io.kroxylicious.kafka.common.utils.ByteBufferInputStream;
  * {@code record} - Avro's generic codec already decodes to whatever Java type matches {@code schema}
  * (a {@link GenericRecord}, a {@link java.util.List} for an array, or a scalar/enum/fixed leaf value).
  */
-public class AvroBinaryDeserializer implements Function<ByteBuffer, Object>, Deserializer<Object> {
+public class AvroBinaryDeserializer implements Deserializer<Object> {
 
     private final GenericDatumReader<Object> reader;
 
@@ -40,11 +39,6 @@ public class AvroBinaryDeserializer implements Function<ByteBuffer, Object>, Des
      */
     public AvroBinaryDeserializer(Schema schema) {
         this.reader = new GenericDatumReader<>(schema);
-    }
-
-    @Override
-    public Object apply(ByteBuffer bb) {
-        return deserialize(bb);
     }
 
     @Override

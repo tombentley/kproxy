@@ -12,8 +12,8 @@ import org.apache.avro.generic.GenericRecord;
 /**
  * An Avro-decoded value bundled with the {@link Schema} it conforms to - the Avro equivalent of
  * {@link io.kroxylicious.filter.record.manipulation.format.protobuf.ProtoValue}. Flows between
- * {@link DeserializeAvro}, {@link AvroTransform}, and {@link SerializeAvro} instead of a bare decoded
- * value, so only {@link DeserializeAvro} needs schema config - {@link AvroTransform}/{@link SerializeAvro}
+ * {@link ReadAvro}, {@link AvroTransform}, and {@link WriteAvro} instead of a bare decoded
+ * value, so only {@link ReadAvro} needs schema config - {@link AvroTransform}/{@link WriteAvro}
  * just use whatever schema arrives with each value.
  * <p>
  * Unlike {@code ProtoValue} this isn't required for correctness - Avro's {@link Schema} compares

@@ -39,7 +39,7 @@ recordTransform:
   intoRecordValue:
     from: RecordValue
     apply:
-      - op: DeserializeJson
+      - op: ReadJson
       - op: JsonTransform
         schema:
           type: object
@@ -49,12 +49,12 @@ recordTransform:
               apply:
                 - op: ValueString
                   value: "0000 0000 0000 0000"
-      - op: SerializeJson
+      - op: WriteJson
 ```
 
-Avro (binary encoding) follows the same shape, via `DeserializeAvro`/`AvroTransform`/
-`SerializeAvro`, but only `DeserializeAvro` takes schema config - it bundles the parsed `Schema`
-together with each decoded value (an `AvroValue`), so `AvroTransform`/`SerializeAvro` just use
+Avro (binary encoding) follows the same shape, via `ReadAvro`/`AvroTransform`/
+`WriteAvro`, but only `ReadAvro` takes schema config - it bundles the parsed `Schema`
+together with each decoded value (an `AvroValue`), so `AvroTransform`/`WriteAvro` just use
 whatever schema arrives rather than parsing their own copy. The `apply` chain for a field sits as a
 sibling of its own `type`, the same way it sits alongside a JSON Schema field's `type` above:
 
@@ -65,7 +65,7 @@ recordTransform:
   intoRecordValue:
     from: RecordValue
     apply:
-      - op: DeserializeAvro
+      - op: ReadAvro
         schema: |
           {"type": "record", "name": "Payment", "fields": [
               {"name": "creditCardNumber", "type": "string", "apply": [
@@ -73,7 +73,7 @@ recordTransform:
               ]}
           ]}
       - op: AvroTransform
-      - op: SerializeAvro
+      - op: WriteAvro
 ```
 
 Avro's schema format doesn't require the root to be a `record` - a schema of just `array`/scalar/

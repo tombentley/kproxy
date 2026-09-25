@@ -155,9 +155,9 @@ class RecordManipulationFilterAvroIT extends BaseIT {
                 "intoRecordValue", Map.of(
                         "from", "RecordValue",
                         "apply", List.of(
-                                Map.of("op", "DeserializeAvro", "schema", SCHEMA_JSON),
+                                Map.of("op", "ReadAvro", "schema", SCHEMA_JSON),
                                 Map.of("op", "AvroTransform"),
-                                Map.of("op", "SerializeAvro"))));
+                                Map.of("op", "WriteAvro"))));
 
         String className = RecordManipulation.class.getName();
         return new NamedFilterDefinitionBuilder(name, className)

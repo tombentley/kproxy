@@ -20,8 +20,8 @@ import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
 
-@Plugin(configType = DeserializeJson.Config.class)
-public class DeserializeJson implements OpFactory<ByteBuffer, JsonNode> {
+@Plugin(configType = ReadJson.Config.class)
+public class ReadJson implements OpFactory<ByteBuffer, JsonNode> {
 
     public record Config(
                          boolean allowComments,

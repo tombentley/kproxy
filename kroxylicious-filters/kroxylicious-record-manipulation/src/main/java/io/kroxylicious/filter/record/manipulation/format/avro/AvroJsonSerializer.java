@@ -25,7 +25,7 @@ import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
  * the inverse of {@link AvroJsonDeserializer}. Mirrors {@link AvroBinarySerializer}, but via
  * {@link org.apache.avro.io.JsonEncoder} rather than {@link org.apache.avro.io.BinaryEncoder}.
  */
-public class AvroJsonSerializer implements Function<GenericRecord, ByteBuffer>, Serializer<GenericRecord> {
+public class AvroJsonSerializer implements Serializer<GenericRecord> {
 
     private final Schema schema;
     private final GenericDatumWriter<GenericRecord> writer;
@@ -37,11 +37,6 @@ public class AvroJsonSerializer implements Function<GenericRecord, ByteBuffer>, 
     public AvroJsonSerializer(Schema schema) {
         this.schema = schema;
         this.writer = new GenericDatumWriter<>(schema);
-    }
-
-    @Override
-    public ByteBuffer apply(GenericRecord record) {
-        return serialize(record);
     }
 
     @Override

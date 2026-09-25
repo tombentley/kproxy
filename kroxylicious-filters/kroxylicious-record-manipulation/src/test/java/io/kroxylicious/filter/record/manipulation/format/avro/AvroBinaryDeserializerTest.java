@@ -34,10 +34,10 @@ class AvroBinaryDeserializerTest {
     @Test
     void deserializesAnArrayBackedBuffer() {
         // Given
-        ByteBuffer buffer = serializer.apply(record("hello"));
+        ByteBuffer buffer = serializer.serialize(record("hello"));
 
         // When
-        GenericRecord result = (GenericRecord) deserializer.apply(buffer);
+        GenericRecord result = (GenericRecord) deserializer.deserialize(buffer);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -46,7 +46,7 @@ class AvroBinaryDeserializerTest {
     @Test
     void deserializesOnlyTheRemainingBytesOfASlicedArrayBackedBuffer() {
         // Given
-        ByteBuffer encoded = serializer.apply(record("hello"));
+        ByteBuffer encoded = serializer.serialize(record("hello"));
         int length = encoded.remaining();
         byte[] padded = new byte[5 + length + 5];
         encoded.get(padded, 5, length);
@@ -56,7 +56,7 @@ class AvroBinaryDeserializerTest {
         ByteBuffer slice = buffer.slice();
 
         // When
-        GenericRecord result = (GenericRecord) deserializer.apply(slice);
+        GenericRecord result = (GenericRecord) deserializer.deserialize(slice);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -65,12 +65,12 @@ class AvroBinaryDeserializerTest {
     @Test
     void deserializesANonArrayBackedBuffer() {
         // Given
-        ByteBuffer encoded = serializer.apply(record("hello"));
+        ByteBuffer encoded = serializer.serialize(record("hello"));
         ByteBuffer buffer = ByteBuffer.allocateDirect(encoded.remaining());
         buffer.put(encoded).flip();
 
         // When
-        GenericRecord result = (GenericRecord) deserializer.apply(buffer);
+        GenericRecord result = (GenericRecord) deserializer.deserialize(buffer);
 
         // Then
         assertThat(result.get("text").toString()).isEqualTo("hello");
@@ -82,7 +82,7 @@ class AvroBinaryDeserializerTest {
         ByteBuffer buffer = ByteBuffer.wrap(new byte[]{ (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF });
 
         // When/Then
-        assertThatThrownBy(() -> deserializer.apply(buffer))
+        assertThatThrownBy(() -> deserializer.deserialize(buffer))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -92,10 +92,10 @@ class AvroBinaryDeserializerTest {
         Schema arraySchema = new Schema.Parser().parse("{\"type\":\"array\",\"items\":\"string\"}");
         var arraySerializer = new AvroBinarySerializer(arraySchema);
         var arrayDeserializer = new AvroBinaryDeserializer(arraySchema);
-        ByteBuffer buffer = arraySerializer.apply(List.of("Vernon Dudley", "Barny Weasley"));
+        ByteBuffer buffer = arraySerializer.serialize(List.of("Vernon Dudley", "Barny Weasley"));
 
         // When
-        Object result = arrayDeserializer.apply(buffer);
+        Object result = arrayDeserializer.deserialize(buffer);
 
         // Then
         // decoded string elements are Utf8, not String, so compare via toString() (as elsewhere in this suite)

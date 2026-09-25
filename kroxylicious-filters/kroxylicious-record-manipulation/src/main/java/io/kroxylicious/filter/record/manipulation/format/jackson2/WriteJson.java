@@ -19,8 +19,8 @@ import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
 
-@Plugin(configType = SerializeJson.Config.class)
-public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
+@Plugin(configType = WriteJson.Config.class)
+public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
 
     public record Config(boolean indentOutput,
                          boolean orderMapEntriesByKeys) {}

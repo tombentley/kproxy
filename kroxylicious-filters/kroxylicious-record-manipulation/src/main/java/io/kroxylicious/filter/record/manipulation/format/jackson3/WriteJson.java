@@ -34,14 +34,14 @@ import tools.jackson.dataformat.csv.CsvWriteFeature;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 import tools.jackson.dataformat.yaml.YAMLWriteFeature;
 
-@Plugin(configType = SerializeJson.WriterConfig.class)
-public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
+@Plugin(configType = WriteJson.WriterConfig.class)
+public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "format", defaultImpl = JsonWriterConfig.class)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = SerializeJson.JsonWriterConfig.class, name = "json"),
-            @JsonSubTypes.Type(value = SerializeJson.YamlWriterConfig.class, name = "yaml"),
-            @JsonSubTypes.Type(value = SerializeJson.CsvWriterConfig.class, name = "csv")
+            @JsonSubTypes.Type(value = WriteJson.JsonWriterConfig.class, name = "json"),
+            @JsonSubTypes.Type(value = WriteJson.YamlWriterConfig.class, name = "yaml"),
+            @JsonSubTypes.Type(value = WriteJson.CsvWriterConfig.class, name = "csv")
     })
     interface WriterConfig {
         String type();
@@ -111,7 +111,7 @@ public class SerializeJson implements OpFactory<JsonNode, ByteBuffer> {
         else {
             writerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(config, WriterConfig.class);
         }
-        JavaType javaType = DeserializeJson.getJavaType(writerConfig.type());
+        JavaType javaType = ReadJson.getJavaType(writerConfig.type());
 
         var d = new JacksonSerializer(writerConfig.createWriter());
         // TODO plug in type parser

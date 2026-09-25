@@ -27,7 +27,7 @@ import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
  * Typed to {@link Object} rather than {@link GenericRecord} because {@code schema} isn't required to be a
  * {@code record} - see {@link AvroBinaryDeserializer}.
  */
-public class AvroBinarySerializer implements Function<Object, ByteBuffer>, Serializer<Object> {
+public class AvroBinarySerializer implements Serializer<Object> {
 
     private final GenericDatumWriter<Object> writer;
 
@@ -37,11 +37,6 @@ public class AvroBinarySerializer implements Function<Object, ByteBuffer>, Seria
      */
     public AvroBinarySerializer(Schema schema) {
         this.writer = new GenericDatumWriter<>(schema);
-    }
-
-    @Override
-    public ByteBuffer apply(Object value) {
-        return serialize(value);
     }
 
     @Override

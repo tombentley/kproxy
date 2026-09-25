@@ -25,9 +25,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.format.jackson2.DeserializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.SerializeJson;
+import io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson;
 import io.kroxylicious.filter.record.manipulation.kafka.Origin;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
@@ -84,9 +84,9 @@ class RecordManipulationFilterTest {
                                 "apply", List.of(Map.of("op", "ValueString", "value", "REDACTED"))),
                         "ageYears", Map.of("type", "integer")));
         return new PipelineConfig(Origin.RecordValue, List.of(
-                new OpConfig(DeserializeJson.class),
+                new OpConfig(ReadJson.class),
                 new OpConfig(JsonTransform.class, Map.of("schema", schema)),
-                new OpConfig(SerializeJson.class)));
+                new OpConfig(WriteJson.class)));
     }
 
     private RecordManipulationFilter buildFilter(Direction direction) {

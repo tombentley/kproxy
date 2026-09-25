@@ -60,12 +60,12 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   read_json:
-                                    op: this.package.does.not.exist.DeserializeJson # <-- that package does not exist
+                                    op: this.package.does.not.exist.ReadJson # <-- that package does not exist
                                     format: json
                                 """,
                         "Could not instantiate function 'read_json' referred to in expression for property 'value': "
                                 + "Unknown io.kroxylicious.filter.record.manipulation.op.OpFactory plugin instance for name "
-                                + "'this.package.does.not.exist.DeserializeJson'. "
+                                + "'this.package.does.not.exist.ReadJson'. "
                                 + "Known plugin instances are [",
                         "Plugins must be loadable by java.util.ServiceLoader and annotated with @Plugin."),
                 scenario("Defined function with unknown config property",
@@ -76,11 +76,11 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   read_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.ReadJson
                                     fruit: apples # <--- there is no fruit property
                                 """,
                         "Could not instantiate function 'read_json' referred to in expression for property 'value': "
-                                + "Unrecognized property \"fruit\" (class io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson$JsonReaderConfig), "
+                                + "Unrecognized property \"fruit\" (class io.kroxylicious.filter.record.manipulation.format.jackson3.ReadJson$JsonReaderConfig), "
                                 + "not marked as ignorable",
                         "known properties",
                         "\"type\"",
@@ -94,7 +94,7 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   write_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     format: json
                                 """,
                         "Property 'key' with expression `write_json('')`: Function write_json should take a tools.jackson.databind.JsonNode, but is being called with a value of type java.lang.String"),
@@ -106,7 +106,7 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   write_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     type: java.lang.Object
                                     format: json
                                 """,
@@ -119,7 +119,7 @@ class CheckTest {
                                 headers: write_json('') # <----- `headers` has type Header[], not ByteBuffer
                                 where:
                                   write_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     type: java.lang.Object
                                     format: json
                                 """,
@@ -162,10 +162,10 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   read_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.ReadJson
                                     format: json
                                   write_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     format: json
                                 """),
                 Arguments.argumentSet("Jsonata",
@@ -176,13 +176,13 @@ class CheckTest {
                                 headers: $.headers
                                 where:
                                   read_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.DeserializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.ReadJson
                                     format: json
                                   jsonata:
                                     op: io.kroxylicious.filter.record.manipulation.ops.jsonata.dashjoin.Jsonata
                                     expression: $sum(c)
                                   write_json:
-                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.SerializeJson
+                                    op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     format: json
                                     type: java.lang.Object # <--- The dashjoin version of jsonata use the Map/List JSON typing
                                 """));

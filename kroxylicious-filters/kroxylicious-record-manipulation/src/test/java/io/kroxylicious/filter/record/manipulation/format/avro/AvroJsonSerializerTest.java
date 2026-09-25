@@ -34,7 +34,7 @@ class AvroJsonSerializerTest {
         GenericRecord record = record("hello");
 
         // When
-        ByteBuffer buffer = serializer.apply(record);
+        ByteBuffer buffer = serializer.serialize(record);
 
         // Then
         assertThat(buffer.position()).isZero();
@@ -48,8 +48,8 @@ class AvroJsonSerializerTest {
         GenericRecord record = record("hello");
 
         // When
-        ByteBuffer buffer = serializer.apply(record);
-        GenericRecord roundTripped = deserializer.apply(buffer);
+        ByteBuffer buffer = serializer.serialize(record);
+        GenericRecord roundTripped = deserializer.deserialize(buffer);
 
         // Then
         assertThat(roundTripped.get("text").toString()).isEqualTo("hello");

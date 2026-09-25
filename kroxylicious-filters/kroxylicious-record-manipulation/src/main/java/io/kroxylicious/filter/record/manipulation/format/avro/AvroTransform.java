@@ -31,7 +31,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
  * <p>
  * The built {@link AvroFunction} is cached against the {@link Schema} it was built from (compared with
  * {@link Schema#equals(Object)}, which is structural - unlike {@code ProtobufTransform}'s equivalent cache,
- * no reference-identity trick is needed here): a {@link DeserializeAvro}-configured op hands out an
+ * no reference-identity trick is needed here): a {@link ReadAvro}-configured op hands out an
  * {@code .equals()} schema on every call, so this cache hits on every message after the first, avoiding
  * rebuilding the whole mask in what is otherwise a per-record hot path.
  */
