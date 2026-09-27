@@ -16,7 +16,6 @@ import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 class TypeCheckingVisitor implements Ast.AstVisitor {
-    private final Map<String, BaseTypedOp<?, ?>> ops;
     private final List<String> errors;
     public final String propertyName;
     public final Type requiredType;
@@ -24,10 +23,9 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     TypeCheckingVisitor(String propertyName,
                         Type requiredType,
-                        Map<String, BaseTypedOp<?, ?>> ops, List<String> errors) {
+                        List<String> errors) {
         this.propertyName = propertyName;
         this.requiredType = requiredType;
-        this.ops = ops;
         this.errors = errors;
     }
 
@@ -74,7 +72,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
     public void visitFunctionExpr(Ast.FnCall ctx) {
         // look up the function
         String functionName = ctx.fnName();
-        BaseTypedOp<?, ?> op = ops.get(functionName);
+        BaseTypedOp<?, ?> op = ctx.decl();
         // type it
         ctx.args().forEach(arg -> arg.accept(this));
         Type argType = ctx.args().getFirst().type();

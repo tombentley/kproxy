@@ -3,7 +3,7 @@ result:
   # We cannot write foo($.key, $.value) (not an "unary op")
   # Nor can we write foo($) (we don't have an evaluate which we cross trees
   value: write_json(my_mask(validate_json(read_json($.value))))
-  key: your_mask(read_avro($.key))
+  key: write_avro(your_mask(read_avro($.key)))
   timestamp: $.timestamp
   headers: $.headers
 catch:
