@@ -23,12 +23,10 @@ import io.kroxylicious.filter.record.manipulation.expr.ExprLexer;
 import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 import io.kroxylicious.filter.record.manipulation.filter.Expr;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
-import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.kafka.common.header.Header;
-import io.kroxylicious.kafka.common.record.internal.Record;
 
 import tools.jackson.databind.JsonNode;
 
@@ -122,37 +120,28 @@ public class Check {
         }
     }
 
-    RecordsSerializer check(RecordTransformConfig2 config) {
+    void check(RecordTransformConfig2 config) {
         Map<String, OpConfig> decls = config.where();
 
         // Build ASTs from the parse trees
-        Ast keyTree = parseExpr(config.key()).accept(new AstBuilder());
-        Ast valueTree = parseExpr(config.value()).accept(new AstBuilder());
-        Ast timestampTree = parseExpr(config.timestamp()).accept(new AstBuilder());
-        Ast headersTree = parseExpr(config.headers()).accept(new AstBuilder());
+        var keyTree = parseExpr(config.key()).accept(new AstBuilder());
+        var valueTree = parseExpr(config.value()).accept(new AstBuilder());
+        var timestampTree = parseExpr(config.timestamp()).accept(new AstBuilder());
+        var headersTree = parseExpr(config.headers()).accept(new AstBuilder());
         // Resolve the function calls in the expressions to their declarations via the `where` clause
-        resolve(decls, keyTree, valueTree, timestampTree, headersTree);
+        var ops = resolve(decls, keyTree, valueTree, timestampTree, headersTree);
         // Type check the expressions
-        typeCheck(keyTree, valueTree, timestampTree, headersTree);
-
-        BaseTypedOp<Record, Long> recordTimestampPipeline = null;
-        BaseTypedOp<Record, ByteBuffer> recordKeyPipeline = null;
-        BaseTypedOp<Record, ByteBuffer> recordValuePipeline = null;
-        // TODO don't forget headers!
-
-        return new RecordsSerializer(
-                recordTimestampPipeline,
-                recordKeyPipeline,
-                recordValuePipeline);
+        typeCheck(keyTree, ops, valueTree, timestampTree, headersTree);
     }
 
-    void resolve(Map<String, OpConfig> decls,
+    HashMap<String, BaseTypedOp<?, ?>> resolve(Map<String, OpConfig> decls,
                                                Ast keyTree,
                                                Ast valueTree,
                                                Ast timestampTree,
                                                Ast headersTree) {
+        var ops = new HashMap<String, BaseTypedOp<?, ?>>();
         List<String> errors = new ArrayList<>();
-        ResolverVisitor visitor = new ResolverVisitor(pluginLookup, decls, errors);
+        ResolverVisitor visitor = new ResolverVisitor(pluginLookup, decls, ops, errors);
         visitor.resolve("key", keyTree);
         visitor.resolve("value", valueTree);
         visitor.resolve("timestamp", timestampTree);
@@ -160,14 +149,15 @@ public class Check {
         if (!errors.isEmpty()) {
             throw new CheckException(String.join("\n", errors) + "\n(Hint: functions are defined using the 'where' property)");
         }
+        return ops;
     }
 
-    private void typeCheck(Ast keyTree, Ast valueTree, Ast timestampTree, Ast headersTree) {
+    private void typeCheck(Ast keyTree, Map<String, BaseTypedOp<?, ?>> ops, Ast valueTree, Ast timestampTree, Ast headersTree) {
         List<String> errors = new ArrayList<>();
-        keyTree.accept(new TypeCheckingVisitor("key", ByteBuffer.class, errors));
-        valueTree.accept(new TypeCheckingVisitor("value", ByteBuffer.class, errors));
-        timestampTree.accept(new TypeCheckingVisitor("timestamp", Long.TYPE, errors));
-        headersTree.accept(new TypeCheckingVisitor("headers", Header[].class, errors));
+        keyTree.accept(new TypeCheckingVisitor("key", ByteBuffer.class, ops, errors));
+        valueTree.accept(new TypeCheckingVisitor("value", ByteBuffer.class, ops, errors));
+        timestampTree.accept(new TypeCheckingVisitor("timestamp", Long.TYPE, ops, errors));
+        headersTree.accept(new TypeCheckingVisitor("headers", Header[].class, ops, errors));
         if (!errors.isEmpty()) {
             throw new CheckException(String.join("\n", errors));
         }

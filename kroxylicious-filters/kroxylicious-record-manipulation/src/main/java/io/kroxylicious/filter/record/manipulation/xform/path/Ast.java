@@ -14,25 +14,12 @@ import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.NaryOp;
-
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 public abstract class Ast {
 
     private ParserRuleContext tree;
     private Type type;
-    private NaryOp op;
-
-    public Ast setDecl(NaryOp op) {
-        this.op = op;
-        return this;
-    }
-
-    public NaryOp decl() {
-        return op;
-    }
 
     public Ast setTree(ParserRuleContext tree) {
         this.tree = tree;
@@ -54,6 +41,8 @@ public abstract class Ast {
     public abstract void accept(AstVisitor visitor);
 
     public enum BinOp {
+        AND,
+        OR,
         NOT,
         EQ,
         NE,
@@ -303,7 +292,6 @@ public abstract class Ast {
             this.fnName = fnName;
             this.args = args;
         }
-
 
         @Override
         public void accept(AstVisitor visitor) {

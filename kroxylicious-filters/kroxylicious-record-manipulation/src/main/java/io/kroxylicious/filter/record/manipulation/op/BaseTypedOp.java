@@ -31,7 +31,7 @@ import edu.umd.cs.findbugs.annotations.UnknownNullness;
  * @param <T> The parameter type
  * @param <R> The return type
  */
-public interface BaseTypedOp<T, R> extends NaryOp<R>{
+public interface BaseTypedOp<T, R> {
 
     /**
      * Create a {@code BaseTypedOp} by explicitly passing its input and output types.
@@ -88,15 +88,6 @@ public interface BaseTypedOp<T, R> extends NaryOp<R>{
      * @return The type reflecting {@code T}
      */
     Type inputType();
-
-    @Override
-    default List<Type> inputTypes() {
-        return List.of(inputType());
-    }
-
-    default R applyN(Object[] params, OpContext opContext) {
-        return apply((T) params[0], opContext);
-    }
 
     /**
      * The {@code Type} reflecting the result type, {@code R}.
