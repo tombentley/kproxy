@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 public abstract class Ast {
@@ -58,19 +60,19 @@ public abstract class Ast {
             expr.expr().accept(this);
         }
 
-        default void visitNull(Null aNull) {
+        default void visitNull(Null literalVal) {
         }
 
-        default void visitBool(Bool bool) {
+        default void visitBool(Bool literalVal) {
         }
 
-        default void visitInt(Int anInt) {
+        default void visitInt(Int literalVal) {
         }
 
-        default void visitNum(Num num) {
+        default void visitNum(Num literalVal) {
         }
 
-        default void visitStr(Str str) {
+        default void visitStr(Str literalVal) {
         }
 
         default void visitBinaryOp(BinaryOp op) {
@@ -94,20 +96,20 @@ public abstract class Ast {
             fnCall.args().forEach(s -> s.accept(this));
         }
 
-        default <N> void visitSelector(Selector<N> nSelector) {
+        default <N> void visitSelector(Selector<N> selector) {
         }
 
-        default <N> void visitSegment(Segment<N> nSegment) {
-            if (nSegment instanceof Segment.Child<N> c) {
+        default <N> void visitSegment(Segment<N> segment) {
+            if (segment instanceof Segment.Child<N> c) {
                 c.selectors().forEach(s -> s.accept(this));
             }
-            if (nSegment instanceof Segment.Descendant<N> c) {
+            if (segment instanceof Segment.Descendant<N> c) {
                 c.selectors().forEach(s -> s.accept(this));
             }
         }
 
-        default <N> void visitPath(Path<N> nPath) {
-            nPath.segments.forEach(s -> s.accept(this));
+        default <N> void visitPath(Path<N> path) {
+            path.segments.forEach(s -> s.accept(this));
         }
 
     }
@@ -286,6 +288,7 @@ public abstract class Ast {
     public static final class FnCall extends Ast {
         private final String fnName;
         private final List<Ast> args;
+        private BaseTypedOp<?, ?> op;
 
         public FnCall(String fnName,
                       List<Ast> args) {
@@ -304,6 +307,14 @@ public abstract class Ast {
 
         public List<Ast> args() {
             return args;
+        }
+
+        public void setDecl(BaseTypedOp<?, ?> op) {
+            this.op = op;
+        }
+
+        public BaseTypedOp<?, ?> decl() {
+            return op;
         }
     }
 
@@ -437,7 +448,7 @@ public abstract class Ast {
 
             /**
              */
-            FilterFilter(BiPredicate<N, N> predicate) {
+            public FilterFilter(BiPredicate<N, N> predicate) {
                 this.predicate = predicate;
             }
 

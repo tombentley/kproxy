@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 import java.util.List;
 import java.util.Map;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
@@ -22,17 +21,13 @@ class ResolverVisitor implements Ast.AstVisitor {
     private final PluginLookup pluginLookup;
     String propertyName;
     private String expressionText;
-    private Map<String, BaseTypedOp<?, ?>> ops;
-    private Object result;
 
     ResolverVisitor(
-            PluginLookup pluginLookup,
-            @Nullable Map<String, OpConfig> decls,
-            Map<String, BaseTypedOp<?, ?>> ops,
-            List<String> errors) {
+                    PluginLookup pluginLookup,
+                    @Nullable Map<String, OpConfig> decls,
+                    List<String> errors) {
         this.pluginLookup = pluginLookup;
         this.decls = decls;
-        this.ops = ops;
         this.errors = errors;
     }
 
@@ -43,8 +38,8 @@ class ResolverVisitor implements Ast.AstVisitor {
     }
 
     @Override
-    public <N> void visitPath(Ast.Path<N> nPath) {
-        Ast.AstVisitor.super.visitPath(nPath);
+    public <N> void visitPath(Ast.Path<N> path) {
+        Ast.AstVisitor.super.visitPath(path);
     }
 
     @Override
@@ -61,7 +56,7 @@ class ResolverVisitor implements Ast.AstVisitor {
                 // because their type attribution could vary by call site.
                 OpFactory<?, ?> opFactory = pluginLookup.pluginInstance(OpFactory.class, decls.get(functionName).op());
                 var op = opFactory.create(decls.get(functionName).config(), pluginLookup, null);
-                ops.put(functionName, op);
+                fnExpr.setDecl(op);
             }
             catch (Exception e) {
                 errors.add(String.format("Could not instantiate function '%s' referred to in expression for property '%s': %s", functionName, propertyName,

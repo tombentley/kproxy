@@ -56,7 +56,7 @@ import io.kroxylicious.filter.record.manipulation.op.OpConfig;
  * @param where The function declarations, keyed on function name
  */
 public record RecordTransformConfig2(@JsonProperty(required = true) Expr key,
-                              @JsonProperty(required = true) Expr value,
-                              @JsonProperty(required = true) Expr timestamp,
-                              @JsonProperty(required = true) Expr headers,
-                              @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, OpConfig> where) {}
+                                     @JsonProperty(required = true) Expr value,
+                                     @JsonProperty(required = true) Expr timestamp,
+                                     @JsonProperty(required = true) Expr headers,
+                                     @JsonInclude(JsonInclude.Include.NON_NULL) Map<String, OpConfig> where) {}

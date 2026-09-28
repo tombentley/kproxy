@@ -6,9 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
+import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,12 +23,9 @@ import io.kroxylicious.filter.record.manipulation.expr.ExprLexer;
 import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 import io.kroxylicious.filter.record.manipulation.filter.Expr;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.kafka.common.header.Header;
-
-import tools.jackson.databind.JsonNode;
 
 public class Check {
 
@@ -121,6 +118,10 @@ public class Check {
     }
 
     void check(RecordTransformConfig2 config) {
+        check(config, false);
+    }
+
+    MethodHandle check(RecordTransformConfig2 config, boolean i) {
         Map<String, OpConfig> decls = config.where();
 
         // Build ASTs from the parse trees
@@ -129,19 +130,25 @@ public class Check {
         var timestampTree = parseExpr(config.timestamp()).accept(new AstBuilder());
         var headersTree = parseExpr(config.headers()).accept(new AstBuilder());
         // Resolve the function calls in the expressions to their declarations via the `where` clause
-        var ops = resolve(decls, keyTree, valueTree, timestampTree, headersTree);
+        resolve(decls, keyTree, valueTree, timestampTree, headersTree);
         // Type check the expressions
-        typeCheck(keyTree, ops, valueTree, timestampTree, headersTree);
+        typeCheck(keyTree, valueTree, timestampTree, headersTree);
+
+        if (i) {
+            HandleVisitor visitor = new HandleVisitor();
+            valueTree.accept(visitor);
+            return visitor.handle;
+        }
+        return null;
     }
 
-    HashMap<String, BaseTypedOp<?, ?>> resolve(Map<String, OpConfig> decls,
-                                               Ast keyTree,
-                                               Ast valueTree,
-                                               Ast timestampTree,
-                                               Ast headersTree) {
-        var ops = new HashMap<String, BaseTypedOp<?, ?>>();
+    void resolve(Map<String, OpConfig> decls,
+                 Ast keyTree,
+                 Ast valueTree,
+                 Ast timestampTree,
+                 Ast headersTree) {
         List<String> errors = new ArrayList<>();
-        ResolverVisitor visitor = new ResolverVisitor(pluginLookup, decls, ops, errors);
+        ResolverVisitor visitor = new ResolverVisitor(pluginLookup, decls, errors);
         visitor.resolve("key", keyTree);
         visitor.resolve("value", valueTree);
         visitor.resolve("timestamp", timestampTree);
@@ -149,15 +156,17 @@ public class Check {
         if (!errors.isEmpty()) {
             throw new CheckException(String.join("\n", errors) + "\n(Hint: functions are defined using the 'where' property)");
         }
-        return ops;
     }
 
-    private void typeCheck(Ast keyTree, Map<String, BaseTypedOp<?, ?>> ops, Ast valueTree, Ast timestampTree, Ast headersTree) {
+    private void typeCheck(Ast keyTree,
+                           Ast valueTree,
+                           Ast timestampTree,
+                           Ast headersTree) {
         List<String> errors = new ArrayList<>();
-        keyTree.accept(new TypeCheckingVisitor("key", ByteBuffer.class, ops, errors));
-        valueTree.accept(new TypeCheckingVisitor("value", ByteBuffer.class, ops, errors));
-        timestampTree.accept(new TypeCheckingVisitor("timestamp", Long.TYPE, ops, errors));
-        headersTree.accept(new TypeCheckingVisitor("headers", Header[].class, ops, errors));
+        keyTree.accept(new TypeCheckingVisitor("key", ByteBuffer.class, errors));
+        valueTree.accept(new TypeCheckingVisitor("value", ByteBuffer.class, errors));
+        timestampTree.accept(new TypeCheckingVisitor("timestamp", Long.TYPE, errors));
+        headersTree.accept(new TypeCheckingVisitor("headers", Header[].class, errors));
         if (!errors.isEmpty()) {
             throw new CheckException(String.join("\n", errors));
         }

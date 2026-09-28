@@ -48,22 +48,7 @@ public interface BaseTypedOp<T, R> {
      * @param <R> The output type
      */
     static <T, R> BaseTypedOp<T, R> of(Type inputType, Type outputType, BiFunction<T, OpContext, R> fn) {
-        return new BaseTypedOp<T, R>() {
-            @Override
-            public Type inputType() {
-                return inputType;
-            }
-
-            @Override
-            public Type outputType() {
-                return outputType;
-            }
-
-            @Override
-            public R apply(T value, OpContext opContext) {
-                return fn.apply(value, opContext);
-            }
-        };
+        return new MyBaseTypedOp<>(inputType, outputType, fn);
     }
 
     /**
@@ -102,4 +87,30 @@ public interface BaseTypedOp<T, R> {
     @UnknownNullness
     R apply(T value, OpContext opContext);
 
+    public class MyBaseTypedOp<T, R> implements BaseTypedOp<T, R> {
+        private final Type inputType;
+        private final Type outputType;
+        private final BiFunction<T, OpContext, R> fn;
+
+        public MyBaseTypedOp(Type inputType, Type outputType, BiFunction<T, OpContext, R> fn) {
+            this.inputType = inputType;
+            this.outputType = outputType;
+            this.fn = fn;
+        }
+
+        @Override
+        public Type inputType() {
+            return inputType;
+        }
+
+        @Override
+        public Type outputType() {
+            return outputType;
+        }
+
+        @Override
+        public R apply(T value, OpContext opContext) {
+            return fn.apply(value, opContext);
+        }
+    }
 }

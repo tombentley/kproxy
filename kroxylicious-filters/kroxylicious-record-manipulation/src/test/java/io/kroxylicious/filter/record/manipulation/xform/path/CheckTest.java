@@ -20,7 +20,6 @@ import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 
-import tools.jackson.databind.exc.ValueInstantiationException;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -198,7 +197,6 @@ class CheckTest {
         assertThatNoException().isThrownBy(() -> check.check(config));
     }
 
-
     @Test
     void deserializeFailedOnInvalidJsonPathExpressions() {
         // Given
@@ -209,9 +207,9 @@ class CheckTest {
                 .isInstanceOf(InvalidExpressionException.class)
                 .hasMessage(
                         """
-                        Found 1 syntax errors
-                        1:3: no viable alternative at input 'foo'.
-                        """);
+                                Found 1 syntax errors
+                                1:3: no viable alternative at input 'foo'.
+                                """);
 
     }
 
@@ -232,8 +230,7 @@ class CheckTest {
                 Arguments.arguments("null",
                         (Function<ExprParser.ExprContext, Object>) e -> e.expr1().literal()),
                 Arguments.arguments("foo(1, $.headers)",
-                        (Function<ExprParser.ExprContext, Object>) e -> e.expr1().logicalExpr())
-        );
+                        (Function<ExprParser.ExprContext, Object>) e -> e.expr1().logicalExpr()));
     }
 
     @ParameterizedTest

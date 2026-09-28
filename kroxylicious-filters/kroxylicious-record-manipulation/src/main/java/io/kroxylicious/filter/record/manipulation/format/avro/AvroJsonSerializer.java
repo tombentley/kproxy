@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.format.avro;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;

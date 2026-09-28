@@ -1,27 +1,11 @@
 result:
-  # TODO there's an assumption lurking here
-  # We cannot write foo($.key, $.value) (not an "unary op")
-  # Nor can we write foo($) (we don't have an evaluate which we cross trees
   value: write_json(my_mask(validate_json(read_json($.value))))
-  key: your_mask(read_avro($.key))
+  key: write_avro(your_mask(read_avro($.key)))
   timestamp: $.timestamp
   headers: $.headers
-catch:
-  # TODO this would depend on the direction
-  # For a produce request we can:
-  # * reject the data +/- dead letter
-  # * accept the data +/- dead letter
-  # * replace the data with something else +/- dead letter
-  # For a fetch request we can:
-  # * let the data out +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
-  # * don't let the data out +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key TOPIC-PARTITION-OFFSET-)
-  # * replace the data +/- dead letter (multiple reads => multiple errors, unless we use a compacted topic with a common key)
-  #
-  # Note that "replace the data" is just a different pipeline
 where:
   read_json:
     op: io.kroxylicious.op.jackson3.ReadJson
-    format: json
   validate_json:
     op: io.kroxylicious.op.jackson3.Validate
     yamlSchema: |
@@ -35,7 +19,6 @@ where:
     jsonata: $sum(c)
   write_json:
     op: io.kroxylicious.op.jackson3.WriteJson
-    format: yaml
 
   read_avro:
     op: io.kroxylicious.op.avro.ReadAvro

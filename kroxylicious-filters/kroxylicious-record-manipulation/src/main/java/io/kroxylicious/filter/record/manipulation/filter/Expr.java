@@ -9,8 +9,6 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import tools.jackson.databind.JsonNode;
-
 /**
  * Data mapping type representing an expression in the expression language.
  * The expression is parsed after Jackson deserialization.

@@ -42,10 +42,10 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 @Plugin(configType = Void.class)
 public class WriteAvro implements OpFactory<AvroValue, ByteBuffer> {
 
-
     private static final String FORMAT_PARAMETER = "format";
     private static final String FORMAT_VALUE_BINARY = "binary";
     private static final String FORMAT_VALUE_JSON = "json";
+
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = FORMAT_PARAMETER, defaultImpl = BinaryWriterConfig.class)
     @JsonSubTypes({
             @JsonSubTypes.Type(value = BinaryWriterConfig.class, name = FORMAT_VALUE_BINARY),
@@ -55,14 +55,14 @@ public class WriteAvro implements OpFactory<AvroValue, ByteBuffer> {
 
         Serializer<Object> createSerializer(Schema schema);
 
-        //@Nullable
-        //String type(); // TODO Generic vs Specific
+        // @Nullable
+        // String type(); // TODO Generic vs Specific
 
     }
 
     @JsonTypeName("binary")
     public record BinaryWriterConfig(
-            @Nullable String type)
+                                     @Nullable String type)
             implements WriterConfig {
 
         @Override
@@ -73,7 +73,7 @@ public class WriteAvro implements OpFactory<AvroValue, ByteBuffer> {
 
     @JsonTypeName("json")
     public record JsonWriterConfig(
-            @Nullable String type)
+                                   @Nullable String type)
             implements WriterConfig {
 
         @Override
@@ -81,7 +81,6 @@ public class WriteAvro implements OpFactory<AvroValue, ByteBuffer> {
             return new AvroJsonSerializer(schema);
         }
     }
-
 
     @Override
     public BaseTypedOp<AvroValue, ByteBuffer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {

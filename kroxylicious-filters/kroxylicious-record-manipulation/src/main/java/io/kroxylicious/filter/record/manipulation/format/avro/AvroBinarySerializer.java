@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;

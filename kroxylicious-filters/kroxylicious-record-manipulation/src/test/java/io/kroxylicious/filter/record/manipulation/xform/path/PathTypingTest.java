@@ -21,7 +21,11 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TypeEvaluatorTest {
+/**
+ * Exercises {@link TypeCheckingVisitor#typeOfPath} against the {@link JsonSchemaTypeSystem}, verifying that path
+ * typing remains type-system-agnostic now that it is built into the visitor rather than a standalone evaluator.
+ */
+class PathTypingTest {
 
     public static final JsonSchemaTypeSystem JSON_SCHEMA_TYPE_SYSTEM = new JsonSchemaTypeSystem(new JsonNodeFactory());
     public static YAMLMapper yamlMapper;
@@ -36,6 +40,10 @@ class TypeEvaluatorTest {
         yamlMapper = null;
     }
 
+    private static Type typeOf(Ast.Path<JsonNode> path, JsonNode schema) {
+        return TypeCheckingVisitor.typeOfPath(path, SchemaType.of(JSON_SCHEMA_TYPE_SYSTEM, schema));
+    }
+
     @Test
     void evaluateObjectPropertiesOpen() {
         var schema = yamlMapper.readTree("""
@@ -44,9 +52,8 @@ class TypeEvaluatorTest {
                   foo:
                     type: integer
                 """);
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type foo = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("foo")), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("foo")), null), schema);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema);
         assertThat(foo).isEqualTo(NumericIntNode.class);
         assertThat(bar).isEqualTo(JsonNode.class);
     }
@@ -60,9 +67,8 @@ class TypeEvaluatorTest {
                     type: integer
                 additionalProperties: false
                 """);
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type foo = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("foo")), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("foo")), null), schema);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema);
         assertThat(foo).isEqualTo(NumericIntNode.class);
         assertThat(bar).isEqualTo(MissingNode.class);
     }
@@ -77,8 +83,7 @@ class TypeEvaluatorTest {
                 additionalProperties:
                   type: string
                 """);
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema);
         assertThat(bar).isEqualTo(StringNode.class);
     }
 
@@ -88,9 +93,8 @@ class TypeEvaluatorTest {
                 type: array
                 items:
                   type: integer""");
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type foo = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema);
         assertThat(foo).isEqualTo(NumericIntNode.class);
         assertThat(bar).isEqualTo(NumericIntNode.class);
     }
@@ -103,9 +107,8 @@ class TypeEvaluatorTest {
                   - type: string
                 items:
                   type: integer""");
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type foo = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema);
         assertThat(foo).isEqualTo(StringNode.class);
         assertThat(bar).isEqualTo(NumericIntNode.class);
     }
@@ -118,9 +121,8 @@ class TypeEvaluatorTest {
                 prefixItems:
                   - type: string
                 items: false""");
-        TypeEvaluator<JsonNode, JsonNode> te = new TypeEvaluator<>();
-        Type foo = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
-        Type bar = te.type(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema, JSON_SCHEMA_TYPE_SYSTEM);
+        Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema);
+        Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema);
         assertThat(foo).isEqualTo(StringNode.class);
         assertThat(bar).isEqualTo(MissingNode.class);
     }

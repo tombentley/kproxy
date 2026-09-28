@@ -38,6 +38,7 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
     private static final String FORMAT_PARAMETER = "format";
     private static final String FORMAT_VALUE_BINARY = "binary";
     private static final String FORMAT_VALUE_JSON = "json";
+
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = FORMAT_PARAMETER, defaultImpl = BinaryReaderConfig.class)
     @JsonSubTypes({
             @JsonSubTypes.Type(value = BinaryReaderConfig.class, name = FORMAT_VALUE_BINARY),
@@ -49,15 +50,15 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
 
         Deserializer createDeserializer(Schema schema);
 
-        //@Nullable
-        //String type(); // TODO Generic vs Specific
+        // @Nullable
+        // String type(); // TODO Generic vs Specific
 
     }
 
     @JsonTypeName("binary")
     public record BinaryReaderConfig(
-            String schema,
-            @Nullable String type)
+                                     String schema,
+                                     @Nullable String type)
             implements ReaderConfig {
 
         @Override
@@ -68,8 +69,8 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
 
     @JsonTypeName("json")
     public record JsonReaderConfig(
-            String schema,
-            @Nullable String type)
+                                   String schema,
+                                   @Nullable String type)
             implements ReaderConfig {
 
         @Override
@@ -77,7 +78,6 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
             return new AvroJsonDeserializer(schema);
         }
     }
-
 
     @Override
     public BaseTypedOp<ByteBuffer, AvroValue> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
@@ -91,7 +91,6 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
         var parsedSchema = new Schema.Parser().parse(readerConfig.schema());
         Deserializer deserializer = readerConfig.createDeserializer(parsedSchema);
 
-        return BaseTypedOp.of(ByteBuffer.class, AvroValue.class, (value, opContext) ->
-                new AvroValue(deserializer.deserialize(value), parsedSchema));
+        return BaseTypedOp.of(ByteBuffer.class, AvroValue.class, (value, opContext) -> new AvroValue(deserializer.deserialize(value), parsedSchema));
     }
 }

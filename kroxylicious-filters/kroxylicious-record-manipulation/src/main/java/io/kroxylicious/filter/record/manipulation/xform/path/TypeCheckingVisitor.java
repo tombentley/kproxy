@@ -7,8 +7,8 @@
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -16,19 +16,26 @@ import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 class TypeCheckingVisitor implements Ast.AstVisitor {
-    private final Map<String, BaseTypedOp<?, ?>> ops;
     private final List<String> errors;
     public final String propertyName;
     public final Type requiredType;
+    private final SchemaType<?> rootType;
     private String expressionText;
 
     TypeCheckingVisitor(String propertyName,
                         Type requiredType,
-                        Map<String, BaseTypedOp<?, ?>> ops, List<String> errors) {
+                        List<String> errors) {
+        this(propertyName, requiredType, errors, SchemaType.of(new KafkaRecordTypeSystem(), Record.class));
+    }
+
+    TypeCheckingVisitor(String propertyName,
+                        Type requiredType,
+                        List<String> errors,
+                        SchemaType<?> rootType) {
         this.propertyName = propertyName;
         this.requiredType = requiredType;
-        this.ops = ops;
         this.errors = errors;
+        this.rootType = rootType;
     }
 
     @Override
@@ -46,35 +53,35 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
     }
 
     @Override
-    public void visitBool(Ast.Bool ctx) {
-        ctx.setType(Boolean.TYPE);
+    public void visitBool(Ast.Bool literalVal) {
+        literalVal.setType(Boolean.TYPE);
     }
 
     @Override
-    public void visitStr(Ast.Str ctx) {
-        ctx.setType(String.class);
+    public void visitStr(Ast.Str literalVal) {
+        literalVal.setType(String.class);
     }
 
     @Override
-    public void visitNum(Ast.Num ctx) {
-        ctx.setType(Double.TYPE);
+    public void visitNum(Ast.Num literalVal) {
+        literalVal.setType(Double.TYPE);
     }
 
     @Override
-    public void visitInt(Ast.Int ctx) {
-        ctx.setType(Long.TYPE);
+    public void visitInt(Ast.Int literalVal) {
+        literalVal.setType(Long.TYPE);
     }
 
     @Override
-    public void visitNull(Ast.Null ctx) {
-        ctx.setType(Void.class);
+    public void visitNull(Ast.Null literalVal) {
+        literalVal.setType(Void.class);
     }
 
     @Override
     public void visitFunctionExpr(Ast.FnCall ctx) {
         // look up the function
         String functionName = ctx.fnName();
-        BaseTypedOp<?, ?> op = ops.get(functionName);
+        BaseTypedOp<?, ?> op = ctx.decl();
         // type it
         ctx.args().forEach(arg -> arg.accept(this));
         Type argType = ctx.args().getFirst().type();
@@ -87,6 +94,9 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     @Override
     public void visitBinaryOp(Ast.BinaryOp op) {
+        // The jsonpath semantics are defined https://www.rfc-editor.org/info/rfc9535/#name-comparisons
+        // and are constructed so that evaluation doesn't need to throw if the types are not compatible
+        // which avoids error handling, but it's possible for x < y and y < x to both be false
         op.left().accept(this);
         op.right().accept(this);
         op.setType(Boolean.TYPE);
@@ -111,9 +121,86 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     @Override
     public <N> void visitPath(Ast.Path<N> path) {
-        Ast.AstVisitor.super.visitPath(path);
-        Type type = new TypeEvaluator<N, Type>().type(path, Record.class, new KafkaRecordTypeSystem());
-        path.setType(type);
+        path.setType(typeOfPath(path, rootType));
+    }
+
+    /**
+     * The {@link Type} which evaluating {@code path} would yield, starting from the given {@code root} type context.
+     * "Bolted-on" no longer: this replaces the former standalone {@code TypeEvaluator} and drives the traversal via
+     * {@link SchemaType}, so it works with any {@link TypeSystem} (the root the visitor threads, or a JSON/Avro schema
+     * supplied directly).
+     */
+    static Type typeOfPath(Ast.Path<?> path, SchemaType<?> root) {
+        return typeFrom(path.segments(), 0, root);
+    }
+
+    private static <S> Type typeFrom(List<? extends Ast.Segment<?>> segments, int index, SchemaType<S> current) {
+        if (index >= segments.size()) {
+            return current.javaType();
+        }
+        Ast.Segment<?> segment = segments.get(index);
+        if (segment instanceof Ast.Segment.Child<?> child) {
+            List<Type> types = new ArrayList<>();
+            for (Ast.Selector<?> selector : child.selectors()) {
+                collectSelectorTypes(types, segments, index + 1, selector, current);
+            }
+            return Union.of(types);
+        }
+        else if (segment instanceof Ast.Segment.Descendant<?>) {
+            // In theory, we could explore the types reachable from the current type
+            // and compute the union. In practice, it seems likely that this would often result in the top type
+            // anyway, so let's return that always, for now at least.
+            return current.topType();
+        }
+        else {
+            throw new IllegalStateException("Unexpected segment type: " + segment);
+        }
+    }
+
+    private static <S> void collectSelectorTypes(List<Type> types,
+                                                 List<? extends Ast.Segment<?>> segments,
+                                                 int nextIndex,
+                                                 Ast.Selector<?> selector,
+                                                 SchemaType<S> current) {
+        if (selector instanceof Ast.Selector.Name<?> nameSelector) {
+            if (current.isObject()) {
+                types.add(typeFrom(segments, nextIndex, current.property(nameSelector.name())));
+            }
+            // TODO union type which admits object
+        }
+        else if (selector instanceof Ast.Selector.Index<?> indexed) {
+            if (current.isArray()) {
+                types.add(typeFrom(segments, nextIndex, current.item(indexed.index())));
+            }
+            // TODO union type which admits array
+        }
+        else if (selector instanceof Ast.Selector.Slice<?> sliced) {
+            if (current.isArray()) {
+                // TODO compute the union type over the slice's indexes
+                types.add(typeFrom(segments, nextIndex, current.item(sliced.start())));
+            }
+            // TODO union type which admits array
+        }
+        else if (selector instanceof Ast.Selector.Children<?>) {
+            if (current.isObject()) {
+                for (String property : current.propertyNames()) {
+                    types.add(typeFrom(segments, nextIndex, current.property(property)));
+                }
+                if (current.isObjectOpen()) {
+                    types.add(typeFrom(segments, nextIndex, current.anyProperty()));
+                }
+            }
+            else if (current.isArray()) {
+                for (int itemIndex : current.itemIndexes()) {
+                    types.add(typeFrom(segments, nextIndex, current.item(itemIndex)));
+                }
+                if (current.isArrayOpen()) {
+                    types.add(typeFrom(segments, nextIndex, current.anyItem()));
+                }
+            }
+            // TODO union type which admits object/array
+        }
+        // TODO Ast.Selector.FilterFilter: assume the predicate matches; we also need to type check the predicate!
     }
 
     private void checkAssignable(Type paramType,

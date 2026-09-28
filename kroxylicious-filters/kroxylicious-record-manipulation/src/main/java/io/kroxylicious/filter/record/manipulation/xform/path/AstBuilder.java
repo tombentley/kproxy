@@ -185,13 +185,30 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
     }
 
     @Override
+    public Ast visitFilterSelector(ExprParser.FilterSelectorContext ctx) {
+        var filt = visit(ctx.logicalExpr());
+        // TODO I can't currently implement filter property, because
+        // (unlike the other selectors) is not take a literal. It should take an Ast
+        // but currently accepts a predicate. Fixing that will require that path evaluation is
+        // moved out of PathEvaluator and into the HandlerBuilder doodah
+        // Ast.Selector.Filter
+        return new Ast.Selector.FilterFilter<>(null);
+    }
+
+    @Override
     public Ast visitLogicalOrExpr(ExprParser.LogicalOrExprContext ctx) {
+        if (ctx.logicalAndExpr().size() == 1) {
+            return visit(ctx.logicalAndExpr().getFirst());
+        }
         return new Ast.Disjunction(
                 ctx.logicalAndExpr().stream().map(this::visit).toList()).setTree(ctx);
     }
 
     @Override
     public Ast visitLogicalAndExpr(ExprParser.LogicalAndExprContext ctx) {
+        if (ctx.basicExpr().size() == 1) {
+            return visit(ctx.basicExpr().getFirst());
+        }
         return new Ast.Conjunction(
                 ctx.basicExpr().stream().map(this::visit).toList()).setTree(ctx);
     }
@@ -226,4 +243,5 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
         var functionName = ctx.functionName().getText();
         return new Ast.FnCall(functionName, ctx.functionArgument().stream().map(this::visit).map(Ast.class::cast).toList()).setTree(ctx);
     }
+
 }

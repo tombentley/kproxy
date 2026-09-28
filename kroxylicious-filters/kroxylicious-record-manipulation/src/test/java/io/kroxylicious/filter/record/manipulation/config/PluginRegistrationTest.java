@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.ops.common.HmacString;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseBigInteger;
@@ -19,6 +18,7 @@ import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseFloat;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseInt;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseLong;
 import io.kroxylicious.filter.record.manipulation.ops.choose.ChooseString;
+import io.kroxylicious.filter.record.manipulation.ops.common.HmacString;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueBigInteger;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueBoolean;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueBytes;
