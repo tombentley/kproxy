@@ -8,7 +8,6 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,13 +26,6 @@ class PathEvaluatorTest {
 
     // RFC 9535 §2.3.4.3 example document.
     private static final JsonNode LETTERS = read("[\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\"]");
-
-    // RFC 9535 §2.3.5.3 example document (filter selector).
-    private static final JsonNode FILTER_DOC = read("""
-            { "a": [3, 5, 1, 2, 4, 6, {"b": "j"}, {"b": "k"}, {"b": {}}, {"b": "kilo"}],
-              "o": {"p": 1, "q": 2, "r": 3, "s": 5, "t": {"u": 6}},
-              "e": "f" }
-            """);
 
     private static JsonNode read(String json) {
         try {
@@ -226,82 +218,8 @@ class PathEvaluatorTest {
                 .containsExactly("Nigel Rees", "Evelyn Waugh");
     }
 
-    @Test
-    void childFilterSelectsArrayElementsSatisfyingPredicate() {
-        // When: $.store.book[?@.price < 10]
-        var cheap = eval(
-                new Ast.Segment.Child<>(new Ast.Selector.Name<>("store")),
-                new Ast.Segment.Child<>(new Ast.Selector.Name<>("book")),
-                new Ast.Segment.Child<>(new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> node.path("price").asDouble() < 10)));
-
-        // Then
-        assertThat(cheap).map(book -> book.get("title").asText())
-                .containsExactly("Sayings of the Century", "Moby Dick");
-    }
-
-    @Test
-    void childFilterExistenceTestSelectsMembers() {
-        // When: $..book[?@.isbn]
-        var withIsbn = eval(
-                new Ast.Segment.Descendant<>(new Ast.Selector.Name<>("book")),
-                new Ast.Segment.Child<>(new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> node.has("isbn"))));
-
-        // Then
-        assertThat(withIsbn).map(book -> book.get("title").asText())
-                .containsExactly("Moby Dick", "The Lord of the Rings");
-    }
-
-    @Test
-    void filterSelectsObjectMemberValues() {
-        // When: $.store[?@.price] — of store's members, only the bicycle has a price
-        var priced = eval(
-                new Ast.Segment.Child<>(new Ast.Selector.Name<>("store")),
-                new Ast.Segment.Child<>(new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> node.has("price"))));
-
-        // Then
-        assertThat(priced).map(node -> node.get("color").asText()).containsExactly("red");
-    }
-
-    @Test
-    void descendantFilterMatchesAtAnyDepth() {
-        // When: $..[?@.price < 10]
-        var cheap = eval(new Ast.Segment.Descendant<>(
-                new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> node.has("price") && node.get("price").asDouble() < 10)));
-
-        // Then
-        assertThat(cheap).map(book -> book.get("title").asText())
-                .containsExactly("Sayings of the Century", "Moby Dick");
-    }
-
-    @Test
-    void filterCanReferenceRoot() {
-        // When: $.a[?@.b == $.x] — $.x is absent, so it matches elements whose 'b' is also absent (RFC 9535 §2.3.5.3)
-        var matched = evalOn(FILTER_DOC,
-                new Ast.Segment.Child<>(new Ast.Selector.Name<>("a")),
-                new Ast.Segment.Child<>(new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> Objects.equals(node.get("b"), root.get("x")))));
-
-        // Then
-        assertThat(matched).map(JsonNode::asInt).containsExactly(3, 5, 1, 2, 4, 6);
-    }
-
-    @Test
-    void filterCanInitiateNestedTraversalFromRoot() {
-        // When: $.a[?@ == $.o.p] where '$.o.p' is resolved by a nested traversal from the root
-        var matched = evalOn(FILTER_DOC,
-                new Ast.Segment.Child<>(new Ast.Selector.Name<>("a")),
-                new Ast.Segment.Child<>(new Ast.Selector.FilterFilter<>((JsonNode node, JsonNode root) -> node.equals(queryOne(root,
-                        new Ast.Segment.Child<>(new Ast.Selector.Name<>("o")),
-                        new Ast.Segment.Child<>(new Ast.Selector.Name<>("p")))))));
-
-        // Then
-        assertThat(matched).map(JsonNode::asInt).containsExactly(1);
-    }
-
-    /** Runs a nested query against {@code node}, returning its single result (or {@code null} if there is none). */
-    private static JsonNode queryOne(JsonNode node, Ast.Segment<JsonNode>... segments) {
-        var results = new ArrayList<JsonNode>();
-        new PathEvaluator<>(new Jackson2Tree()).eval(node, List.of(new Ast.Path<>(Identifier.ROOT, List.of(segments), results::add)));
-        return results.isEmpty() ? null : results.getFirst();
-    }
+    // Filter selectors ('?<expr>') are parsed and type-checked (see AstBuilderTest / CheckTest / TypeCheckingVisitorTest)
+    // but their runtime evaluation is not yet implemented (PathEvaluator throws UnsupportedOperationException), so
+    // there are no runtime filter tests here yet.
 
 }

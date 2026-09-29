@@ -18,6 +18,8 @@ import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 import io.kroxylicious.filter.record.manipulation.type.Union;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 class TypeCheckingVisitor implements Ast.AstVisitor {
     private final List<String> errors;
     public final String propertyName;
@@ -29,6 +31,11 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
      * deserializer/validator). Paths are typed against this context.
      */
     private SchemaType<?> activeType;
+    /**
+     * The type context bound to {@code @} while type-checking a filter body (the candidate element being
+     * filtered); {@code null} outside a filter. {@code $}-rooted paths continue to use {@link #activeType}.
+     */
+    private @Nullable SchemaType<?> currentNodeType;
     private String expressionText;
 
     TypeCheckingVisitor(String propertyName,
@@ -148,20 +155,23 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     @Override
     public <N> void visitPath(Ast.Path<N> path) {
-        path.setType(typeOfPath(path, activeType));
+        // `$` types against the threaded active context; `@` (only ever inside a filter body) against the candidate element.
+        SchemaType<?> base = path.identifier() == Identifier.CURRENT && currentNodeType != null ? currentNodeType : activeType;
+        path.setType(typeFrom(path.segments(), 0, base));
     }
 
     /**
      * The {@link Type} which evaluating {@code path} would yield, starting from the given {@code root} type context.
      * "Bolted-on" no longer: this replaces the former standalone {@code TypeEvaluator} and drives the traversal via
      * {@link SchemaType}, so it works with any {@link TypeSystem} (the root the visitor threads, or a JSON/Avro schema
-     * supplied directly).
+     * supplied directly). The traversal is now instance-based (it type-checks filter bodies against the visitor's
+     * error list and root), so this static entry point drives it through a throwaway visitor.
      */
     static Type typeOfPath(Ast.Path<?> path, SchemaType<?> root) {
-        return typeFrom(path.segments(), 0, root);
+        return new TypeCheckingVisitor("", Object.class, new ArrayList<>()).typeFrom(path.segments(), 0, root);
     }
 
-    private static <S> Type typeFrom(List<? extends Ast.Segment<?>> segments, int index, SchemaType<S> current) {
+    private <S> Type typeFrom(List<? extends Ast.Segment<?>> segments, int index, SchemaType<S> current) {
         if (index >= segments.size()) {
             return current.javaType();
         }
@@ -184,11 +194,11 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
         }
     }
 
-    private static <S> void collectSelectorTypes(List<Type> types,
-                                                 List<? extends Ast.Segment<?>> segments,
-                                                 int nextIndex,
-                                                 Ast.Selector<?> selector,
-                                                 SchemaType<S> current) {
+    private <S> void collectSelectorTypes(List<Type> types,
+                                          List<? extends Ast.Segment<?>> segments,
+                                          int nextIndex,
+                                          Ast.Selector<?> selector,
+                                          SchemaType<S> current) {
         if (selector instanceof Ast.Selector.Name<?> nameSelector) {
             if (current.isObject()) {
                 types.add(typeFrom(segments, nextIndex, current.property(nameSelector.name())));
@@ -209,25 +219,61 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
             // TODO union type which admits array
         }
         else if (selector instanceof Ast.Selector.Children<?>) {
-            if (current.isObject()) {
-                for (String property : current.propertyNames()) {
-                    types.add(typeFrom(segments, nextIndex, current.property(property)));
-                }
-                if (current.isObjectOpen()) {
-                    types.add(typeFrom(segments, nextIndex, current.anyProperty()));
-                }
-            }
-            else if (current.isArray()) {
-                for (int itemIndex : current.itemIndexes()) {
-                    types.add(typeFrom(segments, nextIndex, current.item(itemIndex)));
-                }
-                if (current.isArrayOpen()) {
-                    types.add(typeFrom(segments, nextIndex, current.anyItem()));
-                }
-            }
-            // TODO union type which admits object/array
+            collectChildrenTypes(types, segments, nextIndex, current);
         }
-        // TODO Ast.Selector.FilterFilter: assume the predicate matches; we also need to type check the predicate!
+        else if (selector instanceof Ast.Selector.FilterFilter<?> filter) {
+            // A filter selects a subset of the same members/items, so its type contribution is that of a wildcard...
+            collectChildrenTypes(types, segments, nextIndex, current);
+            // ...and additionally the predicate is type-checked with `@` bound to the candidate element type.
+            typeCheckFilter(filter, current);
+        }
+    }
+
+    /** The types reachable by selecting every member value (objects) or item (arrays) of {@code current}. */
+    private <S> void collectChildrenTypes(List<Type> types,
+                                          List<? extends Ast.Segment<?>> segments,
+                                          int nextIndex,
+                                          SchemaType<S> current) {
+        if (current.isObject()) {
+            for (String property : current.propertyNames()) {
+                types.add(typeFrom(segments, nextIndex, current.property(property)));
+            }
+            if (current.isObjectOpen()) {
+                types.add(typeFrom(segments, nextIndex, current.anyProperty()));
+            }
+        }
+        else if (current.isArray()) {
+            for (int itemIndex : current.itemIndexes()) {
+                types.add(typeFrom(segments, nextIndex, current.item(itemIndex)));
+            }
+            if (current.isArrayOpen()) {
+                types.add(typeFrom(segments, nextIndex, current.anyItem()));
+            }
+        }
+        // TODO union type which admits object/array
+    }
+
+    /**
+     * Type-checks a filter's predicate against the element being filtered: {@code @} is bound to that element's
+     * type for the duration, while {@code $} continues to resolve against the record root. The grammar already
+     * constrains a filter body to a logical shape (existence path, comparison, conjunction or function), so no
+     * "must be boolean" check is imposed here.
+     */
+    private <S> void typeCheckFilter(Ast.Selector.FilterFilter<?> filter, SchemaType<S> current) {
+        // The candidate element: an array's item type, an object's member value, else the value itself.
+        // TODO item(0) represents a homogeneous array's element; heterogeneous tuples and union/scalar contexts
+        // type `@` navigation only approximately.
+        SchemaType<S> element = current.isArray() ? current.item(0)
+                : current.isObject() ? current.anyProperty()
+                        : current;
+        SchemaType<?> previous = currentNodeType;
+        currentNodeType = element;
+        try {
+            filter.expression().accept(this);
+        }
+        finally {
+            currentNodeType = previous;
+        }
     }
 
     private void checkAssignable(Type paramType,

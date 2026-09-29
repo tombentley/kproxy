@@ -18,6 +18,7 @@ import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.NumericIntNode;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.StringNode;
 import tools.jackson.dataformat.yaml.YAMLMapper;
@@ -78,5 +79,41 @@ class TypeCheckingVisitorTest {
         // Then
         assertThat(call.type()).isEqualTo(Long.class);
         assertThat(visitor.activeType().isObject()).isTrue();
+    }
+
+    private static final JsonNode FILTER_SCHEMA = new YAMLMapper().readTree("""
+            type: object
+            properties:
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    price:
+                      type: integer
+              threshold:
+                type: integer
+            """);
+
+    @Test
+    void filterBodyTypesCurrentAgainstElementAndRootAgainstDocument() {
+        // Given: $.items[?@.price == $.threshold]
+        var atPrice = new Ast.Path<>(Identifier.CURRENT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("price")), null);
+        var dollarThreshold = new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("threshold")), null);
+        var filter = new Ast.Selector.FilterFilter<>(new Ast.BinaryOp(atPrice, Ast.BinOp.EQ, dollarThreshold));
+        var path = new Ast.Path<>(Identifier.ROOT, List.of(
+                new Ast.Segment.Child<>(new Ast.Selector.Name<>("items")),
+                new Ast.Segment.Child<>(List.of(filter))), null);
+        var errors = new ArrayList<String>();
+        var visitor = new TypeCheckingVisitor("value", Object.class, errors,
+                SchemaType.of(new JsonSchemaTypeSystem(new JsonNodeFactory()), FILTER_SCHEMA));
+
+        // When
+        path.accept(visitor);
+
+        // Then
+        assertThat(errors).isEmpty();
+        assertThat(atPrice.type()).isEqualTo(NumericIntNode.class); // `@` bound to the filtered array element
+        assertThat(dollarThreshold.type()).isEqualTo(NumericIntNode.class); // `$` bound to the document root
     }
 }

@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.kroxylicious.filter.record.manipulation.expr.ExprBaseVisitor;
@@ -23,8 +24,23 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
     public Ast visitJsonpathQuery(ExprParser.JsonpathQueryContext ctx) {
-        List<Ast> list = ctx.segments().segment().stream().map(s -> s.accept(this)).toList();
-        return new Ast.Path(Identifier.ROOT, list, null).setTree(ctx);
+        return buildPath(Identifier.ROOT, ctx.segments()).setTree(ctx);
+    }
+
+    /**
+     * The relative query {@code @<segments>} used inside a filter selector; identical to an absolute
+     * {@link #visitJsonpathQuery(ExprParser.JsonpathQueryContext) jsonpath query} but rooted at the filter's
+     * current node ({@link Identifier#CURRENT}) rather than the document root.
+     */
+    @Override
+    public Ast visitRelQuery(ExprParser.RelQueryContext ctx) {
+        return buildPath(Identifier.CURRENT, ctx.segments()).setTree(ctx);
+    }
+
+    /** Builds an {@link Ast.Path} rooted at {@code identifier} from a {@code segments} parse subtree. */
+    private Ast buildPath(Identifier identifier, ExprParser.SegmentsContext segments) {
+        List<Ast> list = segments.segment().stream().map(s -> s.accept(this)).toList();
+        return new Ast.Path(identifier, list, null);
     }
 
     @Override
@@ -186,13 +202,60 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
     public Ast visitFilterSelector(ExprParser.FilterSelectorContext ctx) {
-        var filt = visit(ctx.logicalExpr());
-        // TODO I can't currently implement filter property, because
-        // (unlike the other selectors) is not take a literal. It should take an Ast
-        // but currently accepts a predicate. Fixing that will require that path evaluation is
-        // moved out of PathEvaluator and into the HandlerBuilder doodah
-        // Ast.Selector.Filter
-        return new Ast.Selector.FilterFilter<>(null);
+        return new Ast.Selector.FilterFilter<>(visit(ctx.logicalExpr())).setTree(ctx);
+    }
+
+    /**
+     * A test expression inside a filter: an existence {@code filterQuery} or a {@code functionExpr}, optionally
+     * negated. The pass-through (non-negated) case is left to the default single-child aggregation.
+     */
+    @Override
+    public Ast visitTestExpr(ExprParser.TestExprContext ctx) {
+        Ast inner = ctx.filterQuery() != null ? visit(ctx.filterQuery()) : visit(ctx.functionExpr());
+        if (ctx.logicalNotOp() != null) {
+            return new Ast.Not(inner).setTree(ctx);
+        }
+        return inner;
+    }
+
+    // A singular query (used as a comparison operand) navigates a single value via name/index segments only.
+
+    @Override
+    public Ast visitRelSingularQuery(ExprParser.RelSingularQueryContext ctx) {
+        return buildSingularPath(Identifier.CURRENT, ctx.singularQuerySegments()).setTree(ctx);
+    }
+
+    @Override
+    public Ast visitAbsSingularQuery(ExprParser.AbsSingularQueryContext ctx) {
+        return buildSingularPath(Identifier.ROOT, ctx.singularQuerySegments()).setTree(ctx);
+    }
+
+    /** Builds an {@link Ast.Path} from {@code singularQuerySegments}, preserving the interleaved name/index order. */
+    private Ast buildSingularPath(Identifier identifier, ExprParser.SingularQuerySegmentsContext ctx) {
+        List<Ast> segments = new ArrayList<>();
+        if (ctx.children != null) {
+            for (var child : ctx.children) {
+                if (child instanceof ExprParser.NameSegmentContext || child instanceof ExprParser.IndexSegmentContext) {
+                    segments.add(visit(child));
+                }
+            }
+        }
+        return new Ast.Path(identifier, segments, null);
+    }
+
+    @Override
+    public Ast visitNameSegment(ExprParser.NameSegmentContext ctx) {
+        Ast.Selector.Name<Object> name = ctx.nameSelector() != null
+                ? new Ast.Selector.Name<>(unescape(ctx.nameSelector().getText()))
+                : new Ast.Selector.Name<>(ctx.memberNameShorthand().getText());
+        return new Ast.Segment.Child<>(List.of(name)).setTree(ctx);
+    }
+
+    @Override
+    public Ast visitIndexSegment(ExprParser.IndexSegmentContext ctx) {
+        Ast.Int idx = (Ast.Int) visit(ctx.indexSelector().intLiteral());
+        Ast.Selector.Index<Object> index = new Ast.Selector.Index<>(Math.toIntExact(idx.value()));
+        return new Ast.Segment.Child<>(List.of(index)).setTree(ctx);
     }
 
     @Override

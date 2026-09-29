@@ -122,7 +122,15 @@ class CheckTest {
                                     type: java.lang.Object
                                     format: json
                                 """,
-                        "Property 'headers' with expression `write_json('')`: Expression type is not assignable to io.kroxylicious.kafka.common.header.Header[]: Expression type is java.nio.ByteBuffer"));
+                        "Property 'headers' with expression `write_json('')`: Expression type is not assignable to io.kroxylicious.kafka.common.header.Header[]: Expression type is java.nio.ByteBuffer"),
+                scenario("Filter body references an undefined function",
+                        """
+                                key: $.key
+                                value: $.value
+                                timestamp: $.timestamp
+                                headers: $.headers[?bogus(@)] # <--- the filter uses a function not defined in 'where'
+                                """,
+                        "references an undefined function 'bogus'"));
     }
 
     @ParameterizedTest

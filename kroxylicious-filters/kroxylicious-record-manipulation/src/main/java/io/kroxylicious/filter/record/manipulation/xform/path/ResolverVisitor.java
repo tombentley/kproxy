@@ -39,6 +39,8 @@ class ResolverVisitor implements Ast.AstVisitor {
 
     @Override
     public <N> void visitPath(Ast.Path<N> path) {
+        // Default traversal descends into segments and (via visitFilter) into any filter selector's
+        // sub-expression, so function calls used inside filters (e.g. `[?f(@)]`) are resolved here too.
         Ast.AstVisitor.super.visitPath(path);
     }
 

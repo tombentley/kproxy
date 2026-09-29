@@ -8,7 +8,6 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -97,6 +96,14 @@ public abstract class Ast {
         }
 
         default <N> void visitSelector(Selector<N> selector) {
+        }
+
+        /**
+         * Visits a filter selector ({@code ?<expr>}), descending into its sub-expression by default. This is the
+         * hook by which visitors reach (and so resolve/type-check) the filter's {@link Selector.FilterFilter#expression() expression}.
+         */
+        default <N> void visitFilter(Selector.FilterFilter<N> filter) {
+            filter.expression().accept(this);
         }
 
         default <N> void visitSegment(Segment<N> segment) {
@@ -442,27 +449,31 @@ public abstract class Ast {
             }
         }
 
-        /** A filter selector {@code ?<expr>}; the predicate is applied to the candidate node ({@code @}) and the document root ({@code $}). */
+        /**
+         * A filter selector {@code ?<expr>}. The {@link #expression() expression} is the parsed logical
+         * sub-tree; within it a {@code @}-rooted {@link Path} refers to the candidate node and a {@code $}-rooted
+         * one to the document root (RFC 9535 §2.3.5).
+         */
         static final class FilterFilter<N> extends Selector<N> {
-            private final BiPredicate<N, N> predicate;
+            private final Ast expression;
 
-            /**
-             */
-            public FilterFilter(BiPredicate<N, N> predicate) {
-                this.predicate = predicate;
+            FilterFilter(Ast expression) {
+                this.expression = expression;
             }
 
-            boolean matches(N node, N root) {
-                return predicate.test(node, root);
+            /** The parsed logical expression that a candidate node must satisfy to be selected. */
+            Ast expression() {
+                return expression;
+            }
+
+            @Override
+            public void accept(AstVisitor visitor) {
+                visitor.visitFilter(this);
             }
 
             @Override
             public String toString() {
-                return "?" + predicate;
-            }
-
-            public BiPredicate<N, N> predicate() {
-                return predicate;
+                return "?" + expression;
             }
         }
 
