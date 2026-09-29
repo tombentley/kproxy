@@ -41,6 +41,9 @@ class EvalCompiler<N> {
 
     /** Compiles {@code ast} to a value-producing evaluator. */
     Eval<N> compileValue(Ast ast) {
+        if (ast instanceof Ast.Expr expr) {
+            return compileValue(expr.expr());
+        }
         if (ast instanceof Ast.Int i) {
             Long v = i.value();
             return (ctx, current) -> v;

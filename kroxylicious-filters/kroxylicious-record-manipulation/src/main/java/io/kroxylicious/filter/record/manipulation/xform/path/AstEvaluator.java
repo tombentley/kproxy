@@ -51,6 +51,40 @@ public final class AstEvaluator<N> {
         return new CompiledQuery<>(adapter, compiler.compileNodes(path));
     }
 
+    /**
+     * Compiles a value expression — a whole top-level field expression such as {@code $.value} or
+     * {@code read_json($.value)} — into a reusable evaluator that produces its value against a document root.
+     * @param expression the (resolved, type-checked) expression
+     * @return a compiled value
+     */
+    public CompiledValue<N> compileValue(Ast expression) {
+        return new CompiledValue<>(adapter, compiler.compileValue(expression));
+    }
+
+    /** A compiled value expression; reusable across records and threads. */
+    public static final class CompiledValue<N> {
+
+        private final TreeAdapter<N> adapter;
+        private final Eval<N> eval;
+
+        private CompiledValue(TreeAdapter<N> adapter, Eval<N> eval) {
+            this.adapter = adapter;
+            this.eval = eval;
+        }
+
+        /**
+         * Evaluates the expression against {@code root}.
+         * @param root the document root (bound to {@code $})
+         * @param opContext the context passed to any function invoked by the expression
+         * @return the value: a present domain value, {@link io.kroxylicious.filter.record.manipulation.type.Null#INSTANCE},
+         * or {@link io.kroxylicious.filter.record.manipulation.type.Nothing#INSTANCE}. Callers materialising back to a
+         * nullable domain (e.g. a Kafka key/value) map both unit values to a Java {@code null} at that boundary.
+         */
+        public Object evaluate(N root, OpContext opContext) {
+            return eval.eval(new EvalContext<>(root, adapter, opContext), root);
+        }
+    }
+
     /** A compiled query; reusable across records and threads. */
     public static final class CompiledQuery<N> {
 
