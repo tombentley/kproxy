@@ -151,4 +151,50 @@ reactor-wide, including to upstream modules that don't have a matching test)
   `AvroFunction.buildStructural`'s validation. Protobuf `map` fields and message-level `apply` (as
   opposed to field-level) aren't supported yet either - see `ProtobufFunction`'s validation for both.
 - Javadoc coverage and a handful of pre-existing SpotBugs findings are known debt, not yet
-  addressed.
+  addressed. The module also has pre-existing `maven-dependency-plugin:analyze-only` findings, and
+  two failing `ReadJsonTest` cases (`readYamlAsArrayOfJavaClass`/`readYamlAsListOfJavaClass`) caused
+  by an unrelated `Greeting[]` array-type-name parsing issue.
+
+## Deferred work
+
+### Expression-language evaluator (`xform/path`)
+
+Alongside the op-pipeline above there is a newer, JSONPath-like **expression front-end** in
+[`xform/path`](src/main/java/io/kroxylicious/filter/record/manipulation/xform/path): a grammar
+([`expr/Expr.g4`](src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Expr.g4) +
+[`Path.g4`](src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Path.g4)) parsed into an
+`Ast`, resolved and type-checked (`Check`), and evaluated by `AstEvaluator` over a `TreeAdapter`. It
+is built and tested but runs *alongside*, not inside, the production op-pipeline. Outstanding work:
+
+- **Wire it into the running filter.** `AstEvaluator`/`Check` are not yet used by
+  `RecordManipulationFilter` (which today runs `ComposedOp` op-pipelines). Wiring includes
+  constructing the output `Record` and re-materialising the evaluator's internal `Null`/`Nothing`
+  values to a Java `null` at the Kafka key/value boundary on egress.
+- **Nullable Kafka key/value.** `KafkaRecordTypeSystem` types `key`/`value` as the non-null
+  `ByteBuffer`, but they are really nullable (a tombstone value, an absent key), i.e.
+  `Union.of(ByteBuffer, Null)`. Modelling that honestly needs union-aware assignability in
+  `TypeCheckingVisitor` (`GenericTypeReflector` cannot handle the module's `Union` type) and
+  null-tolerant ops.
+- **Type-checker precision.** The type checker does not yet type a general query as `Seq<X>` or add
+  `Nothing` to optional path types (open-object members, possibly-out-of-range indices); `@`/filters
+  through union element contexts and object-member filtering are typed only approximately. The
+  runtime evaluator already produces the right values — only the static types are loose.
+- **Op-null contract.** A non-optional op must not return `null`; this is not enforced. A `null` op
+  result is defensively mapped to `Nothing` at the `FnCall` evaluation boundary (see `EvalCompiler`).
+- **Bare `{}` schema.** `JsonSchemaTypeSystem` treats a type-less schema as the uninhabited `Bottom`
+  (matching the closed-absent sentinel); a genuine `{}` schema actually admits any value and should
+  be distinguished.
+- **MethodHandle backend (optional, performance).** The evaluator compiles the AST to closures
+  (`Eval`/`BoolEval`/`SeqEval`); a `MethodHandle`-tree backend behind the same interfaces is a future
+  option (`HandleVisitor` is a sketch).
+- **Grammar cleanup.** The top-level `logicalExpr` production name is a JSONPath holdover — a
+  top-level expression yields a value, not a logical test.
+
+### `JsonSchemaValidate` is not a registered plugin
+
+[`ops/jsonschema/networknt/jackson3/JsonSchemaValidate`](src/main/java/io/kroxylicious/filter/record/manipulation/ops/jsonschema/networknt/jackson3/JsonSchemaValidate.java)
+is a complete `OpFactory<JsonNode, JsonNode>` that validates a JSON value against a JSON Schema, but
+it has no `@Plugin` annotation and no entry in
+[`META-INF/services/…OpFactory`](src/main/resources/META-INF/services/io.kroxylicious.filter.record.manipulation.op.OpFactory),
+so it cannot be referenced by name from config. Registering it (annotation + services entry) would
+make it usable as an op.
