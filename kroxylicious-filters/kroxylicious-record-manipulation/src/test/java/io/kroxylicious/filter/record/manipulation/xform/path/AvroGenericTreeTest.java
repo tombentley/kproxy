@@ -6,12 +6,14 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.junit.jupiter.api.Test;
+
+import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,13 +31,20 @@ class AvroGenericTreeTest {
                     }
                     """);
 
+    private static final OpContext OP_CONTEXT = new OpContext(new Random(0), new byte[0]);
+
     @Test
     void canSelectRecordField() {
+        // Given
         GenericData.Record record = new GenericData.Record(SCHEMA);
         record.put("text", "Hello");
-        List<Object> result = new ArrayList<>();
-        new PathEvaluator<>(new AvroGenericTree()).eval(record,
-                new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("text")), result::add));
+
+        // When
+        List<Object> result = new AstEvaluator<>(new AvroGenericTree())
+                .compileQuery(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("text")), null))
+                .evaluate(record, OP_CONTEXT);
+
+        // Then
         assertThat(result).singleElement().isEqualTo("Hello");
     }
 

@@ -8,7 +8,8 @@
  * Provides JSON Path-like functionality over trees of arbitrary types.
  * {@link Ast.Path} is somewhat like the syntax tree of JSON Path.
  * However, the evaluation and type systems are not the same as JSON path.
- * Evaluation via {@link PathEvaluator#eval(Object, List)} supports parallelized evaluation of multiple paths.
+ * {@link AstEvaluator} compiles a resolved, type-checked {@link Ast} into reusable evaluators — queries
+ * ({@link SeqEval}), filter predicates and values — over a {@link TreeAdapter}.
  * {@link TypeSystem} provides a mapping from a foreign type system onto the Java type system via {@link java.lang.reflect.Type},
  * augmented by {@link Union} for representing union types (which Java does not support, but most foreign type systems do).
  * {@link SchemaType} pairs a foreign schema with its {@link TypeSystem} into a single navigable type context.
@@ -19,8 +20,6 @@
 @DefaultAnnotationForParameters(NonNull.class)
 @DefaultAnnotation(NonNull.class)
 package io.kroxylicious.filter.record.manipulation.xform.path;
-
-import java.util.List;
 
 import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 import io.kroxylicious.filter.record.manipulation.type.TypeSystem;

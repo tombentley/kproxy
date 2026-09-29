@@ -192,13 +192,12 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
     public Ast visitSliceSelector(ExprParser.SliceSelectorContext ctx) {
-        Ast.Int start = (Ast.Int) visit(ctx.start());
-        Ast.Int end = (Ast.Int) visit(ctx.end());
-        Ast.Int step = (Ast.Int) visit(ctx.step());
-        return new Ast.Selector.Slice<>(
-                Math.toIntExact(start.value()),
-                Math.toIntExact(end.value()),
-                Math.toIntExact(step.value())).setTree(ctx);
+        // start, end and step are all optional (e.g. `[1:3]`, `[5:]`, `[::2]`); omitted bounds are null and
+        // an omitted step defaults to 1.
+        Integer start = ctx.start() == null ? null : Math.toIntExact(((Ast.Int) visit(ctx.start())).value());
+        Integer end = ctx.end() == null ? null : Math.toIntExact(((Ast.Int) visit(ctx.end())).value());
+        int step = ctx.step() == null ? 1 : Math.toIntExact(((Ast.Int) visit(ctx.step())).value());
+        return new Ast.Selector.Slice<>(start, end, step).setTree(ctx);
     }
 
     @Override

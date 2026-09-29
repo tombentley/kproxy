@@ -7,6 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.type.Nothing;
@@ -15,19 +16,28 @@ import io.kroxylicious.filter.record.manipulation.type.Null;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Compiles a resolved, type-checked {@link Ast} sub-tree into a reusable closure ({@link Eval} /
- * {@link BoolEval}) once, so per-record evaluation is free of node-kind dispatch and reflection.
- * <p>
- * This stage supports the value algebra and the filter-predicate language: literals, singular queries
- * ({@code @.a.b}, {@code $.x}, i.e. name/index segments), comparisons, conjunction/disjunction/negation,
- * existence tests, and function calls. General (multi-node) queries — wildcards, slices, descendants,
- * unions of selectors and filters embedded in a path — are not yet compiled here; those are the province
- * of the forthcoming {@code SeqEval} node-list support and throw {@link UnsupportedOperationException} for
- * now.
+ * Compiles a resolved, type-checked {@link Ast} sub-tree into a reusable closure once, so per-record
+ * evaluation is free of node-kind dispatch and reflection. Produces:
+ * <ul>
+ *   <li>{@link Eval} — a value (literal, singular query, function call);</li>
+ *   <li>{@link BoolEval} — a truth value (comparison, {@code &&}/{@code ||}/{@code !}, existence test,
+ *       boolean function);</li>
+ *   <li>{@link SeqEval} — a node list (a general query, over all selectors and segments).</li>
+ * </ul>
+ * A query is compiled by {@link #compileNodes}; a singular query used as a value takes the sole node (or
+ * {@link Nothing}), and an existence test asks whether the node list is non-empty — both are coercions over
+ * the one node-list engine. Node ordering follows RFC 9535 (per-selector for a union, and the step
+ * direction for a slice, so a negative-step slice is reversed).
  *
  * @param <N> the runtime tree-node type
  */
 class EvalCompiler<N> {
+
+    /** A compiled segment or selector: applies to a single {@code node}, emitting the nodes it selects. */
+    @FunctionalInterface
+    private interface Step<N> {
+        void apply(EvalContext<N> ctx, N node, Consumer<? super N> sink);
+    }
 
     /** Compiles {@code ast} to a value-producing evaluator. */
     Eval<N> compileValue(Ast ast) {
@@ -51,7 +61,7 @@ class EvalCompiler<N> {
             return (ctx, current) -> Null.INSTANCE;
         }
         if (ast instanceof Ast.Path<?> path) {
-            return compilePath(path);
+            return singular(compileNodes(path));
         }
         if (ast instanceof Ast.FnCall fn) {
             return compileFnValue(fn);
@@ -95,8 +105,8 @@ class EvalCompiler<N> {
         }
         if (ast instanceof Ast.Path<?> path) {
             // Existence test: the query selects at least one node.
-            Eval<N> nav = compilePath(path);
-            return (ctx, current) -> nav.eval(ctx, current) != Nothing.INSTANCE;
+            SeqEval<N> nodes = compileNodes(path);
+            return (ctx, current) -> exists(nodes, ctx, current);
         }
         if (ast instanceof Ast.FnCall fn) {
             Eval<N> value = compileFnValue(fn);
@@ -105,62 +115,174 @@ class EvalCompiler<N> {
         throw new UnsupportedOperationException("cannot evaluate as a logical expression: " + ast.getClass().getSimpleName());
     }
 
-    private Eval<N> compilePath(Ast.Path<?> path) {
+    /** Compiles a query into a node-list producer. */
+    SeqEval<N> compileNodes(Ast.Path<?> path) {
         Identifier identifier = path.identifier();
-        List<? extends Ast.Segment<?>> segments = path.segments();
-        return (ctx, current) -> {
-            Object start = identifier == Identifier.ROOT ? ctx.root() : current;
-            return navigate(ctx, start, segments);
+        List<Step<N>> steps = path.segments().stream().map(this::compileSegment).toList();
+        return (ctx, current, sink) -> {
+            N start = identifier == Identifier.ROOT ? ctx.root() : current;
+            run(ctx, steps, 0, start, sink);
         };
     }
 
-    private Object navigate(EvalContext<N> ctx, Object start, List<? extends Ast.Segment<?>> segments) {
-        Object curr = start;
-        for (Ast.Segment<?> segment : segments) {
-            if (curr == Nothing.INSTANCE) {
-                return Nothing.INSTANCE;
-            }
-            @SuppressWarnings("unchecked")
-            N node = (N) curr;
-            curr = step(ctx, node, segment);
+    private void run(EvalContext<N> ctx, List<Step<N>> steps, int index, N node, Consumer<? super N> sink) {
+        if (index == steps.size()) {
+            sink.accept(node);
+            return;
         }
-        return curr;
+        steps.get(index).apply(ctx, node, next -> run(ctx, steps, index + 1, next, sink));
     }
 
-    private Object step(EvalContext<N> ctx, N node, Ast.Segment<?> segment) {
-        if (!(segment instanceof Ast.Segment.Child<?> child)) {
-            throw new UnsupportedOperationException("descendant segments are not yet evaluated (deferred to node-list support)");
-        }
-        List<? extends Ast.Selector<?>> selectors = child.selectors();
-        if (selectors.size() != 1) {
-            throw new UnsupportedOperationException("multi-selector segments are not yet evaluated (deferred to node-list support)");
-        }
-        Ast.Selector<?> selector = selectors.get(0);
-        TreeAdapter<N> adapter = ctx.adapter();
-        if (selector instanceof Ast.Selector.Name<?> name) {
-            if (!adapter.isObject(node)) {
-                return Nothing.INSTANCE;
-            }
-            for (Prop<N> prop : adapter.objectProperties(node)) {
-                if (prop.propertyName().equals(name.name())) {
-                    return prop.propertyValue();
+    private Step<N> compileSegment(Ast.Segment<?> segment) {
+        if (segment instanceof Ast.Segment.Child<?> child) {
+            List<Step<N>> selectors = child.selectors().stream().map(this::compileSelector).toList();
+            return (ctx, node, sink) -> {
+                for (Step<N> selector : selectors) {
+                    selector.apply(ctx, node, sink);
                 }
+            };
+        }
+        if (segment instanceof Ast.Segment.Descendant<?> descendant) {
+            List<Step<N>> selectors = descendant.selectors().stream().map(this::compileSelector).toList();
+            return (ctx, node, sink) -> descend(ctx, node, selectors, sink);
+        }
+        throw new IllegalStateException("unknown segment: " + segment.getClass().getSimpleName());
+    }
+
+    /** Descendant-or-self, pre-order: apply the selectors to {@code node}, then recurse into its children. */
+    private void descend(EvalContext<N> ctx, N node, List<Step<N>> selectors, Consumer<? super N> sink) {
+        for (Step<N> selector : selectors) {
+            selector.apply(ctx, node, sink);
+        }
+        TreeAdapter<N> adapter = ctx.adapter();
+        if (adapter.isObject(node)) {
+            for (Prop<N> prop : adapter.objectProperties(node)) {
+                descend(ctx, prop.propertyValue(), selectors, sink);
             }
-            return Nothing.INSTANCE;
+        }
+        else if (adapter.isArray(node)) {
+            int length = adapter.arrayLength(node);
+            for (int i = 0; i < length; i++) {
+                descend(ctx, adapter.arrayItem(node, i), selectors, sink);
+            }
+        }
+    }
+
+    private Step<N> compileSelector(Ast.Selector<?> selector) {
+        if (selector instanceof Ast.Selector.Name<?> name) {
+            String propertyName = name.name();
+            return (ctx, node, sink) -> {
+                TreeAdapter<N> adapter = ctx.adapter();
+                if (adapter.isObject(node)) {
+                    for (Prop<N> prop : adapter.objectProperties(node)) {
+                        if (prop.propertyName().equals(propertyName)) {
+                            sink.accept(prop.propertyValue());
+                            return;
+                        }
+                    }
+                }
+            };
         }
         if (selector instanceof Ast.Selector.Index<?> index) {
+            int declared = index.index();
+            return (ctx, node, sink) -> {
+                TreeAdapter<N> adapter = ctx.adapter();
+                if (adapter.isArray(node)) {
+                    int length = adapter.arrayLength(node);
+                    int i = declared < 0 ? length + declared : declared;
+                    if (i >= 0 && i < length) {
+                        sink.accept(adapter.arrayItem(node, i));
+                    }
+                }
+            };
+        }
+        if (selector instanceof Ast.Selector.Children<?>) {
+            return (ctx, node, sink) -> {
+                TreeAdapter<N> adapter = ctx.adapter();
+                if (adapter.isObject(node)) {
+                    for (Prop<N> prop : adapter.objectProperties(node)) {
+                        sink.accept(prop.propertyValue());
+                    }
+                }
+                else if (adapter.isArray(node)) {
+                    int length = adapter.arrayLength(node);
+                    for (int i = 0; i < length; i++) {
+                        sink.accept(adapter.arrayItem(node, i));
+                    }
+                }
+            };
+        }
+        if (selector instanceof Ast.Selector.Slice<?> slice) {
+            return compileSlice(slice);
+        }
+        if (selector instanceof Ast.Selector.Filter<?> filter) {
+            BoolEval<N> predicate = compileBool(filter.expression());
+            return (ctx, node, sink) -> {
+                TreeAdapter<N> adapter = ctx.adapter();
+                if (adapter.isObject(node)) {
+                    for (Prop<N> prop : adapter.objectProperties(node)) {
+                        N candidate = prop.propertyValue();
+                        if (predicate.test(ctx, candidate)) {
+                            sink.accept(candidate);
+                        }
+                    }
+                }
+                else if (adapter.isArray(node)) {
+                    int length = adapter.arrayLength(node);
+                    for (int i = 0; i < length; i++) {
+                        N candidate = adapter.arrayItem(node, i);
+                        if (predicate.test(ctx, candidate)) {
+                            sink.accept(candidate);
+                        }
+                    }
+                }
+            };
+        }
+        throw new IllegalStateException("unknown selector: " + selector.getClass().getSimpleName());
+    }
+
+    private Step<N> compileSlice(Ast.Selector.Slice<?> slice) {
+        return (ctx, node, sink) -> {
+            TreeAdapter<N> adapter = ctx.adapter();
             if (!adapter.isArray(node)) {
-                return Nothing.INSTANCE;
+                return;
             }
             int length = adapter.arrayLength(node);
-            int i = index.index() < 0 ? length + index.index() : index.index();
-            if (i < 0 || i >= length) {
-                return Nothing.INSTANCE;
+            if (slice.step() >= 0) {
+                for (int i = 0; i < length; i++) {
+                    if (slice.matches(i, length)) {
+                        sink.accept(adapter.arrayItem(node, i));
+                    }
+                }
             }
-            return adapter.arrayItem(node, i);
-        }
-        throw new UnsupportedOperationException(
-                selector.getClass().getSimpleName() + " selectors are not yet evaluated (deferred to node-list support)");
+            else {
+                // Negative step: emit in reverse (RFC 9535 §2.3.4.2 ordering).
+                for (int i = length - 1; i >= 0; i--) {
+                    if (slice.matches(i, length)) {
+                        sink.accept(adapter.arrayItem(node, i));
+                    }
+                }
+            }
+        };
+    }
+
+    /** Coerces a query to a single value: its sole node, or {@link Nothing#INSTANCE} if it selects none. */
+    private Eval<N> singular(SeqEval<N> nodes) {
+        return (ctx, current) -> {
+            Object[] holder = { Nothing.INSTANCE };
+            nodes.eval(ctx, current, node -> {
+                if (holder[0] == Nothing.INSTANCE) {
+                    holder[0] = node;
+                }
+            });
+            return holder[0];
+        };
+    }
+
+    private boolean exists(SeqEval<N> nodes, EvalContext<N> ctx, N current) {
+        boolean[] found = { false };
+        nodes.eval(ctx, current, node -> found[0] = true);
+        return found[0];
     }
 
     private Eval<N> compileFnValue(Ast.FnCall fn) {

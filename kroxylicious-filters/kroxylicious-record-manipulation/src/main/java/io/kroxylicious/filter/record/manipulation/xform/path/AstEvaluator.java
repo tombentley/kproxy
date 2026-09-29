@@ -6,7 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.xform.path;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
@@ -36,6 +39,51 @@ public final class AstEvaluator<N> {
      */
     public CompiledPredicate<N> compilePredicate(Ast expression) {
         return new CompiledPredicate<>(adapter, compiler.compileBool(expression));
+    }
+
+    /**
+     * Compiles a query — a {@link Ast.Path} — into a reusable node-list evaluator that selects zero or more
+     * nodes from a document.
+     * @param path the (resolved, type-checked) query
+     * @return a compiled query
+     */
+    public CompiledQuery<N> compileQuery(Ast.Path<?> path) {
+        return new CompiledQuery<>(adapter, compiler.compileNodes(path));
+    }
+
+    /** A compiled query; reusable across records and threads. */
+    public static final class CompiledQuery<N> {
+
+        private final TreeAdapter<N> adapter;
+        private final SeqEval<N> nodes;
+
+        private CompiledQuery(TreeAdapter<N> adapter, SeqEval<N> nodes) {
+            this.adapter = adapter;
+            this.nodes = nodes;
+        }
+
+        /**
+         * Evaluates the query against {@code root}, passing each selected node to {@code sink} in evaluation
+         * order.
+         * @param root the document root (bound to {@code $})
+         * @param opContext the context passed to any function invoked by the query
+         * @param sink receives each selected node
+         */
+        public void evaluate(N root, OpContext opContext, Consumer<? super N> sink) {
+            nodes.eval(new EvalContext<>(root, adapter, opContext), root, sink);
+        }
+
+        /**
+         * Evaluates the query against {@code root}, collecting the selected nodes into a list.
+         * @param root the document root (bound to {@code $})
+         * @param opContext the context passed to any function invoked by the query
+         * @return the selected nodes, in evaluation order
+         */
+        public List<N> evaluate(N root, OpContext opContext) {
+            List<N> results = new ArrayList<>();
+            evaluate(root, opContext, results::add);
+            return results;
+        }
     }
 
     /** A compiled filter predicate; reusable across records and threads. */
