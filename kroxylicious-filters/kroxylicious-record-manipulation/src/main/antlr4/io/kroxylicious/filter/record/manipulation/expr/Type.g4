@@ -6,7 +6,6 @@ type:
     ;
 
 // TODO need a parenthesis operator so we can write (Foo | Bar)[]
-// TODO need wildcard List<? exends Number>
 
 intersectionType:
     unionType (INTERSECTION unionType)*
@@ -25,7 +24,9 @@ typeArgs:
     ;
 
 typeArg:
-    intersectionType (EXTENDS intersectionType)? (SUPER intersectionType)?
+    intersectionType
+    | WILDCARD (EXTENDS intersectionType)? (SUPER intersectionType)?
+    // Java also allows a type variable (with optional bounds) here, but I don't think we need that?
     ;
 
 EXTENDS: 'extends';
@@ -39,4 +40,5 @@ LANG: '<';
 RANG:'>';
 UNION: '|';
 INTERSECTION: '&';
+WILDCARD: '?';
 WS: [ \n\r\t]+ -> skip;
