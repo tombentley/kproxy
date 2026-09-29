@@ -190,11 +190,3 @@ is built and tested but runs *alongside*, not inside, the production op-pipeline
 - **Grammar cleanup.** The top-level `logicalExpr` production name is a JSONPath holdover — a
   top-level expression yields a value, not a logical test.
 
-### `JsonSchemaValidate` is not a registered plugin
-
-[`ops/jsonschema/networknt/jackson3/JsonSchemaValidate`](src/main/java/io/kroxylicious/filter/record/manipulation/ops/jsonschema/networknt/jackson3/JsonSchemaValidate.java)
-is a complete `OpFactory<JsonNode, JsonNode>` that validates a JSON value against a JSON Schema, but
-it has no `@Plugin` annotation and no entry in
-[`META-INF/services/…OpFactory`](src/main/resources/META-INF/services/io.kroxylicious.filter.record.manipulation.op.OpFactory),
-so it cannot be referenced by name from config. Registering it (annotation + services entry) would
-make it usable as an op.
