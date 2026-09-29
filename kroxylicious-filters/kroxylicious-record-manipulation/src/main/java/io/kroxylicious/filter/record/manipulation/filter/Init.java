@@ -6,13 +6,13 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import java.nio.ByteBuffer;
-
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
+import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 
 public record Init(String topic,
                    Direction direction,
-                   BaseTypedOp<Record, Long> recordTimestampPipeline,
-                   BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
-                   BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {}
+                   io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService timestampTransformService, Object timestampInitData,
+                   TimestampTransform recordTimestampPipeline,
+                   BufferTransformService keyTransformService, Object keyInitData, BufferTransform recordKeyPipeline,
+                   BufferTransformService valueTransformService, Object valueInitData, BufferTransform recordValuePipeline) {}

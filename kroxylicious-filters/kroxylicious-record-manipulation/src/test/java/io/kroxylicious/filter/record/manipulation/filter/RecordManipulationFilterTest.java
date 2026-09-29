@@ -25,12 +25,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.filter.transforms.BufferPipeline;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson;
 import io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson;
 import io.kroxylicious.filter.record.manipulation.kafka.Origin;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
-import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.PartitionProduceData;
@@ -91,7 +91,9 @@ class RecordManipulationFilterTest {
 
     private RecordManipulationFilter buildFilter(Direction direction) {
         var config = new RecordManipulationConfig(TOPIC_NAME, direction,
-                new RecordTransformConfig(null, null, jsonMaskingValuePipeline()));
+                null, null,
+                null, null,
+                BufferPipeline.class.getName(), jsonMaskingValuePipeline());
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);

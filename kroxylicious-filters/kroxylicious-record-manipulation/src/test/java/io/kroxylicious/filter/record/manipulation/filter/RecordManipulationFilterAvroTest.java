@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.kroxylicious.filter.record.manipulation.filter.transforms.BufferPipeline;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroBinaryDeserializer;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroBinarySerializer;
 import io.kroxylicious.filter.record.manipulation.format.avro.AvroTransform;
@@ -30,7 +31,6 @@ import io.kroxylicious.filter.record.manipulation.format.avro.ReadAvro;
 import io.kroxylicious.filter.record.manipulation.format.avro.WriteAvro;
 import io.kroxylicious.filter.record.manipulation.kafka.Origin;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
-import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.PartitionProduceData;
@@ -89,7 +89,9 @@ class RecordManipulationFilterAvroTest {
 
     private RecordManipulationFilter buildFilter(Direction direction) {
         var config = new RecordManipulationConfig(TOPIC_NAME, direction,
-                new RecordTransformConfig(null, null, avroMaskingValuePipeline()));
+                null, null,
+                null, null,
+                BufferPipeline.class.getName(), avroMaskingValuePipeline());
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);
@@ -225,10 +227,12 @@ class RecordManipulationFilterAvroTest {
                 """;
         Schema arraySchema = new Schema.Parser().parse(arraySchemaJson);
         var config = new RecordManipulationConfig(TOPIC_NAME, Direction.IN,
-                new RecordTransformConfig(null, null, new PipelineConfig(Origin.RecordValue, List.of(
+                null, null,
+                null, null,
+                BufferPipeline.class.getName(), new PipelineConfig(Origin.RecordValue, List.of(
                         new OpConfig(ReadAvro.class, Map.of("schema", arraySchemaJson)),
                         new OpConfig(AvroTransform.class),
-                        new OpConfig(WriteAvro.class)))));
+                        new OpConfig(WriteAvro.class))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         var filter = (RecordManipulationFilter) factory.createFilter(factoryContext, init);

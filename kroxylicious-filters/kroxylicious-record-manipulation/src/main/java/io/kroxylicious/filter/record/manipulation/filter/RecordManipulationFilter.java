@@ -6,13 +6,13 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
+import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsDeserializer;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;
@@ -23,7 +23,6 @@ import io.kroxylicious.kafka.common.message.ShareFetchResponseData;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.BaseRecords;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
@@ -56,9 +55,9 @@ public class RecordManipulationFilter implements
 
     public RecordManipulationFilter(String topic,
                                     Direction direction,
-                                    BaseTypedOp<Record, Long> recordTimestampPipeline,
-                                    BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
-                                    BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {
+                                    TimestampTransform recordTimestampPipeline,
+                                    BufferTransform recordKeyPipeline,
+                                    BufferTransform recordValuePipeline) {
         this.topic = topic;
         this.direction = direction;
         this.deserializer = new RecordsDeserializer();

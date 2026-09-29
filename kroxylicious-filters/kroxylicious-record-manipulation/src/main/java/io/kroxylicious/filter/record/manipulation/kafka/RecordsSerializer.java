@@ -9,9 +9,9 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
+import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.ops.common.Functional;
 import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
@@ -26,30 +26,17 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 public class RecordsSerializer {
 
     private final Random prng = new Random();
-    private final BaseTypedOp<Record, Long> recordTimestampPipeline;
-    private final BaseTypedOp<Record, ByteBuffer> recordKeyPipeline;
-    private final BaseTypedOp<Record, ByteBuffer> recordValuePipeline;
+    private final TimestampTransform timestampTransform;
+    private final BufferTransform keyTransform;
+    private final BufferTransform valueTransform;
 
     public RecordsSerializer(
-                             BaseTypedOp<Record, Long> recordTimestampPipeline,
-                             BaseTypedOp<Record, ByteBuffer> recordKeyPipeline,
-                             BaseTypedOp<Record, ByteBuffer> recordValuePipeline) {
-        if (recordKeyPipeline.inputType() != Record.class) { // TODO actually an assignability check
-            throw new RuntimeException("recordKeyPipeline must accept " + Record.class.getName() + " but actually accepts " + recordKeyPipeline.inputType());
-        }
-        if (recordValuePipeline.inputType() != Record.class) { // TODO actually an assignability check
-            throw new RuntimeException("recordValuePipeline must accept " + Record.class.getName() + " but actually accepts " + recordKeyPipeline.inputType());
-        }
-        if (recordKeyPipeline.outputType() != ByteBuffer.class) { // TODO actually an assignability check
-            throw new RuntimeException("recordKeyPipeline must return " + ByteBuffer.class.getName() + " but actually returns " + recordKeyPipeline.outputType());
-        }
-        if (recordValuePipeline.outputType() != ByteBuffer.class) { // TODO actually an assignability check
-            throw new RuntimeException("recordValuePipeline must return " + ByteBuffer.class.getName() + " but actually returns " + recordKeyPipeline.outputType());
-        }
-        // TODO should check the 2nd type argument is actually Context
-        this.recordTimestampPipeline = recordTimestampPipeline;
-        this.recordKeyPipeline = recordKeyPipeline;
-        this.recordValuePipeline = recordValuePipeline;
+                             TimestampTransform timestampTransform,
+                             BufferTransform keyTransform,
+                             BufferTransform valueTransform) {
+        this.timestampTransform = timestampTransform;
+        this.keyTransform = keyTransform;
+        this.valueTransform = valueTransform;
     }
 
     public MemoryRecords apply(RecordStream<TopicPartition> stream) {
@@ -88,19 +75,19 @@ public class RecordsSerializer {
 
                     @Override
                     public long transformTimestamp(Record record) {
-                        return Functional.bind(recordTimestampPipeline, context(record, 0)).apply(record);
+                        return timestampTransform.apply(record);
                     }
 
                     @Nullable
                     @Override
                     public ByteBuffer transformKey(Record record) {
-                        return Functional.bind(recordKeyPipeline, context(record, 0)).apply(record);
+                        return keyTransform.apply(record);
                     }
 
                     @Nullable
                     @Override
                     public ByteBuffer transformValue(Record record) {
-                        return Functional.bind(recordValuePipeline, context(record, 0)).apply(record);
+                        return valueTransform.apply(record);
                     }
 
                     @Nullable

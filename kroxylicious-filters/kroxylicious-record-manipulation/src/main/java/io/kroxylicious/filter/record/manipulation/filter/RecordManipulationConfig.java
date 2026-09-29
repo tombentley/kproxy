@@ -6,21 +6,29 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
+import io.kroxylicious.proxy.plugin.PluginImplConfig;
+import io.kroxylicious.proxy.plugin.PluginImplName;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
- * Example:
- * <pre>{@code
- * topic: my-topic
- * direction: IN # for records being appended to my-topic, or OUT for records being read from my-topic
- * recordTransform:
- *   toRecordValue: ... # some transformation on the record value
- * }</pre>
+ * The filter configuration.
  * @param topic The topic
  * @param direction The direction
- * @param recordTransform The transform
+ * @param timestampTransform The FQCN of the timestamp transform
+ * @param timestampTransformConfig The configuration for the timestamp transform
+ * @param keyTransform The FQCN of the key transform
+ * @param keyTransformConfig The configuration for the key transform
+ * @param valueTransform The FQCN of the value transform
+ * @param valueTransformConfig The configuration for the value transform
  */
 public record RecordManipulationConfig(
                                        String topic,
                                        Direction direction,
-                                       RecordTransformConfig recordTransform) {}
+                                       @Nullable @PluginImplName(BufferTransformService.class) String timestampTransform,
+                                       @Nullable @PluginImplConfig(implNameProperty = "timestampTransform") Object timestampTransformConfig,
+                                       @Nullable @PluginImplName(BufferTransformService.class) String keyTransform,
+                                       @Nullable @PluginImplConfig(implNameProperty = "keyTransform") Object keyTransformConfig,
+                                       @Nullable @PluginImplName(BufferTransformService.class) String valueTransform,
+                                       @Nullable @PluginImplConfig(implNameProperty = "valueTransform") Object valueTransformConfig) {}

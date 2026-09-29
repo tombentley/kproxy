@@ -6,29 +6,17 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
-import io.leangen.geantyref.GenericTypeReflector;
-
-import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
-import io.kroxylicious.filter.record.manipulation.kafka.RecordTransformConfig;
-import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
-import io.kroxylicious.filter.record.manipulation.ops.common.OpTypeChecker;
-import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
+import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService;
+import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
+import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * The FilterFactory (service) for the {@link RecordManipulationFilter}.
@@ -40,50 +28,53 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     public Init initialize(FilterFactoryContext context,
                            RecordManipulationConfig config)
             throws PluginConfigurationException {
-        RecordTransformConfig recordTransformConfig = config.recordTransform();
-        var timestampPipeline = keyOrValuePipeline(context,
-                recordTransformConfig.intoTimestamp(),
-                new OpConfig(RecordTimestamp.class),
-                Long.class);
-        var keyPipeline = keyOrValuePipeline(context,
-                recordTransformConfig.intoRecordKey(),
-                new OpConfig(RecordKey.class),
-                ByteBuffer.class);
-        var valuePipeline = keyOrValuePipeline(context,
-                recordTransformConfig.intoRecordValue(),
-                new OpConfig(RecordValue.class),
-                ByteBuffer.class);
+
+        TimestampTransformService timestampTransformService = context.pluginInstance(TimestampTransformService.class,
+                Optional.ofNullable(config.timestampTransform()).orElse(RecordTimestamp.class.getName()));
+        var timestampInitData = timestampTransformService
+                .configure(context::pluginInstance, config.timestampTransformConfig());
+        var timestampPipeline = timestampTransformService.create(timestampInitData);
+
+        BufferTransformService keyTransformService = context.pluginInstance(BufferTransformService.class,
+                Optional.ofNullable(config.keyTransform()).orElse(RecordKey.class.getName()));
+        var keyInitData = keyTransformService
+                .configure(context::pluginInstance, config.keyTransformConfig());
+        var keyPipeline = keyTransformService.create(keyInitData);
+
+        BufferTransformService valueTransformService = context.pluginInstance(BufferTransformService.class,
+                Optional.ofNullable(config.valueTransform()).orElse(RecordValue.class.getName()));
+        var valueInitData = valueTransformService
+                .configure(context::pluginInstance, config.valueTransformConfig());
+        var valuePipeline = valueTransformService.create(valueInitData);
+
         return new Init(config.topic(),
                 config.direction(),
+                timestampTransformService,
+                timestampInitData,
                 timestampPipeline,
+
+                keyTransformService,
+                keyInitData,
                 keyPipeline,
+
+                valueTransformService,
+                valueInitData,
                 valuePipeline);
     }
 
-    @NonNull
-    private static <T> BaseTypedOp<Record, T> keyOrValuePipeline(
-                                                                 FilterFactoryContext filterFactoryContext,
-                                                                 @Nullable PipelineConfig keyOrValue,
-                                                                 OpConfig defaultOrigin,
-                                                                 Class<T> expectedType) {
-
-        OpConfig first = Optional.ofNullable(keyOrValue).map(x -> switch (x.from()) {
-            case Timestamp -> new OpConfig(RecordTimestamp.class);
-            case RecordValue -> new OpConfig(RecordValue.class);
-            case RecordKey -> new OpConfig(RecordKey.class);
-        }).orElse(defaultOrigin);
-
-        List<OpConfig> configs = new ArrayList<>();
-        configs.add(first);
-        if (keyOrValue != null) {
-            configs.addAll(keyOrValue.apply());
+    @Override
+    public void close(Init initializationData) {
+        try {
+            initializationData.timestampTransformService().close(initializationData.timestampInitData());
         }
-
-        BaseTypedOp<Record, ?> compose = OpConfigs.compose(Record.class, configs, Set.of(), filterFactoryContext::pluginInstance);
-        OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
-                "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
-                        + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");
-        return (BaseTypedOp) compose;
+        finally {
+            try {
+                initializationData.keyTransformService().close(initializationData.keyInitData());
+            }
+            finally {
+                initializationData.valueTransformService().close(initializationData.valueInitData());
+            }
+        }
     }
 
     @Override
