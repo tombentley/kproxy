@@ -100,9 +100,9 @@ public abstract class Ast {
 
         /**
          * Visits a filter selector ({@code ?<expr>}), descending into its sub-expression by default. This is the
-         * hook by which visitors reach (and so resolve/type-check) the filter's {@link Selector.FilterFilter#expression() expression}.
+         * hook by which visitors reach (and so resolve/type-check) the filter's {@link Selector.Filter#expression() expression}.
          */
-        default <N> void visitFilter(Selector.FilterFilter<N> filter) {
+        default <N> void visitFilter(Selector.Filter<N> filter) {
             filter.expression().accept(this);
         }
 
@@ -454,10 +454,10 @@ public abstract class Ast {
          * sub-tree; within it a {@code @}-rooted {@link Path} refers to the candidate node and a {@code $}-rooted
          * one to the document root (RFC 9535 §2.3.5).
          */
-        static final class FilterFilter<N> extends Selector<N> {
+        static final class Filter<N> extends Selector<N> {
             private final Ast expression;
 
-            FilterFilter(Ast expression) {
+            Filter(Ast expression) {
                 this.expression = expression;
             }
 

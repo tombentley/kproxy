@@ -121,7 +121,7 @@ public class PathEvaluator<N> {
             else if (selector instanceof Selector.Slice<N> slice) {
                 matched = accessor instanceof Integer i && slice.matches(i, length); // arrays only
             }
-            else if (selector instanceof Selector.FilterFilter) {
+            else if (selector instanceof Selector.Filter) {
                 // TODO evaluate the filter's AST ('?<expr>') against the candidate node ('@') and root ('$').
                 // The filter is now parsed and type-checked, but runtime evaluation is deferred pending moving
                 // path evaluation off PathEvaluator so it can interpret the expression sub-tree.

@@ -147,7 +147,7 @@ For detailed security coding patterns, see [.claude/rules/security-patterns.md](
 
 ## Deployment Considerations
 
-The proxy is often deployed as a number of independent processes. They don't know about each other. This has consequences in terms of some of the things a `FilterFilter` can safely do. In particular, a Filter cannot assume other connections to the same cluster are happening through the same proxy process. Thus a filter instance cannot assume it is intercepting all of the client-to-broker communication.
+The proxy is often deployed as a number of independent processes. They don't know about each other. This has consequences in terms of some of the things a `Filter` can safely do. In particular, a Filter cannot assume other connections to the same cluster are happening through the same proxy process. Thus a filter instance cannot assume it is intercepting all of the client-to-broker communication.
 
 ## Configuration
 

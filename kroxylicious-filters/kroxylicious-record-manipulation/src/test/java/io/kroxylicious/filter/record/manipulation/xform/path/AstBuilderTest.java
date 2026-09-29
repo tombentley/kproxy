@@ -33,7 +33,7 @@ class AstBuilderTest {
         for (var segment : path.segments()) {
             if (segment instanceof Ast.Segment.Child<?> child) {
                 for (var selector : child.selectors()) {
-                    if (selector instanceof Ast.Selector.FilterFilter<?> filter) {
+                    if (selector instanceof Ast.Selector.Filter<?> filter) {
                         return filter.expression();
                     }
                 }

@@ -100,7 +100,7 @@ class TypeCheckingVisitorTest {
         // Given: $.items[?@.price == $.threshold]
         var atPrice = new Ast.Path<>(Identifier.CURRENT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("price")), null);
         var dollarThreshold = new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("threshold")), null);
-        var filter = new Ast.Selector.FilterFilter<>(new Ast.BinaryOp(atPrice, Ast.BinOp.EQ, dollarThreshold));
+        var filter = new Ast.Selector.Filter<>(new Ast.BinaryOp(atPrice, Ast.BinOp.EQ, dollarThreshold));
         var path = new Ast.Path<>(Identifier.ROOT, List.of(
                 new Ast.Segment.Child<>(new Ast.Selector.Name<>("items")),
                 new Ast.Segment.Child<>(List.of(filter))), null);

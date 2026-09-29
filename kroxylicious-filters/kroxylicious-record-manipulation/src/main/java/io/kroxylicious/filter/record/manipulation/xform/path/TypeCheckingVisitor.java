@@ -221,7 +221,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
         else if (selector instanceof Ast.Selector.Children<?>) {
             collectChildrenTypes(types, segments, nextIndex, current);
         }
-        else if (selector instanceof Ast.Selector.FilterFilter<?> filter) {
+        else if (selector instanceof Ast.Selector.Filter<?> filter) {
             // A filter selects a subset of the same members/items, so its type contribution is that of a wildcard...
             collectChildrenTypes(types, segments, nextIndex, current);
             // ...and additionally the predicate is type-checked with `@` bound to the candidate element type.
@@ -259,7 +259,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
      * constrains a filter body to a logical shape (existence path, comparison, conjunction or function), so no
      * "must be boolean" check is imposed here.
      */
-    private <S> void typeCheckFilter(Ast.Selector.FilterFilter<?> filter, SchemaType<S> current) {
+    private <S> void typeCheckFilter(Ast.Selector.Filter<?> filter, SchemaType<S> current) {
         // The candidate element: an array's item type, an object's member value, else the value itself.
         // TODO item(0) represents a homogeneous array's element; heterogeneous tuples and union/scalar contexts
         // type `@` navigation only approximately.

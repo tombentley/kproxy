@@ -202,7 +202,7 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
     public Ast visitFilterSelector(ExprParser.FilterSelectorContext ctx) {
-        return new Ast.Selector.FilterFilter<>(visit(ctx.logicalExpr())).setTree(ctx);
+        return new Ast.Selector.Filter<>(visit(ctx.logicalExpr())).setTree(ctx);
     }
 
     /**
