@@ -12,6 +12,7 @@ io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform
 io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson
 io.kroxylicious.filter.record.manipulation.format.jackson3.ReadJson
 io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
+io.kroxylicious.filter.record.manipulation.ops.jsonschema.networknt.jackson3.JsonSchemaValidate
 
 io.kroxylicious.filter.record.manipulation.format.avro.ReadAvro
 io.kroxylicious.filter.record.manipulation.format.avro.AvroTransform

@@ -26,12 +26,15 @@ import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.type.SchemaType;
+import io.kroxylicious.proxy.plugin.Plugin;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+@Plugin(configType = JsonSchemaValidate.Config.class)
 public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
     /**
      * Validate the constructor arguments
@@ -40,8 +43,8 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
      * @param defaultDialectId The  used when $schema is not specified in the {@link jsonSchema}, identified by an IRI (such as {@code https://json-schema.org/draft/2020-12/schema}).
      */
     public record Config(@JsonProperty(required = true) String jsonSchema,
-                         SpecificationVersion defaultDialect,
-                         String defaultDialectId) {
+                         @Nullable SpecificationVersion defaultDialect,
+                         @Nullable String defaultDialectId) {
         public Config {
             if (defaultDialect != null && defaultDialectId != null) {
                 throw new IllegalArgumentException("defaultDialect and defaultDialectId cannot both be specified");
