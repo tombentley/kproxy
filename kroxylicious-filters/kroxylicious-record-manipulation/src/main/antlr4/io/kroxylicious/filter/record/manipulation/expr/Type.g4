@@ -16,7 +16,11 @@ unionType:
     ;
 
 baseType:
-    IDENT (DOT IDENT)* typeArgs? (LSQ RSQ)*
+    typeName typeArgs? (LSQ RSQ)*
+    ;
+
+typeName:
+    IDENT (DOT IDENT)* (DOLLAR IDENT)*
     ;
 
 typeArgs:
@@ -31,8 +35,9 @@ typeArg:
 
 EXTENDS: 'extends';
 SUPER: 'super';
-IDENT: [a-zA-Z] [a-zA-Z0-9_$]*;
+IDENT: [a-zA-Z] [a-zA-Z0-9z]*;
 DOT: '.';
+DOLLAR: '$';
 COMMA: ',';
 LSQ: '[';
 RSQ:']';

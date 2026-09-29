@@ -152,18 +152,34 @@ public class ReadJson implements OpFactory<ByteBuffer, Object> {
             readerConfig = objectMapper.convertValue(configMap, ReaderConfig.class);
         }
 
-        JavaType javaType = getJavaType(readerConfig.type());
-        ObjectReader reader = readerConfig.createReader(javaType);
+        TypeFactory typeFactory = ConfigMapper.CONFIG_MAPPER.getTypeFactory();
+        TypeExpression typeExpression = getTypeExpression(readerConfig.type(), typeFactory);
+
+        ObjectReader reader = readerConfig.createReader(typeExpression.jacksonType());
         var deserializer = new JacksonDeserializer(reader);
 
         // TODO We shouldn't pass a Jackson JavaType into BaseTypedOp
         // but that means we need to parse the Java type expression ourselves and
         // construct both a JavaType and a (vanilla) Type in a consistent way!
 
-        return BaseTypedOp.of(ByteBuffer.class, (Type) javaType.getRawClass(), (value, opContext) -> deserializer.deserialize(value));
+        return BaseTypedOp.of(ByteBuffer.class, typeExpression.opType(), (value, opContext) -> deserializer.deserialize(value));
+    }
+
+    static TypeExpression getTypeExpression(@Nullable String type, TypeFactory typeFactory) {
+        TypeExpression typeExpression;
+        if (type == null) {
+            typeExpression = new TypeExpression(
+                    typeFactory.constructType(JsonNode.class),
+                    JsonNode.class);
+        }
+        else {
+            typeExpression = TypeExpression.parse(type, typeFactory);
+        }
+        return typeExpression;
     }
 
     static JavaType getJavaType(@Nullable String type) {
+
         JavaType javaType;
         TypeFactory typeFactory = ConfigMapper.CONFIG_MAPPER.getTypeFactory();
         if (type != null) {

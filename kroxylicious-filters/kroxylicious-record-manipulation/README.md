@@ -151,9 +151,7 @@ reactor-wide, including to upstream modules that don't have a matching test)
   `AvroFunction.buildStructural`'s validation. Protobuf `map` fields and message-level `apply` (as
   opposed to field-level) aren't supported yet either - see `ProtobufFunction`'s validation for both.
 - Javadoc coverage and a handful of pre-existing SpotBugs findings are known debt, not yet
-  addressed. The module also has pre-existing `maven-dependency-plugin:analyze-only` findings, and
-  two failing `ReadJsonTest` cases (`readYamlAsArrayOfJavaClass`/`readYamlAsListOfJavaClass`) caused
-  by an unrelated `Greeting[]` array-type-name parsing issue.
+  addressed. The module also has pre-existing `maven-dependency-plugin:analyze-only` findings.
 
 ## Deferred work
 

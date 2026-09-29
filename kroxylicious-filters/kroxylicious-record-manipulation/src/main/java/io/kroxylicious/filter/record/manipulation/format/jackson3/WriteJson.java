@@ -23,7 +23,6 @@ import io.kroxylicious.proxy.plugin.Plugin;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.json.JsonWriteFeature;
-import tools.jackson.databind.JavaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectWriter;
 import tools.jackson.databind.SerializationFeature;
@@ -111,11 +110,11 @@ public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
         else {
             writerConfig = ConfigMapper.CONFIG_MAPPER.convertValue(config, WriterConfig.class);
         }
-        JavaType javaType = ReadJson.getJavaType(writerConfig.type());
+        TypeExpression typeExpression = ReadJson.getTypeExpression(writerConfig.type(), ConfigMapper.CONFIG_MAPPER.getTypeFactory());
 
         var d = new JacksonSerializer(writerConfig.createWriter());
         // TODO plug in type parser
-        return BaseTypedOp.of((Type) javaType.getRawClass(),
+        return BaseTypedOp.of(typeExpression.opType(),
                 ByteBuffer.class, (value, opContext) -> d.serialize(value));
     }
 }

@@ -208,13 +208,13 @@ public class ReadJsonTest {
         var op = new ReadJson().create(config, pluginLookup, argumentType);
         // Then
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
-        assertThat(op.outputType()).isEqualTo(TypeFactory.parameterizedClass(List.class, Greeting.class));
+        assertThat(op.outputType()).isEqualTo(TypeFactory.arrayOf(Greeting.class));
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
                 - hello: world
                 """.getBytes(StandardCharsets.UTF_8)), opContext);
         // Then
-        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
+        assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.array(Greeting[].class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
     }
 
     record Row(String name, int num) {}
