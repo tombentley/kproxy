@@ -17,7 +17,7 @@ import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public abstract class Ast {
+abstract class Ast {
 
     private ParserRuleContext tree;
     private Type type;

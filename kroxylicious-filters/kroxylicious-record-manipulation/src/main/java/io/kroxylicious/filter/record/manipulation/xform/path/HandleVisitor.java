@@ -14,7 +14,7 @@ import java.util.Objects;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 
-public class HandleVisitor implements Ast.AstVisitor {
+class HandleVisitor implements Ast.AstVisitor {
 
     MethodHandle handle;
 
