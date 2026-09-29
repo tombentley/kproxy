@@ -25,13 +25,13 @@ import io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.op.TypeException;
 import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
 import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

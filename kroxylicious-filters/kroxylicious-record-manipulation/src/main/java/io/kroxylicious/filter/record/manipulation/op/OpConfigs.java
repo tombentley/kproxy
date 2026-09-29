@@ -16,6 +16,7 @@ import io.kroxylicious.filter.record.manipulation.ops.common.ComposedOp;
 import io.kroxylicious.filter.record.manipulation.ops.common.IdentityOp;
 import io.kroxylicious.filter.record.manipulation.ops.common.OpTypeChecker;
 import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an

@@ -6,10 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.BufferTransform;
+import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.PluginLookup;
 
 @Plugin(configType = Void.class)
 public class NullBuffer implements BufferTransformService<Void, Void> {

@@ -11,8 +11,8 @@ import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * Generates a random {@link String} of a random length composed of codepoints taken from an alphabet.

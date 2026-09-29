@@ -8,8 +8,8 @@ package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
 import java.nio.ByteBuffer;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
 import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.service.BufferTransform;
 
 public class EmptyBufferTransform implements BufferTransform {
     @Override

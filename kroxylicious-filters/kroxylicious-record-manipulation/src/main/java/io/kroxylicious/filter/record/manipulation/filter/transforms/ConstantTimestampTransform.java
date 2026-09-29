@@ -6,8 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.service.TimestampTransform;
 
 public class ConstantTimestampTransform implements TimestampTransform {
 

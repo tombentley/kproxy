@@ -8,8 +8,6 @@ package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.util.Optional;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
 import io.kroxylicious.proxy.filter.Filter;
@@ -17,6 +15,8 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
+import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 /**
  * The FilterFactory (service) for the {@link RecordManipulationFilter}.

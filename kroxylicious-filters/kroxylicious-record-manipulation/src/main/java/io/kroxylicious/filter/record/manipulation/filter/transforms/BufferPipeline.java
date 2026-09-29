@@ -16,16 +16,16 @@ import io.leangen.geantyref.GenericTypeReflector;
 import io.kroxylicious.filter.record.manipulation.filter.RecordKey;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
 import io.kroxylicious.filter.record.manipulation.kafka.PipelineConfig;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.ops.common.OpTypeChecker;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.BufferTransform;
+import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

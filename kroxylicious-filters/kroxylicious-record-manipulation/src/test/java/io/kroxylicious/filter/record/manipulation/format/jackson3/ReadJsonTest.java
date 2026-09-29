@@ -28,7 +28,7 @@ import io.leangen.geantyref.TypeFactory;
 
 import io.kroxylicious.filter.record.manipulation.format.DeserializationException;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;

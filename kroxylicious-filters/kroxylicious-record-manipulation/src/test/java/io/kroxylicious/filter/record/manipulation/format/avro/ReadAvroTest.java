@@ -18,7 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -14,8 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 @Plugin(configType = JsonTransform.Config.class)
 public class JsonTransform implements OpFactory<JsonNode, JsonNode> {

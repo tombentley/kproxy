@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * Factory for the {@code ListFirst} operation, which returns the first item from a list.

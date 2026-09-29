@@ -13,8 +13,8 @@ import java.util.Map;
 import io.kroxylicious.filter.record.manipulation.format.avro.WriteAvro;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * Serializes a {@link ProtoValue} to Protobuf's binary encoding - the Protobuf equivalent of

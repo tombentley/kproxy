@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.op;
+package io.kroxylicious.transform.service;
 
 /**
  * Resolves a named plugin implementation of a given plugin interface. Shaped like

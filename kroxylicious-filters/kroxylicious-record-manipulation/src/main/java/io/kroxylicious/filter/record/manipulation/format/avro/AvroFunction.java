@@ -25,8 +25,8 @@ import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * A mask/transform over an Avro generic value (a {@link GenericRecord}, a {@link java.util.List} for an

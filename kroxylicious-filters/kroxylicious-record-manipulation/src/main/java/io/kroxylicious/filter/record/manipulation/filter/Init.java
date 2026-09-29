@@ -6,13 +6,19 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
+import io.kroxylicious.transform.service.BufferTransform;
+import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.TimestampTransform;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 public record Init(String topic,
                    Direction direction,
-                   io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService timestampTransformService, Object timestampInitData,
+                   TimestampTransformService timestampTransformService,
+                   Object timestampInitData,
                    TimestampTransform recordTimestampPipeline,
-                   BufferTransformService keyTransformService, Object keyInitData, BufferTransform recordKeyPipeline,
-                   BufferTransformService valueTransformService, Object valueInitData, BufferTransform recordValuePipeline) {}
+                   BufferTransformService keyTransformService,
+                   Object keyInitData,
+                   BufferTransform recordKeyPipeline,
+                   BufferTransformService valueTransformService,
+                   Object valueInitData,
+                   BufferTransform recordValuePipeline) {}

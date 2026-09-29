@@ -10,10 +10,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TimestampTransform;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 @Plugin(configType = ConstantTimestamp.Config.class)
 public class ConstantTimestamp implements TimestampTransformService<ConstantTimestamp.Config, Long> {

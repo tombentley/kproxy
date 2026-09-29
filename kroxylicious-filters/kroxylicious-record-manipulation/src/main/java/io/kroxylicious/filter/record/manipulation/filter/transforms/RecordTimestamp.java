@@ -6,9 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransformService;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TimestampTransform;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 @Plugin(configType = Void.class)
 public class RecordTimestamp implements TimestampTransformService<Void, Void> {
@@ -18,7 +19,7 @@ public class RecordTimestamp implements TimestampTransformService<Void, Void> {
     }
 
     @Override
-    public RecordTimestampTransform create(Void initializationData) {
+    public TimestampTransform create(Void initializationData) {
         return new RecordTimestampTransform();
     }
 

@@ -9,8 +9,6 @@ package io.kroxylicious.filter.record.manipulation.kafka;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.header.Header;
@@ -20,6 +18,8 @@ import io.kroxylicious.kafka.common.record.internal.RecordBatch;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.kafka.transform.RecordTransform;
+import io.kroxylicious.transform.service.BufferTransform;
+import io.kroxylicious.transform.service.TimestampTransform;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

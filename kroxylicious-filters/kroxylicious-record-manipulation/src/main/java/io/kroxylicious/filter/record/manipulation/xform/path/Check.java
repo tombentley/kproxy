@@ -24,8 +24,8 @@ import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 import io.kroxylicious.filter.record.manipulation.filter.Expr;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.kafka.common.header.Header;
+import io.kroxylicious.transform.service.PluginLookup;
 
 public class Check {
 

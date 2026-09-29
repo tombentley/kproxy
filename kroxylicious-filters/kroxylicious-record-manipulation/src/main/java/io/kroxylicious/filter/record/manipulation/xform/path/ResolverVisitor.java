@@ -11,7 +11,7 @@ import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.op.OpConfig;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

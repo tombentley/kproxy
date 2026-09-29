@@ -9,8 +9,6 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.transform.TimestampTransform;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsDeserializer;
 import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
 import io.kroxylicious.kafka.common.TopicPartition;
@@ -31,6 +29,8 @@ import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import io.kroxylicious.proxy.filter.ShareFetchResponseFilter;
 import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
+import io.kroxylicious.transform.service.BufferTransform;
+import io.kroxylicious.transform.service.TimestampTransform;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;

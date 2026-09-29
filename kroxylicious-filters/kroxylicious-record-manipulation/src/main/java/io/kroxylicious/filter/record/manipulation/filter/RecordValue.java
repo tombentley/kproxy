@@ -12,9 +12,9 @@ import java.util.Map;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 @Plugin(configType = Void.class)
 public class RecordValue implements OpFactory<Record, ByteBuffer> {

@@ -18,8 +18,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.json.JsonWriteFeature;

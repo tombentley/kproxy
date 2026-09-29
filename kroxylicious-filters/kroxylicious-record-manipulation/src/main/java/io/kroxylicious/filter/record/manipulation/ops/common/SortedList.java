@@ -15,7 +15,7 @@ import io.leangen.geantyref.TypeFactory;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpContext;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.transform.service.PluginLookup;
 
 /**
  * Factory for the {@code SortedList} operation, which returns a sorted copy of the given list.

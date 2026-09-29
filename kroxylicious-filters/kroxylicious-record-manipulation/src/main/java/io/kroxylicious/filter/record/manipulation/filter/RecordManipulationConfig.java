@@ -6,9 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import io.kroxylicious.filter.record.manipulation.filter.transform.BufferTransformService;
 import io.kroxylicious.proxy.plugin.PluginImplConfig;
 import io.kroxylicious.proxy.plugin.PluginImplName;
+import io.kroxylicious.transform.service.BufferTransformService;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

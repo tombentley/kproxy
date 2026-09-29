@@ -4,9 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.filter.transform;
-
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+package io.kroxylicious.transform.service;
 
 public interface TimestampTransformService<C, I> {
 

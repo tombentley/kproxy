@@ -24,9 +24,9 @@ import com.networknt.schema.regex.JoniRegularExpressionFactory;
 import io.kroxylicious.filter.record.manipulation.format.jackson3.JsonSchemaTypeSystem;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.JacksonException;

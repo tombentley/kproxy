@@ -17,8 +17,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.kroxylicious.filter.record.manipulation.expr.ExprParser;
 import io.kroxylicious.filter.record.manipulation.filter.Expr;
 import io.kroxylicious.filter.record.manipulation.filter.RecordTransformConfig2;
-import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
+import io.kroxylicious.transform.service.PluginLookup;
 
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
