@@ -184,6 +184,21 @@ class CheckTest {
                                     op: io.kroxylicious.filter.record.manipulation.format.jackson3.WriteJson
                                     format: json
                                     type: java.lang.Object # <--- The dashjoin version of jsonata use the Map/List JSON typing
+                                """),
+                Arguments.argumentSet("read_avro introduces an Avro type system",
+                        """
+                                key: write_avro(read_avro($.key))
+                                value: $.value
+                                timestamp: $.timestamp
+                                headers: $.headers
+                                where:
+                                  read_avro:
+                                    op: io.kroxylicious.filter.record.manipulation.format.avro.ReadAvro
+                                    schema: |
+                                      {"type":"record","name":"FooBar","fields":[{"name":"foo","type":"int"}]}
+                                  write_avro:
+                                    op: io.kroxylicious.filter.record.manipulation.format.avro.WriteAvro
+                                    format: json
                                 """));
     }
 

@@ -12,6 +12,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.format.jackson3.JsonSchemaTypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.SchemaType;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.MissingNode;

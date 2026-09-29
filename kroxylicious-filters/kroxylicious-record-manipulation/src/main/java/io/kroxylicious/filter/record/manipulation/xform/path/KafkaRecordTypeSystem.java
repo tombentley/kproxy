@@ -10,6 +10,8 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.Union;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.Record;
 

@@ -15,12 +15,12 @@ import org.apache.avro.Schema;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.filter.record.manipulation.format.Deserializer;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 import io.kroxylicious.proxy.plugin.Plugin;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -91,6 +91,8 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
         var parsedSchema = new Schema.Parser().parse(readerConfig.schema());
         Deserializer deserializer = readerConfig.createDeserializer(parsedSchema);
 
-        return BaseTypedOp.of(ByteBuffer.class, AvroValue.class, (value, opContext) -> new AvroValue(deserializer.deserialize(value), parsedSchema));
+        return BaseTypedOp.<ByteBuffer, AvroValue> of(ByteBuffer.class, AvroValue.class,
+                (value, opContext) -> new AvroValue(deserializer.deserialize(value), parsedSchema),
+                SchemaType.of(new AvroGenericTypeSystem(), parsedSchema));
     }
 }

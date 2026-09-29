@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.xform.path;
+package io.kroxylicious.filter.record.manipulation.format.jackson3;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
+
+import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.Union;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import tools.jackson.databind.JsonNode;
@@ -30,7 +33,7 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
 
     private final JsonNodeFactory jsonNodeFactory;
 
-    JsonSchemaTypeSystem(JsonNodeFactory jsonNodeFactory) {
+    public JsonSchemaTypeSystem(JsonNodeFactory jsonNodeFactory) {
         this.jsonNodeFactory = jsonNodeFactory;
     }
 

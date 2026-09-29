@@ -22,6 +22,10 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.type.SchemaType;
+import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.Union;
+
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.DefaultAnnotationForParameters;
 import edu.umd.cs.findbugs.annotations.NonNull;

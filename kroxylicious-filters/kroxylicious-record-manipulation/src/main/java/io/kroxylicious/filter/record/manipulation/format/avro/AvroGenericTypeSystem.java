@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.xform.path;
+package io.kroxylicious.filter.record.manipulation.format.avro;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -14,6 +14,9 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
 import io.leangen.geantyref.TypeFactory;
+
+import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.Union;
 
 public class AvroGenericTypeSystem implements TypeSystem<Schema> {
     @Override

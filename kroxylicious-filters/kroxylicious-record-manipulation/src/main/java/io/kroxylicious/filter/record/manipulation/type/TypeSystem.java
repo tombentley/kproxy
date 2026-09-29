@@ -4,12 +4,12 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.xform.path;
+package io.kroxylicious.filter.record.manipulation.type;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
-interface TypeSystem<S> {
+public interface TypeSystem<S> {
     /** The most general type. In type systems without declarative subclassing, this would be the union of all the types. */
     Type topType();
 

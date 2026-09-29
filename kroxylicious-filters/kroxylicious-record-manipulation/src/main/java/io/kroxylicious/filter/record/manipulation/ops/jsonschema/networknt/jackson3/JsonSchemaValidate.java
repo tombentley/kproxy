@@ -21,13 +21,16 @@ import com.networknt.schema.SpecificationVersion;
 import com.networknt.schema.dialect.Dialects;
 import com.networknt.schema.regex.JoniRegularExpressionFactory;
 
+import io.kroxylicious.filter.record.manipulation.format.jackson3.JsonSchemaTypeSystem;
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
 import io.kroxylicious.filter.record.manipulation.op.OpFactory;
 import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
+import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
     /**
@@ -77,7 +80,8 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
         validateSchema(schemaRegistry, schemaNode);
         Schema schema = getSchema(schemaRegistry, schemaNode);
         return BaseTypedOp.<JsonNode, JsonNode> of(JsonNode.class, JsonNode.class,
-                (value, context) -> validate(value, schema));
+                (value, context) -> validate(value, schema),
+                SchemaType.of(new JsonSchemaTypeSystem(new JsonNodeFactory()), schemaNode));
     }
 
     private static Schema getSchema(SchemaRegistry schemaRegistry, JsonNode schemaNode) {

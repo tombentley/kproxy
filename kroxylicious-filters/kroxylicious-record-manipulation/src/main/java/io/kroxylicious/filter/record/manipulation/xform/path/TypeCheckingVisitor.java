@@ -9,10 +9,13 @@ package io.kroxylicious.filter.record.manipulation.xform.path;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.type.SchemaType;
+import io.kroxylicious.filter.record.manipulation.type.Union;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 class TypeCheckingVisitor implements Ast.AstVisitor {
@@ -20,6 +23,12 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
     public final String propertyName;
     public final Type requiredType;
     private final SchemaType<?> rootType;
+    /**
+     * The type system currently in effect, threaded up the pipeline: it starts at {@link #rootType} and is
+     * switched by any operation that {@linkplain BaseTypedOp#introducedSchema() introduces} a new one (a
+     * deserializer/validator). Paths are typed against this context.
+     */
+    private SchemaType<?> activeType;
     private String expressionText;
 
     TypeCheckingVisitor(String propertyName,
@@ -36,6 +45,12 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
         this.requiredType = requiredType;
         this.errors = errors;
         this.rootType = rootType;
+        this.activeType = rootType;
+    }
+
+    /** The type system in effect after the last-visited expression; exposed for tests. */
+    SchemaType<?> activeType() {
+        return activeType;
     }
 
     @Override
@@ -82,14 +97,26 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
         // look up the function
         String functionName = ctx.fnName();
         BaseTypedOp<?, ?> op = ctx.decl();
-        // type it
+        // type it (args are visited first, so an inner deserializer switches activeType before we get here)
         ctx.args().forEach(arg -> arg.accept(this));
         Type argType = ctx.args().getFirst().type();
         Type paramType = op.inputType();
         // check that argType is a subtype of paramType
         checkAssignable(paramType, argType, functionName);
-        Type type = op.outputType();
-        ctx.setType(type);
+        Type declared = op.outputType();
+        Type nodeType = declared;
+        // If this op reinterprets its input under a new type system, switch the active context and refine
+        // the node type to the schema's logical type when that is a subtype of the declared output (e.g. a
+        // JSON schema narrows JsonNode to ObjectNode); wrapper outputs like AvroValue keep their declared type.
+        Optional<SchemaType<?>> introduced = op.introducedSchema();
+        if (introduced.isPresent()) {
+            activeType = introduced.get();
+            Type logical = activeType.javaType();
+            if (logical != null && GenericTypeReflector.isSuperType(declared, logical)) {
+                nodeType = logical;
+            }
+        }
+        ctx.setType(nodeType);
     }
 
     @Override
@@ -121,7 +148,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     @Override
     public <N> void visitPath(Ast.Path<N> path) {
-        path.setType(typeOfPath(path, rootType));
+        path.setType(typeOfPath(path, activeType));
     }
 
     /**

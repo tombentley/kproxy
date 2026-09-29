@@ -21,6 +21,7 @@ import io.kroxylicious.filter.record.manipulation.op.PluginLookup;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.StringNode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -66,6 +67,33 @@ class JsonSchemaValidateTest {
                 """);
         JsonNode applied = op.apply(value, opContext);
         assertThat(applied).isSameAs(value);
+    }
+
+    @Test
+    void introducesJsonSchemaTypeSystem() {
+        // Given
+        var factory = new JsonSchemaValidate();
+        var config = Map.<String, Object> of(
+                "jsonSchema", """
+                        {
+                          "type": "object",
+                          "properties": {
+                            "foo": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                        """);
+
+        // When
+        var op = factory.create(config, pluginLookup, argumentType);
+
+        // Then
+        assertThat(op.introducedSchema()).hasValueSatisfying(schemaType -> {
+            assertThat(schemaType.isObject()).isTrue();
+            assertThat(schemaType.propertyNames()).containsExactly("foo");
+            assertThat(schemaType.property("foo").javaType()).isEqualTo(StringNode.class);
+        });
     }
 
     @Test
