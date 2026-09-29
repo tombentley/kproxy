@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import io.kroxylicious.filter.record.manipulation.type.Bottom;
+import io.kroxylicious.filter.record.manipulation.type.Null;
 import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
 import io.kroxylicious.filter.record.manipulation.type.Union;
 
@@ -22,8 +24,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.BooleanNode;
 import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.MissingNode;
-import tools.jackson.databind.node.NullNode;
 import tools.jackson.databind.node.NumericFPNode;
 import tools.jackson.databind.node.NumericIntNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -39,7 +39,8 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
 
     @Override
     public Type topType() {
-        return null;
+        // Any JSON value: the supertype of every JsonNode subclass this type system produces.
+        return JsonNode.class;
     }
 
     // @Override
@@ -198,7 +199,7 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
 
     @Override
     public Type bottomType() {
-        return MissingNode.class;
+        return Bottom.class;
     }
 
     @Override
@@ -222,20 +223,23 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
         else if (typeNode instanceof StringNode typeStringNode) {
             return jsonNodeType(typeStringNode.asString());
         }
-        return MissingNode.class;
+        // No "type" keyword: an unconstrained/sentinel schema. Treated as the uninhabited type here
+        // (e.g. the schema returned for an absent property of a closed object).
+        // TODO a bare `{}` schema actually admits any value; distinguish it from the closed-absent sentinel.
+        return Bottom.class;
     }
 
     @NonNull
     private static Type jsonNodeType(String type) {
         return switch (type) {
-            case "null" -> NullNode.class;
+            case "null" -> Null.class;
             case "boolean" -> BooleanNode.class;
             case "integer" -> NumericIntNode.class;
             case "number" -> NumericFPNode.class;
             case "string" -> StringNode.class;
             case "array" -> ArrayNode.class;
             case "object" -> ObjectNode.class;
-            default -> MissingNode.class;
+            default -> Bottom.class;
         };
     }
 

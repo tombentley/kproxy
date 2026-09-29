@@ -13,11 +13,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.record.manipulation.format.jackson3.JsonSchemaTypeSystem;
+import io.kroxylicious.filter.record.manipulation.type.Bottom;
 import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.MissingNode;
 import tools.jackson.databind.node.NumericIntNode;
 import tools.jackson.databind.node.StringNode;
 import tools.jackson.dataformat.yaml.YAMLMapper;
@@ -73,7 +73,8 @@ class PathTypingTest {
         Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("foo")), null), schema);
         Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Name<>("bar")), null), schema);
         assertThat(foo).isEqualTo(NumericIntNode.class);
-        assertThat(bar).isEqualTo(MissingNode.class);
+        // a property that a closed object cannot have is an impossible navigation: the uninhabited bottom type
+        assertThat(bar).isEqualTo(Bottom.class);
     }
 
     @Test
@@ -127,7 +128,8 @@ class PathTypingTest {
         Type foo = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(0)), null), schema);
         Type bar = typeOf(new Ast.Path<>(Identifier.ROOT, new Ast.Segment.Child<>(new Ast.Selector.Index<>(1)), null), schema);
         assertThat(foo).isEqualTo(StringNode.class);
-        assertThat(bar).isEqualTo(MissingNode.class);
+        // an index a closed array cannot have is an impossible navigation: the uninhabited bottom type
+        assertThat(bar).isEqualTo(Bottom.class);
     }
 
     // TODO other selectors: Slice, Child, Filter

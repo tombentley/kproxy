@@ -14,6 +14,7 @@ import java.util.Optional;
 import io.leangen.geantyref.GenericTypeReflector;
 
 import io.kroxylicious.filter.record.manipulation.op.BaseTypedOp;
+import io.kroxylicious.filter.record.manipulation.type.Null;
 import io.kroxylicious.filter.record.manipulation.type.SchemaType;
 import io.kroxylicious.filter.record.manipulation.type.Union;
 import io.kroxylicious.kafka.common.record.internal.Record;
@@ -96,7 +97,9 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
 
     @Override
     public void visitNull(Ast.Null literalVal) {
-        literalVal.setType(Void.class);
+        // The `null` literal is the present null value (RFC 9535 §2.3.5.2), not absence: its type is the
+        // unit Null type, distinct from Nothing.
+        literalVal.setType(Null.class);
     }
 
     @Override

@@ -10,7 +10,12 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 public interface TypeSystem<S> {
-    /** The most general type. In type systems without declarative subclassing, this would be the union of all the types. */
+    /**
+     * The top type (&top;): the most general type of this type system, a supertype of every value type it
+     * can produce. In a type system without declarative subclassing this is the union of all its value
+     * types (structurally, {@link Nothing} summed with every other type). Used when navigation cannot be
+     * narrowed, e.g. a descendant ({@code ..}) segment.
+     */
     Type topType();
 
     ///** Create a union type from the given types */
@@ -61,9 +66,10 @@ public interface TypeSystem<S> {
     S arrayItemSchema(S arraySchema);
 
     /**
-     * The bottom type. There are no values of this type.
-     * It is the type of something which cannot exist, such as an indexed access of an
-     * object-typed value.
+     * The bottom type (&perp;): the uninhabited type, with no values. It is the type of something which
+     * cannot exist, such as an indexed access of an object-typed value. Implementations should return
+     * {@link Bottom Bottom.class}. This is distinct from {@link Nothing} (a unit type with exactly one
+     * value, "absent") — the two must not be conflated.
      */
     Type bottomType();
 

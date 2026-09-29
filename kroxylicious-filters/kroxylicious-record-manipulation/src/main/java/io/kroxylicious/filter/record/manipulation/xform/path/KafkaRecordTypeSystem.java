@@ -10,15 +10,16 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.type.Bottom;
 import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
-import io.kroxylicious.filter.record.manipulation.type.Union;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 public class KafkaRecordTypeSystem implements TypeSystem<Type> {
     @Override
     public Type topType() {
-        return null;
+        // Any value reachable within a record.
+        return Object.class;
     }
 
     @Override
@@ -54,29 +55,28 @@ public class KafkaRecordTypeSystem implements TypeSystem<Type> {
                 case "offset", "timestamp" -> Long.TYPE;
                 case "sequence" -> Integer.TYPE;
                 case "headers" -> Header[].class;
+                // TODO key/value are really nullable (a tombstone value, or an absent key), i.e.
+                // Union.of(ByteBuffer.class, Null.class). Modelling that honestly requires union-aware
+                // assignability in TypeCheckingVisitor (GenericTypeReflector cannot handle our Union) and
+                // null-tolerant ops; deferred. For now they are typed as the present (non-null) value.
                 case "key", "value" -> ByteBuffer.class;
-                default -> null;
+                default -> Bottom.class;
             };
         }
         else if (objectSchema == Header.class) {
             return switch (propertyName) {
                 case "key" -> String.class;
                 case "value" -> byte[].class;
-                default -> null;
+                default -> Bottom.class;
             };
         }
-        return null;
+        return Bottom.class;
     }
 
     @Override
     public Type objectPropertySchema(Type objectSchema) {
-        if (objectSchema == Record.class) {
-            return Union.of(List.of(Long.TYPE, Integer.TYPE, Header[].class, ByteBuffer.class));
-        }
-        else if (objectSchema == Header.class) {
-            return Union.of(String.class, byte[].class);
-        }
-        return null;
+        // Records and headers are closed objects; there is no "unknown property" value.
+        return Bottom.class;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class KafkaRecordTypeSystem implements TypeSystem<Type> {
 
     @Override
     public Type bottomType() {
-        return null;
+        return Bottom.class;
     }
 
     @Override

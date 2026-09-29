@@ -103,7 +103,8 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
 
     @Override
     public Ast visitNumberLiteral(ExprParser.NumberLiteralContext ctx) {
-        return new Ast.Num(Long.parseLong(ctx.getText())).setTree(ctx);
+        // A numberLiteral is a decimal (it may have a fraction/exponent), so parse as a double.
+        return new Ast.Num(Double.parseDouble(ctx.getText())).setTree(ctx);
     }
 
     @Override
@@ -295,7 +296,7 @@ class AstBuilder extends ExprBaseVisitor<Ast> {
             case "<=" -> Ast.BinOp.LE;
             case ">=" -> Ast.BinOp.GE;
             case "<" -> Ast.BinOp.LT;
-            case ">" -> Ast.BinOp.GE;
+            case ">" -> Ast.BinOp.GT;
             default -> throw new IllegalStateException();
         };
         return new Ast.BinaryOp(left, op, right).setTree(ctx);

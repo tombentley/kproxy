@@ -82,6 +82,29 @@ class AstBuilderTest {
     }
 
     @Test
+    void decimalComparisonLiteralIsParsedAsNum() {
+        // When
+        Ast expression = filterExpression("$.a[?@.price < 8.95]");
+
+        // Then
+        assertThat(expression).isInstanceOf(Ast.BinaryOp.class);
+        Ast.BinaryOp binaryOp = (Ast.BinaryOp) expression;
+        assertThat(binaryOp.op()).isEqualTo(Ast.BinOp.LT);
+        assertThat(binaryOp.right()).isInstanceOf(Ast.Num.class);
+        assertThat(((Ast.Num) binaryOp.right()).value()).isEqualTo(8.95);
+    }
+
+    @Test
+    void greaterThanMapsToGtNotGe() {
+        // When
+        Ast expression = filterExpression("$.a[?@.price > 10]");
+
+        // Then
+        assertThat(expression).isInstanceOf(Ast.BinaryOp.class);
+        assertThat(((Ast.BinaryOp) expression).op()).isEqualTo(Ast.BinOp.GT);
+    }
+
+    @Test
     void comparisonFilterCanReferenceBothCurrentAndRoot() {
         // When
         Ast expression = filterExpression("$.a[?@.b == $.x]");

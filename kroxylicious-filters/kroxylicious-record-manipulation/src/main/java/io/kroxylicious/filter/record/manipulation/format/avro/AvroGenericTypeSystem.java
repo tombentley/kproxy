@@ -15,13 +15,16 @@ import org.apache.avro.generic.GenericRecord;
 
 import io.leangen.geantyref.TypeFactory;
 
+import io.kroxylicious.filter.record.manipulation.type.Bottom;
+import io.kroxylicious.filter.record.manipulation.type.Null;
 import io.kroxylicious.filter.record.manipulation.type.TypeSystem;
 import io.kroxylicious.filter.record.manipulation.type.Union;
 
 public class AvroGenericTypeSystem implements TypeSystem<Schema> {
     @Override
     public Type topType() {
-        return null;
+        // Any value: the supertype of every value type this type system produces.
+        return Object.class;
     }
 
     // @Override
@@ -118,8 +121,6 @@ public class AvroGenericTypeSystem implements TypeSystem<Schema> {
         return Bottom.class;
     }
 
-    record Bottom() {}
-
     @Override
     public Type typeOf(Schema schema) {
         return switch (schema.getType()) {
@@ -129,7 +130,7 @@ public class AvroGenericTypeSystem implements TypeSystem<Schema> {
             case DOUBLE -> Double.class;
             case FLOAT -> Float.class;
             case BOOLEAN -> Boolean.class;
-            case NULL -> Void.class; // TODO ???
+            case NULL -> Null.class;
             case STRING -> String.class;
             case BYTES -> byte[].class;
             case ENUM -> String.class; // TODO ???
