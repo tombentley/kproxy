@@ -124,7 +124,7 @@ abstract class Ast {
     public static final class Bool extends Ast {
         private final boolean value;
 
-        public Bool(boolean value) {
+        Bool(boolean value) {
             this.value = value;
         }
 
@@ -148,7 +148,7 @@ abstract class Ast {
     public static final class Int extends Ast {
         private final long value;
 
-        public Int(long value) {
+        Int(long value) {
             this.value = value;
         }
 
@@ -163,7 +163,7 @@ abstract class Ast {
     }
 
     public static final class Null extends Ast {
-        public Null() {
+        Null() {
         }
 
         @Override
@@ -176,7 +176,7 @@ abstract class Ast {
     public static final class Num extends Ast {
         private final double value;
 
-        public Num(double value) {
+        Num(double value) {
             this.value = value;
         }
 
@@ -194,7 +194,7 @@ abstract class Ast {
     public static final class Str extends Ast {
         private final String value;
 
-        public Str(String value) {
+        Str(String value) {
             this.value = value;
         }
 
@@ -214,7 +214,7 @@ abstract class Ast {
         private final Ast left;
         private final Ast right;
 
-        public BinaryOp(Ast left, BinOp op, Ast right) {
+        BinaryOp(Ast left, BinOp op, Ast right) {
             this.op = op;
             this.left = left;
             this.right = right;
@@ -242,7 +242,7 @@ abstract class Ast {
     public static final class Conjunction extends Ast {
         private final List<Ast> conjunctees;
 
-        public Conjunction(List<Ast> conjunctees) {
+        Conjunction(List<Ast> conjunctees) {
             this.conjunctees = conjunctees;
         }
 
@@ -260,7 +260,7 @@ abstract class Ast {
     public static final class Disjunction extends Ast {
         private final List<Ast> disjunctees;
 
-        public Disjunction(List<Ast> disjunctees) {
+        Disjunction(List<Ast> disjunctees) {
             this.disjunctees = disjunctees;
         }
 
@@ -278,7 +278,7 @@ abstract class Ast {
 
         private final Ast negatee;
 
-        public Not(Ast negatee) {
+        Not(Ast negatee) {
             this.negatee = negatee;
         }
 
@@ -297,8 +297,8 @@ abstract class Ast {
         private final List<Ast> args;
         private BaseTypedOp<?, ?> op;
 
-        public FnCall(String fnName,
-                      List<Ast> args) {
+        FnCall(String fnName,
+               List<Ast> args) {
             this.fnName = fnName;
             this.args = args;
         }
@@ -334,7 +334,7 @@ abstract class Ast {
         public static final class Name<N> extends Selector<N> {
             private final String name;
 
-            public Name(String name) {
+            Name(String name) {
                 this.name = name;
             }
 
@@ -354,7 +354,7 @@ abstract class Ast {
         }
 
         public static final class Children<N> extends Selector<N> {
-            public Children() {
+            Children() {
             }
 
             @Override
@@ -367,7 +367,7 @@ abstract class Ast {
         public static final class Index<N> extends Selector<N> {
             private final int index;
 
-            public Index(int index) {
+            Index(int index) {
                 this.index = index;
             }
 
@@ -393,7 +393,7 @@ abstract class Ast {
             private final Integer end;
             private final int step;
 
-            public Slice(@Nullable Integer start, @Nullable Integer end, int step) {
+            Slice(@Nullable Integer start, @Nullable Integer end, int step) {
                 this.start = start;
                 this.end = end;
                 this.step = step;
@@ -485,10 +485,10 @@ abstract class Ast {
             visitor.visitSegment(this);
         }
 
-        public static final class Child<N> extends Segment<N> {
+        static final class Child<N> extends Segment<N> {
             private final List<Selector<N>> selectors;
 
-            public Child(List<Selector<N>> selectors) {
+            Child(List<Selector<N>> selectors) {
                 this.selectors = selectors;
             }
 
@@ -509,7 +509,7 @@ abstract class Ast {
         public static final class Descendant<N> extends Segment<N> {
             private final List<Selector<N>> selectors;
 
-            public Descendant(List<Selector<N>> selectors) {
+            Descendant(List<Selector<N>> selectors) {
                 this.selectors = selectors;
             }
 
@@ -535,13 +535,13 @@ abstract class Ast {
         private final List<Segment<N>> segments;
         private final Consumer<N> consumer;
 
-        public Path(Identifier identifier, List<Segment<N>> segments, Consumer<N> consumer) {
+        Path(Identifier identifier, List<Segment<N>> segments, Consumer<N> consumer) {
             this.identifier = identifier;
             this.segments = segments;
             this.consumer = consumer;
         }
 
-        public Path(Identifier identifier, Segment<N> segment, Consumer<N> consumer) {
+        Path(Identifier identifier, Segment<N> segment, Consumer<N> consumer) {
             this(identifier, List.of(segment), consumer);
         }
 
@@ -576,7 +576,7 @@ abstract class Ast {
 
         private final Ast expr;
 
-        public Expr(Ast expr) {
+        Expr(Ast expr) {
             this.expr = expr;
         }
 
