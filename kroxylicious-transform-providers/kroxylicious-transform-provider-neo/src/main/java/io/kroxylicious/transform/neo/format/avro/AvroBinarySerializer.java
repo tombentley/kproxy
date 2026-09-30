@@ -23,7 +23,7 @@ import io.kroxylicious.transform.neo.format.jackson2.JacksonSerializer;
  * Serializes a value to a {@link ByteBuffer} ready to be read, using Avro's single-object binary encoding -
  * the inverse of {@link AvroBinaryDeserializer}. Mirrors {@link JacksonSerializer}.
  * <p>
- * Typed to {@link Object} rather than {@link GenericRecord} because {@code schema} isn't required to be a
+ * Typed to {@link Object} rather than {@link GenericRecord} because {@code withKeySchema} isn't required to be a
  * {@code record} - see {@link AvroBinaryDeserializer}.
  */
 public class AvroBinarySerializer implements Serializer<Object> {
@@ -32,7 +32,7 @@ public class AvroBinarySerializer implements Serializer<Object> {
 
     /**
      * Creates a serializer.
-     * @param schema the schema written values conform to
+     * @param schema the withKeySchema written values conform to
      */
     public AvroBinarySerializer(Schema schema) {
         this.writer = new GenericDatumWriter<>(schema);

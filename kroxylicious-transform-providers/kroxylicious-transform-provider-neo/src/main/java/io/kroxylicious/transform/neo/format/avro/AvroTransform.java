@@ -20,20 +20,20 @@ import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.PluginLookup;
 
 /**
- * Masks/transforms an {@link AvroValue} per its bundled schema's {@code apply} annotations (see
+ * Masks/transforms an {@link AvroValue} per its bundled withKeySchema's {@code apply} annotations (see
  * {@link AvroSchemas}) - the Avro equivalent of
  * {@link JsonTransform}.
  * <p>
- * Takes no schema config of its own - see {@link AvroValue} for why it instead builds its mask from
+ * Takes no withKeySchema config of its own - see {@link AvroValue} for why it instead builds its mask from
  * whatever {@link Schema} arrives bundled with each value. {@link AvroFunction} itself is deliberately
- * loosely typed ({@code Object}-to-{@code Object}), since a mask can be built from a non-record schema too
+ * loosely typed ({@code Object}-to-{@code Object}), since a mask can be built from a non-record withKeySchema too
  * (an array or a leaf) - this op doesn't scope itself to record-shaped schemas, so array/scalar/enum/fixed
  * roots work here just as well as records.
  * <p>
  * The built {@link AvroFunction} is cached against the {@link Schema} it was built from (compared with
  * {@link Schema#equals(Object)}, which is structural - unlike {@code ProtobufTransform}'s equivalent cache,
  * no reference-identity trick is needed here): a {@link ReadAvro}-configured op hands out an
- * {@code .equals()} schema on every call, so this cache hits on every message after the first, avoiding
+ * {@code .equals()} withKeySchema on every call, so this cache hits on every message after the first, avoiding
  * rebuilding the whole mask in what is otherwise a per-record hot path.
  */
 @Plugin(configType = Void.class)

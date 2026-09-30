@@ -116,8 +116,8 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
         Type declared = op.outputType();
         Type nodeType = declared;
         // If this op reinterprets its input under a new type system, switch the active context and refine
-        // the node type to the schema's logical type when that is a subtype of the declared output (e.g. a
-        // JSON schema narrows JsonNode to ObjectNode); wrapper outputs like AvroValue keep their declared type.
+        // the node type to the withKeySchema's logical type when that is a subtype of the declared output (e.g. a
+        // JSON withKeySchema narrows JsonNode to ObjectNode); wrapper outputs like AvroValue keep their declared type.
         Optional<SchemaType<?>> introduced = op.introducedSchema();
         if (introduced.isPresent()) {
             activeType = introduced.get();
@@ -166,7 +166,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
     /**
      * The {@link Type} which evaluating {@code path} would yield, starting from the given {@code root} type context.
      * "Bolted-on" no longer: this replaces the former standalone {@code TypeEvaluator} and drives the traversal via
-     * {@link SchemaType}, so it works with any {@link TypeSystem} (the root the visitor threads, or a JSON/Avro schema
+     * {@link SchemaType}, so it works with any {@link TypeSystem} (the root the visitor threads, or a JSON/Avro withKeySchema
      * supplied directly). The traversal is now instance-based (it type-checks filter bodies against the visitor's
      * error list and root), so this static entry point drives it through a throwaway visitor.
      */

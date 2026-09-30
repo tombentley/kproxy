@@ -34,7 +34,7 @@ class BaseTypedOpTest {
     @Test
     void carriesIntroducedSchema() {
         // Given
-        SchemaType<Object> schemaType = SchemaType.of(typeSystem, "schema");
+        SchemaType<Object> schemaType = SchemaType.of(typeSystem, "withKeySchema");
 
         // When
         var op = BaseTypedOp.<String, String> of(String.class, String.class, (value, opContext) -> value, schemaType);

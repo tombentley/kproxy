@@ -18,7 +18,7 @@ import io.kroxylicious.transform.neo.format.avro.AvroBinarySerializer;
 /**
  * Serializes a {@link DynamicMessage} to a {@link ByteBuffer} ready to be read - the inverse of
  * {@link ProtobufBinaryDeserializer}. Mirrors {@link AvroBinarySerializer},
- * but needs no schema of its own: unlike Avro's {@code GenericRecord}, a {@link DynamicMessage} already
+ * but needs no withKeySchema of its own: unlike Avro's {@code GenericRecord}, a {@link DynamicMessage} already
  * carries its {@link com.google.protobuf.Descriptors.Descriptor} internally, so there's nothing external
  * to pass in.
  */

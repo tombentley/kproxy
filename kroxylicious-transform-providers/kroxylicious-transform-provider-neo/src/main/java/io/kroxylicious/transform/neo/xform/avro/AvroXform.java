@@ -51,15 +51,15 @@ public class AvroXform implements OpFactory<AvroValue, AvroValue> {
         Object xform = config.get("xform"); // xform is the JSON encoding of a default value
         // https://avro.apache.org/docs/1.12.0/specification/#schema-record
 
-        // TODO we need to know the target schema to be able to deserialize the xform
+        // TODO we need to know the target withKeySchema to be able to deserialize the xform
 
         return new StaticTypedOp<AvroValue, AvroValue>() {
             @Override
             public AvroValue apply(AvroValue value, OpContext opContext) {
-                // TODO merge the types from the schema with the paths from the xform
-                // and check the paths have result types which match any target schema
-                // var reader = new GenericDatumReader<>(value.schema());
-                // Decoder decoder = DecoderFactory.get().jsonDecoder(value.schema(), is);
+                // TODO merge the types from the withKeySchema with the paths from the xform
+                // and check the paths have result types which match any target withKeySchema
+                // var reader = new GenericDatumReader<>(value.withKeySchema());
+                // Decoder decoder = DecoderFactory.get().jsonDecoder(value.withKeySchema(), is);
                 // return reader.read(null, decoder);
 
                 return null;

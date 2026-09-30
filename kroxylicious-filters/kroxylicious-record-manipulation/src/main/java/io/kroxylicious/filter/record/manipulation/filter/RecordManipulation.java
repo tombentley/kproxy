@@ -83,6 +83,6 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     @Override
     public Filter createFilter(FilterFactoryContext context,
                                Init initializationData) {
-        return new RecordManipulationFilter(initializationData);
+        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor(), null);
     }
 }

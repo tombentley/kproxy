@@ -50,8 +50,8 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for schema validation with TLS-protected Apicurio Registry.
- * Tests that Kroxylicious can connect to a schema registry using a custom trust store.
+ * Integration tests for withKeySchema validation with TLS-protected Apicurio Registry.
+ * Tests that Kroxylicious can connect to a withKeySchema registry using a custom trust store.
  */
 @ExtendWith(KafkaClusterExtension.class)
 @EnabledIf(value = "isDockerAvailable", disabledReason = "docker unavailable")
@@ -125,7 +125,7 @@ class JsonSchemaRecordValidationTlsIT extends RecordSchemaValidationBaseIT {
         Integer mappedPort = registryContainer.getMappedPort(APICURIO_REGISTRY_HTTPS_PORT);
         apicurioRegistryUrl = "https://localhost:" + mappedPort + APICURIO_REGISTRY_API;
 
-        // Register schema using HTTPS (with insecure client for setup)
+        // Register withKeySchema using HTTPS (with insecure client for setup)
         var clientOptions = RegistryClientOptions.create(apicurioRegistryUrl).trustAll(true);
         var client = RegistryClientFactory.create(clientOptions);
 
@@ -158,7 +158,7 @@ class JsonSchemaRecordValidationTlsIT extends RecordSchemaValidationBaseIT {
     @ParameterizedTest
     @MethodSource("tlsScenarios")
     void shouldValidateRecordsWhenRegistryIsTlsProtected(Map<String, Object> tlsTrustConfig, KafkaCluster cluster, Topic topic) {
-        // Configure schema validation with TLS trust store
+        // Configure withKeySchema validation with TLS trust store
         var config = createTlsSchemaValidationConfig(cluster, topic, contentId, tlsTrustConfig);
 
         try (var tester = kroxyliciousTester(config);
@@ -173,7 +173,7 @@ class JsonSchemaRecordValidationTlsIT extends RecordSchemaValidationBaseIT {
 
     @Test
     void shouldFailWhenTlsConfigurationIsMissing(KafkaCluster cluster, Topic topic) {
-        // Configure schema validation WITHOUT TLS trust store - should fail to connect
+        // Configure withKeySchema validation WITHOUT TLS trust store - should fail to connect
         var config = createSchemaValidationConfigWithoutTls(cluster, topic, contentId);
 
         try (var tester = kroxyliciousTester(config);

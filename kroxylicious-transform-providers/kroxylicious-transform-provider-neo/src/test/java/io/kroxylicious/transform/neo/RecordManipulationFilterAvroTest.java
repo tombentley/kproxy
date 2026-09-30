@@ -84,7 +84,7 @@ class RecordManipulationFilterAvroTest {
 
     private static PipelineConfig avroMaskingValuePipeline() {
         return new PipelineConfig(Origin.RecordValue, List.of(
-                new OpConfig(ReadAvro.class, Map.of("schema", SCHEMA_JSON)),
+                new OpConfig(ReadAvro.class, Map.of("withKeySchema", SCHEMA_JSON)),
                 new OpConfig(AvroTransform.class),
                 new OpConfig(WriteAvro.class)));
     }
@@ -232,7 +232,7 @@ class RecordManipulationFilterAvroTest {
                 null, null,
                 null, null,
                 BufferPipeline.class.getName(), new PipelineConfig(Origin.RecordValue, List.of(
-                        new OpConfig(ReadAvro.class, Map.of("schema", arraySchemaJson)),
+                        new OpConfig(ReadAvro.class, Map.of("withKeySchema", arraySchemaJson)),
                         new OpConfig(AvroTransform.class),
                         new OpConfig(WriteAvro.class))));
         var factory = new RecordManipulation();

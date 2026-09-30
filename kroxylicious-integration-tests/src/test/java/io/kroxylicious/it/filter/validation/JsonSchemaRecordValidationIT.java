@@ -62,7 +62,7 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
     private static final String JSON_SCHEMA_TOPIC_1 = """
             {
               "$id": "https://example.com/person.schema.json",
-              "$schema": "http://json-schema.org/draft-07/schema#",
+              "$withKeySchema": "http://json-schema.org/draft-07/schema#",
               "title": "Person",
               "type": "object",
               "properties": {
@@ -86,7 +86,7 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
     private static final String JSON_SCHEMA_TOPIC_2 = """
             {
               "$id": "https://example.com/person2.schema.json",
-              "$schema": "http://json-schema.org/draft-07/schema#",
+              "$withKeySchema": "http://json-schema.org/draft-07/schema#",
               "title": "Person2",
               "type": "object",
               "properties": {
@@ -141,7 +141,7 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
         firstVersion.setContent(firstContent);
         createFirstArtifact.setFirstVersion(firstVersion);
 
-        // Create second artifact with JSON_SCHEMA_TOPIC_2 (different schema to get different contentId)
+        // Create second artifact with JSON_SCHEMA_TOPIC_2 (different withKeySchema to get different contentId)
         CreateArtifact createSecondArtifact = new CreateArtifact();
         createSecondArtifact.setArtifactType("JSON");
         CreateVersion secondVersion = new CreateVersion();
@@ -175,16 +175,16 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
 
     @Test
     void invalidAgeProduceRejectedUsingTopicNames(KafkaCluster cluster, Topic topic1, Topic topic2) {
-        // Topic 2 has schema validation, invalid data cannot be sent.
+        // Topic 2 has withKeySchema validation, invalid data cannot be sent.
         var config = createContentIdRecordValidationConfig(cluster, topic2, "valueRule", firstContentId);
 
         try (var tester = kroxyliciousTester(config);
                 var producer = tester.producer()) {
-            // Topic 2 has schema validation defined, invalid data cannot be produced.
+            // Topic 2 has withKeySchema validation defined, invalid data cannot be produced.
             var invalid = producer.send(new ProducerRecord<>(topic2.name(), "my-key", INVALID_AGE_MESSAGE));
             assertThatFutureFails(invalid, InvalidRecordException.class, "$.age: must have a minimum value of 0");
 
-            // Topic 1 has no schema validation, invalid data is produced.
+            // Topic 1 has no withKeySchema validation, invalid data is produced.
             var accepted = producer.send(new ProducerRecord<>(topic1.name(), "my-key", INVALID_AGE_MESSAGE));
             assertThatFutureSucceeds(accepted);
 
@@ -267,7 +267,7 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
         try (var tester = kroxyliciousTester(config);
                 var producer = tester.producer(keySerde, valueSerde, Map.of())) {
             var invalid = producer.send(new ProducerRecord<>(topic.name(), "my-key", PERSON_BEAN));
-            assertThatFutureFails(invalid, InvalidRecordException.class, "Unexpected schema id in record (1), expecting 2");
+            assertThatFutureFails(invalid, InvalidRecordException.class, "Unexpected withKeySchema id in record (1), expecting 2");
         }
     }
 
@@ -282,7 +282,7 @@ class JsonSchemaRecordValidationIT extends RecordSchemaValidationBaseIT {
         try (var tester = kroxyliciousTester(config);
                 var producer = tester.producer(keySerde, valueSerde, Map.of())) {
             var invalid = producer.send(new ProducerRecord<>(topic.name(), PERSON_BEAN, "my-key"));
-            assertThatFutureFails(invalid, InvalidRecordException.class, "Unexpected schema id in record (1), expecting 2");
+            assertThatFutureFails(invalid, InvalidRecordException.class, "Unexpected withKeySchema id in record (1), expecting 2");
         }
     }
 

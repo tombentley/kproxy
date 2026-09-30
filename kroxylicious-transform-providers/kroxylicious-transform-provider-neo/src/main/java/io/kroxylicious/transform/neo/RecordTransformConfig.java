@@ -36,7 +36,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *         #...
  *       - op: ReadJson
  *       - op: ValidateJsonSchema # optional: We can validate the Json
- *         schema:
+ *         withKeySchema:
  *           type: object
  *           required:
  *             - firstName
@@ -51,7 +51,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *               type: string
  *               format: date
  *       - op: Transform
- *         schema:
+ *         withKeySchema:
  *           type: object
  *           properties:
  *             firstName:

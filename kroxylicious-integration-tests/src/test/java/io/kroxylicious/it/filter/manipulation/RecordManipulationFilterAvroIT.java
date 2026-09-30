@@ -155,7 +155,7 @@ class RecordManipulationFilterAvroIT extends BaseIT {
                 "intoRecordValue", Map.of(
                         "from", "RecordValue",
                         "apply", List.of(
-                                Map.of("op", "ReadAvro", "schema", SCHEMA_JSON),
+                                Map.of("op", "ReadAvro", "withKeySchema", SCHEMA_JSON),
                                 Map.of("op", "AvroTransform"),
                                 Map.of("op", "WriteAvro"))));
 

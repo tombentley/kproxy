@@ -2,10 +2,10 @@
 given:
   recordValue:
     format: json
-    schema: <schema>
+    schema: <withKeySchema>
   recordKey:
     format: avro
-    schema: <schema>
+    schema: <withKeySchema>
   recordHeaders:
     headerKey: my-key
     format: kafka

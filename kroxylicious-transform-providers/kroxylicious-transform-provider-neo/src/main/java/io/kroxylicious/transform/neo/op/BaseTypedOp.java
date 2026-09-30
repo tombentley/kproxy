@@ -76,7 +76,7 @@ public interface BaseTypedOp<T, R> {
 
     /**
      * Create a {@code BaseTypedOp} that also declares the {@link SchemaType} it introduces - i.e. the type
-     * system (and schema) under which its result should be interpreted by subsequent stages. Use this for
+     * system (and withKeySchema) under which its result should be interpreted by subsequent stages. Use this for
      * deserialization/validation operations (e.g. {@code read_avro}, {@code validate_json}) that reinterpret
      * their input under a new type system.
      * @param inputType The type reflecting {@code T}
@@ -109,8 +109,8 @@ public interface BaseTypedOp<T, R> {
 
     /**
      * The {@link SchemaType} this operation introduces for subsequent stages, if any. An operation that
-     * reinterprets its input under a new type system (a deserializer or schema validator) returns the type
-     * context (type system + schema) it establishes; every other operation returns {@link Optional#empty()}.
+     * reinterprets its input under a new type system (a deserializer or withKeySchema validator) returns the type
+     * context (type system + withKeySchema) it establishes; every other operation returns {@link Optional#empty()}.
      * @return the introduced type context, or empty if this operation introduces none.
      */
     default Optional<SchemaType<?>> introducedSchema() {

@@ -34,7 +34,7 @@ import io.kroxylicious.transform.service.PluginLookup;
  * with the non-standard {@code apply} keyword (see {@link AvroSchemas}) - the Avro equivalent of
  * {@link JacksonFunction}.
  * <p>
- * Unlike {@code JacksonFunction}, this only masks a value that already conforms to {@code schema}; it has
+ * Unlike {@code JacksonFunction}, this only masks a value that already conforms to {@code withKeySchema}; it has
  * no generation-from-nothing mode, since Avro requires every declared field to be present, so there's no
  * "absent" starting point equivalent to Jackson's {@link com.fasterxml.jackson.databind.node.MissingNode}
  * to generate from yet (that needs Avro's union/default mechanism first).
@@ -65,9 +65,9 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     /**
      * Builds a mask function from a {@link Schema} tree, with no additional requirement beyond each
      * field's {@code apply} chain composing.
-     * @param schema the schema tree, annotated with {@code apply} chains
+     * @param schema the withKeySchema tree, annotated with {@code apply} chains
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code schema}, given a {@link OpContext}
+     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
     static AvroFunction buildMask(Schema schema, PluginLookup lookup) {
         return buildMask(schema, Set.of(), lookup);
@@ -75,10 +75,10 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds a mask function from a {@link Schema} tree.
-     * @param schema the schema tree, annotated with {@code apply} chains
+     * @param schema the withKeySchema tree, annotated with {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code schema}, given a {@link OpContext}
+     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
     static AvroFunction buildMask(Schema schema, Set<Requirement> requirements, PluginLookup lookup) {
         AvroFunction structural = buildStructural(schema, requirements, lookup);
@@ -96,7 +96,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
 
     // /**
     // * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
-    // * Kept as loosely typed as the function itself since a mask can be built from a non-record schema too
+    // * Kept as loosely typed as the function itself since a mask can be built from a non-record withKeySchema too
     // * (e.g. one describing just an array or a leaf) - see {@link #bindRecord(OpContext)} for the common case
     // * of composing a whole-record mask into a {@link Pipeline}
     // * between a deserializer and serializer, which are both typed to {@link GenericRecord}.
@@ -117,7 +117,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     // * parameter type) lines up either side of this stage, not because the underlying transformation differs.
     // * @param opContext the context to bind
     // * @return an equivalent {@code Function<GenericRecord,GenericRecord>}
-    // * @throws ClassCastException if this function was built from a non-record schema
+    // * @throws ClassCastException if this function was built from a non-record withKeySchema
     // */
     // default Function<GenericRecord, GenericRecord> bindRecord(OpContext opContext) {
     // return new BoundAvroRecordFunction(this, opContext);
@@ -150,8 +150,8 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     // }
 
     /**
-     * Builds the part of the mask that recurses into a schema's declared children ({@code fields}/
-     * {@code items}), leaving leaves untouched. This runs before the schema's own {@code apply} chain (if
+     * Builds the part of the mask that recurses into a withKeySchema's declared children ({@code fields}/
+     * {@code items}), leaving leaves untouched. This runs before the withKeySchema's own {@code apply} chain (if
      * any), so {@code apply} always sees the already-masked children - mirrors
      * {@code JacksonFunction.buildStructural}.
      */
@@ -168,7 +168,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                 yield new AvroFunction((value, opContext) -> fn.apply(castToList(value), opContext));
             }
             case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES, ENUM, FIXED -> new AvroFunction((value, context) -> value);
-            default -> throw new IllegalArgumentException("Avro mask not yet supported for schema type: " + schema.getType());
+            default -> throw new IllegalArgumentException("Avro mask not yet supported for withKeySchema type: " + schema.getType());
         };
     }
 
@@ -190,7 +190,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds a record field's mapping function: the field's own type-driven mask (which may itself carry
-     * a schema-level {@code apply}, e.g. on an array's {@code items}), composed with any {@code apply}
+     * a withKeySchema-level {@code apply}, e.g. on an array's {@code items}), composed with any {@code apply}
      * declared directly on the field (a sibling of the field's {@code type}, per {@link AvroSchemas}).
      */
     private static AvroFunction fieldFunction(Schema.Field field, Set<Requirement> requirements, PluginLookup lookup) {
@@ -293,7 +293,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     // * Resolves one {@code apply} entry to a {@link TypedOp} - {@link OpConfigs#DELETE} is special-cased
     // * here (rather than resolved via {@code lookup}) since removing a required Avro field isn't meaningful
     // * without also supporting Avro's union/default mechanism (see the class javadoc), so it fails loudly
-    // * rather than producing a {@link GenericRecord} that no longer conforms to its schema - unlike
+    // * rather than producing a {@link GenericRecord} that no longer conforms to its withKeySchema - unlike
     // * {@code JacksonFunction}'s equivalent, which allows it.
     // */
     // private static <T, R> TypedOp<T, R> buildOp(OpConfig op, Class<T> inputType, Class<R> outputType, PluginLookup lookup) {

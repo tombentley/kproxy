@@ -21,7 +21,7 @@ import io.kroxylicious.transform.neo.format.Deserializer;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link GenericRecord}, decoded per Avro's
- * JSON encoding (not plain/canonical JSON - Avro's own schema-directed JSON codec) against a fixed
+ * JSON encoding (not plain/canonical JSON - Avro's own withKeySchema-directed JSON codec) against a fixed
  * {@link Schema}. Mirrors {@link AvroBinaryDeserializer}, but via
  * {@link org.apache.avro.io.JsonDecoder} rather than {@link org.apache.avro.io.BinaryDecoder} - Avro's
  * JSON codec only decodes from a stream, so there's no array-backed fast path to mirror here.
@@ -33,7 +33,7 @@ public class AvroJsonDeserializer implements Deserializer<GenericRecord> {
 
     /**
      * Creates a deserializer.
-     * @param schema the schema the input conforms to
+     * @param schema the withKeySchema the input conforms to
      */
     public AvroJsonDeserializer(Schema schema) {
         this.schema = schema;

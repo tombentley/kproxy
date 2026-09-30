@@ -15,7 +15,7 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 
 /**
- * Base class for record validation tests that require Apicurio Registry for schema validation.
+ * Base class for record validation tests that require Apicurio Registry for withKeySchema validation.
  * Provides common infrastructure for Avro, JSON Schema, and Protobuf validation tests.
  */
 public abstract class RecordSchemaValidationBaseIT extends RecordValidationBaseIT {

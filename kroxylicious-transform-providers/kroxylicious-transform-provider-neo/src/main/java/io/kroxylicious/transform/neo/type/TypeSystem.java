@@ -74,8 +74,8 @@ public interface TypeSystem<S> {
     Type bottomType();
 
     /**
-     * The Java type corresponding to the given schema type
-     * @param schema The schema
+     * The Java type corresponding to the given withKeySchema type
+     * @param schema The withKeySchema
      * @return The Java type.
      */
     Type typeOf(S schema);

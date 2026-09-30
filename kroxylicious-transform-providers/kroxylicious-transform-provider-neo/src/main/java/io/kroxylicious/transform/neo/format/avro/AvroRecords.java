@@ -23,7 +23,7 @@ import io.kroxylicious.transform.neo.ops.common.Maybe;
  * but simpler, because Avro requires every field declared by a {@link Schema} to be present in any
  * conforming {@link GenericRecord}. There is no per-field absence to model the way
  * {@link Maybe} does for JSON object properties, so
- * {@link #mapFields} is a total map over {@code schema}'s declared fields rather than the insert/delete
+ * {@link #mapFields} is a total map over {@code withKeySchema}'s declared fields rather than the insert/delete
  * capable machinery {@code ObjectNodes.mapProperties} needs - inserting or deleting a field isn't
  * meaningful yet without also supporting Avro's union/default mechanism, which is its own separate piece
  * of work.
@@ -35,7 +35,7 @@ public class AvroRecords {
 
     /**
      * Maps selected fields of a record.
-     * @param schema the schema {@code record} (and every result of the returned function) conforms to
+     * @param schema the withKeySchema {@code record} (and every result of the returned function) conforms to
      * @param fieldFns the per-field functions, keyed by field name; a field with no entry is carried
      *                 over unchanged
      * @return a function building a fresh {@link GenericRecord} per the rules above

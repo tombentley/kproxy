@@ -7,9 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.nio.ByteBuffer;
-import java.util.Random;
 
-import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.record.internal.Record;
@@ -24,7 +22,6 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class RecordsSerializer {
 
-    private final Random prng = new Random();
     private final TimestampTransform timestampTransform;
     private final BufferTransform keyTransform;
     private final BufferTransform valueTransform;
@@ -38,25 +35,19 @@ public class RecordsSerializer {
         this.valueTransform = valueTransform;
     }
 
-    public MemoryRecords apply(RecordStream<TopicPartition> stream) {
+    public <S> MemoryRecords apply(RecordStream<S> stream) {
         return stream.toMemoryRecords(new ByteBufferOutputStream(ByteBuffer.allocate(1000)),
-                new RecordTransform<TopicPartition>() {
-                    private TopicPartition topicPartition;
-                    private RecordBatch batch;
-
+                new RecordTransform<S>() {
                     @Override
                     public void initBatch(RecordBatch batch) {
-                        this.batch = batch;
                     }
 
                     @Override
-                    public void init(TopicPartition topicPartition, Record record) {
-                        this.topicPartition = topicPartition;
+                    public void init(S s, Record record) {
                     }
 
                     @Override
-                    public void resetAfterTransform(TopicPartition topicPartition, Record record) {
-                        this.topicPartition = null;
+                    public void resetAfterTransform(S s, Record record) {
                     }
 
                     @Override

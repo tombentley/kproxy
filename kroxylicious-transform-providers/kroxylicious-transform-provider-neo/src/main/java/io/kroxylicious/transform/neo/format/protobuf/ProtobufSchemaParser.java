@@ -32,10 +32,10 @@ import io.kroxylicious.transform.neo.op.OpConfig;
  * <p>
  * Reuses {@link ProtobufFile#toProtoFileElement(String)} and {@link FileDescriptorUtils#toDescriptor(String,
  * ProtoFileElement, Map)} (both pure in-memory, no {@code protoc}, no network I/O) rather than parsing the
- * schema or converting it to a {@link Descriptors.FileDescriptor} ourselves - this repo's own
+ * withKeySchema or converting it to a {@link Descriptors.FileDescriptor} ourselves - this repo's own
  * {@code kroxylicious-record-validation} module already exercises the same conversion in production. This
  * class only adds the one thing that conversion doesn't do: reading the non-standard {@code apply} keyword
- * off the schema's own option syntax (see {@link ParsedProtoSchema}).
+ * off the withKeySchema's own option syntax (see {@link ParsedProtoSchema}).
  */
 public final class ProtobufSchemaParser {
 
@@ -46,10 +46,10 @@ public final class ProtobufSchemaParser {
     }
 
     /**
-     * Parses a {@code .proto} file and selects one of its message types as the schema root.
+     * Parses a {@code .proto} file and selects one of its message types as the withKeySchema root.
      * @param protoText the raw {@code .proto} IDL source, as a single file with no {@code import}s
-     * @param rootMessageName the name of the top-level message type this schema describes
-     * @return the root message's descriptor, plus every {@code apply} chain declared in the schema
+     * @param rootMessageName the name of the top-level message type this withKeySchema describes
+     * @return the root message's descriptor, plus every {@code apply} chain declared in the withKeySchema
      */
     public static ParsedProtoSchema parse(String protoText, String rootMessageName) {
         ProtoFileElement fileElement = ProtobufFile.toProtoFileElement(protoText);

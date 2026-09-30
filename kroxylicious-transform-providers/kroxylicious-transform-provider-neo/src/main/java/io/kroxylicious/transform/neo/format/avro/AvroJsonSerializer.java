@@ -31,7 +31,7 @@ public class AvroJsonSerializer implements Serializer<GenericRecord> {
 
     /**
      * Creates a serializer.
-     * @param schema the schema written records conform to
+     * @param schema the withKeySchema written records conform to
      */
     public AvroJsonSerializer(Schema schema) {
         this.schema = schema;

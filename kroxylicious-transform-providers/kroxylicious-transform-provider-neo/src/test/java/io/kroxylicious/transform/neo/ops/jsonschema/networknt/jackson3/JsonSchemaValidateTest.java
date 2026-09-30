@@ -119,7 +119,7 @@ class JsonSchemaValidateTest {
                 """);
         assertThatThrownBy(() -> op.apply(value, opContext))
                 .isExactlyInstanceOf(DataNotSchemaValidException.class)
-                .hasMessageContaining("property 'oops' is not defined in the schema and the schema does not allow additional properties");
+                .hasMessageContaining("property 'oops' is not defined in the withKeySchema and the withKeySchema does not allow additional properties");
     }
 
     @Test

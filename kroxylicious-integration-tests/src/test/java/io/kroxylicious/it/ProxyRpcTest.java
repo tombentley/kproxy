@@ -138,7 +138,7 @@ class ProxyRpcTest {
                     Request clientRequest = createRequestDefinition(apiAndVersion, "mockClientId", request);
                     String expected;
                     if (v0HeaderVersion.equals(apiAndVersion)) {
-                        // controlled shutdown is the only usage of a version 0 header schema which doesn't have clientId
+                        // controlled shutdown is the only usage of a version 0 header withKeySchema which doesn't have clientId
                         expected = "";
                     }
                     else {

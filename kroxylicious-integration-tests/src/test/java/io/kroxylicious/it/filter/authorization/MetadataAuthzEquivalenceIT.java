@@ -204,10 +204,10 @@ class MetadataAuthzEquivalenceIT extends AbstractAuthzEquivalenceIT {
                         new MetadataRequestData.MetadataRequestTopic().setName(NON_EXISTING_TOPIC_CREATE_DENIED),
                         new MetadataRequestData.MetadataRequestTopic().setName(NON_EXISTING_TOPIC_CREATE_ALLOWED)),
                 List.of(
-                        // this is just a placeholder, replaced by the real id of topicName
+                        // this is just a placeholder, replaced by the real id of inTopic
                         new MetadataRequestData.MetadataRequestTopic().setName(TOPIC_NAME).setTopicId(SENTINEL_TOPIC_ID)),
                 List.of(
-                        // this is just a placeholder, replaced by the real id of topicName
+                        // this is just a placeholder, replaced by the real id of inTopic
                         new MetadataRequestData.MetadataRequestTopic().setTopicId(SENTINEL_TOPIC_ID)),
                 List.of(
                         new MetadataRequestData.MetadataRequestTopic().setTopicId(NON_EXISTENT_TOPIC_ID))

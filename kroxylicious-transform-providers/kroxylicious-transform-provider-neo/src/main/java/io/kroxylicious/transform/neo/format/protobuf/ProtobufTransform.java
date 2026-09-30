@@ -19,14 +19,14 @@ import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.PluginLookup;
 
 /**
- * Masks/transforms a {@link ProtoValue} per its bundled schema's {@code apply} annotations (see
+ * Masks/transforms a {@link ProtoValue} per its bundled withKeySchema's {@code apply} annotations (see
  * {@link ProtobufSchemaParser}) - the Protobuf equivalent of
  * {@link AvroTransform}.
  * <p>
- * Takes no schema config of its own - see {@link ProtoValue} for why it instead builds its mask from
+ * Takes no withKeySchema config of its own - see {@link ProtoValue} for why it instead builds its mask from
  * whatever {@link ParsedProtoSchema} arrives bundled with each value. The built {@link ProtobufFunction}
  * is cached against the {@link ParsedProtoSchema} instance it was built from (compared by reference):
- * a {@link DeserializeProtobuf}-configured op returns the same schema instance on every call, so this
+ * a {@link DeserializeProtobuf}-configured op returns the same withKeySchema instance on every call, so this
  * cache hits on every message after the first, avoiding rebuilding the whole mask in what is otherwise a
  * per-record hot path.
  */
@@ -48,7 +48,7 @@ public class ProtobufTransform implements OpFactory<ProtoValue, ProtoValue> {
         }
 
         @Override
-        @SuppressWarnings("ReferenceEquality") // deliberate identity check: a schema instance is reused verbatim across calls, see class javadoc
+        @SuppressWarnings("ReferenceEquality") // deliberate identity check: a withKeySchema instance is reused verbatim across calls, see class javadoc
         public ProtoValue apply(ProtoValue value, OpContext opContext) {
             ParsedProtoSchema schema = value.schema();
             ProtobufFunction mask = cachedMask;

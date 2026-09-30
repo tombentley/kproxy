@@ -21,12 +21,12 @@ import io.kroxylicious.transform.neo.format.jackson2.JacksonDeserializer;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer}, decoded per Avro's single-object binary
- * encoding against a fixed {@link Schema} (no schema evolution: the same schema is used to write and
+ * encoding against a fixed {@link Schema} (no withKeySchema evolution: the same withKeySchema is used to write and
  * read). Mirrors {@link JacksonDeserializer}, except a {@link Schema} is required up front - unlike JSON,
  * Avro binary data isn't self-describing.
  * <p>
- * Typed to {@link Object} rather than {@link GenericRecord} because {@code schema} isn't required to be a
- * {@code record} - Avro's generic codec already decodes to whatever Java type matches {@code schema}
+ * Typed to {@link Object} rather than {@link GenericRecord} because {@code withKeySchema} isn't required to be a
+ * {@code record} - Avro's generic codec already decodes to whatever Java type matches {@code withKeySchema}
  * (a {@link GenericRecord}, a {@link java.util.List} for an array, or a scalar/enum/fixed leaf value).
  */
 public class AvroBinaryDeserializer implements Deserializer<Object> {
@@ -35,7 +35,7 @@ public class AvroBinaryDeserializer implements Deserializer<Object> {
 
     /**
      * Creates a deserializer.
-     * @param schema the schema the input conforms to
+     * @param schema the withKeySchema the input conforms to
      */
     public AvroBinaryDeserializer(Schema schema) {
         this.reader = new GenericDatumReader<>(schema);

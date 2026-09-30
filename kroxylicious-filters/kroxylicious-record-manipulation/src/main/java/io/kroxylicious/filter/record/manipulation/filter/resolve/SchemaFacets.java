@@ -1,0 +1,85 @@
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.filter.record.manipulation.filter.resolve;
+
+import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
+import io.kroxylicious.kafka.common.record.internal.Record;
+
+/**
+ * The schema-registry "related things", wiring a {@link SchemaRegistryClient} behind the generic
+ * {@link CachingEntityResolver}s so that the orchestrator never depends on the client directly.
+ *
+ * <p>Two resolution stages share the Apicurio {@code globalId} space (a {@code globalId} is unique
+ * regardless of whether it framed a key or a value), so a single {@link #versionResolver()} serves both
+ * the key and value extractors:</p>
+ * <ol>
+ *   <li>{@code globalId -> } {@link VersionsResult} (group/artifact/version + {@code contentId}) — used
+ *       to <em>select</em> a manipulation;</li>
+ *   <li>{@code contentId -> } schema bytes — used to <em>apply</em> a schema-aware {@code then}.</li>
+ * </ol>
+ */
+public final class SchemaFacets {
+
+    /** Discriminator for the {@code globalId -> VersionsResult} stage in {@link ResolvedEntities}. */
+    public static final String SCHEMA_VERSIONS = "schema-versions";
+    /** Discriminator for the {@code contentId -> schema bytes} stage in {@link ResolvedEntities}. */
+    public static final String SCHEMA_CONTENT = "schema-content";
+
+    private final SchemaIdExtractor keyExtractor = new SchemaIdExtractor(Record::key);
+    private final SchemaIdExtractor valueExtractor = new SchemaIdExtractor(Record::value);
+    private final EntityResolver<Long, VersionsResult> versionResolver;
+    private final EntityResolver<Long, byte[]> contentResolver;
+
+    /**
+     * Creates the schema resolvers backing the key/value extractors and content lookup.
+     * @param client the backing schema registry client.
+     * @param versionCacheMax max cached version-metadata entries, or {@link CachingEntityResolver#UNBOUNDED}.
+     * @param contentCacheMax max cached schema-content entries, or {@link CachingEntityResolver#UNBOUNDED}.
+     */
+    public SchemaFacets(SchemaRegistryClient client, int versionCacheMax, int contentCacheMax) {
+        this.versionResolver = new CachingEntityResolver<>(
+                globalId -> client.artifactIdForGlobalId(globalId).toCompletableFuture(),
+                versionCacheMax);
+        this.contentResolver = new CachingEntityResolver<>(
+                contentId -> client.getContentById(contentId).thenApply(ContentResult::contentBytes).toCompletableFuture(),
+                contentCacheMax);
+    }
+
+    /**
+     * Returns the extractor for the key schema {@code globalId}.
+     * @return extractor for the key schema {@code globalId}.
+     */
+    public LookupKeyExtractor<Long> keyExtractor() {
+        return keyExtractor;
+    }
+
+    /**
+     * Returns the extractor for the value schema {@code globalId}.
+     * @return extractor for the value schema {@code globalId}.
+     */
+    public LookupKeyExtractor<Long> valueExtractor() {
+        return valueExtractor;
+    }
+
+    /**
+     * Returns the resolver from {@code globalId} to version metadata (shared by key and value).
+     * @return resolver from {@code globalId} to version metadata (shared by key and value).
+     */
+    public EntityResolver<Long, VersionsResult> versionResolver() {
+        return versionResolver;
+    }
+
+    /**
+     * Returns the resolver from {@code contentId} to schema bytes.
+     * @return resolver from {@code contentId} to schema bytes.
+     */
+    public EntityResolver<Long, byte[]> contentResolver() {
+        return contentResolver;
+    }
+}

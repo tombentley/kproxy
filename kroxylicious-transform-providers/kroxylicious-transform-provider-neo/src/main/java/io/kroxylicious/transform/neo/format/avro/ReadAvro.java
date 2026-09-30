@@ -31,7 +31,7 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 /**
  * Deserializes a record value/key from Avro's single-object binary encoding to an {@link AvroValue} -
  * the Avro equivalent of {@link ReadJson}.
- * The only Avro op that parses schema config - see {@link AvroValue}.
+ * The only Avro op that parses withKeySchema config - see {@link AvroValue}.
  */
 @Plugin(configType = ReadAvro.ReaderConfig.class)
 public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {

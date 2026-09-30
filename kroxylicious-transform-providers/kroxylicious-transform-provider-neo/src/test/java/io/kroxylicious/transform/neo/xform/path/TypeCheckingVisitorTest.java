@@ -60,7 +60,7 @@ class TypeCheckingVisitorTest {
 
         // Then
         assertThat(errors).isEmpty();
-        assertThat(call.type()).isEqualTo(ObjectNode.class); // JsonNode narrowed to the schema's logical type
+        assertThat(call.type()).isEqualTo(ObjectNode.class); // JsonNode narrowed to the withKeySchema's logical type
         assertThat(visitor.activeType().property("foo").javaType()).isEqualTo(StringNode.class);
     }
 
@@ -68,7 +68,7 @@ class TypeCheckingVisitorTest {
     void switchesActiveTypeButKeepsNonAssignableDeclaredOutput() {
         // Given
         SchemaType<JsonNode> introduced = jsonSchema();
-        // Long is not a supertype of the schema's logical ObjectNode, so the declared output must be preserved
+        // Long is not a supertype of the withKeySchema's logical ObjectNode, so the declared output must be preserved
         BaseTypedOp<ByteBuffer, Long> op = BaseTypedOp.of(ByteBuffer.class, Long.class, (value, opContext) -> null, introduced);
         Ast.FnCall call = readValue(op);
         var visitor = new TypeCheckingVisitor("value", ByteBuffer.class, new ArrayList<>());

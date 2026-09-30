@@ -24,9 +24,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * {@code minLength}, {@code enum}, {@code patternProperties}) is accepted and preserved via
  * {@link #otherKeywords()} but not interpreted, so an existing JSON Schema document can have {@code apply}
  * added to it directly rather than needing its unrelated keywords stripped out first.
- * @param type the JSON type this schema describes, e.g. {@code object}, {@code array}, {@code string}, {@code integer}
- * @param properties for {@code type: object}, the schema for each named property
- * @param items for {@code type: array}, the schema applied to each element
+ * @param type the JSON type this withKeySchema describes, e.g. {@code object}, {@code array}, {@code string}, {@code integer}
+ * @param properties for {@code type: object}, the withKeySchema for each named property
+ * @param items for {@code type: array}, the withKeySchema applied to each element
  * @param apply the sequence of operations to run on this node's value, applied after any nested
  *              {@code properties}/{@code items} have already been applied to it
  * @param otherKeywords any other JSON Schema keyword present on this node; preserved but not interpreted,

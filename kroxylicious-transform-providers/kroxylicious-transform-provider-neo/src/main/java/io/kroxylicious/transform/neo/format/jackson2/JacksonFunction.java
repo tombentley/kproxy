@@ -65,9 +65,9 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
     /**
      * Builds a mask/generator function from a {@link SchemaConfig} tree, with no additional requirement
      * beyond each field's {@code apply} chain composing.
-     * @param schema the schema tree, annotated with {@code apply} chains
+     * @param schema the withKeySchema tree, annotated with {@code apply} chains
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
+     * @return a function transforming an input {@link JsonNode} according to {@code withKeySchema}, given a
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,
@@ -77,10 +77,10 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
 
     /**
      * Builds a mask/generator function from a {@link SchemaConfig} tree.
-     * @param schema the schema tree, annotated with {@code apply} chains
+     * @param schema the withKeySchema tree, annotated with {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input {@link JsonNode} according to {@code schema}, given a
+     * @return a function transforming an input {@link JsonNode} according to {@code withKeySchema}, given a
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,

@@ -31,7 +31,7 @@ public class ProtobufMessages {
 
     /**
      * Maps selected fields of a message.
-     * @param descriptor the schema {@code message} (and every result of the returned function) conforms to
+     * @param descriptor the withKeySchema {@code message} (and every result of the returned function) conforms to
      * @param fieldFns the per-field functions, keyed by field name; a field with no entry is carried
      *                 over unchanged
      * @return a function building a fresh {@link DynamicMessage} per the rules above

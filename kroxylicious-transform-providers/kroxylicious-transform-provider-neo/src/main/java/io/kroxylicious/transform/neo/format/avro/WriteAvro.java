@@ -34,8 +34,8 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  * {@link WriteJson}, and the inverse of
  * {@link ReadAvro}.
  * <p>
- * Takes no schema config of its own - see {@link AvroValue}; it builds an {@link AvroBinarySerializer} from
- * whatever {@link Schema} arrives bundled with each value, and caches it against that schema (compared with
+ * Takes no withKeySchema config of its own - see {@link AvroValue}; it builds an {@link AvroBinarySerializer} from
+ * whatever {@link Schema} arrives bundled with each value, and caches it against that withKeySchema (compared with
  * {@link Schema#equals(Object)}) so building a fresh {@link org.apache.avro.generic.GenericDatumWriter}
  * isn't repeated per record - mirrors the mask cache in {@link AvroTransform}.
  */

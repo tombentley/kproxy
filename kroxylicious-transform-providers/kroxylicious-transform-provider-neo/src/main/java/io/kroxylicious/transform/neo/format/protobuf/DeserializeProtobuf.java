@@ -22,8 +22,8 @@ import io.kroxylicious.transform.service.PluginLookup;
  * Deserializes a record value/key from Protobuf's binary encoding to a {@link ProtoValue} - the Protobuf
  * equivalent of {@link ReadAvro}.
  * <p>
- * The only op in the Protobuf pipeline that parses schema text - see {@link ProtoValue} for why
- * {@link ProtobufTransform}/{@link SerializeProtobuf} instead consume whatever schema arrives bundled
+ * The only op in the Protobuf pipeline that parses withKeySchema text - see {@link ProtoValue} for why
+ * {@link ProtobufTransform}/{@link SerializeProtobuf} instead consume whatever withKeySchema arrives bundled
  * with the message, rather than parsing their own.
  */
 @Plugin(configType = ProtoSchema.class)

@@ -25,7 +25,7 @@ import io.kroxylicious.transform.service.PluginLookup;
  * Deliberately narrower than the plugin config machinery used elsewhere in Kroxylicious
  * ({@code @PluginImplName}/{@code @PluginImplConfig}, which resolves a config's concrete type via Jackson
  * at parse time): which input/output type a given configuration entry should resolve to isn't known
- * until the format-specific engine walks its schema and discovers the field's type, so {@code
+ * until the format-specific engine walks its withKeySchema and discovers the field's type, so {@code
  * config} is left as an undeserialized property map here, and implementations convert it to their own
  * configuration type themselves. Deliberately typed with plain JDK types rather than a Jackson tree type
  * (e.g. {@code JsonNode}) so this interface - which every plugin implementor's method signature must

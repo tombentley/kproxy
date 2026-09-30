@@ -382,7 +382,7 @@ public abstract class AuthzIT extends BaseIT {
     }
 
     /**
-     * Replace a topicId with a topicName known to the test, the test must have assigned the topic ids to
+     * Replace a topicId with a inTopic known to the test, the test must have assigned the topic ids to
      * the relevant topicIdsInUnproxiedCluster or topicIdsInProxiedCluster.
      * The topicId property is replaced with a text node called "kroxyliciousTestMappedTopicName"
      */
@@ -392,7 +392,7 @@ public abstract class AuthzIT extends BaseIT {
             String uuid = jsonNode.textValue();
             Uuid topicId = Uuid.fromString(uuid);
             String topicName = cluster.topicIds().entrySet().stream().filter(stringUuidEntry -> stringUuidEntry.getValue().equals(topicId))
-                    .map(Map.Entry::getKey).findFirst().orElseThrow(() -> new RuntimeException("failed to find topicName for id " + topicId));
+                    .map(Map.Entry::getKey).findFirst().orElseThrow(() -> new RuntimeException("failed to find inTopic for id " + topicId));
             objectNode.remove(topicIdProperty);
             objectNode.put(TEST_MAPPED_TOPIC_NAME_PROPERTY, topicName);
         }

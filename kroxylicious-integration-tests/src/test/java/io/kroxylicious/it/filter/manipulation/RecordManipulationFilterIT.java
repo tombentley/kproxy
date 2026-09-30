@@ -155,7 +155,7 @@ class RecordManipulationFilterIT extends BaseIT {
                         "from", "RecordValue",
                         "apply", List.of(
                                 Map.of("op", "ReadJson"),
-                                Map.of("op", "JsonTransform", "schema", schema),
+                                Map.of("op", "JsonTransform", "withKeySchema", schema),
                                 Map.of("op", "WriteJson"))));
 
         String className = RecordManipulation.class.getName();

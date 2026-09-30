@@ -104,7 +104,7 @@ class ProtobufRecordValidationIT extends RecordSchemaValidationBaseIT {
         artifactId = artifact.getArtifactId();
         contentId = artifact.getContentId().intValue();
 
-        // Register a second schema to get a different contentId for wrong-schema-id tests
+        // Register a second withKeySchema to get a different contentId for wrong-withKeySchema-id tests
         CreateArtifact createSecondArtifact = new CreateArtifact();
         createSecondArtifact.setArtifactType("PROTOBUF");
         CreateVersion secondVersion = new CreateVersion();
@@ -251,7 +251,7 @@ class ProtobufRecordValidationIT extends RecordSchemaValidationBaseIT {
                     .build();
 
             var future = producer.send(new ProducerRecord<>(topic.name(), "my-key", person));
-            assertThatFutureFails(future, InvalidRecordException.class, "Unexpected schema id in record");
+            assertThatFutureFails(future, InvalidRecordException.class, "Unexpected withKeySchema id in record");
         }
     }
 

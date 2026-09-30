@@ -10,17 +10,17 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 /**
- * Pairs a foreign schema {@code S} with the {@link TypeSystem} that interprets it, giving a single
+ * Pairs a foreign withKeySchema {@code S} with the {@link TypeSystem} that interprets it, giving a single
  * navigable "type context". This is the value the type-checker threads while typing a path: navigation
  * methods ({@link #property(String)}, {@link #item(int)}, …) yield the {@code SchemaType} of a nested
  * value, and {@link #javaType()} converts the current position to the Java {@link Type} used for
  * assignability checks.
  * <p>
- * An operation that reinterprets its input under a new type system (e.g. a deserializer or a schema
+ * An operation that reinterprets its input under a new type system (e.g. a deserializer or a withKeySchema
  * validator) advertises the {@code SchemaType} it introduces, capturing both the interpreter and the
- * (already-parsed) schema in one wildcard-usable value.
+ * (already-parsed) withKeySchema in one wildcard-usable value.
  *
- * @param <S> The type of schema object (e.g. {@code Schema} for Avro, {@code JsonNode} for JSON Schema,
+ * @param <S> The type of withKeySchema object (e.g. {@code Schema} for Avro, {@code JsonNode} for JSON Schema,
  * or {@link Type} for the Kafka record type system).
  */
 public final class SchemaType<S> {

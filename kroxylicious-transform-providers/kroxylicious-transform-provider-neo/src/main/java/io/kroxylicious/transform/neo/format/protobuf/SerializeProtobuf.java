@@ -19,7 +19,7 @@ import io.kroxylicious.transform.service.PluginLookup;
 /**
  * Serializes a {@link ProtoValue} to Protobuf's binary encoding - the Protobuf equivalent of
  * {@link WriteAvro}, and the inverse of
- * {@link DeserializeProtobuf}. Takes no schema config: unlike Avro's {@code GenericRecord}, a
+ * {@link DeserializeProtobuf}. Takes no withKeySchema config: unlike Avro's {@code GenericRecord}, a
  * {@link com.google.protobuf.DynamicMessage} already carries its own
  * {@link com.google.protobuf.Descriptors.Descriptor}, so there's nothing to do beyond unwrapping
  * {@link ProtoValue#message()}.

@@ -212,7 +212,7 @@ return context.forwardRequest(request)
 
 **❌ Violating protocol contracts:**
 ```java
-// Modifying message structure in ways that break schema
+// Modifying message structure in ways that break withKeySchema
 record.value(new byte[0]); // May break compression
 ```
 

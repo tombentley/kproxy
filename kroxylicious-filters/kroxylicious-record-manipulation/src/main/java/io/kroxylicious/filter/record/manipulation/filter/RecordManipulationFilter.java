@@ -6,10 +6,16 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
-import io.kroxylicious.kafka.common.TopicPartition;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.ContextualBufferTransform;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationOrchestrator;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
@@ -19,7 +25,6 @@ import io.kroxylicious.kafka.common.message.ShareFetchResponseData;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.BaseRecords;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
-import io.kroxylicious.kafka.transform.RecordStream;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
@@ -27,12 +32,15 @@ import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import io.kroxylicious.proxy.filter.ShareFetchResponseFilter;
 import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
-import io.kroxylicious.transform.service.BufferTransform;
-import io.kroxylicious.transform.service.TimestampTransform;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
+/**
+ * A filter that selects records ({@code when}) and rewrites them ({@code then}). Selection and
+ * rewriting may depend on "related things" (e.g. schema-registry content) that must be fetched from an
+ * external system; the {@link ManipulationOrchestrator} pools those lookups across all partitions in a
+ * request/response, resolves them (deduplicated and cached), and applies the matched transforms.
+ */
 public class RecordManipulationFilter implements
         ProduceRequestFilter,
         FetchResponseFilter,
@@ -40,29 +48,32 @@ public class RecordManipulationFilter implements
 
     private final String topic;
     private final Direction direction;
-    private final RecordsDeserializer deserializer;
-    private final RecordsSerializer serializer;
+    private final List<CompiledManipulation> manipulations;
+    private final ManipulationOrchestrator orchestrator;
 
-    public RecordManipulationFilter(Init init) {
-        this(init.topic(),
-                init.direction(),
-                init.recordTimestampPipeline(),
-                init.recordKeyPipeline(),
-                init.recordValuePipeline());
+    public RecordManipulationFilter(Init init, Executor filterExecutor, @Nullable SchemaFacets schemaFacets) {
+        this.topic = init.topic();
+        this.direction = init.direction();
+        this.manipulations = List.of(compile(init));
+        this.orchestrator = new ManipulationOrchestrator(schemaFacets, filterExecutor);
     }
 
-    public RecordManipulationFilter(String topic,
-                                    Direction direction,
-                                    TimestampTransform recordTimestampPipeline,
-                                    BufferTransform recordKeyPipeline,
-                                    BufferTransform recordValuePipeline) {
-        this.topic = topic;
-        this.direction = direction;
-        this.deserializer = new RecordsDeserializer();
-        this.serializer = new RecordsSerializer(
-                recordTimestampPipeline,
-                recordKeyPipeline,
-                recordValuePipeline);
+    /**
+     * Compiles the (single, global) manipulation expressed by the current configuration: it selects
+     * every record of the configured topic/direction and applies the configured timestamp/key/value
+     * transforms. Per-manipulation, schema-selecting configuration is resolved and applied by the same
+     * {@link ManipulationOrchestrator} once the configuration surface exposes it.
+     */
+    private CompiledManipulation compile(Init init) {
+        return new CompiledManipulation(
+                init.direction(),
+                name -> true,
+                null,
+                null,
+                null,
+                init.recordTimestampPipeline(),
+                ContextualBufferTransform.of(init.recordKeyPipeline()),
+                ContextualBufferTransform.of(init.recordValuePipeline()));
     }
 
     @Override
@@ -78,14 +89,17 @@ public class RecordManipulationFilter implements
                 .map(ProduceRequestData.TopicProduceData::topicId)
                 .toList();
         return context.topicNames(idsToResolve).thenCompose(topicNameMapping -> {
+            List<PartitionWorkItem> workItems = new ArrayList<>();
             for (var topicData : request.topicData()) {
-                if (topic.equals(resolveTopicName(topicData.name(), topicData.topicId(), topicNameMapping))) {
+                String topicName = resolveTopicName(topicData.name(), topicData.topicId(), topicNameMapping);
+                if (topic.equals(topicName)) {
                     for (var partitionData : topicData.partitionData()) {
-                        partitionData.setRecords(transformRecords(partitionData.records(), partitionData.index()));
+                        addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
                     }
                 }
             }
-            return context.forwardRequest(header, request);
+            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+                    .thenCompose(ignored -> context.forwardRequest(header, request));
         });
     }
 
@@ -102,15 +116,62 @@ public class RecordManipulationFilter implements
                 .map(FetchResponseData.FetchableTopicResponse::topicId)
                 .toList();
         return context.topicNames(idsToResolve).thenCompose(topicNameMapping -> {
+            List<PartitionWorkItem> workItems = new ArrayList<>();
             for (var topicData : response.responses()) {
-                if (topic.equals(resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping))) {
+                String topicName = resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping);
+                if (topic.equals(topicName)) {
                     for (var partitionData : topicData.partitions()) {
-                        partitionData.setRecords(transformRecords(partitionData.records(), partitionData.partitionIndex()));
+                        addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
                     }
                 }
             }
-            return context.forwardResponse(header, response);
+            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+                    .thenCompose(ignored -> context.forwardResponse(header, response));
         });
+    }
+
+    @Override
+    public CompletionStage<ResponseFilterResult> onShareFetchResponse(short apiVersion,
+                                                                      ResponseHeaderData header,
+                                                                      ShareFetchResponseData response,
+                                                                      FilterContext context) {
+        if (this.direction != Direction.OUT) {
+            return context.forwardResponse(header, response);
+        }
+        List<Uuid> idsToResolve = response.responses().stream()
+                .map(ShareFetchResponseData.ShareFetchableTopicResponse::topicId)
+                .toList();
+        return context.topicNames(idsToResolve).thenCompose(topicMapping -> {
+            List<PartitionWorkItem> workItems = new ArrayList<>();
+            for (var topicData : response.responses()) {
+                if (topicMapping.failures().containsKey(topicData.topicId())) {
+                    for (var partitionData : topicData.partitions()) {
+                        partitionData.setRecords(null);
+                        partitionData.setErrorCode(Errors.UNKNOWN_TOPIC_ID.code());
+                        partitionData.setErrorMessage("Oops");
+                    }
+                }
+                else {
+                    String topicName = topicMapping.topicNames().get(topicData.topicId());
+                    if (topic.equals(topicName)) {
+                        for (var partitionData : topicData.partitions()) {
+                            addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
+                        }
+                    }
+                }
+            }
+            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+                    .thenCompose(ignored -> context.forwardResponse(header, response));
+        });
+    }
+
+    private void addWorkItem(List<PartitionWorkItem> workItems,
+                             String topicName,
+                             @Nullable BaseRecords records,
+                             java.util.function.Consumer<MemoryRecords> writeBack) {
+        if (records instanceof MemoryRecords memoryRecords) {
+            workItems.add(new PartitionWorkItem(topicName, memoryRecords, manipulations, writeBack));
+        }
     }
 
     /**
@@ -122,47 +183,4 @@ public class RecordManipulationFilter implements
     private static String resolveTopicName(String name, Uuid topicId, TopicNameMapping topicNameMapping) {
         return name.isEmpty() ? topicNameMapping.topicNames().get(topicId) : name;
     }
-
-    @NonNull
-    private MemoryRecords transformRecords(BaseRecords records,
-                                           int partitionData) {
-        RecordStream<TopicPartition> recordsWithTopicPartition = deserializer
-                .apply(records)
-                .mapConstant(new TopicPartition(topic, partitionData));
-        return serializer.apply(recordsWithTopicPartition);
-    }
-
-    @Override
-    public CompletionStage<ResponseFilterResult> onShareFetchResponse(short apiVersion,
-                                                                      ResponseHeaderData header,
-                                                                      ShareFetchResponseData response,
-                                                                      FilterContext context) {
-        if (this.direction == Direction.OUT) {
-            return context.topicNames(response.responses().stream().map(ShareFetchResponseData.ShareFetchableTopicResponse::topicId).toList())
-                    .thenCompose(topicMapping -> {
-                        for (var topicData : response.responses()) {
-                            if (topicMapping.failures().containsKey(topicData.topicId())) {
-                                for (var partitionData : topicData.partitions()) {
-                                    partitionData.setRecords(null);
-                                    partitionData.setErrorCode(Errors.UNKNOWN_TOPIC_ID.code());
-                                    partitionData.setErrorMessage("Oops");
-                                }
-                            }
-                            else {
-                                if (topicMapping.topicNames().get(topicData.topicId()).equals(topic)) {
-                                    for (var partitionData : topicData.partitions()) {
-                                        partitionData.setRecords(transformRecords(partitionData.records(), partitionData.partitionIndex()));
-                                    }
-                                }
-                            }
-                        }
-                        return context.forwardResponse(header, response);
-                    });
-        }
-        else {
-            return context.forwardResponse(header, response);
-        }
-
-    }
-
 }

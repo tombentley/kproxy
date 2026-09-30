@@ -19,7 +19,7 @@ import io.kroxylicious.transform.neo.format.avro.AvroBinaryDeserializer;
 
 /**
  * Deserializes the remaining bytes of a {@link ByteBuffer} to a {@link DynamicMessage}, decoded against a
- * fixed {@link Descriptors.Descriptor} (no schema evolution: the same schema is used to write and read).
+ * fixed {@link Descriptors.Descriptor} (no withKeySchema evolution: the same withKeySchema is used to write and read).
  * Mirrors {@link AvroBinaryDeserializer} - unlike Avro's
  * binary encoding, Protobuf's wire format doesn't need a special-cased array-backed path, since
  * {@link CodedInputStream#newInstance(ByteBuffer)} already reads directly from the buffer without copying.
@@ -30,7 +30,7 @@ public class ProtobufBinaryDeserializer implements Function<ByteBuffer, DynamicM
 
     /**
      * Creates a deserializer.
-     * @param descriptor the schema the input conforms to
+     * @param descriptor the withKeySchema the input conforms to
      */
     public ProtobufBinaryDeserializer(Descriptors.Descriptor descriptor) {
         this.descriptor = descriptor;

@@ -90,7 +90,7 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
             return additionalProperties.asBoolean();
         }
         else {
-            return true; // assume it's a satisfiable schema
+            return true; // assume it's a satisfiable withKeySchema
         }
     }
 
@@ -114,7 +114,7 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
         }
         // TODO patternProperties
         // TODO note that the contract for this method is not really compatible with patternProperties
-        // because this method can test the given propertyName against the patterns and get schema S1
+        // because this method can test the given propertyName against the patterns and get withKeySchema S1
         // but when objectPropertySchema(JsonNode objectType) is called directly it would have to take
         // the union of all the patternProperty schemas, which is actually wider/more general that this
         // objectPropertySchema(JsonNode sch, String propertyName) case
@@ -223,9 +223,9 @@ public class JsonSchemaTypeSystem implements TypeSystem<JsonNode> {
         else if (typeNode instanceof StringNode typeStringNode) {
             return jsonNodeType(typeStringNode.asString());
         }
-        // No "type" keyword: an unconstrained/sentinel schema. Treated as the uninhabited type here
-        // (e.g. the schema returned for an absent property of a closed object).
-        // TODO a bare `{}` schema actually admits any value; distinguish it from the closed-absent sentinel.
+        // No "type" keyword: an unconstrained/sentinel withKeySchema. Treated as the uninhabited type here
+        // (e.g. the withKeySchema returned for an absent property of a closed object).
+        // TODO a bare `{}` withKeySchema actually admits any value; distinguish it from the closed-absent sentinel.
         return Bottom.class;
     }
 

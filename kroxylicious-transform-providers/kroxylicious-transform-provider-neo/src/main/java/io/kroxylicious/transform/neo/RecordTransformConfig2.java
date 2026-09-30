@@ -27,7 +27,7 @@ import io.kroxylicious.transform.neo.op.OpConfig;
  *     type: io.kroxylicious.op.jackson2.Json       # package name encodes vendor, Json is encoding
  *   - name: my_avro
  *     type: io.kroxylicious.op.avro.Binary
- *     schema: <avro schema>
+ *     withKeySchema: <avro withKeySchema>
  *   - name: your_mask
  *     type: io.kroxylicious.op.xform.Avro
  *     xform: |
@@ -45,7 +45,7 @@ import io.kroxylicious.transform.neo.op.OpConfig;
  *   - fn: RegexReplace
  *   - name: my_protobuf
  *     type: io.kroxylicious.op.protobuf.Binary
- *     schema: <avro schema>
+ *     withKeySchema: <avro withKeySchema>
  * }</pre>
  *
  *

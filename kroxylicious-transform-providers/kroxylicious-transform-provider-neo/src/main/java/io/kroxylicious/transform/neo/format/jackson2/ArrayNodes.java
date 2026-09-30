@@ -37,7 +37,7 @@ public class ArrayNodes {
      *
      *
      * when: // list (OR) of records (AND)
-     * - topicName:
+     * - inTopic:
      * equals: foo
      * subject:
      * contains:

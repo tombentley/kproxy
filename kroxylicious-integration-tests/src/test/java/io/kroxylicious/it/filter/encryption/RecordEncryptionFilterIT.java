@@ -105,7 +105,7 @@ import static org.hamcrest.Matchers.contains;
 @MethodSource("facadesSource")
 class RecordEncryptionFilterIT {
 
-    private static final String TEMPLATE_KEK_SELECTOR_PATTERN = "$(topicName)";
+    private static final String TEMPLATE_KEK_SELECTOR_PATTERN = "$(inTopic)";
     private static final String HELLO_WORLD = "hello world";
     private static final String HELLO_SECRET = "hello secret";
     public static final String ENCRYPTION_SHARE_CONSUMER = "encryption-share-consumer";

@@ -38,9 +38,9 @@ import tools.jackson.databind.node.JsonNodeFactory;
 public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
     /**
      * Validate the constructor arguments
-     * @param jsonSchema The schema text
-     * @param defaultDialect The default dialect used when $schema is not specified in the {@link jsonSchema}, identified by its name like {@code DRAFT_2020_12}
-     * @param defaultDialectId The  used when $schema is not specified in the {@link jsonSchema}, identified by an IRI (such as {@code https://json-schema.org/draft/2020-12/schema}).
+     * @param jsonSchema The withKeySchema text
+     * @param defaultDialect The default dialect used when $withKeySchema is not specified in the {@link jsonSchema}, identified by its name like {@code DRAFT_2020_12}
+     * @param defaultDialectId The  used when $withKeySchema is not specified in the {@link jsonSchema}, identified by an IRI (such as {@code https://json-schema.org/draft/2020-12/schema}).
      */
     public record Config(@JsonProperty(required = true) String jsonSchema,
                          @Nullable SpecificationVersion defaultDialect,
@@ -69,10 +69,10 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
                 .regularExpressionFactory(JoniRegularExpressionFactory.getInstance()).build();
 
         /*
-         * This creates a schema registry that supports all the standard dialects for
-         * cross-dialect validation and will use Draft 2020-12 as the default if $schema
-         * is not specified in the schema data. If $schema is specified in the schema
-         * data then that schema dialect will be used instead and this version is
+         * This creates a withKeySchema registry that supports all the standard dialects for
+         * cross-dialect validation and will use Draft 2020-12 as the default if $withKeySchema
+         * is not specified in the withKeySchema data. If $withKeySchema is specified in the withKeySchema
+         * data then that withKeySchema dialect will be used instead and this version is
          * ignored.
          */
 

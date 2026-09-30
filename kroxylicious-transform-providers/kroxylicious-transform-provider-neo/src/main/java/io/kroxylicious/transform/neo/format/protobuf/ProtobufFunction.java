@@ -34,21 +34,21 @@ import io.kroxylicious.transform.service.PluginLookup;
  * {@link ParsedProtoSchema} - the Protobuf equivalent of
  * {@link AvroFunction}.
  * <p>
- * Unlike Avro's array/{@code items} schema, a Protobuf {@code repeated} field has no separate node to hang
+ * Unlike Avro's array/{@code items} withKeySchema, a Protobuf {@code repeated} field has no separate node to hang
  * a per-element {@code apply} chain off - repeated-ness and element type live on the one
  * {@link Descriptors.FieldDescriptor}. So an {@code apply} declared on a repeated field is deliberately
  * interpreted as per-element (masking each element the way Avro's array {@code items.apply} does), rather
  * than as a whole-list operation (which nothing in {@code common} implements anyway) - a Protobuf-specific
- * design choice forced by its schema shape, not an accident of mirroring Avro too literally.
+ * design choice forced by its withKeySchema shape, not an accident of mirroring Avro too literally.
  */
 public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds a mask function from a {@link ParsedProtoSchema}, with no additional requirement beyond each
      * field's {@code apply} chain composing.
-     * @param schema the parsed schema, plus its {@code apply} chains
+     * @param schema the parsed withKeySchema, plus its {@code apply} chains
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code schema}, given a {@link OpContext}
+     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
     static ProtobufFunction buildMask(ParsedProtoSchema schema, PluginLookup lookup) {
         return buildMask(schema, Set.of(), lookup);
@@ -56,10 +56,10 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds a mask function from a {@link ParsedProtoSchema}.
-     * @param schema the parsed schema, plus its {@code apply} chains
+     * @param schema the parsed withKeySchema, plus its {@code apply} chains
      * @param requirements properties every field's composed {@code apply} chain must satisfy
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code schema}, given a {@link OpContext}
+     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
     static ProtobufFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements, PluginLookup lookup) {
         return buildMask(schema.descriptor(), schema.apply(), requirements, lookup);
@@ -76,7 +76,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     // /**
     // * Binds a fixed {@link OpContext} to this function, producing a plain {@code Function<Object,Object>}.
-    // * Kept as loosely typed as the function itself since a mask can be built from a non-message schema too
+    // * Kept as loosely typed as the function itself since a mask can be built from a non-message withKeySchema too
     // * (e.g. one describing just a repeated field or a leaf) - see {@link #bindRecord(OpContext)} for the
     // * common case of composing a whole-message mask into a
     // * {@link Pipeline} between a deserializer and
@@ -98,7 +98,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
     // * differs.
     // * @param opContext the context to bind
     // * @return an equivalent {@code Function<DynamicMessage,DynamicMessage>}
-    // * @throws ClassCastException if this function was built from a non-message schema
+    // * @throws ClassCastException if this function was built from a non-message withKeySchema
     // */
     // default Function<DynamicMessage, DynamicMessage> bindRecord(OpContext opContext) {
     // return new BoundProtoMessageFunction(this, opContext);
