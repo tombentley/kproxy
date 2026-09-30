@@ -25,6 +25,7 @@ import io.kroxylicious.transform.service.TimestampTransformService;
 @Plugin(configType = RecordManipulationConfig.class)
 public class RecordManipulation implements FilterFactory<RecordManipulationConfig, Init> {
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public Init initialize(FilterFactoryContext context,
                            RecordManipulationConfig config)
@@ -63,17 +64,18 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                 valuePipeline);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public void close(Init initializationData) {
         try {
-            initializationData.timestampTransformService().close(initializationData.timestampInitData());
+            ((TimestampTransformService) initializationData.timestampTransformService()).close(initializationData.timestampInitData());
         }
         finally {
             try {
-                initializationData.keyTransformService().close(initializationData.keyInitData());
+                ((BufferTransformService) initializationData.keyTransformService()).close(initializationData.keyInitData());
             }
             finally {
-                initializationData.valueTransformService().close(initializationData.valueInitData());
+                ((BufferTransformService) initializationData.valueTransformService()).close(initializationData.valueInitData());
             }
         }
     }

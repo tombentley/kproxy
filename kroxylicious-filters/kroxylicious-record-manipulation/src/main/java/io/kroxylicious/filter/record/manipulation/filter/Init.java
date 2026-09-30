@@ -13,12 +13,12 @@ import io.kroxylicious.transform.service.TimestampTransformService;
 
 public record Init(String topic,
                    Direction direction,
-                   TimestampTransformService timestampTransformService,
+                   TimestampTransformService<?, ?> timestampTransformService,
                    Object timestampInitData,
                    TimestampTransform recordTimestampPipeline,
-                   BufferTransformService keyTransformService,
+                   BufferTransformService<?, ?> keyTransformService,
                    Object keyInitData,
                    BufferTransform recordKeyPipeline,
-                   BufferTransformService valueTransformService,
+                   BufferTransformService<?, ?> valueTransformService,
                    Object valueInitData,
                    BufferTransform recordValuePipeline) {}
