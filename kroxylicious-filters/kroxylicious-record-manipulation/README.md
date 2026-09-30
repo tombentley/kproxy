@@ -14,17 +14,17 @@ limitations" below.
 ## How it works
 
 Everything is built from one core abstraction,
-[`op/BaseTypedOp<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/op/BaseTypedOp.java):
+[`op/BaseTypedOp<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/neo/op/BaseTypedOp.java):
 an operation from a value of type `T` to a value of type `R`, carrying its own
 `java.lang.reflect.Type` for both `T` and `R`. Operations compose
-([`ComposedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/ops/common/ComposedOp.java)),
+([`ComposedOp`](src/main/java/io/kroxylicious/filter/record/manipulation/neo/ops/common/ComposedOp.java)),
 and composition is type-checked at build time (via `geantyref`'s `GenericTypeReflector`) rather
 than assumed. This one mechanism covers everything from extracting a record's key/value/timestamp,
 to (de)serializing JSON, to walking a JSON-Schema-shaped tree down to individual fields, to the
 leaf-level primitives (constants, random values, HMAC, encrypt/decrypt, regex replace, ...).
 
 Operations are pluggable: each is an
-[`op/OpFactory<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/op/OpFactory.java)
+[`op/OpFactory<T, R>`](src/main/java/io/kroxylicious/filter/record/manipulation/neo/op/OpFactory.java)
 (a standard Kroxylicious `@Plugin`), resolved by name at the point in the schema where it's
 needed - see
 [`config/OpConfigs.compose`](src/main/java/io/kroxylicious/filter/record/manipulation/config/OpConfigs.java)
@@ -158,7 +158,7 @@ reactor-wide, including to upstream modules that don't have a matching test)
 ### Expression-language evaluator (`xform/path`)
 
 Alongside the op-pipeline above there is a newer, JSONPath-like **expression front-end** in
-[`xform/path`](src/main/java/io/kroxylicious/filter/record/manipulation/xform/path): a grammar
+[`xform/path`](src/main/java/io/kroxylicious/filter/record/manipulation/neo/xform/path): a grammar
 ([`expr/Expr.g4`](src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Expr.g4) +
 [`Path.g4`](src/main/antlr4/io/kroxylicious/filter/record/manipulation/expr/Path.g4)) parsed into an
 `Ast`, resolved and type-checked (`Check`), and evaluated by `AstEvaluator` over a `TreeAdapter`. It

@@ -9,8 +9,6 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.filter.record.manipulation.kafka.RecordsDeserializer;
-import io.kroxylicious.filter.record.manipulation.kafka.RecordsSerializer;
 import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;

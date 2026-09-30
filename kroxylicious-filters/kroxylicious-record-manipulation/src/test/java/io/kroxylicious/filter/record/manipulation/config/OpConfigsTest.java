@@ -17,17 +17,17 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.filter.record.manipulation.filter.RecordTimestamp;
-import io.kroxylicious.filter.record.manipulation.filter.RecordValue;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.JsonTransform;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson;
-import io.kroxylicious.filter.record.manipulation.format.jackson2.WriteJson;
-import io.kroxylicious.filter.record.manipulation.op.OpConfig;
-import io.kroxylicious.filter.record.manipulation.op.OpConfigs;
-import io.kroxylicious.filter.record.manipulation.op.OpContext;
-import io.kroxylicious.filter.record.manipulation.op.TypeException;
-import io.kroxylicious.filter.record.manipulation.ops.common.Requirement;
-import io.kroxylicious.filter.record.manipulation.ops.constant.ValueInt;
+import io.kroxylicious.filter.record.manipulation.neo.RecordTimestamp;
+import io.kroxylicious.filter.record.manipulation.neo.RecordValue;
+import io.kroxylicious.filter.record.manipulation.neo.format.jackson2.JsonTransform;
+import io.kroxylicious.filter.record.manipulation.neo.format.jackson2.ReadJson;
+import io.kroxylicious.filter.record.manipulation.neo.format.jackson2.WriteJson;
+import io.kroxylicious.filter.record.manipulation.neo.op.OpConfig;
+import io.kroxylicious.filter.record.manipulation.neo.op.OpConfigs;
+import io.kroxylicious.filter.record.manipulation.neo.op.OpContext;
+import io.kroxylicious.filter.record.manipulation.neo.op.TypeException;
+import io.kroxylicious.filter.record.manipulation.neo.ops.common.Requirement;
+import io.kroxylicious.filter.record.manipulation.neo.ops.constant.ValueInt;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
@@ -91,7 +91,7 @@ class OpConfigsTest {
         Class<Integer> expectedType = Integer.class; // caller expects an Op that accepts an Integer
         assertThatThrownBy(() -> OpConfigs.compose(expectedType, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
-                .hasMessage("Op io.kroxylicious.filter.record.manipulation.filter.RecordValue has input type "
+                .hasMessage("Op io.kroxylicious.filter.record.manipulation.neo.RecordValue has input type "
                         + "io.kroxylicious.kafka.common.record.internal.Record which is not a subtype of "
                         + "the expected type java.lang.Integer");
     }
@@ -105,7 +105,7 @@ class OpConfigsTest {
         Set<Requirement> requirements = Set.of();
         assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
-                .hasMessage("Op io.kroxylicious.filter.record.manipulation.format.jackson2.ReadJson has input type "
+                .hasMessage("Op " + ReadJson.class.getName() + " has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "
                         + "the expected type java.lang.Long");
     }

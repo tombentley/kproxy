@@ -24,9 +24,9 @@ import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.filter.record.manipulation.filter.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
-import io.kroxylicious.filter.record.manipulation.format.protobuf.ProtobufBinaryDeserializer;
-import io.kroxylicious.filter.record.manipulation.format.protobuf.ProtobufBinarySerializer;
-import io.kroxylicious.filter.record.manipulation.format.protobuf.ProtobufSchemaParser;
+import io.kroxylicious.filter.record.manipulation.neo.format.protobuf.ProtobufBinaryDeserializer;
+import io.kroxylicious.filter.record.manipulation.neo.format.protobuf.ProtobufBinarySerializer;
+import io.kroxylicious.filter.record.manipulation.neo.format.protobuf.ProtobufSchemaParser;
 import io.kroxylicious.it.BaseIT;
 import io.kroxylicious.proxy.config.NamedFilterDefinition;
 import io.kroxylicious.testing.integration.config.NamedFilterDefinitionBuilder;

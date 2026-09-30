@@ -24,8 +24,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.kroxylicious.filter.record.manipulation.filter.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
-import io.kroxylicious.filter.record.manipulation.format.avro.AvroBinaryDeserializer;
-import io.kroxylicious.filter.record.manipulation.format.avro.AvroBinarySerializer;
+import io.kroxylicious.filter.record.manipulation.neo.format.avro.AvroBinaryDeserializer;
+import io.kroxylicious.filter.record.manipulation.neo.format.avro.AvroBinarySerializer;
 import io.kroxylicious.it.BaseIT;
 import io.kroxylicious.proxy.config.NamedFilterDefinition;
 import io.kroxylicious.testing.integration.config.NamedFilterDefinitionBuilder;
