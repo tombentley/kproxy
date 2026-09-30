@@ -46,5 +46,6 @@
         <module>../kroxylicious-authorizer-api</module>
         <module>../kroxylicious-authorizer-providers</module>
         <module>../kroxylicious-transform-api</module>
+        <module>../kroxylicious-transform-providers</module>
     </modules>
 </project>

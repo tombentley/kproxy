@@ -5,5 +5,4 @@
 #
 
 io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp
-io.kroxylicious.filter.record.manipulation.filter.transforms.TimestampPipeline
 io.kroxylicious.filter.record.manipulation.filter.transforms.ConstantTimestamp

@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import io.kroxylicious.filter.record.manipulation.neo.op.OpContext;
 import io.kroxylicious.kafka.common.TopicPartition;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
@@ -58,14 +57,6 @@ public class RecordsSerializer {
                     @Override
                     public void resetAfterTransform(TopicPartition topicPartition, Record record) {
                         this.topicPartition = null;
-                    }
-
-                    private OpContext context(Record record,
-                                              Integer index) {
-                        long seed = ((long) topicPartition.hashCode()) << 32 | (topicPartition.partition() ^ (batch.baseSequence() + index));
-                        prng.setSeed(seed);
-
-                        return new OpContext(prng, null);
                     }
 
                     @Override

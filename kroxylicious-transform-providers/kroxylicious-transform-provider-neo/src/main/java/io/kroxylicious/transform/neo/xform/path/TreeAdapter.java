@@ -1,0 +1,19 @@
+/*
+ * Copyright Kroxylicious Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package io.kroxylicious.transform.neo.xform.path;
+
+public interface TreeAdapter<N> {
+    boolean isObject(N node);
+
+    boolean isArray(N node);
+
+    Iterable<? extends Prop<N>> objectProperties(N node);
+
+    int arrayLength(N node);
+
+    N arrayItem(N node, int index);
+}

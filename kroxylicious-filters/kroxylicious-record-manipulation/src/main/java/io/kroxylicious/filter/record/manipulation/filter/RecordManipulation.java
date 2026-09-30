@@ -10,7 +10,7 @@ import java.util.Optional;
 
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
-import io.kroxylicious.filter.record.manipulation.neo.RecordValue;
+import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordValue;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
