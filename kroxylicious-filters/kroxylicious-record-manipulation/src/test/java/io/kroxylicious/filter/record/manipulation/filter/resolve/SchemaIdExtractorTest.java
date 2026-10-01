@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.testing.filter.record.RecordTestUtils;
@@ -31,10 +32,10 @@ class SchemaIdExtractorTest {
         Record record = RecordTestUtils.record(framed(4242L), "value".getBytes(UTF_8), NO_HEADERS);
 
         // When
-        Long globalId = new SchemaIdExtractor(Record::key).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
 
         // Then
-        assertThat(globalId).isEqualTo(4242L);
+        assertThat(globalId).isEqualTo(new GlobalId(4242L));
     }
 
     @Test
@@ -43,10 +44,10 @@ class SchemaIdExtractorTest {
         Record record = RecordTestUtils.record("key".getBytes(UTF_8), framed(7L), NO_HEADERS);
 
         // When
-        Long globalId = new SchemaIdExtractor(Record::value).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::value).extract(record);
 
         // Then
-        assertThat(globalId).isEqualTo(7L);
+        assertThat(globalId).isEqualTo(new GlobalId(7L));
     }
 
     @Test
@@ -56,7 +57,7 @@ class SchemaIdExtractorTest {
         Record record = RecordTestUtils.record(notFramed, "value".getBytes(UTF_8), NO_HEADERS);
 
         // When
-        Long globalId = new SchemaIdExtractor(Record::key).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
 
         // Then
         assertThat(globalId).isNull();
@@ -68,7 +69,7 @@ class SchemaIdExtractorTest {
         Record record = RecordTestUtils.record(new byte[]{ 0x00, 1, 2 }, "value".getBytes(UTF_8), NO_HEADERS);
 
         // When
-        Long globalId = new SchemaIdExtractor(Record::key).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
 
         // Then
         assertThat(globalId).isNull();
@@ -80,7 +81,7 @@ class SchemaIdExtractorTest {
         Record record = RecordTestUtils.record("value".getBytes(UTF_8), NO_HEADERS);
 
         // When
-        Long globalId = new SchemaIdExtractor(Record::key).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
 
         // Then
         assertThat(globalId).isNull();

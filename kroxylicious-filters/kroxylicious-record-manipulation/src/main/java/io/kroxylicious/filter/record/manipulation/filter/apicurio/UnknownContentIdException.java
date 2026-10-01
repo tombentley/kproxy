@@ -6,9 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+
 class UnknownContentIdException extends SchemaRegistryClientException {
 
-    UnknownContentIdException(long contentId) {
-        super("contentId '%d' is not found.".formatted(contentId));
+    UnknownContentIdException(ContentId contentId) {
+        super("contentId '%d' is not found.".formatted(contentId.value()));
     }
 }

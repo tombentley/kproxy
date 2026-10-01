@@ -134,7 +134,7 @@ class RecordManipulationFilterTest {
                 .isForwardRequest()
                 .hasMessageInstanceOfSatisfying(ProduceRequestData.class,
                         forwarded -> assertThat(produceValues(forwarded)).containsExactly("SECOND", "SECOND")));
-        assertThat(client.versionCalls).containsExactly(100L);
+        assertThat(client.versionCalls).containsExactly(new GlobalId(100L));
     }
 
     @Test
@@ -356,24 +356,26 @@ class RecordManipulationFilterTest {
      * used by {@code ManipulationOrchestratorTest} so these filter tests stay self-contained.
      */
     private static final class FakeSchemaRegistryClient implements SchemaRegistryClient {
-        private final Map<Long, VersionsResult> versions = new HashMap<>();
-        private final Map<Long, byte[]> contents = new HashMap<>();
-        final List<Long> versionCalls = new CopyOnWriteArrayList<>();
-        final List<Long> contentCalls = new CopyOnWriteArrayList<>();
+        private final Map<GlobalId, VersionsResult> versions = new HashMap<>();
+        private final Map<ContentId, byte[]> contents = new HashMap<>();
+        final List<GlobalId> versionCalls = new CopyOnWriteArrayList<>();
+        final List<ContentId> contentCalls = new CopyOnWriteArrayList<>();
 
         FakeSchemaRegistryClient withVersion(long globalId, String groupId, String artifactId, String version, long contentId) {
-            versions.put(globalId, new VersionsResult(globalId, groupId, artifactId, version, contentId));
+            var gid = new GlobalId(globalId);
+            var cid = new ContentId(contentId);
+            versions.put(gid, new VersionsResult(gid, groupId, artifactId, version, cid));
             return this;
         }
 
         @Override
-        public CompletionStage<VersionsResult> artifactIdForGlobalId(long globalId) {
+        public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
             versionCalls.add(globalId);
             return CompletableFuture.completedFuture(versions.get(globalId));
         }
 
         @Override
-        public CompletionStage<ContentResult> getContentById(long contentId) {
+        public CompletionStage<ContentResult> getContentById(ContentId contentId) {
             contentCalls.add(contentId);
             return CompletableFuture.completedFuture(new ContentResult(contentId, contents.get(contentId)));
         }

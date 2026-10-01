@@ -21,6 +21,8 @@ import java.util.function.IntFunction;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
@@ -42,7 +44,7 @@ class ManipulationOrchestratorTest {
 
     /** A {@link ContextualBufferTransform} that rewrites the value to the record's resolved schema bytes. */
     private static final ContextualBufferTransform TO_SCHEMA_CONTENT = (record, resolved) -> {
-        Long globalId = new SchemaIdExtractor(Record::key).extract(record);
+        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
         SchemaRegistryClient.VersionsResult versions = resolved.get(SchemaFacets.SCHEMA_VERSIONS, globalId);
         byte[] content = resolved.get(SchemaFacets.SCHEMA_CONTENT, versions.contentId());
         return ByteBuffer.wrap(content);
@@ -87,8 +89,8 @@ class ManipulationOrchestratorTest {
         // Then
         assertThat(result).succeedsWithin(Duration.ofSeconds(5));
         assertThat(values(written.get())).containsExactly("SCHEMA-500", "SCHEMA-500", "SCHEMA-500");
-        assertThat(client.versionCalls).containsExactly(100L);
-        assertThat(client.contentCalls).containsExactly(500L);
+        assertThat(client.versionCalls).containsExactly(new GlobalId(100L));
+        assertThat(client.contentCalls).containsExactly(new ContentId(500L));
     }
 
     @Test
@@ -110,8 +112,8 @@ class ManipulationOrchestratorTest {
 
         // Then
         assertThat(result).succeedsWithin(Duration.ofSeconds(5));
-        assertThat(client.versionCalls).containsExactly(100L);
-        assertThat(client.contentCalls).containsExactly(500L);
+        assertThat(client.versionCalls).containsExactly(new GlobalId(100L));
+        assertThat(client.contentCalls).containsExactly(new ContentId(500L));
         assertThat(values(partition0.get())).containsExactly("SCHEMA-500", "SCHEMA-500");
         assertThat(values(partition1.get())).containsExactly("SCHEMA-500");
     }
@@ -152,7 +154,7 @@ class ManipulationOrchestratorTest {
 
         // Then
         assertThat(result.toCompletableFuture()).isNotCompleted();
-        pendingVersion.complete(new SchemaRegistryClient.VersionsResult(100L, "com.myco", "orders-value", "1", 500L));
+        pendingVersion.complete(new SchemaRegistryClient.VersionsResult(new GlobalId(100L), "com.myco", "orders-value", "1", new ContentId(500L)));
         assertThat(result).succeedsWithin(Duration.ofSeconds(5));
         assertThat(values(written.get())).containsExactly("SCHEMA-500");
     }
@@ -162,34 +164,36 @@ class ManipulationOrchestratorTest {
      * assert on deduplication.
      */
     private static final class FakeSchemaRegistryClient implements SchemaRegistryClient {
-        private final Map<Long, CompletionStage<VersionsResult>> versions = new HashMap<>();
-        private final Map<Long, byte[]> contents = new HashMap<>();
-        final List<Long> versionCalls = new CopyOnWriteArrayList<>();
-        final List<Long> contentCalls = new CopyOnWriteArrayList<>();
+        private final Map<GlobalId, CompletionStage<VersionsResult>> versions = new HashMap<>();
+        private final Map<ContentId, byte[]> contents = new HashMap<>();
+        final List<GlobalId> versionCalls = new CopyOnWriteArrayList<>();
+        final List<ContentId> contentCalls = new CopyOnWriteArrayList<>();
 
         FakeSchemaRegistryClient withVersion(long globalId, String groupId, String artifactId, String version, long contentId) {
-            versions.put(globalId, CompletableFuture.completedFuture(new VersionsResult(globalId, groupId, artifactId, version, contentId)));
+            var gid = new GlobalId(globalId);
+            var cid = new ContentId(contentId);
+            versions.put(gid, CompletableFuture.completedFuture(new VersionsResult(gid, groupId, artifactId, version, cid)));
             return this;
         }
 
         FakeSchemaRegistryClient withPendingVersion(long globalId, CompletionStage<VersionsResult> pending) {
-            versions.put(globalId, pending);
+            versions.put(new GlobalId(globalId), pending);
             return this;
         }
 
         FakeSchemaRegistryClient withContent(long contentId, byte[] bytes) {
-            contents.put(contentId, bytes);
+            contents.put(new ContentId(contentId), bytes);
             return this;
         }
 
         @Override
-        public CompletionStage<VersionsResult> artifactIdForGlobalId(long globalId) {
+        public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
             versionCalls.add(globalId);
             return versions.get(globalId);
         }
 
         @Override
-        public CompletionStage<ContentResult> getContentById(long contentId) {
+        public CompletionStage<ContentResult> getContentById(ContentId contentId) {
             contentCalls.add(contentId);
             return CompletableFuture.completedFuture(new ContentResult(contentId, contents.get(contentId)));
         }

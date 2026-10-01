@@ -6,6 +6,8 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.ContentResult;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
@@ -33,8 +35,8 @@ public final class SchemaFacets {
 
     private final SchemaIdExtractor keyExtractor = new SchemaIdExtractor(Record::key);
     private final SchemaIdExtractor valueExtractor = new SchemaIdExtractor(Record::value);
-    private final EntityResolver<Long, VersionsResult> versionResolver;
-    private final EntityResolver<Long, byte[]> contentResolver;
+    private final EntityResolver<GlobalId, VersionsResult> versionResolver;
+    private final EntityResolver<ContentId, byte[]> contentResolver;
 
     /**
      * Creates the schema resolvers backing the key/value extractors and content lookup.
@@ -55,7 +57,7 @@ public final class SchemaFacets {
      * Returns the extractor for the key schema {@code globalId}.
      * @return extractor for the key schema {@code globalId}.
      */
-    public LookupKeyExtractor<Long> keyExtractor() {
+    public LookupKeyExtractor<GlobalId> keyExtractor() {
         return keyExtractor;
     }
 
@@ -63,7 +65,7 @@ public final class SchemaFacets {
      * Returns the extractor for the value schema {@code globalId}.
      * @return extractor for the value schema {@code globalId}.
      */
-    public LookupKeyExtractor<Long> valueExtractor() {
+    public LookupKeyExtractor<GlobalId> valueExtractor() {
         return valueExtractor;
     }
 
@@ -71,7 +73,7 @@ public final class SchemaFacets {
      * Returns the resolver from {@code globalId} to version metadata (shared by key and value).
      * @return resolver from {@code globalId} to version metadata (shared by key and value).
      */
-    public EntityResolver<Long, VersionsResult> versionResolver() {
+    public EntityResolver<GlobalId, VersionsResult> versionResolver() {
         return versionResolver;
     }
 
@@ -79,7 +81,7 @@ public final class SchemaFacets {
      * Returns the resolver from {@code contentId} to schema bytes.
      * @return resolver from {@code contentId} to schema bytes.
      */
-    public EntityResolver<Long, byte[]> contentResolver() {
+    public EntityResolver<ContentId, byte[]> contentResolver() {
         return contentResolver;
     }
 }

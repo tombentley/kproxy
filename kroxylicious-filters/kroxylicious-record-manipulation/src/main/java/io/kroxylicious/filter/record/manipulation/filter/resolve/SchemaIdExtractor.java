@@ -9,6 +9,7 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -24,7 +25,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * <p>The {@code accessor} selects which part of the record to read, i.e. {@code Record::key} or
  * {@code Record::value}.</p>
  */
-public final class SchemaIdExtractor implements LookupKeyExtractor<Long> {
+public final class SchemaIdExtractor implements LookupKeyExtractor<GlobalId> {
 
     private static final byte MAGIC_BYTE = 0x00;
     /** magic byte (1) + globalId (8). */
@@ -42,14 +43,14 @@ public final class SchemaIdExtractor implements LookupKeyExtractor<Long> {
 
     @Override
     @Nullable
-    public Long extract(Record record) {
+    public GlobalId extract(Record record) {
         ByteBuffer buffer = accessor.apply(record);
         if (buffer == null) {
             return null;
         }
         int position = buffer.position();
         if (buffer.remaining() >= FRAMING_LENGTH && buffer.get(position) == MAGIC_BYTE) {
-            return buffer.getLong(position + 1);
+            return new GlobalId(buffer.getLong(position + 1));
         }
         return null;
     }

@@ -18,11 +18,10 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
-import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
-import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.kafka.transform.RecordStream;
 
@@ -40,10 +39,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public final class ManipulationOrchestrator {
 
-    /** Sentinel for "this record has no id of this kind". */
-    private static final long ABSENT = Long.MIN_VALUE;
     /** The per-record synchronous-match bitmask is a {@code long}, so at most 64 manipulations per topic. */
     private static final int MAX_MANIPULATIONS = Long.SIZE;
+    private static final int NO_MATCH = -1;
 
     @Nullable
     private final SchemaFacets schemaFacets;
@@ -84,108 +82,120 @@ public final class ManipulationOrchestrator {
         boolean needSchema = needKeySchema || needValueSchema;
         boolean needSync = anyManipulation(workItems, m -> m.headerPredicate() != null);
 
-        // Fast path: selection is purely by topic/direction, so every record matches its first
-        // applicable manipulation. No gather pass, no resolution.
         if (!needSchema && !needSync) {
-            ResolvedEntities empty = ResolvedEntities.empty();
-            for (PartitionWorkItem wi : workItems) {
-                CompiledManipulation first = wi.manipulations().get(0);
-                MemoryRecords out = RecordStream.ofRecords(wi.records())
-                        .mapConstant(first)
-                        .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(empty));
-                wi.writeBack().accept(out);
-            }
-            return CompletableFuture.<Void> completedFuture(null);
+            return fastPath(workItems, bufferFactory);
         }
 
-        // Single gather pass per work item: collect the union of ids and the per-record match state.
-        Set<Long> allGlobalIds = new HashSet<>();
-        long[][][] slotsByWorkItem = new long[workItems.size()][][];
-        for (int w = 0; w < workItems.size(); w++) {
-            PartitionWorkItem wi = workItems.get(w);
-            List<CompiledManipulation> manipulations = wi.manipulations();
-            List<long[]> slots = new ArrayList<>();
-            RecordStream.ofRecords(wi.records()).forEachRecord((batch, record, ignored) -> {
-                long keyId = needKeySchema ? extract(schemaFacets.keyExtractor(), record) : ABSENT;
-                long valueId = needValueSchema ? extract(schemaFacets.valueExtractor(), record) : ABSENT;
-                if (keyId != ABSENT) {
-                    allGlobalIds.add(keyId);
-                }
-                if (valueId != ABSENT) {
-                    allGlobalIds.add(valueId);
-                }
-                long syncBits = 0L;
-                for (int i = 0; i < manipulations.size(); i++) {
-                    var predicate = manipulations.get(i).headerPredicate();
-                    if (predicate == null || predicate.test(record.headers())) {
-                        syncBits |= (1L << i);
-                    }
-                }
-                slots.add(new long[]{ keyId, valueId, syncBits });
-            });
-            slotsByWorkItem[w] = slots.toArray(new long[0][]);
-        }
+        GatherResult gathered = gather(workItems, needKeySchema, needValueSchema);
 
-        // Resolve identities once (deduped + cached), on the filter thread.
-        CompletionStage<Map<Long, VersionsResult>> versionsStage = needSchema
-                ? schemaFacets.versionResolver().resolveAll(allGlobalIds)
-                : CompletableFuture.<Map<Long, VersionsResult>> completedFuture(Map.of());
+        CompletionStage<Map<GlobalId, VersionsResult>> versionsStage = needSchema
+                ? schemaFacets.versionResolver().resolveAll(gathered.allGlobalIds())
+                : CompletableFuture.completedFuture(Map.of());
 
         return hop(versionsStage).thenCompose(versions -> {
-            // Match in memory and derive the content ids needed by the matched records' `then`.
-            Set<Long> contentIds = new HashSet<>();
-            int[][] matchByWorkItem = new int[workItems.size()][];
-            for (int w = 0; w < workItems.size(); w++) {
-                PartitionWorkItem wi = workItems.get(w);
-                long[][] slots = slotsByWorkItem[w];
-                List<CompiledManipulation> manipulations = wi.manipulations();
-                int[] matchIndex = new int[slots.length];
-                for (int pos = 0; pos < slots.length; pos++) {
-                    long[] slot = slots[pos];
-                    VersionsResult keyVersions = slot[0] == ABSENT ? null : versions.get(slot[0]);
-                    VersionsResult valueVersions = slot[1] == ABSENT ? null : versions.get(slot[1]);
-                    int matched = firstMatch(manipulations, slot[2], keyVersions, valueVersions);
-                    matchIndex[pos] = matched;
-                    if (matched >= 0) {
-                        CompiledManipulation manipulation = manipulations.get(matched);
-                        if (keyVersions != null && manipulation.needsKeySchema()) {
-                            contentIds.add(keyVersions.contentId());
-                        }
-                        if (valueVersions != null && manipulation.needsValueSchema()) {
-                            contentIds.add(valueVersions.contentId());
-                        }
-                    }
-                }
-                matchByWorkItem[w] = matchIndex;
-            }
+            MatchResult matched = match(workItems, gathered, versions);
 
-            // Resolve content once (deduped + cached), on the filter thread.
-            CompletionStage<Map<Long, byte[]>> contentStage = (needSchema && !contentIds.isEmpty())
-                    ? schemaFacets.contentResolver().resolveAll(contentIds)
-                    : CompletableFuture.<Map<Long, byte[]>> completedFuture(Map.of());
+            CompletionStage<Map<ContentId, byte[]>> contentStage = (needSchema && !matched.contentIds().isEmpty())
+                    ? schemaFacets.contentResolver().resolveAll(matched.contentIds())
+                    : CompletableFuture.completedFuture(Map.of());
 
             return hop(contentStage).thenAccept(content -> {
                 ResolvedEntities resolved = ResolvedEntities.builder()
                         .put(SchemaFacets.SCHEMA_VERSIONS, versions)
                         .put(SchemaFacets.SCHEMA_CONTENT, content)
                         .build();
-                // Transform matched partitions only; unmatched partitions keep their original records.
-                for (int w = 0; w < workItems.size(); w++) {
-                    PartitionWorkItem wi = workItems.get(w);
-                    int[] matchIndex = matchByWorkItem[w];
-                    if (anyMatched(matchIndex)) {
-                        List<CompiledManipulation> manipulations = wi.manipulations();
-                        MemoryRecords out = RecordStream.ofRecordsWithIndex(wi.records())
-                                .mapPerRecord((batch, record, index) -> {
-                                    int matched = matchIndex[index];
-                                    return matched < 0 ? null : manipulations.get(matched);
-                                })
-                                .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(resolved));
-                        wi.writeBack().accept(out);
-                    }
-                }
+                transformMatched(workItems, matched, resolved, bufferFactory);
             });
         });
+    }
+
+    private CompletionStage<Void> fastPath(List<PartitionWorkItem> workItems, IntFunction<ByteBufferOutputStream> bufferFactory) {
+        ResolvedEntities empty = ResolvedEntities.empty();
+        for (PartitionWorkItem wi : workItems) {
+            CompiledManipulation first = wi.manipulations().get(0);
+            MemoryRecords out = RecordStream.ofRecords(wi.records())
+                    .mapConstant(first)
+                    .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(empty));
+            wi.writeBack().accept(out);
+        }
+        return CompletableFuture.<Void> completedFuture(null);
+    }
+
+    private GatherResult gather(List<PartitionWorkItem> workItems, boolean needKeySchema, boolean needValueSchema) {
+        Set<GlobalId> allGlobalIds = new HashSet<>();
+        List<GatheredRecord[]> byWorkItem = new ArrayList<>();
+        for (PartitionWorkItem wi : workItems) {
+            List<CompiledManipulation> manipulations = wi.manipulations();
+            List<GatheredRecord> records = new ArrayList<>();
+            RecordStream.ofRecords(wi.records()).forEachRecord((batch, record, ignored) -> {
+                @Nullable
+                GlobalId keyId = needKeySchema ? schemaFacets.keyExtractor().extract(record) : null;
+                @Nullable
+                GlobalId valueId = needValueSchema ? schemaFacets.valueExtractor().extract(record) : null;
+                if (keyId != null) {
+                    allGlobalIds.add(keyId);
+                }
+                if (valueId != null) {
+                    allGlobalIds.add(valueId);
+                }
+                long headerMatchMask = 0L;
+                for (int i = 0; i < manipulations.size(); i++) {
+                    var predicate = manipulations.get(i).headerPredicate();
+                    if (predicate == null || predicate.test(record.headers())) {
+                        headerMatchMask |= (1L << i);
+                    }
+                }
+                records.add(new GatheredRecord(keyId, valueId, headerMatchMask));
+            });
+            byWorkItem.add(records.toArray(new GatheredRecord[0]));
+        }
+        return new GatherResult(allGlobalIds, byWorkItem);
+    }
+
+    private MatchResult match(List<PartitionWorkItem> workItems, GatherResult gathered, Map<GlobalId, VersionsResult> versions) {
+        Set<ContentId> contentIds = new HashSet<>();
+        List<int[]> matchByWorkItem = new ArrayList<>();
+        for (int w = 0; w < workItems.size(); w++) {
+            PartitionWorkItem wi = workItems.get(w);
+            GatheredRecord[] gatheredRecords = gathered.byWorkItem().get(w);
+            List<CompiledManipulation> manipulations = wi.manipulations();
+            int[] matchIndex = new int[gatheredRecords.length];
+            for (int pos = 0; pos < gatheredRecords.length; pos++) {
+                GatheredRecord gatheredRecord = gatheredRecords[pos];
+                VersionsResult keyVersions = gatheredRecord.keySchemaId() == null ? null : versions.get(gatheredRecord.keySchemaId());
+                VersionsResult valueVersions = gatheredRecord.valueSchemaId() == null ? null : versions.get(gatheredRecord.valueSchemaId());
+                int matched = firstMatch(manipulations, gatheredRecord.headerMatchMask(), keyVersions, valueVersions);
+                matchIndex[pos] = matched;
+                if (matched >= 0) {
+                    CompiledManipulation manipulation = manipulations.get(matched);
+                    if (keyVersions != null && manipulation.needsKeySchema()) {
+                        contentIds.add(keyVersions.contentId());
+                    }
+                    if (valueVersions != null && manipulation.needsValueSchema()) {
+                        contentIds.add(valueVersions.contentId());
+                    }
+                }
+            }
+            matchByWorkItem.add(matchIndex);
+        }
+        return new MatchResult(matchByWorkItem, contentIds);
+    }
+
+    private void transformMatched(List<PartitionWorkItem> workItems, MatchResult matched, ResolvedEntities resolved, IntFunction<ByteBufferOutputStream> bufferFactory) {
+        for (int w = 0; w < workItems.size(); w++) {
+            PartitionWorkItem wi = workItems.get(w);
+            int[] matchIndex = matched.byWorkItem().get(w);
+            if (anyMatched(matchIndex)) {
+                List<CompiledManipulation> manipulations = wi.manipulations();
+                MemoryRecords out = RecordStream.ofRecordsWithIndex(wi.records())
+                        .mapPerRecord((batch, record, index) -> {
+                            int m = matchIndex[index];
+                            return m == NO_MATCH ? null : manipulations.get(m);
+                        })
+                        .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(resolved));
+                wi.writeBack().accept(out);
+            }
+        }
     }
 
     private <T> CompletionStage<T> hop(CompletionStage<T> stage) {
@@ -196,21 +206,16 @@ public final class ManipulationOrchestrator {
         return bufferFactory.apply(Math.max(records.sizeInBytes(), 1));
     }
 
-    private static long extract(LookupKeyExtractor<Long> extractor, Record record) {
-        Long id = extractor.extract(record);
-        return id == null ? ABSENT : id;
-    }
-
     private static int firstMatch(List<CompiledManipulation> manipulations,
-                                  long syncBits,
+                                  long headerMatchMask,
                                   @Nullable VersionsResult keyVersions,
                                   @Nullable VersionsResult valueVersions) {
         for (int i = 0; i < manipulations.size(); i++) {
-            if ((syncBits & (1L << i)) != 0 && manipulations.get(i).matchesSchema(keyVersions, valueVersions)) {
+            if ((headerMatchMask & (1L << i)) != 0 && manipulations.get(i).matchesSchema(keyVersions, valueVersions)) {
                 return i;
             }
         }
-        return -1;
+        return NO_MATCH;
     }
 
     private static boolean anyMatched(int[] matchIndex) {
@@ -232,4 +237,10 @@ public final class ManipulationOrchestrator {
                     "A topic may have at most " + MAX_MANIPULATIONS + " manipulations, but was configured with " + manipulations.size());
         }
     }
+
+    private record GatherResult(Set<GlobalId> allGlobalIds, List<GatheredRecord[]> byWorkItem) {}
+
+    private record GatheredRecord(@Nullable GlobalId keySchemaId, @Nullable GlobalId valueSchemaId, long headerMatchMask) {}
+
+    private record MatchResult(List<int[]> byWorkItem, Set<ContentId> contentIds) {}
 }

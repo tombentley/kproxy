@@ -12,18 +12,18 @@ public interface SchemaRegistryClient {
 
     // ContentResult carries raw schema bytes, so an array component is intentional here.
     @SuppressWarnings("ArrayRecordComponent")
-    record ContentResult(long contentId, byte[] contentBytes) {}
+    record ContentResult(ContentId contentId, byte[] contentBytes) {}
 
-    CompletionStage<ContentResult> getContentById(long l);
+    CompletionStage<ContentResult> getContentById(ContentId contentId);
 
     record VersionsResult(
-                          long globalId,
+                          GlobalId globalId,
                           String groupId,
                           String artifactId,
                           String version,
-                          long contentId) {
+                          ContentId contentId) {
 
     }
 
-    CompletionStage<VersionsResult> artifactIdForGlobalId(long globalId);
+    CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId);
 }

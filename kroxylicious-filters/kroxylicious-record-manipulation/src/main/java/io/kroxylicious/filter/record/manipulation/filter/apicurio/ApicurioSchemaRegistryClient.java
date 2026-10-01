@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.proxy.config.tls.InsecureTls;
 import io.kroxylicious.proxy.config.tls.Tls;
@@ -55,12 +57,12 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
         return path.endsWith("/") ? uri : uri.resolve(path + "/");
     }
 
-    private URI contentUri(long contentId) {
-        return apiBaseUri.resolve("ids/contentIds/" + contentId);
+    private URI contentUri(ContentId contentId) {
+        return apiBaseUri.resolve("ids/contentIds/" + contentId.value());
     }
 
-    private URI searchVersionsUri(long globalId) {
-        return apiBaseUri.resolve("search/versions?globalId=" + globalId + "&limit=1");
+    private URI searchVersionsUri(GlobalId globalId) {
+        return apiBaseUri.resolve("search/versions?globalId=" + globalId.value() + "&limit=1");
     }
 
     private HttpClient createClient(Tls tls) {
@@ -74,7 +76,7 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public CompletionStage<ContentResult> getContentById(long contentId) {
+    public CompletionStage<ContentResult> getContentById(ContentId contentId) {
         try {
             var request = HttpRequest.newBuilder(contentUri(contentId)).timeout(timeout).GET().build();
             return send(request)
@@ -82,12 +84,12 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
                     .thenApply(response -> new ContentResult(contentId, response.body()));
         }
         catch (RuntimeException e) {
-            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for contentId " + contentId, e));
+            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for contentId " + contentId.value(), e));
         }
     }
 
     @Override
-    public CompletionStage<VersionsResult> artifactIdForGlobalId(long globalId) {
+    public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
         try {
             var request = HttpRequest.newBuilder(searchVersionsUri(globalId)).timeout(timeout).GET().build();
             return send(request)
@@ -97,7 +99,7 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
                     .thenApply(results -> firstVersionOrThrow(globalId, results));
         }
         catch (RuntimeException e) {
-            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for globalId " + globalId, e));
+            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for globalId " + globalId.value(), e));
         }
     }
 
@@ -105,10 +107,10 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
     }
 
-    private static HttpResponse<byte[]> checkContentStatus(long contentId, HttpResponse<byte[]> response) {
+    private static HttpResponse<byte[]> checkContentStatus(ContentId contentId, HttpResponse<byte[]> response) {
         if (response.statusCode() == 404) {
             LOGGER.atWarn()
-                    .addKeyValue("contentId", contentId)
+                    .addKeyValue("contentId", contentId.value())
                     .addKeyValue("requestUrl", response.request().uri())
                     .addKeyValue("statusCode", 404)
                     .log("Schema content not found in Apicurio registry");
@@ -116,23 +118,23 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
         }
         if (response.statusCode() != 200) {
             LOGGER.atWarn()
-                    .addKeyValue("contentId", contentId)
+                    .addKeyValue("contentId", contentId.value())
                     .addKeyValue("requestUrl", response.request().uri())
                     .addKeyValue("statusCode", response.statusCode())
                     .log("Failed to retrieve schema content from Apicurio registry");
-            throw new SchemaRegistryClientException("Failed to retrieve content id %d, HTTP status code %d.".formatted(contentId, response.statusCode()));
+            throw new SchemaRegistryClientException("Failed to retrieve content id %d, HTTP status code %d.".formatted(contentId.value(), response.statusCode()));
         }
         return response;
     }
 
-    private static HttpResponse<byte[]> checkSearchStatus(long globalId, HttpResponse<byte[]> response) {
+    private static HttpResponse<byte[]> checkSearchStatus(GlobalId globalId, HttpResponse<byte[]> response) {
         if (response.statusCode() != 200) {
             LOGGER.atWarn()
-                    .addKeyValue("globalId", globalId)
+                    .addKeyValue("globalId", globalId.value())
                     .addKeyValue("requestUrl", response.request().uri())
                     .addKeyValue("statusCode", response.statusCode())
                     .log("Failed to search Apicurio registry for globalId");
-            throw new SchemaRegistryClientException("Failed to search for globalId %d, HTTP status code %d.".formatted(globalId, response.statusCode()));
+            throw new SchemaRegistryClientException("Failed to search for globalId %d, HTTP status code %d.".formatted(globalId.value(), response.statusCode()));
         }
         return response;
     }
@@ -151,12 +153,12 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
         }
     }
 
-    private static VersionsResult firstVersionOrThrow(long globalId, VersionSearchResults results) {
+    private static VersionsResult firstVersionOrThrow(GlobalId globalId, VersionSearchResults results) {
         if (results.versions().isEmpty()) {
             throw new UnknownGlobalIdException(globalId);
         }
         var v = results.versions().get(0);
-        return new VersionsResult(v.globalId(), v.groupId(), v.artifactId(), v.version(), v.contentId());
+        return new VersionsResult(globalId, v.groupId(), v.artifactId(), v.version(), new ContentId(v.contentId()));
     }
 
     @VisibleForTesting

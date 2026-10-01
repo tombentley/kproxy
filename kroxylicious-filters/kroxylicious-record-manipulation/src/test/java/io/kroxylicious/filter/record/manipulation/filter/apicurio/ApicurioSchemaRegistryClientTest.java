@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 
+import io.kroxylicious.filter.record.manipulation.filter.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -64,14 +67,14 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(response)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(100L))
+        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
                 .succeedsWithin(Duration.ofSeconds(5))
                 .satisfies(result -> {
                     assertThat(result.groupId()).isEqualTo("com.myco");
                     assertThat(result.artifactId()).isEqualTo("orders");
                     assertThat(result.version()).isEqualTo("1");
-                    assertThat(result.globalId()).isEqualTo(100L);
-                    assertThat(result.contentId()).isEqualTo(42L);
+                    assertThat(result.globalId()).isEqualTo(new GlobalId(100L));
+                    assertThat(result.contentId()).isEqualTo(new ContentId(42L));
                 });
     }
 
@@ -87,7 +90,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(response)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(999L))
+        assertThat(client.artifactIdForGlobalId(new GlobalId(999L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UnknownGlobalIdException.class)
@@ -103,7 +106,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withStatus(500)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(100L))
+        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(SchemaRegistryClientException.class)
@@ -118,10 +121,10 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(contentBytes)));
 
         // When / Then
-        assertThat(client.getContentById(62L))
+        assertThat(client.getContentById(new ContentId(62L)))
                 .succeedsWithin(Duration.ofSeconds(5))
                 .satisfies(result -> {
-                    assertThat(result.contentId()).isEqualTo(62L);
+                    assertThat(result.contentId()).isEqualTo(new ContentId(62L));
                     assertThat(result.contentBytes()).isEqualTo(contentBytes);
                 });
     }
@@ -133,7 +136,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withStatus(404)));
 
         // When / Then
-        assertThat(client.getContentById(404L))
+        assertThat(client.getContentById(new ContentId(404L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UnknownContentIdException.class)
@@ -147,7 +150,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withStatus(500)));
 
         // When / Then
-        assertThat(client.getContentById(62L))
+        assertThat(client.getContentById(new ContentId(62L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(SchemaRegistryClientException.class)
@@ -163,7 +166,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(contentBytes).withFixedDelay(100)));
 
         // When
-        var stage = longTimeoutClient.getContentById(62L);
+        var stage = longTimeoutClient.getContentById(new ContentId(62L));
 
         // Then - immediately assert it's not done
         assertThat(stage.toCompletableFuture()).isNotDone();
@@ -182,7 +185,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(1L))
+        assertThat(testClient.getContentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -194,7 +197,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(1L))
+        assertThat(testClient.getContentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -206,7 +209,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(1L))
+        assertThat(testClient.getContentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -226,7 +229,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody("not json")));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(100L))
+        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UncheckedIOException.class)
