@@ -213,18 +213,6 @@ public final class ManipulationOrchestrator {
         return -1;
     }
 
-    private static boolean headerMatches(Record record, HeaderPredicate predicate) {
-        for (Header header : record.headers()) {
-            String key = header.key();
-            if ((predicate.withKey() != null && predicate.withKey().equals(key))
-                    || (predicate.withKeyIn() != null && predicate.withKeyIn().contains(key))
-                    || (predicate.withKeyMatching() != null && key.matches(predicate.withKeyMatching()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static boolean anyMatched(int[] matchIndex) {
         for (int matched : matchIndex) {
             if (matched >= 0) {
