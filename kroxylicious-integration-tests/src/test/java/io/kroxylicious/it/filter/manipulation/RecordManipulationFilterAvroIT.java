@@ -22,7 +22,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.neo.format.avro.AvroBinaryDeserializer;
 import io.kroxylicious.filter.record.manipulation.neo.format.avro.AvroBinarySerializer;

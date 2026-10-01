@@ -14,7 +14,7 @@ import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 /**
  * One partition's records plus the manipulations applicable to it, handed to the
  * {@link ManipulationOrchestrator}. The orchestrator pools lookup ids across every work item in a
- * request before resolving, so that partitions sharing a schema/DEK are resolved together.
+ * request before resolving, so that, for example, partitions sharing a schema/DEK are resolved together.
  *
  * @param topicName the topic name (already resolved and matched).
  * @param records the partition's records.

@@ -116,8 +116,8 @@ public final class ManipulationOrchestrator {
                 }
                 long syncBits = 0L;
                 for (int i = 0; i < manipulations.size(); i++) {
-                    HeaderPredicate predicate = manipulations.get(i).headerPredicate();
-                    if (predicate == null || headerMatches(record, predicate)) {
+                    var predicate = manipulations.get(i).headerPredicate();
+                    if (predicate == null || predicate.test(record.headers())) {
                         syncBits |= (1L << i);
                     }
                 }

@@ -9,12 +9,14 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
-import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
+import io.kroxylicious.kafka.common.header.Header;
+import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.TimestampTransform;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -39,11 +41,17 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 public record CompiledManipulation(
                                    Direction direction,
                                    Predicate<String> topicMatcher,
-                                   @Nullable HeaderPredicate headerPredicate,
+                                   @Nullable Predicate<Header[]> headerPredicate,
                                    @Nullable SchemaRef keySchema,
                                    @Nullable SchemaRef valueSchema,
+                                   @Nullable TimestampTransformService newTimestampService,
+                                   @Nullable Object newTimestampInitData,
                                    @Nullable TimestampTransform newTimestamp,
+                                   @Nullable BufferTransformService newKeyService,
+                                   @Nullable Object newKeyInitData,
                                    @Nullable ContextualBufferTransform newKey,
+                                   @Nullable BufferTransformService newValueService,
+                                   @Nullable Object newValueInitData,
                                    @Nullable ContextualBufferTransform newValue) {
 
     /**
@@ -110,5 +118,26 @@ public record CompiledManipulation(
         return name -> (topicName.is() != null && topicName.is().equals(name))
                 || (topicName.isIn() != null && topicName.isIn().contains(name))
                 || (topicName.matches() != null && name.matches(topicName.matches()));
+    }
+
+    @SuppressWarnings("unchecked")
+    public void close() {
+        try {
+            if (newTimestampService != null) {
+                newTimestampService.close(newTimestampInitData);
+            }
+        }
+        finally {
+            try {
+                if (newKeyService != null) {
+                    newKeyService.close(newKeyInitData);
+                }
+            }
+            finally {
+                if (newValueService != null) {
+                    newValueService.close(newValueInitData);
+                }
+            }
+        }
     }
 }

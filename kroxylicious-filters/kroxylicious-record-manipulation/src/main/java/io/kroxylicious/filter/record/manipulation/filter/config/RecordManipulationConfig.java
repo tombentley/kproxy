@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.filter.config;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * config:
  *   schemaRegistry:
@@ -48,6 +50,6 @@ import java.util.List;
  *
  */
 
-public record Foo(
-                  SchemaRegistry schemaRegistry,
-                  List<Manipulation> manipulations) {}
+public record RecordManipulationConfig(
+                                       SchemaRegistry schemaRegistry,
+                                       @JsonProperty(required = true) List<Manipulation> manipulations) {}

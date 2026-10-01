@@ -8,6 +8,12 @@ package io.kroxylicious.filter.record.manipulation.filter.config;
 
 import java.net.URI;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kroxylicious.proxy.config.tls.Tls;
 
-public record SchemaRegistry(URI url, Tls tls) {}
+import edu.umd.cs.findbugs.annotations.Nullable;
+
+public record SchemaRegistry(
+                             @JsonProperty(required = true) URI url,
+                             @Nullable Tls tls) {}

@@ -23,9 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
-import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.PartitionProduceData;

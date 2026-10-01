@@ -20,7 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.it.BaseIT;
 import io.kroxylicious.proxy.config.NamedFilterDefinition;

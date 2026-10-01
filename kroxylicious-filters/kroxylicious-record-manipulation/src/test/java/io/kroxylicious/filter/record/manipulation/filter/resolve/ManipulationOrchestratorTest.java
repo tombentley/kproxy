@@ -21,8 +21,8 @@ import java.util.function.IntFunction;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
@@ -67,7 +67,7 @@ class ManipulationOrchestratorTest {
     }
 
     private static CompiledManipulation selectByKeySchema(SchemaRef keySchema, ContextualBufferTransform newValue) {
-        return new CompiledManipulation(Direction.IN, name -> true, null, keySchema, null, null, null, newValue);
+        return new CompiledManipulation(Direction.IN, name -> true, null, keySchema, null, null, null, null, null, null, null, null, null, newValue);
     }
 
     @Test

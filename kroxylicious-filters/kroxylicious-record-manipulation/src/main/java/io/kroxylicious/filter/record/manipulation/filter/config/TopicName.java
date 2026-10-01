@@ -8,6 +8,24 @@ package io.kroxylicious.filter.record.manipulation.filter.config;
 
 import java.util.Set;
 
-public record TopicName(String is,
-                        Set<String> isIn,
-                        String matches) {}
+import edu.umd.cs.findbugs.annotations.Nullable;
+
+public record TopicName(@Nullable String is,
+                        @Nullable Set<String> isIn,
+                        @Nullable String matches) {
+    public TopicName {
+        if (is != null) {
+            if (isIn != null || matches != null) {
+                throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+            }
+        }
+        else if (isIn != null) {
+            if (matches != null) {
+                throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+            }
+        }
+        else if (matches == null) {
+            throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+        }
+    }
+}

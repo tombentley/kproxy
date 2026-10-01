@@ -10,9 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.ContextualBufferTransform;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationOrchestrator;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
@@ -33,7 +36,10 @@ import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import io.kroxylicious.proxy.filter.ShareFetchResponseFilter;
 import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * A filter that selects records ({@code when}) and rewrites them ({@code then}). Selection and
@@ -46,34 +52,15 @@ public class RecordManipulationFilter implements
         FetchResponseFilter,
         ShareFetchResponseFilter {
 
-    private final String topic;
-    private final Direction direction;
-    private final List<CompiledManipulation> manipulations;
+    private static final Logger LOGGER = getLogger(RecordManipulationFilter.class);
+
+    private final Init init;
+
     private final ManipulationOrchestrator orchestrator;
 
     public RecordManipulationFilter(Init init, Executor filterExecutor, @Nullable SchemaFacets schemaFacets) {
-        this.topic = init.topic();
-        this.direction = init.direction();
-        this.manipulations = List.of(compile(init));
+        this.init = init;
         this.orchestrator = new ManipulationOrchestrator(schemaFacets, filterExecutor);
-    }
-
-    /**
-     * Compiles the (single, global) manipulation expressed by the current configuration: it selects
-     * every record of the configured topic/direction and applies the configured timestamp/key/value
-     * transforms. Per-manipulation, schema-selecting configuration is resolved and applied by the same
-     * {@link ManipulationOrchestrator} once the configuration surface exposes it.
-     */
-    private CompiledManipulation compile(Init init) {
-        return new CompiledManipulation(
-                init.direction(),
-                name -> true,
-                null,
-                null,
-                null,
-                init.recordTimestampPipeline(),
-                ContextualBufferTransform.of(init.recordKeyPipeline()),
-                ContextualBufferTransform.of(init.recordValuePipeline()));
     }
 
     @Override
@@ -81,9 +68,6 @@ public class RecordManipulationFilter implements
                                                                  RequestHeaderData header,
                                                                  ProduceRequestData request,
                                                                  FilterContext context) {
-        if (this.direction != Direction.IN) {
-            return context.forwardRequest(header, request);
-        }
         List<Uuid> idsToResolve = request.topicData().stream()
                 .filter(topicData -> topicData.name().isEmpty())
                 .map(ProduceRequestData.TopicProduceData::topicId)
@@ -92,15 +76,34 @@ public class RecordManipulationFilter implements
             List<PartitionWorkItem> workItems = new ArrayList<>();
             for (var topicData : request.topicData()) {
                 String topicName = resolveTopicName(topicData.name(), topicData.topicId(), topicNameMapping);
-                if (topic.equals(topicName)) {
+                var matchingManipulations = init.compiledManipulations().stream()
+                        .filter(manipulation -> manipulation.direction() == Direction.IN)
+                        .filter(manipulation -> manipulation.topicMatcher().test(topicName))
+                        .toList();
+                if (!matchingManipulations.isEmpty()) {
                     for (var partitionData : topicData.partitionData()) {
-                        addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
+                        addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
                     }
                 }
             }
+            if (workItems.isEmpty()) {
+                LOGGER.atDebug()
+                        .addKeyValue("topic", () -> topicNames(request, topicNameMapping))
+                        .log("ProduceRequest requires no manipulation");
+                return context.forwardRequest(header, request);
+            }
+            LOGGER.atDebug()
+                    .addKeyValue("topic", () -> topicNames(request, topicNameMapping))
+                    .addKeyValue("workItems", workItems)
+                    .log("ProduceRequest may require manipulation");
             return orchestrator.process(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardRequest(header, request));
         });
+    }
+
+    @NonNull
+    private static String topicNames(ProduceRequestData request, TopicNameMapping topicNameMapping) {
+        return request.topicData().stream().map(td -> resolveTopicName(td.name(), td.topicId(), topicNameMapping)).collect(Collectors.joining(","));
     }
 
     @Override
@@ -108,9 +111,6 @@ public class RecordManipulationFilter implements
                                                                  ResponseHeaderData header,
                                                                  FetchResponseData response,
                                                                  FilterContext context) {
-        if (this.direction != Direction.OUT) {
-            return context.forwardResponse(header, response);
-        }
         List<Uuid> idsToResolve = response.responses().stream()
                 .filter(topicData -> topicData.topic().isEmpty())
                 .map(FetchResponseData.FetchableTopicResponse::topicId)
@@ -119,15 +119,35 @@ public class RecordManipulationFilter implements
             List<PartitionWorkItem> workItems = new ArrayList<>();
             for (var topicData : response.responses()) {
                 String topicName = resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping);
-                if (topic.equals(topicName)) {
+                var matchingManipulations = init.compiledManipulations().stream()
+                        .filter(manipulation -> manipulation.direction() == Direction.IN)
+                        .filter(manipulation -> manipulation.topicMatcher().test(topicName))
+                        .toList();
+                if (!matchingManipulations.isEmpty()) {
                     for (var partitionData : topicData.partitions()) {
-                        addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
+                        addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
                     }
                 }
             }
+            if (workItems.isEmpty()) {
+                LOGGER.atDebug()
+                        .addKeyValue("topics", () -> topicNames(response, topicNameMapping))
+                        .log("FetchResponse requires no manipulation");
+                return context.forwardResponse(header, response);
+            }
+
+            LOGGER.atDebug()
+                    .addKeyValue("topics", () -> topicNames(response, topicNameMapping))
+                    .addKeyValue("workItems", workItems)
+                    .log("FetchResponse may require manipulation");
             return orchestrator.process(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
+    }
+
+    @NonNull
+    private static String topicNames(FetchResponseData response, TopicNameMapping topicNameMapping) {
+        return response.responses().stream().map(td -> resolveTopicName(td.topic(), td.topicId(), topicNameMapping)).collect(Collectors.joining(","));
     }
 
     @Override
@@ -135,9 +155,6 @@ public class RecordManipulationFilter implements
                                                                       ResponseHeaderData header,
                                                                       ShareFetchResponseData response,
                                                                       FilterContext context) {
-        if (this.direction != Direction.OUT) {
-            return context.forwardResponse(header, response);
-        }
         List<Uuid> idsToResolve = response.responses().stream()
                 .map(ShareFetchResponseData.ShareFetchableTopicResponse::topicId)
                 .toList();
@@ -153,19 +170,39 @@ public class RecordManipulationFilter implements
                 }
                 else {
                     String topicName = topicMapping.topicNames().get(topicData.topicId());
-                    if (topic.equals(topicName)) {
+                    var matchingManipulations = init.compiledManipulations().stream()
+                            .filter(manipulation -> manipulation.direction() == Direction.IN)
+                            .filter(manipulation -> manipulation.topicMatcher().test(topicName))
+                            .toList();
+                    if (!matchingManipulations.isEmpty()) {
                         for (var partitionData : topicData.partitions()) {
-                            addWorkItem(workItems, topicName, partitionData.records(), partitionData::setRecords);
+                            addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
                         }
                     }
                 }
             }
+            if (workItems.isEmpty()) {
+                LOGGER.atDebug()
+                        .addKeyValue("topics", () -> topicNames(response, topicMapping))
+                        .log("ShareFetchResponse requires no manipulation");
+                return context.forwardResponse(header, response);
+            }
+            LOGGER.atDebug()
+                    .addKeyValue("topics", () -> topicNames(response, topicMapping))
+                    .addKeyValue("workItems", workItems)
+                    .log("ShareFetchResponse may require manipulation");
             return orchestrator.process(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
     }
 
-    private void addWorkItem(List<PartitionWorkItem> workItems,
+    @NonNull
+    private static String topicNames(ShareFetchResponseData response, TopicNameMapping topicNameMapping) {
+        return response.responses().stream().map(td -> topicNameMapping.topicNames().get(td.topicId())).collect(Collectors.joining(","));
+    }
+
+    private void addWorkItem(List<CompiledManipulation> manipulations,
+                             List<PartitionWorkItem> workItems,
                              String topicName,
                              @Nullable BaseRecords records,
                              java.util.function.Consumer<MemoryRecords> writeBack) {

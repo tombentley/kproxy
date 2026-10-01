@@ -6,7 +6,9 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
-import io.kroxylicious.filter.record.manipulation.filter.Direction;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * Criteria for when a {@link Manipulation} should apply
@@ -15,8 +17,8 @@ import io.kroxylicious.filter.record.manipulation.filter.Direction;
  * @param withKeySchema A predicate on the data in the record
  */
 public record When(
-                   Direction direction,
-                   TopicName inTopic,
-                   SchemaRef withKeySchema,
-                   SchemaRef withValueSchema,
-                   HeaderPredicate hasAnyHeader) {}
+                   @JsonProperty(required = true) Direction direction,
+                   @Nullable TopicName inTopic,
+                   @Nullable SchemaRef withKeySchema,
+                   @Nullable SchemaRef withValueSchema,
+                   @Nullable HeaderPredicate hasAnyHeader) {}
