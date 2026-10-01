@@ -120,7 +120,7 @@ public class RecordManipulationFilter implements
             for (var topicData : response.responses()) {
                 String topicName = resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping);
                 var matchingManipulations = init.compiledManipulations().stream()
-                        .filter(manipulation -> manipulation.direction() == Direction.IN)
+                        .filter(manipulation -> manipulation.direction() == Direction.OUT)
                         .filter(manipulation -> manipulation.topicMatcher().test(topicName))
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
@@ -171,7 +171,7 @@ public class RecordManipulationFilter implements
                 else {
                     String topicName = topicMapping.topicNames().get(topicData.topicId());
                     var matchingManipulations = init.compiledManipulations().stream()
-                            .filter(manipulation -> manipulation.direction() == Direction.IN)
+                            .filter(manipulation -> manipulation.direction() == Direction.OUT)
                             .filter(manipulation -> manipulation.topicMatcher().test(topicName))
                             .toList();
                     if (!matchingManipulations.isEmpty()) {
