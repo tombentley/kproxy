@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,10 +14,13 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ApicurioSchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ContextualBufferTransform;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordValue;
@@ -85,7 +89,18 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                     ContextualBufferTransform.of(valuePipeline)));
         }
 
-        return new Init(compiledManipulations);
+        boolean needsSchema = compiledManipulations.stream().anyMatch(cm -> cm.needsKeySchema() || cm.needsValueSchema());
+        if (needsSchema && config.schemaRegistry() == null) {
+            throw new PluginConfigurationException(
+                    "At least one manipulation uses withKeySchema/withValueSchema, but no schemaRegistry is configured.");
+        }
+        SchemaFacets schemaFacets = null;
+        if (config.schemaRegistry() != null) {
+            var client = new ApicurioSchemaRegistryClient(config.schemaRegistry().url(), Duration.ofSeconds(20), config.schemaRegistry().tls());
+            schemaFacets = new SchemaFacets(client, CachingEntityResolver.UNBOUNDED, CachingEntityResolver.UNBOUNDED);
+        }
+
+        return new Init(compiledManipulations, schemaFacets);
     }
 
     @Nullable
@@ -162,6 +177,6 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     @Override
     public Filter createFilter(FilterFactoryContext context,
                                Init initializationData) {
-        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor(), null);
+        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor(), initializationData.schemaFacets());
     }
 }

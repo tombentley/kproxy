@@ -6,18 +6,21 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
+import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRegistry;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.filter.record.manipulation.filter.config.When;
@@ -32,6 +35,7 @@ import io.kroxylicious.kafka.common.header.internals.RecordHeader;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
+import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
@@ -39,7 +43,10 @@ import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests the compilation performed by {@link RecordManipulation#initialize}: turning each configured
@@ -215,7 +222,7 @@ class RecordManipulationTest {
         // Given
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
         var valueSchema = new SchemaRef("com.myco", "orders-value", "*");
-        var config = config(manipulation(when(Direction.OUT, topic("orders"), keySchema, valueSchema, null), DEFAULT_THEN));
+        var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null), manipulation(when(Direction.OUT, topic("orders"), keySchema, valueSchema, null), DEFAULT_THEN));
 
         // When
         var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
@@ -250,10 +257,61 @@ class RecordManipulationTest {
         assertThat(valueService.closedWith).containsExactly(valueService.initData);
     }
 
+    @Test
+    void buildsNonNullSchemaFacetsWhenSchemaRegistryConfigured() {
+        // Given
+        var schemaRegistry = new SchemaRegistry(URI.create("http://registry.local:8080"), null);
+        var config = new RecordManipulationConfig(schemaRegistry, List.of(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN)));
+
+        // When
+        var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
+
+        // Then
+        assertThat(init.schemaFacets()).isNotNull();
+    }
+
+    @Test
+    void schemaFacetsIsNullWhenSchemaRegistryAbsentAndNoManipulationNeedsSchema() {
+        // Given
+        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN));
+
+        // When
+        var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
+
+        // Then
+        assertThat(init.schemaFacets()).isNull();
+    }
+
+    @Test
+    void throwsIllegalArgumentExceptionWhenKeySchemaSelectionConfiguredWithoutSchemaRegistry() {
+        // Given
+        var keySchema = new SchemaRef("com.myco", "orders-key", "1");
+
+        // When / Then
+        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, topic("orders"), keySchema, null, null), DEFAULT_THEN)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
+    }
+
+    @Test
+    void throwsIllegalArgumentExceptionWhenValueSchemaSelectionConfiguredWithoutSchemaRegistry() {
+        // Given
+        var valueSchema = new SchemaRef("com.myco", "orders-value", "1");
+
+        // When / Then
+        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, topic("orders"), null, valueSchema, null), DEFAULT_THEN)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
+    }
+
     // --- helpers ------------------------------------------------------------------------------
 
     private static RecordManipulationConfig config(Manipulation... manipulations) {
-        return new RecordManipulationConfig(null, List.of(manipulations));
+        return config(null, manipulations);
+    }
+
+    private static RecordManipulationConfig config(@Nullable SchemaRegistry registry, Manipulation... manipulations) {
+        return new RecordManipulationConfig(registry, List.of(manipulations));
     }
 
     private static Manipulation manipulation(When when, Then then) {

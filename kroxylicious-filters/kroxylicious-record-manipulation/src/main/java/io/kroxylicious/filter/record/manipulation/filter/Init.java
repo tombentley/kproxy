@@ -9,5 +9,8 @@ package io.kroxylicious.filter.record.manipulation.filter;
 import java.util.List;
 
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 
-public record Init(List<CompiledManipulation> compiledManipulations) {}
+import edu.umd.cs.findbugs.annotations.Nullable;
+
+public record Init(List<CompiledManipulation> compiledManipulations, @Nullable SchemaFacets schemaFacets) {}

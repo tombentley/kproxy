@@ -10,6 +10,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 /**
  * config:
  *   schemaRegistry:
@@ -51,5 +53,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 
 public record RecordManipulationConfig(
-                                       SchemaRegistry schemaRegistry,
-                                       @JsonProperty(required = true) List<Manipulation> manipulations) {}
+                                       @Nullable SchemaRegistry schemaRegistry,
+                                       @JsonProperty(required = true) List<Manipulation> manipulations) {
+    public RecordManipulationConfig {
+        if (schemaRegistry == null &&
+                manipulations.stream().anyMatch(manipulation -> manipulation.when().withValueSchema() != null || manipulation.when().withKeySchema() != null)) {
+            throw new IllegalArgumentException("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
+        }
+    }
+}

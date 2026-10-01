@@ -255,7 +255,7 @@ class RecordManipulationFilterTest {
     // --- helpers ------------------------------------------------------------------------------
 
     private static RecordManipulationFilter filter(SchemaFacets schemaFacets, CompiledManipulation... manipulations) {
-        return new RecordManipulationFilter(new Init(List.of(manipulations)), INLINE, schemaFacets);
+        return new RecordManipulationFilter(new Init(List.of(manipulations), schemaFacets), INLINE, schemaFacets);
     }
 
     private static CompiledManipulation topicManipulation(Direction direction, Predicate<String> topicMatcher, ContextualBufferTransform newValue) {
