@@ -25,7 +25,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * <p>The {@code accessor} selects which part of the record to read, i.e. {@code Record::key} or
  * {@code Record::value}.</p>
  */
-public final class SchemaIdExtractor implements LookupKeyExtractor<GlobalId> {
+public final class GlobalIdExtractor implements LookupKeyExtractor<GlobalId> {
 
     private static final byte MAGIC_BYTE = 0x00;
     /** magic byte (1) + globalId (8). */
@@ -37,7 +37,7 @@ public final class SchemaIdExtractor implements LookupKeyExtractor<GlobalId> {
      * Creates an extractor that reads the framing from the part of the record chosen by {@code accessor}.
      * @param accessor selects the framed buffer from a record (e.g. {@code Record::key}).
      */
-    public SchemaIdExtractor(Function<Record, ByteBuffer> accessor) {
+    public GlobalIdExtractor(Function<Record, ByteBuffer> accessor) {
         this.accessor = accessor;
     }
 

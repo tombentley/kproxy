@@ -11,6 +11,7 @@ import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.ContentResult;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
 /**
@@ -33,8 +34,8 @@ public final class SchemaFacets {
     /** Discriminator for the {@code contentId -> schema bytes} stage in {@link ResolvedEntities}. */
     public static final String SCHEMA_CONTENT = "schema-content";
 
-    private final SchemaIdExtractor keyExtractor = new SchemaIdExtractor(Record::key);
-    private final SchemaIdExtractor valueExtractor = new SchemaIdExtractor(Record::value);
+    private final GlobalIdExtractor keyExtractor = new GlobalIdExtractor(Record::key);
+    private final GlobalIdExtractor valueExtractor = new GlobalIdExtractor(Record::value);
     private final EntityResolver<GlobalId, VersionsResult> versionResolver;
     private final EntityResolver<ContentId, byte[]> contentResolver;
 
