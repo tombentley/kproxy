@@ -111,7 +111,7 @@ class RecordManipulationFilterTest {
     @Test
     void masksJsonFieldOnMatchingTopicAndDirection() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, ORIGINAL_VALUE);
         var header = new RequestHeaderData();
         var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();
@@ -143,7 +143,7 @@ class RecordManipulationFilterTest {
     @Test
     void passesThroughRecordsOnNonMatchingTopic() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var produceRequest = produceRequestWithOneRecord("some-other-topic", RECORD_KEY, ORIGINAL_VALUE);
         var header = new RequestHeaderData();
         var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();
@@ -166,7 +166,7 @@ class RecordManipulationFilterTest {
     @Test
     void passesThroughRecordsOnNonMatchingDirection() {
         // Given
-        var filter = buildFilter(Direction.OUT);
+        var filter = buildFilter(Direction.OUT_OF_CLUSTER);
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, ORIGINAL_VALUE);
         var header = new RequestHeaderData();
         var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();

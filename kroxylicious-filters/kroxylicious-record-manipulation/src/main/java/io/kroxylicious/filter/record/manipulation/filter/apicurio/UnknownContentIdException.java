@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-
 class UnknownContentIdException extends SchemaRegistryClientException {
 
     UnknownContentIdException(ContentId contentId) {

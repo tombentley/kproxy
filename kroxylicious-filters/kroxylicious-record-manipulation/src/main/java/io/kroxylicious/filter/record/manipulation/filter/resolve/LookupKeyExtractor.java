@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
-
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
@@ -21,7 +19,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param <ID> the type of the lookup id.
  */
 @FunctionalInterface
-public interface LookupKeyExtractor<ID> {
+public interface LookupKeyExtractor<R, ID> {
 
     /**
      * Extract the lookup id from the given record.
@@ -29,5 +27,5 @@ public interface LookupKeyExtractor<ID> {
      * @return the id, or {@code null} if this record references no entity of this kind.
      */
     @Nullable
-    ID extract(Record record);
+    ID extract(R record);
 }

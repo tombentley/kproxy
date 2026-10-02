@@ -7,6 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
 public enum Direction {
-    IN,
-    OUT
+    INTO_CLUSTER,
+    OUT_OF_CLUSTER
 }

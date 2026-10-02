@@ -73,7 +73,7 @@ class RecordManipulationFilterProtobufIT extends BaseIT {
     @Test
     void masksProtobufFieldOnProduceWhenDirectionIn(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = protobufMaskingFilterDefinition("mask-in", topic, Direction.IN);
+        var filterDef = protobufMaskingFilterDefinition("mask-in", topic, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -99,7 +99,7 @@ class RecordManipulationFilterProtobufIT extends BaseIT {
     @Test
     void masksProtobufFieldOnFetchWhenDirectionOut(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = protobufMaskingFilterDefinition("mask-out", topic, Direction.OUT);
+        var filterDef = protobufMaskingFilterDefinition("mask-out", topic, Direction.OUT_OF_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -122,7 +122,7 @@ class RecordManipulationFilterProtobufIT extends BaseIT {
     @Test
     void passesThroughRecordsOnNonMatchingTopic(KafkaCluster cluster, Topic topic1, Topic topic2) {
         // Given
-        var filterDef = protobufMaskingFilterDefinition("mask-topic1-only", topic1, Direction.IN);
+        var filterDef = protobufMaskingFilterDefinition("mask-topic1-only", topic1, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());

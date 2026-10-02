@@ -9,7 +9,7 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
@@ -38,21 +38,21 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param newKey optional replacement key transform ({@code null} = keep original).
  * @param newValue optional replacement value transform ({@code null} = keep original).
  */
-public record CompiledManipulation(
-                                   Direction direction,
-                                   Predicate<String> topicMatcher,
-                                   @Nullable Predicate<Header[]> headerPredicate,
-                                   @Nullable SchemaRef keySchema,
-                                   @Nullable SchemaRef valueSchema,
-                                   @Nullable TimestampTransformService newTimestampService,
-                                   @Nullable Object newTimestampInitData,
-                                   @Nullable TimestampTransform newTimestamp,
-                                   @Nullable BufferTransformService newKeyService,
-                                   @Nullable Object newKeyInitData,
-                                   @Nullable ContextualBufferTransform newKey,
-                                   @Nullable BufferTransformService newValueService,
-                                   @Nullable Object newValueInitData,
-                                   @Nullable ContextualBufferTransform newValue) {
+public record CompiledManipulation<I1, I2, I3>(
+                                               Direction direction,
+                                               Predicate<String> topicMatcher,
+                                               @Nullable Predicate<Header[]> headerPredicate,
+                                               @Nullable SchemaRef keySchema,
+                                               @Nullable SchemaRef valueSchema,
+                                               @Nullable TimestampTransformService<?, I1> newTimestampService,
+                                               @Nullable I1 newTimestampInitData,
+                                               @Nullable TimestampTransform newTimestamp,
+                                               @Nullable BufferTransformService<?, I2> newKeyService,
+                                               @Nullable I2 newKeyInitData,
+                                               @Nullable ContextualBufferTransform newKey,
+                                               @Nullable BufferTransformService<?, I3> newValueService,
+                                               @Nullable I3 newValueInitData,
+                                               @Nullable ContextualBufferTransform newValue) {
 
     /**
      * Reports whether selection depends on the key schema.
@@ -68,15 +68,6 @@ public record CompiledManipulation(
      */
     public boolean needsValueSchema() {
         return valueSchema != null;
-    }
-
-    /**
-     * Reports whether this manipulation is in scope for the given topic.
-     * @param topicName the topic name.
-     * @return true if this manipulation is in scope for the given topic.
-     */
-    public boolean appliesToTopic(String topicName) {
-        return topicMatcher.test(topicName);
     }
 
     /**
@@ -120,7 +111,6 @@ public record CompiledManipulation(
                 || (topicName.matches() != null && name.matches(topicName.matches()));
     }
 
-    @SuppressWarnings("unchecked")
     public void close() {
         try {
             if (newTimestampService != null) {

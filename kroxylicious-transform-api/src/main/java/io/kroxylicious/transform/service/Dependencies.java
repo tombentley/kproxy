@@ -8,5 +8,5 @@ package io.kroxylicious.transform.service;
 
 public interface Dependencies {
 
-    <X, I> X get(DependencyKey<X, I> key, I id);
+    <I, V> V get(DependencyKey<I, V> key, I id);
 }

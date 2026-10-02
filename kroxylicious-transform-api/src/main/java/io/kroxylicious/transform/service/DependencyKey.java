@@ -6,10 +6,15 @@
 
 package io.kroxylicious.transform.service;
 
-public final class DependencyKey<X, I> {
-    private final Class<X> cls;
+/**
+ * A dependency
+ * @param <I> The type of Id
+ * @param <V> The type of the depended-upon value
+ */
+public final class DependencyKey<I, V> {
+    private final Class<V> valueClass;
 
-    public DependencyKey(Class<X> cls, Class<I> idClass) {
-        this.cls = cls;
+    public DependencyKey(Class<I> idClass, Class<V> valueClass) {
+        this.valueClass = valueClass;
     }
 }

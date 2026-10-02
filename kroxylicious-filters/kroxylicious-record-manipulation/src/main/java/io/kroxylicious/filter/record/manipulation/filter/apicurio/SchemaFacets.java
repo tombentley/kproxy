@@ -6,11 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.ContentResult;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.EntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.LookupKeyExtractor;
@@ -32,8 +27,8 @@ import io.kroxylicious.transform.service.DependencyKey;
  */
 public final class SchemaFacets {
 
-    public static final DependencyKey<byte[], ContentId> SCHEMA_CONTENT_DEPENDENCY = new DependencyKey<>(byte[].class, ContentId.class);
-    public static final DependencyKey<VersionsResult, GlobalId> VERSIONS_DEPENDENCY = new DependencyKey<>(VersionsResult.class, GlobalId.class);
+    public static final DependencyKey<ContentId, byte[]> SCHEMA_CONTENT_DEPENDENCY = new DependencyKey<>(ContentId.class, byte[].class);
+    public static final DependencyKey<GlobalId, VersionsResult> VERSIONS_DEPENDENCY = new DependencyKey<>(GlobalId.class, VersionsResult.class);
 
     private final GlobalIdExtractor keyExtractor = new GlobalIdExtractor(Record::key);
     private final GlobalIdExtractor valueExtractor = new GlobalIdExtractor(Record::value);
@@ -48,10 +43,10 @@ public final class SchemaFacets {
      */
     public SchemaFacets(SchemaRegistryClient client, int versionCacheMax, int contentCacheMax) {
         this.versionResolver = new CachingEntityResolver<>(
-                globalId -> client.artifactIdForGlobalId(globalId).toCompletableFuture(),
+                globalId -> client.versionsForGlobalId(globalId).toCompletableFuture(),
                 versionCacheMax);
         this.contentResolver = new CachingEntityResolver<>(
-                contentId -> client.getContentById(contentId).thenApply(ContentResult::contentBytes).toCompletableFuture(),
+                contentId -> client.contentById(contentId).thenApply(ContentResult::contentBytes).toCompletableFuture(),
                 contentCacheMax);
     }
 
@@ -59,7 +54,7 @@ public final class SchemaFacets {
      * Returns the extractor for the key schema {@code globalId}.
      * @return extractor for the key schema {@code globalId}.
      */
-    public LookupKeyExtractor<GlobalId> keyExtractor() {
+    public LookupKeyExtractor<Record, GlobalId> keyExtractor() {
         return keyExtractor;
     }
 
@@ -67,7 +62,7 @@ public final class SchemaFacets {
      * Returns the extractor for the value schema {@code globalId}.
      * @return extractor for the value schema {@code globalId}.
      */
-    public LookupKeyExtractor<GlobalId> valueExtractor() {
+    public LookupKeyExtractor<Record, GlobalId> valueExtractor() {
         return valueExtractor;
     }
 

@@ -20,7 +20,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *     tls:
  *   manipulations:
  *     - when:
- *         direction: TO_BROKER
+ *         direction: INTO_CLUSTER
  *         inTopic:   # default is to match all topics
  *           withName: "foo"
  *           # OR
@@ -37,13 +37,15 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *           withKey: my-key
  *       then:
  *         newKey:
- *           reader: JsonRead # only needed
- *           readerConfig:
  *           transforms:
+ *             - transform: ReadJson
+ *               config:
+ *             - transform: JsonSchemaValidation
+ *               config:
  *             - transform: Jsonata
  *               jsonata: |
- *           writer: WriteJson
- *           writerConfig:
+ *             - transform: WriteJson
+ *               config:
  *         newValue:
  *           reader: JsonRead # only needed
  *           readerConfig:

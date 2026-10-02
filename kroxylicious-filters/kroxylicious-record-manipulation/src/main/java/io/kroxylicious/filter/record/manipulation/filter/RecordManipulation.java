@@ -33,7 +33,6 @@ import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.TimestampTransformService;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
@@ -48,7 +47,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                            RecordManipulationConfig config)
             throws PluginConfigurationException {
 
-        List<CompiledManipulation> compiledManipulations = new ArrayList<>(config.manipulations().size());
+        List<CompiledManipulation<?, ?, ?>> compiledManipulations = new ArrayList<>(config.manipulations().size());
         for (var m : config.manipulations()) {
 
             Predicate<String> topicMatcher = compileTopicMatcher(m);
@@ -72,7 +71,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                     .configure(context::pluginInstance, m.then().newValueConfig());
             var valuePipeline = valueTransformService.create(valueInitData);
 
-            compiledManipulations.add(new CompiledManipulation(
+            compiledManipulations.add(new CompiledManipulation<>(
                     m.when().direction(),
                     topicMatcher,
                     headerPredicate,
@@ -131,7 +130,6 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
         return headerPredicate;
     }
 
-    @NonNull
     private static Predicate<String> compileTopicMatcher(Manipulation m) {
         Predicate<String> topicMatcher;
         if (m.when().inTopic() != null) {
@@ -177,6 +175,6 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     @Override
     public Filter createFilter(FilterFactoryContext context,
                                Init initializationData) {
-        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor(), initializationData.schemaFacets());
+        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor());
     }
 }

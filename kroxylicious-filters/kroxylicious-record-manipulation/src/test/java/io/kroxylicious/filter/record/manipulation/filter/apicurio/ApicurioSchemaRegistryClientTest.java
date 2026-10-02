@@ -18,9 +18,6 @@ import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -67,7 +64,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(response)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
+        assertThat(client.versionsForGlobalId(new GlobalId(100L)))
                 .succeedsWithin(Duration.ofSeconds(5))
                 .satisfies(result -> {
                     assertThat(result.groupId()).isEqualTo("com.myco");
@@ -90,7 +87,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody(response)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(new GlobalId(999L)))
+        assertThat(client.versionsForGlobalId(new GlobalId(999L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UnknownGlobalIdException.class)
@@ -106,7 +103,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withStatus(500)));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
+        assertThat(client.versionsForGlobalId(new GlobalId(100L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(SchemaRegistryClientException.class)
@@ -117,11 +114,11 @@ class ApicurioSchemaRegistryClientTest {
     void resolvesContentForKnownContentId() {
         // Given
         byte[] contentBytes = { 0x01, 0x02, 0x03, 0x04 };
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62?returnArtifactType=true"))
                 .willReturn(aResponse().withBody(contentBytes)));
 
         // When / Then
-        assertThat(client.getContentById(new ContentId(62L)))
+        assertThat(client.contentById(new ContentId(62L)))
                 .succeedsWithin(Duration.ofSeconds(5))
                 .satisfies(result -> {
                     assertThat(result.contentId()).isEqualTo(new ContentId(62L));
@@ -132,11 +129,11 @@ class ApicurioSchemaRegistryClientTest {
     @Test
     void failsWhenContentIdNotFound() {
         // Given
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/404"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/404?returnArtifactType=true"))
                 .willReturn(aResponse().withStatus(404)));
 
         // When / Then
-        assertThat(client.getContentById(new ContentId(404L)))
+        assertThat(client.contentById(new ContentId(404L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UnknownContentIdException.class)
@@ -146,11 +143,11 @@ class ApicurioSchemaRegistryClientTest {
     @Test
     void failsWhenContentLookupReturnsServerError() {
         // Given
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62?returnArtifactType=true"))
                 .willReturn(aResponse().withStatus(500)));
 
         // When / Then
-        assertThat(client.getContentById(new ContentId(62L)))
+        assertThat(client.contentById(new ContentId(62L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(SchemaRegistryClientException.class)
@@ -162,11 +159,11 @@ class ApicurioSchemaRegistryClientTest {
         // Given
         var longTimeoutClient = new ApicurioSchemaRegistryClient(URI.create(server.baseUrl()), Duration.ofSeconds(10), null);
         byte[] contentBytes = { 0x05, 0x06 };
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/62?returnArtifactType=true"))
                 .willReturn(aResponse().withBody(contentBytes).withFixedDelay(100)));
 
         // When
-        var stage = longTimeoutClient.getContentById(new ContentId(62L));
+        var stage = longTimeoutClient.contentById(new ContentId(62L));
 
         // Then - immediately assert it's not done
         assertThat(stage.toCompletableFuture()).isNotDone();
@@ -181,11 +178,11 @@ class ApicurioSchemaRegistryClientTest {
     void acceptsBaseUrlWithoutPath() {
         // Given
         var testClient = new ApicurioSchemaRegistryClient(URI.create(server.baseUrl()), TIMEOUT, null);
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/1"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/1?returnArtifactType=true"))
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(new ContentId(1L)))
+        assertThat(testClient.contentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -193,11 +190,11 @@ class ApicurioSchemaRegistryClientTest {
     void acceptsBaseUrlWithTrailingSlash() {
         // Given
         var testClient = new ApicurioSchemaRegistryClient(URI.create(server.baseUrl() + "/"), TIMEOUT, null);
-        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/1"))
+        server.stubFor(get(urlEqualTo("/apis/registry/v3/ids/contentIds/1?returnArtifactType=true"))
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(new ContentId(1L)))
+        assertThat(testClient.contentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -205,11 +202,11 @@ class ApicurioSchemaRegistryClientTest {
     void acceptsBaseUrlWithPathPrefix() {
         // Given
         var testClient = new ApicurioSchemaRegistryClient(URI.create(server.baseUrl() + "/registry-prefix"), TIMEOUT, null);
-        server.stubFor(get(urlEqualTo("/registry-prefix/apis/registry/v3/ids/contentIds/1"))
+        server.stubFor(get(urlEqualTo("/registry-prefix/apis/registry/v3/ids/contentIds/1?returnArtifactType=true"))
                 .willReturn(aResponse().withBody(new byte[]{ 0x01 })));
 
         // When / Then
-        assertThat(testClient.getContentById(new ContentId(1L)))
+        assertThat(testClient.contentById(new ContentId(1L)))
                 .succeedsWithin(Duration.ofSeconds(5));
     }
 
@@ -229,7 +226,7 @@ class ApicurioSchemaRegistryClientTest {
                 .willReturn(aResponse().withBody("not json")));
 
         // When / Then
-        assertThat(client.artifactIdForGlobalId(new GlobalId(100L)))
+        assertThat(client.versionsForGlobalId(new GlobalId(100L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
                 .withCauseInstanceOf(UncheckedIOException.class)

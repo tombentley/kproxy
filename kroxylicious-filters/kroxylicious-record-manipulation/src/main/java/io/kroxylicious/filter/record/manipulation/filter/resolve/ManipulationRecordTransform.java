@@ -21,11 +21,11 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * have their {@code then} transforms applied, with the request's {@link ResolvedEntities} in scope;
  * unmatched records pass through unchanged.
  */
-final class ManipulationRecordTransform implements RecordTransform<CompiledManipulation> {
+final class ManipulationRecordTransform implements RecordTransform<CompiledManipulation<?, ?, ?>> {
 
     private final ResolvedEntities resolved;
     @Nullable
-    private CompiledManipulation current;
+    private CompiledManipulation<?, ?, ?> current;
 
     ManipulationRecordTransform(ResolvedEntities resolved) {
         this.resolved = resolved;
@@ -36,12 +36,12 @@ final class ManipulationRecordTransform implements RecordTransform<CompiledManip
     }
 
     @Override
-    public void init(@Nullable CompiledManipulation state, Record record) {
+    public void init(@Nullable CompiledManipulation<?, ?, ?> state, Record record) {
         this.current = state;
     }
 
     @Override
-    public void resetAfterTransform(@Nullable CompiledManipulation state, Record record) {
+    public void resetAfterTransform(@Nullable CompiledManipulation<?, ?, ?> state, Record record) {
         this.current = null;
     }
 

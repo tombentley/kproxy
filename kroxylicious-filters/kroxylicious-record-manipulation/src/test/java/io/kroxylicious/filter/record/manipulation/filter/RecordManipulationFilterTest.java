@@ -21,7 +21,12 @@ import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
@@ -66,7 +71,7 @@ class RecordManipulationFilterTest {
     @Test
     void forwardsProduceRequestUnchangedWhenNoManipulationMatchesTopic() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.IN, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.INTO_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var request = produceRequest("some-other-topic", "a", "b");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).build();
@@ -83,7 +88,7 @@ class RecordManipulationFilterTest {
     @Test
     void forwardsProduceRequestUnchangedWhenManipulationDirectionIsOut() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.OUT, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.OUT_OF_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var request = produceRequest(TOPIC, "a", "b");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).build();
@@ -100,7 +105,7 @@ class RecordManipulationFilterTest {
     @Test
     void appliesMatchingManipulationToProduceRequest() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.IN, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.INTO_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var request = produceRequest(TOPIC, "a", "b");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).build();
@@ -120,8 +125,8 @@ class RecordManipulationFilterTest {
         // Given
         var client = new FakeSchemaRegistryClient().withVersion(100L, "com.myco", "orders-value", "1", 500L);
         var filter = filter(new SchemaFacets(client, -1, -1),
-                keySchemaManipulation(Direction.IN, ORDERS_KEY, rewriteValueTo("FIRST")),
-                keySchemaManipulation(Direction.IN, ORDERS_VALUE, rewriteValueTo("SECOND")));
+                keySchemaManipulation(Direction.INTO_CLUSTER, ORDERS_KEY, rewriteValueTo("FIRST")),
+                keySchemaManipulation(Direction.INTO_CLUSTER, ORDERS_VALUE, rewriteValueTo("SECOND")));
         var request = produceRequestFramedKey(TOPIC, 100L, "a", "b");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).build();
@@ -142,7 +147,7 @@ class RecordManipulationFilterTest {
         // Given
         var client = new FakeSchemaRegistryClient().withVersion(100L, "com.myco", "orders-value", "1", 500L);
         var filter = filter(new SchemaFacets(client, -1, -1),
-                keySchemaManipulation(Direction.IN, new SchemaRef("com.myco", "unrelated", "1"), rewriteValueTo("TRANSFORMED")));
+                keySchemaManipulation(Direction.INTO_CLUSTER, new SchemaRef("com.myco", "unrelated", "1"), rewriteValueTo("TRANSFORMED")));
         var request = produceRequestFramedKey(TOPIC, 100L, "a", "b");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).build();
@@ -159,7 +164,7 @@ class RecordManipulationFilterTest {
     @Test
     void resolvesTopicNameFromTopicIdWhenProduceRequestOmitsName() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.IN, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.INTO_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var request = produceRequest(TOPIC_ID, "a");
         var header = new RequestHeaderData();
         var context = MockFilterContext.builder(header, request).withTopicName(TOPIC_ID, TOPIC).build();
@@ -178,7 +183,7 @@ class RecordManipulationFilterTest {
     @Test
     void appliesMatchingManipulationToFetchResponse() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.OUT, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.OUT_OF_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var response = fetchResponse(TOPIC, "a", "b");
         var header = new ResponseHeaderData();
         var context = MockFilterContext.builder(header, response).build();
@@ -196,7 +201,7 @@ class RecordManipulationFilterTest {
     @Test
     void forwardsFetchResponseUnchangedWhenManipulationDirectionIsIn() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.IN, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.INTO_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var response = fetchResponse(TOPIC, "a", "b");
         var header = new ResponseHeaderData();
         var context = MockFilterContext.builder(header, response).build();
@@ -215,7 +220,7 @@ class RecordManipulationFilterTest {
     @Test
     void appliesMatchingManipulationToShareFetchResponse() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.OUT, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.OUT_OF_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var response = shareFetchResponse(TOPIC_ID, "a", "b");
         var header = new ResponseHeaderData();
         var context = MockFilterContext.builder(header, response).withTopicName(TOPIC_ID, TOPIC).build();
@@ -233,7 +238,7 @@ class RecordManipulationFilterTest {
     @Test
     void setsUnknownTopicIdErrorOnShareFetchResponseForUnresolvableTopic() {
         // Given
-        var filter = filter(null, topicManipulation(Direction.OUT, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
+        var filter = filter(null, topicManipulation(Direction.OUT_OF_CLUSTER, TOPIC::equals, rewriteValueTo("TRANSFORMED")));
         var response = shareFetchResponse(TOPIC_ID, "a");
         var header = new ResponseHeaderData();
         var context = MockFilterContext.builder(header, response).build();
@@ -255,7 +260,7 @@ class RecordManipulationFilterTest {
     // --- helpers ------------------------------------------------------------------------------
 
     private static RecordManipulationFilter filter(SchemaFacets schemaFacets, CompiledManipulation... manipulations) {
-        return new RecordManipulationFilter(new Init(List.of(manipulations), schemaFacets), INLINE, schemaFacets);
+        return new RecordManipulationFilter(new Init(List.of(manipulations), schemaFacets), INLINE);
     }
 
     private static CompiledManipulation topicManipulation(Direction direction, Predicate<String> topicMatcher, ContextualBufferTransform newValue) {
@@ -369,15 +374,15 @@ class RecordManipulationFilterTest {
         }
 
         @Override
-        public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
+        public CompletionStage<VersionsResult> versionsForGlobalId(GlobalId globalId) {
             versionCalls.add(globalId);
             return CompletableFuture.completedFuture(versions.get(globalId));
         }
 
         @Override
-        public CompletionStage<ContentResult> getContentById(ContentId contentId) {
+        public CompletionStage<ContentResult> contentById(ContentId contentId) {
             contentCalls.add(contentId);
-            return CompletableFuture.completedFuture(new ContentResult(contentId, contents.get(contentId)));
+            return CompletableFuture.completedFuture(new ContentResult(contentId, "JSON", contents.get(contentId)));
         }
     }
 }

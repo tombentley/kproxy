@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.testing.filter.record.RecordTestUtils;

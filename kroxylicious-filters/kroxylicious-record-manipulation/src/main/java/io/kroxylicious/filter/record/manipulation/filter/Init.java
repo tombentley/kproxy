@@ -13,4 +13,4 @@ import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipul
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public record Init(List<CompiledManipulation> compiledManipulations, @Nullable SchemaFacets schemaFacets) {}
+public record Init(List<CompiledManipulation<?, ?, ?>> compiledManipulations, @Nullable SchemaFacets schemaFacets) {}

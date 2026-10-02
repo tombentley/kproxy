@@ -123,7 +123,7 @@ class RecordManipulationFilterProtobufTest {
     @Test
     void masksProtobufFieldOnMatchingTopicAndDirection() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, originalValueBytes());
         var header = new RequestHeaderData();
         var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();
@@ -155,7 +155,7 @@ class RecordManipulationFilterProtobufTest {
     @Test
     void passesThroughRecordsOnNonMatchingTopic() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var originalValue = originalValueBytes();
         var produceRequest = produceRequestWithOneRecord("some-other-topic", RECORD_KEY, originalValue);
         var header = new RequestHeaderData();
@@ -179,7 +179,7 @@ class RecordManipulationFilterProtobufTest {
     @Test
     void passesThroughRecordsOnNonMatchingDirection() {
         // Given
-        var filter = buildFilter(Direction.OUT);
+        var filter = buildFilter(Direction.OUT_OF_CLUSTER);
         var originalValue = originalValueBytes();
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, originalValue);
         var header = new RequestHeaderData();

@@ -21,11 +21,13 @@ import java.util.function.IntFunction;
 
 import org.junit.jupiter.api.Test;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.kafka.common.header.Header;
@@ -33,6 +35,8 @@ import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.testing.filter.record.RecordTestUtils;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,7 +51,7 @@ class ManipulationOrchestratorTest {
     /** A {@link ContextualBufferTransform} that rewrites the value to the record's resolved schema bytes. */
     private static final ContextualBufferTransform TO_SCHEMA_CONTENT = (record, resolved) -> {
         GlobalId globalId = new GlobalIdExtractor(Record::key).extract(record);
-        SchemaRegistryClient.VersionsResult versions = resolved.get(SchemaFacets.VERSIONS_DEPENDENCY, globalId);
+        VersionsResult versions = resolved.get(SchemaFacets.VERSIONS_DEPENDENCY, globalId);
         byte[] content = resolved.get(SchemaFacets.SCHEMA_CONTENT_DEPENDENCY, versions.contentId());
         return ByteBuffer.wrap(content);
     };
@@ -71,7 +75,7 @@ class ManipulationOrchestratorTest {
     }
 
     private static CompiledManipulation selectByKeySchema(SchemaRef keySchema, ContextualBufferTransform newValue) {
-        return new CompiledManipulation(Direction.IN, name -> true, null, keySchema, null, null, null, null, null, null, null, null, null, newValue);
+        return new CompiledManipulation(Direction.INTO_CLUSTER, name -> true, null, keySchema, null, null, null, null, null, null, null, null, null, newValue);
     }
 
     @Test
@@ -142,7 +146,7 @@ class ManipulationOrchestratorTest {
     @Test
     void stageStaysPendingUntilResolutionCompletes() {
         // Given
-        CompletableFuture<SchemaRegistryClient.VersionsResult> pendingVersion = new CompletableFuture<>();
+        CompletableFuture<VersionsResult> pendingVersion = new CompletableFuture<>();
         FakeSchemaRegistryClient client = new FakeSchemaRegistryClient()
                 .withPendingVersion(100L, pendingVersion)
                 .withContent(500L, "SCHEMA-500".getBytes(UTF_8));
@@ -156,7 +160,7 @@ class ManipulationOrchestratorTest {
 
         // Then
         assertThat(result.toCompletableFuture()).isNotCompleted();
-        pendingVersion.complete(new SchemaRegistryClient.VersionsResult(new GlobalId(100L), "com.myco", "orders-value", "1", new ContentId(500L)));
+        pendingVersion.complete(new VersionsResult(new GlobalId(100L), "com.myco", "orders-value", "1", new ContentId(500L)));
         assertThat(result).succeedsWithin(Duration.ofSeconds(5));
         assertThat(values(written.get())).containsExactly("SCHEMA-500");
     }
@@ -189,15 +193,15 @@ class ManipulationOrchestratorTest {
         }
 
         @Override
-        public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
+        public CompletionStage<VersionsResult> versionsForGlobalId(@NonNull GlobalId globalId) {
             versionCalls.add(globalId);
             return versions.get(globalId);
         }
 
         @Override
-        public CompletionStage<ContentResult> getContentById(ContentId contentId) {
+        public CompletionStage<ContentResult> contentById(@NonNull ContentId contentId) {
             contentCalls.add(contentId);
-            return CompletableFuture.completedFuture(new ContentResult(contentId, contents.get(contentId)));
+            return CompletableFuture.completedFuture(new ContentResult(contentId, "JSON", contents.get(contentId)));
         }
     }
 }

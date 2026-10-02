@@ -8,7 +8,9 @@ package io.kroxylicious.filter.record.manipulation.filter.config;
 
 import java.util.Set;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 public record HeaderPredicate(
-                              String withKey,
-                              String withKeyMatching,
-                              Set<String> withKeyIn) {}
+                              @Nullable String withKey,
+                              @Nullable String withKeyMatching,
+                              @Nullable Set<String> withKeyIn) {}

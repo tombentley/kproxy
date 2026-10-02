@@ -6,8 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-
 class UnknownGlobalIdException extends SchemaRegistryClientException {
 
     UnknownGlobalIdException(GlobalId globalId) {

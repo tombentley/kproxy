@@ -18,13 +18,14 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.kafka.transform.RecordStream;
+import io.kroxylicious.kafka.transform.RecordTransform;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -46,6 +47,7 @@ public final class ManipulationOrchestrator {
 
     @Nullable
     private final SchemaFacets schemaFacets;
+    // private final Set<Facet<Record, ?, ?>> facets;
     private final Executor filterExecutor;
 
     /**
@@ -117,10 +119,10 @@ public final class ManipulationOrchestrator {
                                            IntFunction<ByteBufferOutputStream> bufferFactory) {
         ResolvedEntities empty = ResolvedEntities.empty();
         for (PartitionWorkItem wi : workItems) {
-            CompiledManipulation first = wi.manipulations().get(0);
+            CompiledManipulation<?, ?, ?> first = wi.manipulations().get(0);
             MemoryRecords out = RecordStream.ofRecords(wi.records())
                     .mapConstant(first)
-                    .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(empty));
+                    .toMemoryRecords(newBuffer(bufferFactory, wi.records()), (RecordTransform) new ManipulationRecordTransform(empty));
             wi.writeBack().accept(out);
         }
         return CompletableFuture.<Void> completedFuture(null);
@@ -132,7 +134,7 @@ public final class ManipulationOrchestrator {
         Set<GlobalId> allGlobalIds = new HashSet<>();
         List<GatheredRecord[]> byWorkItem = new ArrayList<>();
         for (PartitionWorkItem wi : workItems) {
-            List<CompiledManipulation> manipulations = wi.manipulations();
+            List<CompiledManipulation<?, ?, ?>> manipulations = wi.manipulations();
             List<GatheredRecord> records = new ArrayList<>();
             RecordStream.ofRecords(wi.records()).forEachRecord((batch, record, ignored) -> {
                 @Nullable
@@ -167,7 +169,7 @@ public final class ManipulationOrchestrator {
         for (int w = 0; w < workItems.size(); w++) {
             PartitionWorkItem wi = workItems.get(w);
             GatheredRecord[] gatheredRecords = gathered.byWorkItem().get(w);
-            List<CompiledManipulation> manipulations = wi.manipulations();
+            List<CompiledManipulation<?, ?, ?>> manipulations = wi.manipulations();
             int[] matchIndex = new int[gatheredRecords.length];
             for (int pos = 0; pos < gatheredRecords.length; pos++) {
                 GatheredRecord gatheredRecord = gatheredRecords[pos];
@@ -176,7 +178,7 @@ public final class ManipulationOrchestrator {
                 int matched = firstMatch(manipulations, gatheredRecord.headerMatchMask(), keyVersions, valueVersions);
                 matchIndex[pos] = matched;
                 if (matched >= 0) {
-                    CompiledManipulation manipulation = manipulations.get(matched);
+                    CompiledManipulation<?, ?, ?> manipulation = manipulations.get(matched);
                     if (keyVersions != null && manipulation.needsKeySchema()) {
                         contentIds.add(keyVersions.contentId());
                     }
@@ -198,13 +200,13 @@ public final class ManipulationOrchestrator {
             PartitionWorkItem wi = workItems.get(w);
             int[] matchIndex = matched.byWorkItem().get(w);
             if (anyMatched(matchIndex)) {
-                List<CompiledManipulation> manipulations = wi.manipulations();
+                List<CompiledManipulation<?, ?, ?>> manipulations = wi.manipulations();
                 MemoryRecords out = RecordStream.ofRecordsWithIndex(wi.records())
                         .mapPerRecord((batch, record, index) -> {
                             int m = matchIndex[index];
                             return m == NO_MATCH ? null : manipulations.get(m);
                         })
-                        .toMemoryRecords(newBuffer(bufferFactory, wi.records()), new ManipulationRecordTransform(resolved));
+                        .toMemoryRecords(newBuffer(bufferFactory, wi.records()), (RecordTransform) new ManipulationRecordTransform(resolved));
                 wi.writeBack().accept(out);
             }
         }
@@ -219,7 +221,7 @@ public final class ManipulationOrchestrator {
         return bufferFactory.apply(Math.max(records.sizeInBytes(), 1));
     }
 
-    private static int firstMatch(List<CompiledManipulation> manipulations,
+    private static int firstMatch(List<CompiledManipulation<?, ?, ?>> manipulations,
                                   long headerMatchMask,
                                   @Nullable VersionsResult keyVersions,
                                   @Nullable VersionsResult valueVersions) {
@@ -241,11 +243,11 @@ public final class ManipulationOrchestrator {
     }
 
     private static boolean anyManipulation(List<PartitionWorkItem> workItems,
-                                           Predicate<CompiledManipulation> predicate) {
+                                           Predicate<CompiledManipulation<?, ?, ?>> predicate) {
         return workItems.stream().flatMap(wi -> wi.manipulations().stream()).anyMatch(predicate);
     }
 
-    private static void checkManipulationCount(List<CompiledManipulation> manipulations) {
+    private static void checkManipulationCount(List<CompiledManipulation<?, ?, ?>> manipulations) {
         if (manipulations.size() > MAX_MANIPULATIONS) {
             throw new IllegalArgumentException(
                     "A topic may have at most " + MAX_MANIPULATIONS + " manipulations, but was configured with " + manipulations.size());

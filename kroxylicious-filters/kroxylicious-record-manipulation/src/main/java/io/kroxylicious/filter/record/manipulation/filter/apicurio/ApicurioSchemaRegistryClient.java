@@ -22,12 +22,11 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.filter.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.proxy.config.tls.InsecureTls;
 import io.kroxylicious.proxy.config.tls.Tls;
 import io.kroxylicious.proxy.tag.VisibleForTesting;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
 
@@ -38,7 +37,7 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     private final Duration timeout;
     private final HttpClient httpClient;
 
-    public ApicurioSchemaRegistryClient(URI registryUrl, Duration timeout, Tls tls) {
+    public ApicurioSchemaRegistryClient(URI registryUrl, Duration timeout, @Nullable Tls tls) {
         Objects.requireNonNull(registryUrl);
         Objects.requireNonNull(timeout);
         if (tls != null && tls.key() != null) {
@@ -58,30 +57,32 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     private URI contentUri(ContentId contentId) {
-        return apiBaseUri.resolve("ids/contentIds/" + contentId.value());
+        return apiBaseUri.resolve("ids/contentIds/" + contentId.value() + "?returnArtifactType=true");
     }
 
     private URI searchVersionsUri(GlobalId globalId) {
         return apiBaseUri.resolve("search/versions?globalId=" + globalId.value() + "&limit=1");
     }
 
-    private HttpClient createClient(Tls tls) {
+    private HttpClient createClient(@Nullable Tls tls) {
         var builder = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(timeout);
-        if (tls != null && tls.trust() instanceof InsecureTls insecureTls && insecureTls.insecure()) {
+        if (tls != null && tls.trust() instanceof InsecureTls(boolean insecure) && insecure) {
             LOGGER.atDebug().log("Skipping TLS certificate verification - insecure mode");
         }
         return builder.build();
     }
 
     @Override
-    public CompletionStage<ContentResult> getContentById(ContentId contentId) {
+    public CompletionStage<ContentResult> contentById(ContentId contentId) {
         try {
             var request = HttpRequest.newBuilder(contentUri(contentId)).timeout(timeout).GET().build();
             return send(request)
                     .thenApply(response -> checkContentStatus(contentId, response))
-                    .thenApply(response -> new ContentResult(contentId, response.body()));
+                    .thenApply(response -> new ContentResult(contentId,
+                            response.headers().firstValue("X-Registry-ArtifactType").orElse(null),
+                            response.body()));
         }
         catch (RuntimeException e) {
             return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for contentId " + contentId.value(), e));
@@ -89,7 +90,7 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public CompletionStage<VersionsResult> artifactIdForGlobalId(GlobalId globalId) {
+    public CompletionStage<VersionsResult> versionsForGlobalId(GlobalId globalId) {
         try {
             var request = HttpRequest.newBuilder(searchVersionsUri(globalId)).timeout(timeout).GET().build();
             return send(request)

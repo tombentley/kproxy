@@ -57,7 +57,7 @@ public final class ResolvedEntities {
     // content type associated with a discriminator, so this getter casts on their behalf (like Map.get).
     @Nullable
     @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
-    public <ID, CONTENT> CONTENT get(DependencyKey<CONTENT, ID> discriminator, ID id) {
+    public <ID, CONTENT> CONTENT get(DependencyKey<ID, CONTENT> discriminator, ID id) {
         return byDiscriminator.get(discriminator, id);
     }
 
@@ -77,7 +77,7 @@ public final class ResolvedEntities {
          * @param resolved the resolved id &rarr; content map.
          * @return this builder.
          */
-        public <X, I> Builder put(DependencyKey<X, I> discriminator, Map<I, X> resolved) {
+        public <X, I> Builder put(DependencyKey<I, X> discriminator, Map<I, X> resolved) {
             byDiscriminator.put(discriminator, resolved);
             return this;
         }

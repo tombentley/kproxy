@@ -69,7 +69,7 @@ class RecordManipulationFilterAvroIT extends BaseIT {
     @Test
     void masksAvroFieldOnProduceWhenDirectionIn(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = avroMaskingFilterDefinition("mask-in", topic, Direction.IN);
+        var filterDef = avroMaskingFilterDefinition("mask-in", topic, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -95,7 +95,7 @@ class RecordManipulationFilterAvroIT extends BaseIT {
     @Test
     void masksAvroFieldOnFetchWhenDirectionOut(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = avroMaskingFilterDefinition("mask-out", topic, Direction.OUT);
+        var filterDef = avroMaskingFilterDefinition("mask-out", topic, Direction.OUT_OF_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -118,7 +118,7 @@ class RecordManipulationFilterAvroIT extends BaseIT {
     @Test
     void passesThroughRecordsOnNonMatchingTopic(KafkaCluster cluster, Topic topic1, Topic topic2) {
         // Given
-        var filterDef = avroMaskingFilterDefinition("mask-topic1-only", topic1, Direction.IN);
+        var filterDef = avroMaskingFilterDefinition("mask-topic1-only", topic1, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());

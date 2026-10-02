@@ -4,7 +4,7 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.filter;
+package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
 /**
  * A schema-registry {@code globalId}: the id embedded in the magic-byte framing of a

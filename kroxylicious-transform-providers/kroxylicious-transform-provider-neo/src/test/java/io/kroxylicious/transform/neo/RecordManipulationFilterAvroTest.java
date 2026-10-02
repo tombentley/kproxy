@@ -118,7 +118,7 @@ class RecordManipulationFilterAvroTest {
     @Test
     void masksAvroFieldOnMatchingTopicAndDirection() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, originalValueBytes());
         var header = new RequestHeaderData();
         var mockFilterContext = MockFilterContext.builder(header, produceRequest).build();
@@ -150,7 +150,7 @@ class RecordManipulationFilterAvroTest {
     @Test
     void passesThroughRecordsOnNonMatchingTopic() {
         // Given
-        var filter = buildFilter(Direction.IN);
+        var filter = buildFilter(Direction.INTO_CLUSTER);
         var originalValue = originalValueBytes();
         var produceRequest = produceRequestWithOneRecord("some-other-topic", RECORD_KEY, originalValue);
         var header = new RequestHeaderData();
@@ -174,7 +174,7 @@ class RecordManipulationFilterAvroTest {
     @Test
     void passesThroughRecordsOnNonMatchingDirection() {
         // Given
-        var filter = buildFilter(Direction.OUT);
+        var filter = buildFilter(Direction.OUT_OF_CLUSTER);
         var originalValue = originalValueBytes();
         var produceRequest = produceRequestWithOneRecord(TOPIC_NAME, RECORD_KEY, originalValue);
         var header = new RequestHeaderData();
@@ -239,7 +239,7 @@ class RecordManipulationFilterAvroTest {
         Schema arraySchema = new Schema.Parser().parse(arraySchemaJson);
         var config = new RecordManipulationConfig(null, List.of(
                 new Manipulation(
-                        new When(Direction.IN,
+                        new When(Direction.INTO_CLUSTER,
                                 TopicName.is(TOPIC_NAME), null, null, null),
                         new Then(
                 null, null,

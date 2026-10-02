@@ -9,7 +9,6 @@ package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.LookupKeyExtractor;
 import io.kroxylicious.kafka.common.record.internal.Record;
 
@@ -26,7 +25,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * <p>The {@code accessor} selects which part of the record to read, i.e. {@code Record::key} or
  * {@code Record::value}.</p>
  */
-public final class GlobalIdExtractor implements LookupKeyExtractor<GlobalId> {
+public final class GlobalIdExtractor implements LookupKeyExtractor<Record, GlobalId> {
 
     private static final byte MAGIC_BYTE = 0x00;
     /** magic byte (1) + globalId (8). */

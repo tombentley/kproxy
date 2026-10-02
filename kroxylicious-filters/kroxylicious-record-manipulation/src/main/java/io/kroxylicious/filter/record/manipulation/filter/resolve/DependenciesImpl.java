@@ -19,12 +19,12 @@ public class DependenciesImpl implements Dependencies {
         this.map = new HashMap<>();
     }
 
-    public <X, I> void put(DependencyKey<X, I> key, Map<I, X> values) {
+    public <I, V> void put(DependencyKey<I, V> key, Map<I, V> values) {
         ((Map) this.map).put(key, values);
     }
 
     @Override
-    public <X, I> X get(DependencyKey<X, I> key, I id) {
-        return (X) map.get(key).get(id);
+    public <I, V> V get(DependencyKey<I, V> key, I id) {
+        return (V) map.get(key).get(id);
     }
 }

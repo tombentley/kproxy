@@ -24,5 +24,5 @@ import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
  */
 public record PartitionWorkItem(String topicName,
                                 MemoryRecords records,
-                                List<CompiledManipulation> manipulations,
+                                List<CompiledManipulation<?, ?, ?>> manipulations,
                                 Consumer<MemoryRecords> writeBack) {}

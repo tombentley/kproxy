@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationOrchestrator;
@@ -59,9 +58,9 @@ public class RecordManipulationFilter implements
 
     private final ManipulationOrchestrator orchestrator;
 
-    public RecordManipulationFilter(Init init, Executor filterExecutor, @Nullable SchemaFacets schemaFacets) {
+    public RecordManipulationFilter(Init init, Executor filterExecutor) {
         this.init = init;
-        this.orchestrator = new ManipulationOrchestrator(schemaFacets, filterExecutor);
+        this.orchestrator = new ManipulationOrchestrator(init.schemaFacets(), filterExecutor);
     }
 
     @Override
@@ -78,7 +77,7 @@ public class RecordManipulationFilter implements
             for (var topicData : request.topicData()) {
                 String topicName = resolveTopicName(topicData.name(), topicData.topicId(), topicNameMapping);
                 var matchingManipulations = init.compiledManipulations().stream()
-                        .filter(manipulation -> manipulation.direction() == Direction.IN)
+                        .filter(manipulation -> manipulation.direction() == Direction.INTO_CLUSTER)
                         .filter(manipulation -> manipulation.topicMatcher().test(topicName))
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
@@ -121,7 +120,7 @@ public class RecordManipulationFilter implements
             for (var topicData : response.responses()) {
                 String topicName = resolveTopicName(topicData.topic(), topicData.topicId(), topicNameMapping);
                 var matchingManipulations = init.compiledManipulations().stream()
-                        .filter(manipulation -> manipulation.direction() == Direction.OUT)
+                        .filter(manipulation -> manipulation.direction() == Direction.OUT_OF_CLUSTER)
                         .filter(manipulation -> manipulation.topicMatcher().test(topicName))
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
@@ -172,7 +171,7 @@ public class RecordManipulationFilter implements
                 else {
                     String topicName = topicMapping.topicNames().get(topicData.topicId());
                     var matchingManipulations = init.compiledManipulations().stream()
-                            .filter(manipulation -> manipulation.direction() == Direction.OUT)
+                            .filter(manipulation -> manipulation.direction() == Direction.OUT_OF_CLUSTER)
                             .filter(manipulation -> manipulation.topicMatcher().test(topicName))
                             .toList();
                     if (!matchingManipulations.isEmpty()) {
@@ -202,7 +201,7 @@ public class RecordManipulationFilter implements
         return response.responses().stream().map(td -> topicNameMapping.topicNames().get(td.topicId())).collect(Collectors.joining(","));
     }
 
-    private void addWorkItem(List<CompiledManipulation> manipulations,
+    private void addWorkItem(List<CompiledManipulation<?, ?, ?>> manipulations,
                              List<PartitionWorkItem> workItems,
                              String topicName,
                              @Nullable BaseRecords records,

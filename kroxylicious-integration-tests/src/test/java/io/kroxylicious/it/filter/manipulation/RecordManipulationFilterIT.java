@@ -53,7 +53,7 @@ class RecordManipulationFilterIT extends BaseIT {
     @Test
     void masksJsonFieldOnProduceWhenDirectionIn(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = jsonMaskingFilterDefinition("mask-in", topic, Direction.IN);
+        var filterDef = jsonMaskingFilterDefinition("mask-in", topic, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -79,7 +79,7 @@ class RecordManipulationFilterIT extends BaseIT {
     @Test
     void masksJsonFieldOnFetchWhenDirectionOut(KafkaCluster cluster, Topic topic) {
         // Given
-        var filterDef = jsonMaskingFilterDefinition("mask-out", topic, Direction.OUT);
+        var filterDef = jsonMaskingFilterDefinition("mask-out", topic, Direction.OUT_OF_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());
@@ -102,7 +102,7 @@ class RecordManipulationFilterIT extends BaseIT {
     @Test
     void passesThroughRecordsOnNonMatchingTopic(KafkaCluster cluster, Topic topic1, Topic topic2) {
         // Given
-        var filterDef = jsonMaskingFilterDefinition("mask-topic1-only", topic1, Direction.IN);
+        var filterDef = jsonMaskingFilterDefinition("mask-topic1-only", topic1, Direction.INTO_CLUSTER);
         var config = proxy(cluster)
                 .addToFilterDefinitions(filterDef)
                 .addToDefaultFilters(filterDef.name());

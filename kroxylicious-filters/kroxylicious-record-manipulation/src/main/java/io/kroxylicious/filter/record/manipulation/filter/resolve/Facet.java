@@ -6,6 +6,19 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
+import java.nio.ByteBuffer;
+import java.util.function.Function;
+
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
+import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.service.DependencyKey;
+
 /**
  * A "related entity" that records may reference and which must be resolved from an external system
  * before a manipulation can be selected or applied.
@@ -29,6 +42,26 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
  * @param extractor extracts the id from a record.
  * @param resolver resolves ids to content.
  */
-public record Facet<ID, CONTENT>(String discriminator,
-                                 LookupKeyExtractor<ID> extractor,
-                                 EntityResolver<ID, CONTENT> resolver) {}
+public record Facet<T, ID, CONTENT>(DependencyKey<ID, CONTENT> discriminator,
+                                    LookupKeyExtractor<T, ID> extractor,
+                                    EntityResolver<ID, CONTENT> resolver) {
+
+    public static Facet<Record, GlobalId, VersionsResult> schemaVersions(SchemaRegistryClient client, Function<Record, ByteBuffer> fn) {
+        return new Facet<Record, GlobalId, VersionsResult>(
+                SchemaFacets.VERSIONS_DEPENDENCY,
+                new GlobalIdExtractor(fn),
+                new CachingEntityResolver<>(
+                        globalId -> client.versionsForGlobalId(globalId).toCompletableFuture(),
+                        100));
+    }
+
+    public static Facet<VersionsResult, ContentId, ContentResult> schema(SchemaRegistryClient client) {
+        return new Facet<VersionsResult, ContentId, ContentResult>(
+                new DependencyKey<>(ContentId.class, ContentResult.class),
+                (VersionsResult x) -> x.contentId(),
+                new CachingEntityResolver<>(
+                        contentId -> client.contentById(contentId).toCompletableFuture(),
+                        100));
+    }
+
+}
