@@ -6,12 +6,12 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.service.KafkaRecord;
 import io.kroxylicious.transform.service.TimestampTransform;
 
 public class RecordTimestampTransform implements TimestampTransform {
     @Override
-    public long apply(Record record) {
+    public long apply(KafkaRecord record) {
         return record.timestamp();
     }
 }

@@ -31,12 +31,12 @@ import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimest
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordValue;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.header.internals.RecordHeader;
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.KafkaRecord;
 import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
@@ -61,8 +61,8 @@ class RecordManipulationTest {
     void compilesOneManipulationPerConfigEntry() {
         // Given
         var config = config(
-                manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN),
-                manipulation(when(Direction.OUT, topic("payments"), null, null, null), DEFAULT_THEN));
+                manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN),
+                manipulation(when(Direction.OUT, TopicName.is("payments"), null, null, null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -74,7 +74,7 @@ class RecordManipulationTest {
     @Test
     void defaultsTimestampKeyAndValueTransformsWhenThenClauseIsEmpty() {
         // Given
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -93,7 +93,7 @@ class RecordManipulationTest {
     void wiresConfiguredKeyAndValueTransformsThroughTheirFactories() {
         // Given
         var then = new Then(null, null, EmptyBuffer.class.getName(), null, NullBuffer.class.getName(), null);
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), then));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), then));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -107,7 +107,7 @@ class RecordManipulationTest {
     @Test
     void compilesExactTopicMatcher() {
         // Given
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
         // When
         var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).topicMatcher();
@@ -120,7 +120,7 @@ class RecordManipulationTest {
     @Test
     void compilesTopicSetMatcher() {
         // Given
-        var inTopic = new TopicName(null, Set.of("orders", "payments"), null);
+        var inTopic = TopicName.isIn(Set.of("orders", "payments"));
         var config = config(manipulation(when(Direction.IN, inTopic, null, null, null), DEFAULT_THEN));
 
         // When
@@ -135,7 +135,7 @@ class RecordManipulationTest {
     @Test
     void compilesTopicRegexMatcher() {
         // Given
-        var inTopic = new TopicName(null, null, "orders-.*");
+        var inTopic = TopicName.matches("orders-.*");
         var config = config(manipulation(when(Direction.IN, inTopic, null, null, null), DEFAULT_THEN));
 
         // When
@@ -162,7 +162,7 @@ class RecordManipulationTest {
     void compilesExactHeaderKeyPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate("trace-id", null, null);
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
 
         // When
         var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
@@ -177,7 +177,7 @@ class RecordManipulationTest {
     void compilesHeaderKeySetPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate(null, null, Set.of("trace-id", "span-id"));
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
 
         // When
         var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
@@ -192,7 +192,7 @@ class RecordManipulationTest {
     void compilesHeaderKeyRegexPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate(null, "trace-.*", null);
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
 
         // When
         var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
@@ -206,7 +206,7 @@ class RecordManipulationTest {
     @Test
     void headerPredicateIsNullWhenNoHasAnyHeaderConfigured() {
         // Given
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
         // When
         var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
@@ -221,7 +221,7 @@ class RecordManipulationTest {
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
         var valueSchema = new SchemaRef("com.myco", "orders-value", "*");
         var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null),
-                manipulation(when(Direction.OUT, topic("orders"), keySchema, valueSchema, null), DEFAULT_THEN));
+                manipulation(when(Direction.OUT, TopicName.is("orders"), keySchema, valueSchema, null), DEFAULT_THEN));
 
         // When
         var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
@@ -239,7 +239,7 @@ class RecordManipulationTest {
         var keyService = new RecordingBufferTransformService();
         var valueService = new RecordingBufferTransformService();
         var then = new Then("ts", null, "key", null, "value", null);
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), then));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), then));
         var context = new FakeFactoryContext()
                 .with("ts", timestampService)
                 .with("key", keyService)
@@ -260,7 +260,7 @@ class RecordManipulationTest {
     void buildsNonNullSchemaFacetsWhenSchemaRegistryConfigured() {
         // Given
         var schemaRegistry = new SchemaRegistry(URI.create("http://registry.local:8080"), null);
-        var config = new RecordManipulationConfig(schemaRegistry, List.of(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN)));
+        var config = new RecordManipulationConfig(schemaRegistry, List.of(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN)));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -272,7 +272,7 @@ class RecordManipulationTest {
     @Test
     void schemaFacetsIsNullWhenSchemaRegistryAbsentAndNoManipulationNeedsSchema() {
         // Given
-        var config = config(manipulation(when(Direction.IN, topic("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.IN, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -287,7 +287,7 @@ class RecordManipulationTest {
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
 
         // When / Then
-        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, topic("orders"), keySchema, null, null), DEFAULT_THEN)))
+        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, TopicName.is("orders"), keySchema, null, null), DEFAULT_THEN)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
     }
@@ -298,7 +298,7 @@ class RecordManipulationTest {
         var valueSchema = new SchemaRef("com.myco", "orders-value", "1");
 
         // When / Then
-        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, topic("orders"), null, valueSchema, null), DEFAULT_THEN)))
+        assertThatThrownBy(() -> config(manipulation(when(Direction.IN, TopicName.is("orders"), null, valueSchema, null), DEFAULT_THEN)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
     }
@@ -319,10 +319,6 @@ class RecordManipulationTest {
 
     private static When when(Direction direction, TopicName inTopic, SchemaRef keySchema, SchemaRef valueSchema, HeaderPredicate hasAnyHeader) {
         return new When(direction, inTopic, keySchema, valueSchema, hasAnyHeader);
-    }
-
-    private static TopicName topic(String name) {
-        return new TopicName(name, null, null);
     }
 
     private static Header[] headers(String... keys) {
@@ -381,7 +377,7 @@ class RecordManipulationTest {
 
         @Override
         public BufferTransform create(Object initializationData) {
-            return Record::value;
+            return KafkaRecord::value;
         }
 
         @Override
@@ -401,7 +397,7 @@ class RecordManipulationTest {
 
         @Override
         public TimestampTransform create(Object initializationData) {
-            return Record::timestamp;
+            return KafkaRecord::timestamp;
         }
 
         @Override

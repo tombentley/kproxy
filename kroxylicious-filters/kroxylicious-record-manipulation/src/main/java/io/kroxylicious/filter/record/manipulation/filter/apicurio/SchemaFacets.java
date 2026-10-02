@@ -4,15 +4,18 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.filter.resolve;
+package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
 import io.kroxylicious.filter.record.manipulation.filter.ContentId;
 import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.ContentResult;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.EntityResolver;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.LookupKeyExtractor;
 import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.service.DependencyKey;
 
 /**
  * The schema-registry "related things", wiring a {@link SchemaRegistryClient} behind the generic
@@ -29,10 +32,8 @@ import io.kroxylicious.kafka.common.record.internal.Record;
  */
 public final class SchemaFacets {
 
-    /** Discriminator for the {@code globalId -> VersionsResult} stage in {@link ResolvedEntities}. */
-    public static final String SCHEMA_VERSIONS = "schema-versions";
-    /** Discriminator for the {@code contentId -> schema bytes} stage in {@link ResolvedEntities}. */
-    public static final String SCHEMA_CONTENT = "schema-content";
+    public static final DependencyKey<byte[], ContentId> SCHEMA_CONTENT_DEPENDENCY = new DependencyKey<>(byte[].class, ContentId.class);
+    public static final DependencyKey<VersionsResult, GlobalId> VERSIONS_DEPENDENCY = new DependencyKey<>(VersionsResult.class, GlobalId.class);
 
     private final GlobalIdExtractor keyExtractor = new GlobalIdExtractor(Record::key);
     private final GlobalIdExtractor valueExtractor = new GlobalIdExtractor(Record::value);

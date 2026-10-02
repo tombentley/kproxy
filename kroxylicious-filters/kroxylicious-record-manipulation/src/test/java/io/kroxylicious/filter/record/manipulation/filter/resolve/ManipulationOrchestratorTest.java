@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import io.kroxylicious.filter.record.manipulation.filter.ContentId;
 import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.kafka.common.header.Header;
@@ -44,9 +46,9 @@ class ManipulationOrchestratorTest {
 
     /** A {@link ContextualBufferTransform} that rewrites the value to the record's resolved schema bytes. */
     private static final ContextualBufferTransform TO_SCHEMA_CONTENT = (record, resolved) -> {
-        GlobalId globalId = new SchemaIdExtractor(Record::key).extract(record);
-        SchemaRegistryClient.VersionsResult versions = resolved.get(SchemaFacets.SCHEMA_VERSIONS, globalId);
-        byte[] content = resolved.get(SchemaFacets.SCHEMA_CONTENT, versions.contentId());
+        GlobalId globalId = new GlobalIdExtractor(Record::key).extract(record);
+        SchemaRegistryClient.VersionsResult versions = resolved.get(SchemaFacets.VERSIONS_DEPENDENCY, globalId);
+        byte[] content = resolved.get(SchemaFacets.SCHEMA_CONTENT_DEPENDENCY, versions.contentId());
         return ByteBuffer.wrap(content);
     };
 

@@ -28,4 +28,17 @@ public record TopicName(@Nullable String is,
             throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
         }
     }
+
+    public static TopicName is(String name) {
+        return new TopicName(name, null, null);
+    }
+
+    public static TopicName isIn(Set<String> names) {
+        return new TopicName(null, names, null);
+    }
+
+    public static TopicName matches(String pattern) {
+        return new TopicName(null, null, pattern);
+    }
+
 }

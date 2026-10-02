@@ -10,15 +10,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationOrchestrator;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
@@ -205,7 +206,7 @@ public class RecordManipulationFilter implements
                              List<PartitionWorkItem> workItems,
                              String topicName,
                              @Nullable BaseRecords records,
-                             java.util.function.Consumer<MemoryRecords> writeBack) {
+                             Consumer<MemoryRecords> writeBack) {
         if (records instanceof MemoryRecords memoryRecords) {
             workItems.add(new PartitionWorkItem(topicName, memoryRecords, manipulations, writeBack));
         }

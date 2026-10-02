@@ -7,13 +7,20 @@
 package io.kroxylicious.transform.service;
 
 import java.nio.ByteBuffer;
-
-import io.kroxylicious.kafka.common.record.internal.Record;
+import java.util.Set;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 public interface BufferTransform {
 
+    default Set<DependencyKey<?, ?>> dependencies() {
+        return Set.of();
+    }
+
+    default ByteBuffer apply(KafkaRecord record, Dependencies dependencies) {
+        return apply(record);
+    }
+
     @Nullable
-    ByteBuffer apply(Record record);
+    ByteBuffer apply(KafkaRecord record);
 }

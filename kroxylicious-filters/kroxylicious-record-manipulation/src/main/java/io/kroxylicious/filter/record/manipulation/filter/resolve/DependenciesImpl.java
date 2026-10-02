@@ -6,20 +6,21 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import io.kroxylicious.transform.service.Dependencies;
 import io.kroxylicious.transform.service.DependencyKey;
 
-public class Impl implements Dependencies {
+public class DependenciesImpl implements Dependencies {
     private final Map<DependencyKey<?, ?>, Map<?, ?>> map;
 
-    Impl(Map<DependencyKey<?, ?>, Map<?, ?>> map) {
-        this.map = map;
+    DependenciesImpl() {
+        this.map = new HashMap<>();
     }
 
-    public <X, I> void put(DependencyKey<X, I> key, I id, X value) {
-        ((Map) this.map).put(key, value);
+    public <X, I> void put(DependencyKey<X, I> key, Map<I, X> values) {
+        ((Map) this.map).put(key, values);
     }
 
     @Override

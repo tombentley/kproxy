@@ -8,8 +8,8 @@ package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.util.List;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 

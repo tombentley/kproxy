@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
+ * <pre>{@code
  * config:
  *   schemaRegistry:
  *     url:
@@ -21,9 +22,11 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *     - when:
  *         direction: TO_BROKER
  *         inTopic:   # default is to match all topics
- *           withNameMatching: .*
- *           withName
- *           withNameIn
+ *           withName: "foo"
+ *           # OR
+ *           withNameIn: ["bar", "baz"]
+ *           # OR
+ *           withNameMatching: "quux-.*"
  *         withKeySchema: ## this is a method for selecting records =/=> we should fetch the content (that would depend on the needs of the `then` clause)
  *           groupId: com.myco.billing
  *           artifactId: orders-value
@@ -49,9 +52,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *               jsonata: |
  *           writer: WriteJson
  *           writerConfig:
- *
+ * }</pre>
  */
-
 public record RecordManipulationConfig(
                                        @Nullable SchemaRegistry schemaRegistry,
                                        @JsonProperty(required = true) List<Manipulation> manipulations) {

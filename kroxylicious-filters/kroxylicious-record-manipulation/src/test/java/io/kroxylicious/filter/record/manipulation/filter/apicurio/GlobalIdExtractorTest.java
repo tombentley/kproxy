@@ -4,14 +4,13 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package io.kroxylicious.filter.record.manipulation.filter.resolve;
+package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
 import java.nio.ByteBuffer;
 
 import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.testing.filter.record.RecordTestUtils;

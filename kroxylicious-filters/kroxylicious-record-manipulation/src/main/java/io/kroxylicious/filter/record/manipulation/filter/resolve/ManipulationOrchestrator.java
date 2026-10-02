@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import io.kroxylicious.filter.record.manipulation.filter.ContentId;
 import io.kroxylicious.filter.record.manipulation.filter.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.SchemaRegistryClient.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.kafka.transform.RecordStream;
@@ -53,7 +54,8 @@ public final class ManipulationOrchestrator {
      * @param filterExecutor the filter's single-threaded dispatch executor; resolution continuations are
      *                       hopped onto it so filter state is mutated only on the filter thread.
      */
-    public ManipulationOrchestrator(@Nullable SchemaFacets schemaFacets, Executor filterExecutor) {
+    public ManipulationOrchestrator(@Nullable SchemaFacets schemaFacets,
+                                    Executor filterExecutor) {
         this.schemaFacets = schemaFacets;
         this.filterExecutor = filterExecutor;
     }
@@ -67,14 +69,16 @@ public final class ManipulationOrchestrator {
      *                      {@code context::createByteBufferOutputStream}).
      * @return a stage completing when every matched partition's records have been written back.
      */
-    public CompletionStage<Void> process(List<PartitionWorkItem> workItems, IntFunction<ByteBufferOutputStream> bufferFactory) {
+    public CompletionStage<Void> process(List<PartitionWorkItem> workItems,
+                                         IntFunction<ByteBufferOutputStream> bufferFactory) {
         if (workItems.isEmpty()) {
             return CompletableFuture.<Void> completedFuture(null);
         }
         return processNonEmpty(workItems, bufferFactory);
     }
 
-    private CompletionStage<Void> processNonEmpty(List<PartitionWorkItem> workItems, IntFunction<ByteBufferOutputStream> bufferFactory) {
+    private CompletionStage<Void> processNonEmpty(List<PartitionWorkItem> workItems,
+                                                  IntFunction<ByteBufferOutputStream> bufferFactory) {
         workItems.forEach(wi -> checkManipulationCount(wi.manipulations()));
 
         boolean needKeySchema = schemaFacets != null && anyManipulation(workItems, CompiledManipulation::needsKeySchema);
@@ -101,15 +105,16 @@ public final class ManipulationOrchestrator {
 
             return hop(contentStage).thenAccept(content -> {
                 ResolvedEntities resolved = ResolvedEntities.builder()
-                        .put(SchemaFacets.SCHEMA_VERSIONS, versions)
-                        .put(SchemaFacets.SCHEMA_CONTENT, content)
+                        .put(SchemaFacets.VERSIONS_DEPENDENCY, versions)
+                        .put(SchemaFacets.SCHEMA_CONTENT_DEPENDENCY, content)
                         .build();
                 transformMatched(workItems, matched, resolved, bufferFactory);
             });
         });
     }
 
-    private CompletionStage<Void> fastPath(List<PartitionWorkItem> workItems, IntFunction<ByteBufferOutputStream> bufferFactory) {
+    private CompletionStage<Void> fastPath(List<PartitionWorkItem> workItems,
+                                           IntFunction<ByteBufferOutputStream> bufferFactory) {
         ResolvedEntities empty = ResolvedEntities.empty();
         for (PartitionWorkItem wi : workItems) {
             CompiledManipulation first = wi.manipulations().get(0);
@@ -121,7 +126,9 @@ public final class ManipulationOrchestrator {
         return CompletableFuture.<Void> completedFuture(null);
     }
 
-    private GatherResult gather(List<PartitionWorkItem> workItems, boolean needKeySchema, boolean needValueSchema) {
+    private GatherResult gather(List<PartitionWorkItem> workItems,
+                                boolean needKeySchema,
+                                boolean needValueSchema) {
         Set<GlobalId> allGlobalIds = new HashSet<>();
         List<GatheredRecord[]> byWorkItem = new ArrayList<>();
         for (PartitionWorkItem wi : workItems) {
@@ -152,7 +159,9 @@ public final class ManipulationOrchestrator {
         return new GatherResult(allGlobalIds, byWorkItem);
     }
 
-    private MatchResult match(List<PartitionWorkItem> workItems, GatherResult gathered, Map<GlobalId, VersionsResult> versions) {
+    private MatchResult match(List<PartitionWorkItem> workItems,
+                              GatherResult gathered,
+                              Map<GlobalId, VersionsResult> versions) {
         Set<ContentId> contentIds = new HashSet<>();
         List<int[]> matchByWorkItem = new ArrayList<>();
         for (int w = 0; w < workItems.size(); w++) {
@@ -181,7 +190,10 @@ public final class ManipulationOrchestrator {
         return new MatchResult(matchByWorkItem, contentIds);
     }
 
-    private void transformMatched(List<PartitionWorkItem> workItems, MatchResult matched, ResolvedEntities resolved, IntFunction<ByteBufferOutputStream> bufferFactory) {
+    private void transformMatched(List<PartitionWorkItem> workItems,
+                                  MatchResult matched,
+                                  ResolvedEntities resolved,
+                                  IntFunction<ByteBufferOutputStream> bufferFactory) {
         for (int w = 0; w < workItems.size(); w++) {
             PartitionWorkItem wi = workItems.get(w);
             int[] matchIndex = matched.byWorkItem().get(w);
@@ -202,7 +214,8 @@ public final class ManipulationOrchestrator {
         return stage.thenApplyAsync(Function.identity(), filterExecutor);
     }
 
-    private static ByteBufferOutputStream newBuffer(IntFunction<ByteBufferOutputStream> bufferFactory, MemoryRecords records) {
+    private static ByteBufferOutputStream newBuffer(IntFunction<ByteBufferOutputStream> bufferFactory,
+                                                    MemoryRecords records) {
         return bufferFactory.apply(Math.max(records.sizeInBytes(), 1));
     }
 
@@ -227,7 +240,8 @@ public final class ManipulationOrchestrator {
         return false;
     }
 
-    private static boolean anyManipulation(List<PartitionWorkItem> workItems, Predicate<CompiledManipulation> predicate) {
+    private static boolean anyManipulation(List<PartitionWorkItem> workItems,
+                                           Predicate<CompiledManipulation> predicate) {
         return workItems.stream().flatMap(wi -> wi.manipulations().stream()).anyMatch(predicate);
     }
 
@@ -238,9 +252,16 @@ public final class ManipulationOrchestrator {
         }
     }
 
-    private record GatherResult(Set<GlobalId> allGlobalIds, List<GatheredRecord[]> byWorkItem) {}
+    private record GatherResult(
+                                Set<GlobalId> allGlobalIds,
+                                List<GatheredRecord[]> byWorkItem) {}
 
-    private record GatheredRecord(@Nullable GlobalId keySchemaId, @Nullable GlobalId valueSchemaId, long headerMatchMask) {}
+    private record GatheredRecord(
+                                  @Nullable GlobalId keySchemaId,
+                                  @Nullable GlobalId valueSchemaId,
+                                  long headerMatchMask) {}
 
-    private record MatchResult(List<int[]> byWorkItem, Set<ContentId> contentIds) {}
+    private record MatchResult(
+                               List<int[]> byWorkItem,
+                               Set<ContentId> contentIds) {}
 }

@@ -18,6 +18,7 @@ import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
+import io.kroxylicious.transform.service.KafkaRecord;
 import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
@@ -53,7 +54,7 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
         }
 
         var expectedType = Long.class;
-        BaseTypedOp<Record, ?> compose = OpConfigs.compose(Record.class, configs, Set.of(), filterFactoryContext::pluginInstance);
+        BaseTypedOp<KafkaRecord, ?> compose = OpConfigs.compose(KafkaRecord.class, configs, Set.of(), filterFactoryContext::pluginInstance);
         OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
                 "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
                         + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");
@@ -61,7 +62,7 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
 
             @Nullable
             @Override
-            public long apply(Record record) {
+            public long apply(KafkaRecord record) {
                 return (Long) compose.apply(record, null);
             }
         };

@@ -42,6 +42,6 @@ public interface ContextualBufferTransform {
      * @return a contextual transform delegating to {@code delegate}.
      */
     static ContextualBufferTransform of(BufferTransform delegate) {
-        return (record, resolved) -> delegate.apply(record);
+        return (record, resolved) -> delegate.apply(new RecordWrapper(record), null);
     }
 }

@@ -27,6 +27,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
+import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.config.Then;
+import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
+import io.kroxylicious.filter.record.manipulation.filter.config.When;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.PartitionProduceData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.TopicProduceData;
@@ -89,10 +94,15 @@ class RecordManipulationFilterAvroTest {
     }
 
     private RecordManipulationFilter buildFilter(Direction direction) {
-        var config = new RecordManipulationConfig(TOPIC_NAME, direction,
+        var config = new RecordManipulationConfig(null,
+                List.of(new Manipulation(new When(direction,
+                        TopicName.is(TOPIC_NAME),
+                        null, null, null
+                        ),
+                new Then(
                 null, null,
                 null, null,
-                BufferPipeline.class.getName(), avroMaskingValuePipeline());
+                BufferPipeline.class.getName(), avroMaskingValuePipeline()))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);
@@ -227,13 +237,17 @@ class RecordManipulationFilterAvroTest {
                 {"type": "array", "items": {"type": "string", "apply": [{"op": "ValueString", "value": "REDACTED"}]}}
                 """;
         Schema arraySchema = new Schema.Parser().parse(arraySchemaJson);
-        var config = new RecordManipulationConfig(TOPIC_NAME, Direction.IN,
+        var config = new RecordManipulationConfig(null, List.of(
+                new Manipulation(
+                        new When(Direction.IN,
+                                TopicName.is(TOPIC_NAME), null, null, null),
+                        new Then(
                 null, null,
                 null, null,
                 BufferPipeline.class.getName(), new PipelineConfig(Origin.RecordValue, List.of(
                         new OpConfig(ReadAvro.class, Map.of("withKeySchema", arraySchemaJson)),
                         new OpConfig(AvroTransform.class),
-                        new OpConfig(WriteAvro.class))));
+                        new OpConfig(WriteAvro.class)))))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         var filter = (RecordManipulationFilter) factory.createFilter(factoryContext, init);

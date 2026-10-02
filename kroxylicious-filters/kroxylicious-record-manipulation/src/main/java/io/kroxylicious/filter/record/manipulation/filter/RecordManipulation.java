@@ -15,12 +15,12 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.ApicurioSchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ContextualBufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordValue;

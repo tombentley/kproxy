@@ -6,8 +6,10 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import io.kroxylicious.transform.service.Dependencies;
+import io.kroxylicious.transform.service.DependencyKey;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -21,9 +23,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public final class ResolvedEntities {
 
-    private final Map<String, Map<Object, Object>> byDiscriminator;
+    private final Dependencies byDiscriminator;
 
-    private ResolvedEntities(Map<String, Map<Object, Object>> byDiscriminator) {
+    private ResolvedEntities(Dependencies byDiscriminator) {
         this.byDiscriminator = byDiscriminator;
     }
 
@@ -32,7 +34,7 @@ public final class ResolvedEntities {
      * @return an empty set of resolved entities.
      */
     public static ResolvedEntities empty() {
-        return new ResolvedEntities(Map.of());
+        return new ResolvedEntities(new DependenciesImpl());
     }
 
     /**
@@ -55,16 +57,15 @@ public final class ResolvedEntities {
     // content type associated with a discriminator, so this getter casts on their behalf (like Map.get).
     @Nullable
     @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
-    public <ID, CONTENT> CONTENT get(String discriminator, ID id) {
-        Map<Object, Object> map = byDiscriminator.get(discriminator);
-        return map == null ? null : (CONTENT) map.get(id);
+    public <ID, CONTENT> CONTENT get(DependencyKey<CONTENT, ID> discriminator, ID id) {
+        return byDiscriminator.get(discriminator, id);
     }
 
     /**
      * Builder for {@link ResolvedEntities}.
      */
     public static final class Builder {
-        private final Map<String, Map<Object, Object>> byDiscriminator = new HashMap<>();
+        private final DependenciesImpl byDiscriminator = new DependenciesImpl();
 
         private Builder() {
         }
@@ -76,10 +77,8 @@ public final class ResolvedEntities {
          * @param resolved the resolved id &rarr; content map.
          * @return this builder.
          */
-        @SuppressWarnings("unchecked")
-        public Builder put(String discriminator, Map<?, ?> resolved) {
-            byDiscriminator.computeIfAbsent(discriminator, k -> new HashMap<>())
-                    .putAll((Map<Object, Object>) resolved);
+        public <X, I> Builder put(DependencyKey<X, I> discriminator, Map<I, X> resolved) {
+            byDiscriminator.put(discriminator, resolved);
             return this;
         }
 

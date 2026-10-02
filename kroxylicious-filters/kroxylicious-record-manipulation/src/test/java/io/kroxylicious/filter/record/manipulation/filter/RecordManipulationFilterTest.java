@@ -21,11 +21,11 @@ import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ContextualBufferTransform;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.SchemaFacets;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.message.FetchResponseData;

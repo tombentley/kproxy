@@ -28,6 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
+import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.config.Then;
+import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
+import io.kroxylicious.filter.record.manipulation.filter.config.When;
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.PartitionProduceData;
 import io.kroxylicious.kafka.common.message.ProduceRequestData.TopicProduceData;
@@ -90,10 +95,14 @@ class RecordManipulationFilterTest {
     }
 
     private RecordManipulationFilter buildFilter(Direction direction) {
-        var config = new RecordManipulationConfig(TOPIC_NAME, direction,
-                null, null,
-                null, null,
-                BufferPipeline.class.getName(), jsonMaskingValuePipeline());
+        var config = new RecordManipulationConfig(null,
+                List.of(new Manipulation(
+                            new When(direction,
+                                TopicName.is(TOPIC_NAME),
+                    null, null, null),
+                            new Then(null, null,
+                                null, null,
+                                BufferPipeline.class.getName(), jsonMaskingValuePipeline()))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);

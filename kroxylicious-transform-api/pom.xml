@@ -27,10 +27,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
         </dependency>

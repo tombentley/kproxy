@@ -53,7 +53,7 @@ final class ManipulationRecordTransform implements RecordTransform<CompiledManip
     @Override
     public long transformTimestamp(Record record) {
         if (current != null && current.newTimestamp() != null) {
-            return current.newTimestamp().apply(record);
+            return current.newTimestamp().apply(new RecordWrapper(record));
         }
         return record.timestamp();
     }
@@ -81,4 +81,5 @@ final class ManipulationRecordTransform implements RecordTransform<CompiledManip
     public Header[] transformHeaders(Record record) {
         return record.headers();
     }
+
 }
