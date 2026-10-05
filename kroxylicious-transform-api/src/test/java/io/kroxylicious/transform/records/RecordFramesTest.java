@@ -52,7 +52,7 @@ class RecordFramesTest {
                 new SimpleRecord(102L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input)
+        MemoryRecords output = ProducerRecords.of(input)
                 .applyProduce((batch, record) -> ProducerRecordEdit.keep(), newBuffer());
 
         // Then
@@ -68,7 +68,7 @@ class RecordFramesTest {
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8), new Header[]{ header("h", "x") }));
 
         // When
-        MemoryRecords output = RecordFrames.of(input)
+        MemoryRecords output = ProducerRecords.of(input)
                 .applyProduce((batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
@@ -99,7 +99,7 @@ class RecordFramesTest {
                         new Header[]{ header("a", "1"), header("b", "2"), header("a", "3") }));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> ProducerRecordEdit.builder()
                         .headers(h -> h.removeAll("a")
                                 .addLast("c", "9".getBytes(UTF_8))
@@ -123,7 +123,7 @@ class RecordFramesTest {
                 new SimpleRecord(1L, "k".getBytes(UTF_8), "v".getBytes(UTF_8), new Header[]{ header("a", "1") }));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> ProducerRecordEdit.builder()
                         .headers(h -> h.replaceFirst("missing", "N".getBytes(UTF_8), WhenAbsent.ADD_LAST))
                         .build(),
@@ -144,7 +144,7 @@ class RecordFramesTest {
                 new SimpleRecord(2L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().compression(CompressionType.ZSTD).build(),
                 (batch, record) -> ProducerRecordEdit.keep(),
                 newBuffer());
@@ -167,7 +167,7 @@ class RecordFramesTest {
                 new SimpleRecord(200L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().shiftTimestamps(1000L).build(),
                 (batch, record) -> ProducerRecordEdit.keep(),
                 newBuffer());
@@ -189,7 +189,7 @@ class RecordFramesTest {
                 new SimpleRecord(3L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyFetch(
+        MemoryRecords output = ConsumerRecords.of(input).applyFetch(
                 (batch, record) -> record.offset() == 11L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep(),
                 newBuffer());
 
@@ -210,7 +210,7 @@ class RecordFramesTest {
         MemoryRecords input = RecordTestUtils.memoryRecords(controlBatch);
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyFetch(
+        MemoryRecords output = ConsumerRecords.of(input).applyFetch(
                 (batch, record) -> ConsumerRecordEdit.value(bb("should-not-be-applied")), newBuffer());
 
         // Then

@@ -63,11 +63,11 @@ class RecordFramesAsyncTest {
         MemoryRecords input = MemoryRecords.withRecords(5L, compression,
                 new SimpleRecord(100L, "k0".getBytes(UTF_8), "v0".getBytes(UTF_8)),
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
-        MemoryRecords expected = RecordFrames.of(input).applyProduce(
+        MemoryRecords expected = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(
                 (batch, record) -> CompletableFuture.completedFuture(ProducerRecordEdit.value(bb("V:" + str(record.value())))),
                 newBuffer(), options(4));
 
@@ -84,11 +84,11 @@ class RecordFramesAsyncTest {
                 new SimpleRecord(100L, "k0".getBytes(UTF_8), "v0".getBytes(UTF_8)),
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)),
                 new SimpleRecord(102L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
-        MemoryRecords expected = RecordFrames.of(input).applyFetch(
+        MemoryRecords expected = ConsumerRecords.of(input).applyFetch(
                 (batch, record) -> record.offset() == 1L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep(), newBuffer());
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyFetchAsync(
+        CompletionStage<MemoryRecords> stage = ConsumerRecords.of(input).applyFetchAsync(
                 (batch, record) -> CompletableFuture.completedFuture(
                         record.offset() == 1L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep()),
                 newBuffer(), options(4));
@@ -106,7 +106,7 @@ class RecordFramesAsyncTest {
         ControllableTransform transform = new ControllableTransform();
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(transform, newBuffer(), options(10));
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(10));
         transform.complete("v2", ProducerRecordEdit.keep());
         transform.complete("v0", ProducerRecordEdit.keep());
         transform.complete("v3", ProducerRecordEdit.keep());
@@ -125,7 +125,7 @@ class RecordFramesAsyncTest {
         ControllableTransform transform = new ControllableTransform();
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(transform, newBuffer(), options(4));
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(4));
 
         // Then
         assertThat(transform.invocations).isEqualTo(4);
@@ -145,7 +145,7 @@ class RecordFramesAsyncTest {
         ControllableTransform transform = new ControllableTransform();
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(transform, newBuffer(), options(3));
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(3));
         transform.complete("v1", ProducerRecordEdit.keep());
         transform.complete("v2", ProducerRecordEdit.keep());
 
@@ -170,7 +170,7 @@ class RecordFramesAsyncTest {
                 new SimpleRecord(3L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(
                 (batch, record) -> CompletableFuture.completedFuture(ProducerRecordEdit.keep()), newBuffer(), options(1));
 
         // Then
@@ -185,7 +185,7 @@ class RecordFramesAsyncTest {
         ControllableTransform transform = new ControllableTransform();
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(transform, newBuffer(), options(4));
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(4));
         transform.fail("v1", new RuntimeException("boom"));
 
         // Then
@@ -199,7 +199,7 @@ class RecordFramesAsyncTest {
         MemoryRecords input = singleRecordBatches(2);
 
         // When
-        CompletionStage<MemoryRecords> stage = RecordFrames.of(input).applyProduceAsync(
+        CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(
                 (batch, record) -> {
                     throw new IllegalStateException("sync boom");
                 }, newBuffer(), options(4));

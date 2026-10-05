@@ -53,7 +53,7 @@ class BatchEncoderTest {
                 new SimpleRecord(102L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> record.offset() == 1L ? ProducerRecordEdit.value(bb("EDITED")) : ProducerRecordEdit.keep(),
                 newBuffer());
 
@@ -76,7 +76,7 @@ class BatchEncoderTest {
                 new SimpleRecord(250L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().shiftTimestamps(1000L).build(),
                 (batch, record) -> ProducerRecordEdit.keep(),
                 newBuffer());
@@ -97,7 +97,7 @@ class BatchEncoderTest {
                 new SimpleRecord(250L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().setTimestamps(777L).build(),
                 (batch, record) -> ProducerRecordEdit.keep(),
                 newBuffer());
@@ -122,7 +122,7 @@ class BatchEncoderTest {
         int baseSequence = single(input).baseSequence();
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyFetch(
+        MemoryRecords output = ConsumerRecords.of(input).applyFetch(
                 (batch, record) -> ConsumerRecordEdit.drop(), newBuffer());
 
         // Then
@@ -148,7 +148,7 @@ class BatchEncoderTest {
                         new SimpleRecord(21L, "b".getBytes(UTF_8), "b1".getBytes(UTF_8))));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
@@ -173,7 +173,7 @@ class BatchEncoderTest {
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
 
         // When
-        MemoryRecords output = RecordFrames.of(input).applyProduce(
+        MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
