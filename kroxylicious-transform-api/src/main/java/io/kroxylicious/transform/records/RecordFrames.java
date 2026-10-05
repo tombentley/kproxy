@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
@@ -25,9 +26,12 @@ import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
  * {@link BatchEncoder} as the batch encoder. A batch with no record edits and no batch edit is copied through
  * verbatim (header, CRC and all); an edited batch is handed to {@link BatchEncoder}, which splices unedited
  * records byte-for-byte, re-encodes only the edited ones, collapses a uniform timestamp shift to a header-only
- * rewrite, and retains an empty batch header when every record is dropped. Deliberately out of scope for this
- * POC: intra-record field splicing within an edited record, a single decompression pass for compressed batches,
- * and the async bounded-window driver.</p>
+ * rewrite, and retains an empty batch header when every record is dropped. Transforms may be synchronous
+ * ({@link #applyProduce}/{@link #applyFetch}) or asynchronous
+ * ({@link #applyProduceAsync}/{@link #applyFetchAsync}); the async terminals drive a bounded window of
+ * concurrent per-record transforms via {@link AsyncTransformDriver} while emitting batches in order.
+ * Deliberately out of scope for this POC: intra-record field splicing within an edited record, and a single
+ * decompression pass for compressed batches.</p>
  */
 public final class RecordFrames {
 
@@ -117,6 +121,64 @@ public final class RecordFrames {
         }, out);
     }
 
+    /**
+     * Apply a produce-path record transform asynchronously, writing the result into {@code out}.
+     * @param transform the async record transform
+     * @param out the output buffer
+     * @param options the window size and assembly executor
+     * @return a stage completing with the transformed records (or completing exceptionally if any record
+     *         transform fails)
+     */
+    public CompletionStage<MemoryRecords> applyProduceAsync(AsyncProducerRecordTransform transform, ByteBufferOutputStream out, TransformOptions options) {
+        return applyProduceAsync(BatchTransform.keep(), transform, out, options);
+    }
+
+    /**
+     * Apply a produce-path batch and record transform asynchronously, writing the result into {@code out}.
+     * @param batchTransform the batch transform
+     * @param transform the async record transform
+     * @param out the output buffer
+     * @param options the window size and assembly executor
+     * @return a stage completing with the transformed records (or completing exceptionally if any record
+     *         transform fails)
+     */
+    public CompletionStage<MemoryRecords> applyProduceAsync(BatchTransform batchTransform, AsyncProducerRecordTransform transform,
+                                                            ByteBufferOutputStream out, TransformOptions options) {
+        Objects.requireNonNull(batchTransform);
+        Objects.requireNonNull(transform);
+        return applyInternalAsync(batchTransform, (batch, record) -> transform.transform(batch, record)
+                .thenApply(edit -> new InternalEdit(edit.isKeep(), false, edit.fields())), out, options);
+    }
+
+    /**
+     * Apply a consume-path (fetch / share-fetch) record transform asynchronously, writing the result into {@code out}.
+     * @param transform the async record transform
+     * @param out the output buffer
+     * @param options the window size and assembly executor
+     * @return a stage completing with the transformed records (or completing exceptionally if any record
+     *         transform fails)
+     */
+    public CompletionStage<MemoryRecords> applyFetchAsync(AsyncConsumerRecordTransform transform, ByteBufferOutputStream out, TransformOptions options) {
+        return applyFetchAsync(BatchTransform.keep(), transform, out, options);
+    }
+
+    /**
+     * Apply a consume-path (fetch / share-fetch) batch and record transform asynchronously, writing the result into {@code out}.
+     * @param batchTransform the batch transform
+     * @param transform the async record transform
+     * @param out the output buffer
+     * @param options the window size and assembly executor
+     * @return a stage completing with the transformed records (or completing exceptionally if any record
+     *         transform fails)
+     */
+    public CompletionStage<MemoryRecords> applyFetchAsync(BatchTransform batchTransform, AsyncConsumerRecordTransform transform,
+                                                          ByteBufferOutputStream out, TransformOptions options) {
+        Objects.requireNonNull(batchTransform);
+        Objects.requireNonNull(transform);
+        return applyInternalAsync(batchTransform, (batch, record) -> transform.transform(batch, record)
+                .thenApply(edit -> new InternalEdit(edit.isKeep(), edit.isDrop(), edit.fields())), out, options);
+    }
+
     private MemoryRecords applyInternal(BatchTransform batchTransform, InternalRecordTransform transform, ByteBufferOutputStream out) {
         for (MutableRecordBatch batch : records.batches()) {
             if (batch.isControlBatch()) {
@@ -131,21 +193,12 @@ public final class RecordFrames {
             // Single pass: evaluate every record's edit (iterator() fully materialises, so holding views is safe).
             List<RecordView> views = new ArrayList<>();
             List<InternalEdit> edits = new ArrayList<>();
-            boolean modified = !batchEdit.isKeep();
             for (RecordView view : batchView.records()) {
-                InternalEdit edit = transform.transform(batchView, view);
                 views.add(view);
-                edits.add(edit);
-                modified |= !edit.keep();
+                edits.add(transform.transform(batchView, view));
             }
 
-            if (!modified) {
-                // Pristine copy: nothing changed, so copy the batch through byte-for-byte.
-                batch.writeTo(out);
-                continue;
-            }
-
-            BatchEncoder.encode(out, batch, batchEdit, views, edits);
+            encodeBatch(out, batch, batchEdit, views, edits);
         }
 
         ByteBuffer buffer = out.buffer();
@@ -153,9 +206,45 @@ public final class RecordFrames {
         return MemoryRecords.readableRecords(buffer);
     }
 
+    private CompletionStage<MemoryRecords> applyInternalAsync(BatchTransform batchTransform, AsyncInternalRecordTransform transform,
+                                                              ByteBufferOutputStream out, TransformOptions options) {
+        Objects.requireNonNull(out);
+        Objects.requireNonNull(options);
+        return new AsyncTransformDriver(records, batchTransform, transform, out, options).run();
+    }
+
+    /**
+     * Encode a single (non-control) batch into {@code out}: a pristine batch (no batch edit and every record
+     * kept) is copied through byte-for-byte, otherwise it is handed to {@link BatchEncoder}. Shared by the
+     * synchronous and asynchronous drivers so both produce byte-identical output for the same edits.
+     * @param out the output buffer
+     * @param batch the source batch
+     * @param batchEdit the batch-level edit
+     * @param views the records' views, in batch order
+     * @param edits the per-record edits, aligned with {@code views}
+     */
+    static void encodeBatch(ByteBufferOutputStream out, MutableRecordBatch batch, BatchEdit batchEdit,
+                            List<RecordView> views, List<InternalEdit> edits) {
+        boolean modified = !batchEdit.isKeep();
+        for (InternalEdit edit : edits) {
+            modified |= !edit.keep();
+        }
+        if (!modified) {
+            // Pristine copy: nothing changed, so copy the batch through byte-for-byte.
+            batch.writeTo(out);
+        }
+        else {
+            BatchEncoder.encode(out, batch, batchEdit, views, edits);
+        }
+    }
+
     record InternalEdit(boolean keep, boolean drop, FieldEdits fields) {}
 
     private interface InternalRecordTransform {
         InternalEdit transform(BatchView batch, RecordView record);
+    }
+
+    interface AsyncInternalRecordTransform {
+        CompletionStage<InternalEdit> transform(BatchView batch, RecordView record);
     }
 }
