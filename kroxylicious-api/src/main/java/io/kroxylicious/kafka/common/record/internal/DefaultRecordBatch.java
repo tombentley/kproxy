@@ -276,6 +276,20 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
         return Compression.of(compressionType()).build().wrapForInput(buffer, magic(), bufferSupplier);
     }
 
+    /**
+     * Returns a read-only view of this batch's raw record block: the bytes from {@code RECORDS_OFFSET} to the
+     * end of the batch. For an uncompressed batch this <em>is</em> the decompressed record block (so callers can
+     * splice individual records' bytes without a copy); for a compressed batch it is the compressed bytes, and
+     * {@link #recordInputStream(BufferSupplier)} should be used to obtain the decompressed records instead.
+     *
+     * @return a read-only slice positioned at the first record byte with its limit at the batch end
+     */
+    public ByteBuffer recordsBuffer() {
+        final ByteBuffer dup = this.buffer.duplicate();
+        dup.position(RECORDS_OFFSET);
+        return dup.slice().asReadOnlyBuffer();
+    }
+
     private CloseableIterator<Record> compressedIterator(BufferSupplier bufferSupplier, boolean skipKeyValue) {
         final InputStream inputStream = recordInputStream(bufferSupplier);
 

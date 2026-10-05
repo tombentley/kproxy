@@ -12,14 +12,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import io.kroxylicious.kafka.common.compress.Compression;
-import io.kroxylicious.kafka.common.header.Header;
-import io.kroxylicious.kafka.common.record.TimestampType;
-import io.kroxylicious.kafka.common.record.internal.CompressionType;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
-import io.kroxylicious.kafka.common.record.internal.MemoryRecordsBuilder;
 import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
-import io.kroxylicious.kafka.common.record.internal.RecordBatch;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 
 /**
@@ -28,11 +22,12 @@ import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
  * {@link RecordView}s, and applying directional transforms to produce a new {@link MemoryRecords}.</p>
  *
  * <p>This is a proof-of-concept: it is a thin layer over the inherited {@code MemoryRecords} reader and uses
- * {@code MemoryRecordsBuilder} as the batch encoder. It implements the key "pristine copy" fast path — a batch
- * with no record edits and no batch edit is copied through verbatim (header, CRC and all) — while edited
- * batches are re-encoded. Deliberately out of scope for this POC: a bespoke low-level encoder, per-record byte
- * splicing within edited batches, the async bounded-window driver, and empty-batch retention when every record
- * in a batch is dropped (see TODO in {@link #applyInternal}).</p>
+ * {@link BatchEncoder} as the batch encoder. A batch with no record edits and no batch edit is copied through
+ * verbatim (header, CRC and all); an edited batch is handed to {@link BatchEncoder}, which splices unedited
+ * records byte-for-byte, re-encodes only the edited ones, collapses a uniform timestamp shift to a header-only
+ * rewrite, and retains an empty batch header when every record is dropped. Deliberately out of scope for this
+ * POC: intra-record field splicing within an edited record, a single decompression pass for compressed batches,
+ * and the async bounded-window driver.</p>
  */
 public final class RecordFrames {
 
@@ -150,7 +145,7 @@ public final class RecordFrames {
                 continue;
             }
 
-            reencodeBatch(out, batch, batchEdit, views, edits);
+            BatchEncoder.encode(out, batch, batchEdit, views, edits);
         }
 
         ByteBuffer buffer = out.buffer();
@@ -158,60 +153,7 @@ public final class RecordFrames {
         return MemoryRecords.readableRecords(buffer);
     }
 
-    private static void reencodeBatch(ByteBufferOutputStream out,
-                                      MutableRecordBatch batch,
-                                      BatchEdit batchEdit,
-                                      List<RecordView> views,
-                                      List<InternalEdit> edits) {
-        CompressionType targetType = batchEdit.compression() != null ? batchEdit.compression() : batch.compressionType();
-        Compression compression = Compression.of(targetType).build();
-        TimestampType timestampType = batch.timestampType();
-        long logAppendTime = timestampType == TimestampType.LOG_APPEND_TIME
-                ? batchEdit.transformTimestamp(batch.maxTimestamp())
-                : RecordBatch.NO_TIMESTAMP;
-        long deleteHorizonMs = batch.deleteHorizonMs().orElse(RecordBatch.NO_TIMESTAMP);
-
-        MemoryRecordsBuilder builder = new MemoryRecordsBuilder(out,
-                batch.magic(),
-                compression,
-                timestampType,
-                batch.baseOffset(),
-                logAppendTime,
-                batch.producerId(),
-                batch.producerEpoch(),
-                batch.baseSequence(),
-                batch.isTransactional(),
-                false,
-                batch.partitionLeaderEpoch(),
-                0,
-                deleteHorizonMs);
-
-        int appended = 0;
-        for (int i = 0; i < views.size(); i++) {
-            InternalEdit edit = edits.get(i);
-            if (edit.drop()) {
-                continue;
-            }
-            RecordView view = views.get(i);
-            FieldEdits fields = edit.fields();
-            ByteBuffer key = fields.resolveKey(view);
-            ByteBuffer value = fields.resolveValue(view);
-            Header[] headers = fields.resolveHeaders(view);
-            long timestamp = batchEdit.transformTimestamp(view.timestamp());
-            builder.appendWithOffset(view.offset(), timestamp, key, value, headers);
-            appended++;
-        }
-
-        if (appended > 0 && batch.magic() >= RecordBatch.MAGIC_VALUE_V2) {
-            // Preserve the sequence/offset range even if records were dropped (mirrors log compaction).
-            builder.overrideLastOffset(batch.lastOffset());
-        }
-        // TODO: when appended == 0 (every record dropped) we currently drop the whole batch; to preserve the
-        // offset range we should instead retain an empty batch header (RETAIN_EMPTY).
-        builder.build();
-    }
-
-    private record InternalEdit(boolean keep, boolean drop, FieldEdits fields) {}
+    record InternalEdit(boolean keep, boolean drop, FieldEdits fields) {}
 
     private interface InternalRecordTransform {
         InternalEdit transform(BatchView batch, RecordView record);

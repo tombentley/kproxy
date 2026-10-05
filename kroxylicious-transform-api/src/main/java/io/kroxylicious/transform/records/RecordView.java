@@ -59,4 +59,10 @@ public interface RecordView {
      * {@return the record's headers (never null; may be empty)}
      */
     Header[] headers();
+
+    /**
+     * {@return the record's full on-wire size in bytes (length varint + body), as it appears in the
+     * decompressed record block}
+     */
+    int sizeInBytes();
 }

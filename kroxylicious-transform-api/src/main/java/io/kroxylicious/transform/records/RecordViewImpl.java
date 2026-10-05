@@ -66,4 +66,9 @@ final class RecordViewImpl implements RecordView {
     public Header[] headers() {
         return record.headers();
     }
+
+    @Override
+    public int sizeInBytes() {
+        return record.sizeInBytes();
+    }
 }
