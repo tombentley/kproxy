@@ -127,6 +127,7 @@ public class RecordManipulationFilter implements
                 var matchingManipulations = init.compiledManipulations().stream()
                         .filter(manipulation -> manipulation.direction() == Direction.OUT_OF_CLUSTER)
                         .filter(manipulation -> manipulation.topicMatcher().test(topicName))
+                        .filter(manipulation -> manipulation.subjectGuard().test(context.authenticatedSubject()))
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
                     for (var partitionData : topicData.partitions()) {
@@ -201,6 +202,7 @@ public class RecordManipulationFilter implements
                     var matchingManipulations = init.compiledManipulations().stream()
                             .filter(manipulation -> manipulation.direction() == Direction.OUT_OF_CLUSTER)
                             .filter(manipulation -> manipulation.topicMatcher().test(topicName))
+                            .filter(manipulation -> manipulation.subjectGuard().test(context.authenticatedSubject()))
                             .toList();
                     if (!matchingManipulations.isEmpty()) {
                         for (var partitionData : topicData.partitions()) {
