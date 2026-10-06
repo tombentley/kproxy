@@ -21,8 +21,7 @@ import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.kafka.common.record.internal.Records;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.testing.filter.record.RecordTestUtils;
-import io.kroxylicious.transform.records.ConsumerRecords;
-import io.kroxylicious.transform.records.ProducerRecords;
+import io.kroxylicious.transform.records.RecordFrames;
 import io.kroxylicious.transform.records.TransformOptions;
 import io.kroxylicious.transform.service.BufferTransform;
 
@@ -32,8 +31,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for the per-record transforms ({@link ManipulationProducerTransform} /
- * {@link ManipulationConsumerTransform}) driven directly through the {@code records} engine, covering the
+ * Unit tests for {@link ManipulationTransform} driven directly through the {@code records} engine, covering the
  * record-granularity behaviours the filter-level tests do not exercise: header-predicate selection, value
  * clearing (tombstone), and verbatim passthrough when nothing matches.
  */
@@ -89,15 +87,15 @@ class ManipulationTransformTest {
 
     private static MemoryRecords applyProduce(MemoryRecords input, CompiledManipulation<?, ?, ?> manipulation) {
         var out = new ByteBufferOutputStream(Math.max(input.sizeInBytes(), 1));
-        return ProducerRecords.of(input)
-                .applyProduceAsync(new ManipulationProducerTransform(List.of(manipulation)), out, OPTIONS)
+        return RecordFrames.of(input)
+                .applyAsync(new ManipulationTransform(List.of(manipulation)), out, OPTIONS)
                 .toCompletableFuture().join();
     }
 
     private static MemoryRecords applyFetch(MemoryRecords input, CompiledManipulation<?, ?, ?> manipulation) {
         var out = new ByteBufferOutputStream(Math.max(input.sizeInBytes(), 1));
-        return ConsumerRecords.of(input)
-                .applyFetchAsync(new ManipulationConsumerTransform(List.of(manipulation)), out, OPTIONS)
+        return RecordFrames.of(input)
+                .applyAsync(new ManipulationTransform(List.of(manipulation)), out, OPTIONS)
                 .toCompletableFuture().join();
     }
 

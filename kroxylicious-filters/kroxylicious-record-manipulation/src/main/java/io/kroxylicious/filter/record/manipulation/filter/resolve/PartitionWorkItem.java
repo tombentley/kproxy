@@ -12,9 +12,7 @@ import java.util.function.Consumer;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 
 /**
- * One partition's records plus the manipulations applicable to it, handed to the
- * {@link ManipulationApplier}. The applier transforms each work item independently via the {@code records}
- * transform engine, which copies records that match no manipulation verbatim.
+ * One partition's records plus the manipulations applicable to it.
  *
  * @param topicName the topic name (already resolved and matched).
  * @param records the partition's records.

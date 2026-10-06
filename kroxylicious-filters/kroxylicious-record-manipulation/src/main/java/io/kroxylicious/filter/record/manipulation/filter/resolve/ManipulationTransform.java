@@ -11,24 +11,44 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.transform.records.AsyncRecordTransform;
 import io.kroxylicious.transform.records.BatchView;
 import io.kroxylicious.transform.records.RecordEdit;
 import io.kroxylicious.transform.records.RecordView;
 
-/**
- * The produce-path ({@code INTO_CLUSTER}) record transform. For each record it selects the first applicable
- * manipulation (by header predicate) and applies that manipulation's key/value transforms, leaving the record
- * unchanged when nothing matches so the engine can copy it verbatim.
- *
- * <p>The edits are computed synchronously, so an already-completed stage is always returned; the signature is
- * asynchronous to leave room for per-record dependency resolution (schemas, DEKs) in a later iteration.</p>
- */
-public final class ManipulationProducerTransform extends AbstractManipulationTransform implements AsyncRecordTransform {
+import edu.umd.cs.findbugs.annotations.Nullable;
 
-    public ManipulationProducerTransform(List<CompiledManipulation<?, ?, ?>> manipulations) {
-        super(manipulations);
+/**
+ * Shared matching logic for the per-record transforms driven by the {@code records} transform engine.
+ *
+ * <p>Topic and direction have already been matched when a {@link PartitionWorkItem} is built, so the only
+ * per-record selection remaining is the synchronous header predicate: the first manipulation whose predicate
+ * accepts the record's headers applies. (Schema-based selection is resolved asynchronously and is not yet
+ * wired into this engine.)</p>
+ */
+public class ManipulationTransform implements AsyncRecordTransform {
+
+    private final List<CompiledManipulation<?, ?, ?>> manipulations;
+
+    public ManipulationTransform(List<CompiledManipulation<?, ?, ?>> manipulations) {
+        this.manipulations = manipulations;
     }
+
+    /**
+     * {@return the first manipulation whose header predicate accepts {@code headers}, or {@code null} if none}
+     */
+    @Nullable
+    CompiledManipulation<?, ?, ?> firstMatch(Header[] headers) {
+        for (CompiledManipulation<?, ?, ?> manipulation : manipulations) {
+            var predicate = manipulation.headerPredicate();
+            if (predicate == null || predicate.test(headers)) {
+                return manipulation;
+            }
+        }
+        return null;
+    }
+
 
     @Override
     public CompletionStage<RecordEdit> transform(BatchView batch, RecordView record) {
@@ -57,4 +77,6 @@ public final class ManipulationProducerTransform extends AbstractManipulationTra
         }
         return CompletableFuture.completedFuture(builder.build());
     }
+
+
 }

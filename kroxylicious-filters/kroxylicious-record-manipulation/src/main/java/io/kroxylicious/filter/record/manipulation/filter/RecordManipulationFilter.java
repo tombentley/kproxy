@@ -8,16 +8,18 @@ package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationApplier;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationTransform;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;
@@ -28,6 +30,7 @@ import io.kroxylicious.kafka.common.message.ShareFetchResponseData;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.BaseRecords;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
+import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
@@ -35,6 +38,8 @@ import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import io.kroxylicious.proxy.filter.ShareFetchResponseFilter;
 import io.kroxylicious.proxy.filter.metadata.TopicNameMapping;
+import io.kroxylicious.transform.records.RecordFrames;
+import io.kroxylicious.transform.records.TransformOptions;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -43,7 +48,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * A filter that selects records ({@code when}) and rewrites them ({@code then}). Matching partitions are
- * gathered into work items and transformed by the {@link ManipulationApplier}, which drives the
+ * gathered into work items and transformed by {@link #doWork(List, IntFunction)}, which drives the
  * {@code records} transform engine per partition and copies unmatched records verbatim.
  */
 public class RecordManipulationFilter implements
@@ -55,11 +60,11 @@ public class RecordManipulationFilter implements
 
     private final Init init;
 
-    private final ManipulationApplier applier;
+    private final TransformOptions options;
 
     public RecordManipulationFilter(Init init, Executor filterExecutor) {
         this.init = init;
-        this.applier = new ManipulationApplier(filterExecutor);
+        this.options = TransformOptions.builder().executor(filterExecutor).windowSize(50).build();
     }
 
     @Override
@@ -95,7 +100,7 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topic", () -> topicNames(request, topicNameMapping))
                     .addKeyValue("workItems", workItems)
                     .log("ProduceRequest may require manipulation");
-            return applier.applyProduce(workItems, context::createByteBufferOutputStream)
+            return doWork(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardRequest(header, request));
         });
     }
@@ -139,12 +144,35 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topics", () -> topicNames(response, topicNameMapping))
                     .addKeyValue("workItems", workItems)
                     .log("FetchResponse may require manipulation");
-            return applier.applyFetch(workItems, context::createByteBufferOutputStream)
+            return doWork(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
     }
 
-    @NonNull
+    /**
+     * Transforms each produce-path work item, writing the transformed records back.
+     * @param workItems the partitions to transform.
+     * @param bufferFactory allocates an output buffer of at least the given capacity.
+     * @return a stage completing when every partition has been transformed and written back.
+     */
+    public CompletionStage<Void> doWork(List<PartitionWorkItem> workItems,
+                                        IntFunction<ByteBufferOutputStream> bufferFactory) {
+        List<CompletableFuture<Void>> partitions = new ArrayList<>(workItems.size());
+        for (PartitionWorkItem workItem : workItems) {
+            ByteBufferOutputStream out = bufferFactory.apply(Math.max(workItem.records().sizeInBytes(), 1));
+            CompletableFuture<Void> partition = CompletableFuture.<Void> completedFuture(null)
+                    // the async terminal must be invoked on the assembly executor
+                    .thenComposeAsync(ignored -> {
+                        return RecordFrames.of(workItem.records())
+                                .applyAsync(new ManipulationTransform(workItem.manipulations()), out, options);
+                    }, options.executor())
+                    .thenAccept(workItem.writeBack())
+                    .toCompletableFuture();
+            partitions.add(partition);
+        }
+        return CompletableFuture.allOf(partitions.toArray(new CompletableFuture[0]));
+    }
+
     private static String topicNames(FetchResponseData response, TopicNameMapping topicNameMapping) {
         return response.responses().stream().map(td -> resolveTopicName(td.topic(), td.topicId(), topicNameMapping)).collect(Collectors.joining(","));
     }
@@ -190,7 +218,7 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topics", () -> topicNames(response, topicMapping))
                     .addKeyValue("workItems", workItems)
                     .log("ShareFetchResponse may require manipulation");
-            return applier.applyFetch(workItems, context::createByteBufferOutputStream)
+            return doWork(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
     }
