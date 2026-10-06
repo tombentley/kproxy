@@ -38,7 +38,7 @@ public final class ConsumerRecords extends RecordFrames {
      * @param out the output buffer
      * @return the transformed records
      */
-    public MemoryRecords applyFetch(ConsumerRecordTransform transform,
+    public MemoryRecords applyFetch(RecordTransform transform,
                                     ByteBufferOutputStream out) {
         return applyFetch(BatchTransform.keep(), transform, out);
     }
@@ -51,14 +51,11 @@ public final class ConsumerRecords extends RecordFrames {
      * @return the transformed records
      */
     public MemoryRecords applyFetch(BatchTransform batchTransform,
-                                    ConsumerRecordTransform transform,
+                                    RecordTransform transform,
                                     ByteBufferOutputStream out) {
         Objects.requireNonNull(batchTransform);
         Objects.requireNonNull(transform);
-        return applyInternal(batchTransform, (batch, record) -> {
-            ConsumerRecordEdit edit = transform.transform(batch, record);
-            return new InternalEdit(edit.isKeep(), edit.isDrop(), edit.fields());
-        }, out);
+        return applyInternal(batchTransform, transform::transform, out);
     }
 
     /**
@@ -69,7 +66,7 @@ public final class ConsumerRecords extends RecordFrames {
      * @return a stage completing with the transformed records (or completing exceptionally if any record
      *         transform fails)
      */
-    public CompletionStage<MemoryRecords> applyFetchAsync(AsyncConsumerRecordTransform transform,
+    public CompletionStage<MemoryRecords> applyFetchAsync(AsyncRecordTransform transform,
                                                           ByteBufferOutputStream out,
                                                           TransformOptions options) {
         return applyFetchAsync(BatchTransform.keep(), transform, out, options);
@@ -85,13 +82,12 @@ public final class ConsumerRecords extends RecordFrames {
      *         transform fails)
      */
     public CompletionStage<MemoryRecords> applyFetchAsync(BatchTransform batchTransform,
-                                                          AsyncConsumerRecordTransform transform,
+                                                          AsyncRecordTransform transform,
                                                           ByteBufferOutputStream out,
                                                           TransformOptions options) {
         Objects.requireNonNull(batchTransform);
         Objects.requireNonNull(transform);
-        return applyInternalAsync(batchTransform, (batch, record) -> transform.transform(batch, record)
-                .thenApply(edit -> new InternalEdit(edit.isKeep(), edit.isDrop(), edit.fields())), out, options);
+        return applyInternalAsync(batchTransform, transform::transform, out, options);
     }
 
 }

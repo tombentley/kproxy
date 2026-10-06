@@ -54,7 +54,7 @@ class BatchEncoderTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> record.offset() == 1L ? ProducerRecordEdit.value(bb("EDITED")) : ProducerRecordEdit.keep(),
+                (batch, record) -> record.offset() == 1L ? RecordEdit.value(bb("EDITED")) : RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -78,7 +78,7 @@ class BatchEncoderTest {
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().shiftTimestamps(1000L).build(),
-                (batch, record) -> ProducerRecordEdit.keep(),
+                (batch, record) -> RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -99,7 +99,7 @@ class BatchEncoderTest {
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().setTimestamps(777L).build(),
-                (batch, record) -> ProducerRecordEdit.keep(),
+                (batch, record) -> RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -123,7 +123,7 @@ class BatchEncoderTest {
 
         // When
         MemoryRecords output = ConsumerRecords.of(input).applyFetch(
-                (batch, record) -> ConsumerRecordEdit.drop(), newBuffer());
+                (batch, record) -> RecordEdit.drop(), newBuffer());
 
         // Then
         MutableRecordBatch batch = single(output);
@@ -149,7 +149,7 @@ class BatchEncoderTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
+                (batch, record) -> RecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
         List<MutableRecordBatch> batches = new ArrayList<>();
@@ -174,7 +174,7 @@ class BatchEncoderTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
+                (batch, record) -> RecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
         assertThat(single(output).compressionType()).isEqualTo(compression.type());

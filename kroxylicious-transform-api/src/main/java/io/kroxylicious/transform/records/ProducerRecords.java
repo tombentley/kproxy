@@ -39,7 +39,7 @@ public final class ProducerRecords extends RecordFrames {
      * @param out the output buffer
      * @return the transformed records
      */
-    public MemoryRecords applyProduce(ProducerRecordTransform transform,
+    public MemoryRecords applyProduce(RecordTransform transform,
                                       ByteBufferOutputStream out) {
         return applyProduce(BatchTransform.keep(), transform, out);
     }
@@ -52,14 +52,11 @@ public final class ProducerRecords extends RecordFrames {
      * @return the transformed records
      */
     public MemoryRecords applyProduce(BatchTransform batchTransform,
-                                      ProducerRecordTransform transform,
+                                      RecordTransform transform,
                                       ByteBufferOutputStream out) {
         Objects.requireNonNull(batchTransform);
         Objects.requireNonNull(transform);
-        return applyInternal(batchTransform, (batch, record) -> {
-            ProducerRecordEdit edit = transform.transform(batch, record);
-            return new InternalEdit(edit.isKeep(), false, edit.fields());
-        }, out);
+        return applyInternal(batchTransform, transform::transform, out);
     }
 
     /**
@@ -70,7 +67,7 @@ public final class ProducerRecords extends RecordFrames {
      * @return a stage completing with the transformed records (or completing exceptionally if any record
      *         transform fails)
      */
-    public CompletionStage<MemoryRecords> applyProduceAsync(AsyncProducerRecordTransform transform,
+    public CompletionStage<MemoryRecords> applyProduceAsync(AsyncRecordTransform transform,
                                                             ByteBufferOutputStream out,
                                                             TransformOptions options) {
         return applyProduceAsync(BatchTransform.keep(), transform, out, options);
@@ -86,13 +83,12 @@ public final class ProducerRecords extends RecordFrames {
      *         transform fails)
      */
     public CompletionStage<MemoryRecords> applyProduceAsync(BatchTransform batchTransform,
-                                                            AsyncProducerRecordTransform transform,
+                                                            AsyncRecordTransform transform,
                                                             ByteBufferOutputStream out,
                                                             TransformOptions options) {
         Objects.requireNonNull(batchTransform);
         Objects.requireNonNull(transform);
-        return applyInternalAsync(batchTransform, (batch, record) -> transform.transform(batch, record)
-                .thenApply(edit -> new InternalEdit(edit.isKeep(), false, edit.fields())), out, options);
+        return applyInternalAsync(batchTransform, transform::transform, out, options);
     }
 
 }

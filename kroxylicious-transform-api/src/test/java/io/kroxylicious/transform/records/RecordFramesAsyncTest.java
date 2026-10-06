@@ -64,11 +64,11 @@ class RecordFramesAsyncTest {
                 new SimpleRecord(100L, "k0".getBytes(UTF_8), "v0".getBytes(UTF_8)),
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)));
         MemoryRecords expected = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
+                (batch, record) -> RecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // When
         CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(
-                (batch, record) -> CompletableFuture.completedFuture(ProducerRecordEdit.value(bb("V:" + str(record.value())))),
+                (batch, record) -> CompletableFuture.completedFuture(RecordEdit.value(bb("V:" + str(record.value())))),
                 newBuffer(), options(4));
 
         // Then
@@ -85,12 +85,12 @@ class RecordFramesAsyncTest {
                 new SimpleRecord(101L, "k1".getBytes(UTF_8), "v1".getBytes(UTF_8)),
                 new SimpleRecord(102L, "k2".getBytes(UTF_8), "v2".getBytes(UTF_8)));
         MemoryRecords expected = ConsumerRecords.of(input).applyFetch(
-                (batch, record) -> record.offset() == 1L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep(), newBuffer());
+                (batch, record) -> record.offset() == 1L ? RecordEdit.drop() : RecordEdit.keep(), newBuffer());
 
         // When
         CompletionStage<MemoryRecords> stage = ConsumerRecords.of(input).applyFetchAsync(
                 (batch, record) -> CompletableFuture.completedFuture(
-                        record.offset() == 1L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep()),
+                        record.offset() == 1L ? RecordEdit.drop() : RecordEdit.keep()),
                 newBuffer(), options(4));
 
         // Then
@@ -107,10 +107,10 @@ class RecordFramesAsyncTest {
 
         // When
         CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(10));
-        transform.complete("v2", ProducerRecordEdit.keep());
-        transform.complete("v0", ProducerRecordEdit.keep());
-        transform.complete("v3", ProducerRecordEdit.keep());
-        transform.complete("v1", ProducerRecordEdit.keep());
+        transform.complete("v2", RecordEdit.keep());
+        transform.complete("v0", RecordEdit.keep());
+        transform.complete("v3", RecordEdit.keep());
+        transform.complete("v1", RecordEdit.keep());
 
         // Then
         MemoryRecords actual = completed(stage);
@@ -131,7 +131,7 @@ class RecordFramesAsyncTest {
         assertThat(transform.invocations).isEqualTo(4);
         assertThat(stage.toCompletableFuture()).isNotDone();
         for (int i = 0; i < 8; i++) {
-            transform.complete("v" + i, ProducerRecordEdit.keep());
+            transform.complete("v" + i, RecordEdit.keep());
         }
         MemoryRecords actual = completed(stage);
         assertThat(transform.peakOutstanding).isEqualTo(4);
@@ -146,16 +146,16 @@ class RecordFramesAsyncTest {
 
         // When
         CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(transform, newBuffer(), options(3));
-        transform.complete("v1", ProducerRecordEdit.keep());
-        transform.complete("v2", ProducerRecordEdit.keep());
+        transform.complete("v1", RecordEdit.keep());
+        transform.complete("v2", RecordEdit.keep());
 
         // Then
         assertThat(transform.invocations).isEqualTo(3);
         assertThat(stage.toCompletableFuture()).isNotDone();
-        transform.complete("v0", ProducerRecordEdit.keep());
-        transform.complete("v3", ProducerRecordEdit.keep());
-        transform.complete("v4", ProducerRecordEdit.keep());
-        transform.complete("v5", ProducerRecordEdit.keep());
+        transform.complete("v0", RecordEdit.keep());
+        transform.complete("v3", RecordEdit.keep());
+        transform.complete("v4", RecordEdit.keep());
+        transform.complete("v5", RecordEdit.keep());
         MemoryRecords actual = completed(stage);
         assertThat(records(actual)).extracting(Record::offset).containsExactly(0L, 1L, 2L, 3L, 4L, 5L);
     }
@@ -171,7 +171,7 @@ class RecordFramesAsyncTest {
 
         // When
         CompletionStage<MemoryRecords> stage = ProducerRecords.of(input).applyProduceAsync(
-                (batch, record) -> CompletableFuture.completedFuture(ProducerRecordEdit.keep()), newBuffer(), options(1));
+                (batch, record) -> CompletableFuture.completedFuture(RecordEdit.keep()), newBuffer(), options(1));
 
         // Then
         MemoryRecords actual = completed(stage);
@@ -212,27 +212,27 @@ class RecordFramesAsyncTest {
     // --- harness ---
 
     /**
-     * An {@link AsyncProducerRecordTransform} that hands back a pending future per record (keyed by the
+     * An {@link AsyncRecordTransform} that hands back a pending future per record (keyed by the
      * record's value), which the test completes explicitly. Tracks how many transforms have been invoked and
      * the peak number outstanding (invoked minus completed) to assert the window bound.
      */
-    private static final class ControllableTransform implements AsyncProducerRecordTransform {
+    private static final class ControllableTransform implements AsyncRecordTransform {
 
-        private final Map<String, CompletableFuture<ProducerRecordEdit>> byValue = new LinkedHashMap<>();
+        private final Map<String, CompletableFuture<RecordEdit>> byValue = new LinkedHashMap<>();
         private int invocations;
         private int completedCount;
         private int peakOutstanding;
 
         @Override
-        public CompletionStage<ProducerRecordEdit> transform(BatchView batch, RecordView record) {
+        public CompletionStage<RecordEdit> transform(BatchView batch, RecordView record) {
             invocations++;
             peakOutstanding = Math.max(peakOutstanding, invocations - completedCount);
-            CompletableFuture<ProducerRecordEdit> future = new CompletableFuture<>();
+            CompletableFuture<RecordEdit> future = new CompletableFuture<>();
             byValue.put(str(record.value()), future);
             return future;
         }
 
-        void complete(String value, ProducerRecordEdit edit) {
+        void complete(String value, RecordEdit edit) {
             // Count the completion before firing it: completing a future can synchronously drive the next
             // admission, and the outstanding count must reflect that this one is no longer in flight.
             completedCount++;
@@ -244,8 +244,8 @@ class RecordFramesAsyncTest {
             future(value).completeExceptionally(error);
         }
 
-        private CompletableFuture<ProducerRecordEdit> future(String value) {
-            CompletableFuture<ProducerRecordEdit> future = byValue.get(value);
+        private CompletableFuture<RecordEdit> future(String value) {
+            CompletableFuture<RecordEdit> future = byValue.get(value);
             assertThat(future).as("no pending transform for value %s", value).isNotNull();
             return future;
         }

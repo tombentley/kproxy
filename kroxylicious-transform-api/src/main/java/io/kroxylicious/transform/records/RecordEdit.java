@@ -13,26 +13,25 @@ import java.util.function.Consumer;
 import io.kroxylicious.kafka.common.header.Header;
 
 /**
- * <p>An immutable, composable description of the changes to make to a record on the <em>consume</em> path
- * (broker &rarr; client, i.e. fetch and share-fetch responses). The editable fields are the record's key,
+ * <p>An immutable, composable description of the changes to make to a record. The editable fields are the record's key,
  * value and headers; each defaults to "keep the original".</p>
  *
- * <p>Additionally, a record may be {@link #drop() dropped}. Dropping is safe on the consume path — it mirrors
+ * <p>A consumer record may also be {@link #drop() dropped}. Dropping is safe on the consume path — it mirrors
  * what the broker's log cleaner does to compacted topics — but hazardous on produce, so it exists only here
- * and not on {@link ProducerRecordEdit}.</p>
+ * and not on {@link RecordEdit}.</p>
  *
- * <p>As with {@link ProducerRecordEdit}, offset, timestamp (see {@link BatchEdit}), sequence and producer
- * fields cannot be changed; survivors of a drop keep their original offsets.</p>
+ * <p>Record timestamps cannot be changed individually , but some bulk transformations are supported, see {@link BatchEdit}.</p>
+ * <p>Offset, sequence and producer fields cannot be changed; survivors of a drop keep their original offsets.</p>
  */
-public final class ConsumerRecordEdit {
+public final class RecordEdit {
 
-    private static final ConsumerRecordEdit KEEP = new ConsumerRecordEdit(FieldEdits.KEEP, false);
-    private static final ConsumerRecordEdit DROP = new ConsumerRecordEdit(FieldEdits.KEEP, true);
+    private static final RecordEdit KEEP = new RecordEdit(FieldEdits.KEEP, false);
+    private static final RecordEdit DROP = new RecordEdit(FieldEdits.KEEP, true);
 
     private final FieldEdits fields;
     private final boolean drop;
 
-    private ConsumerRecordEdit(FieldEdits fields, boolean drop) {
+    private RecordEdit(FieldEdits fields, boolean drop) {
         this.fields = fields;
         this.drop = drop;
     }
@@ -40,7 +39,7 @@ public final class ConsumerRecordEdit {
     /**
      * {@return the identity edit: the record is kept unchanged (enabling a verbatim byte copy on write)}
      */
-    public static ConsumerRecordEdit keep() {
+    public static RecordEdit keep() {
         return KEEP;
     }
 
@@ -49,7 +48,7 @@ public final class ConsumerRecordEdit {
      * @param newValue the new (non-null) value
      * @return the edit
      */
-    public static ConsumerRecordEdit value(ByteBuffer newValue) {
+    public static RecordEdit value(ByteBuffer newValue) {
         return builder().value(newValue).build();
     }
 
@@ -58,7 +57,7 @@ public final class ConsumerRecordEdit {
      * their original offsets.
      * @return the edit
      */
-    public static ConsumerRecordEdit drop() {
+    public static RecordEdit drop() {
         return DROP;
     }
 
@@ -110,7 +109,7 @@ public final class ConsumerRecordEdit {
     }
 
     /**
-     * A builder for a {@link ConsumerRecordEdit}. Unset fields default to keeping the original.
+     * A builder for a {@link RecordEdit}. Unset fields default to keeping the original.
      */
     public static final class Builder {
 
@@ -200,11 +199,11 @@ public final class ConsumerRecordEdit {
 
         /**
          * Builds the composed edit.
-         * @return the composed {@link ConsumerRecordEdit}
+         * @return the composed {@link RecordEdit}
          */
-        public ConsumerRecordEdit build() {
+        public RecordEdit build() {
             FieldEdits built = fields.build();
-            return built.isKeep() ? keep() : new ConsumerRecordEdit(built, false);
+            return built.isKeep() ? keep() : new RecordEdit(built, false);
         }
     }
 }

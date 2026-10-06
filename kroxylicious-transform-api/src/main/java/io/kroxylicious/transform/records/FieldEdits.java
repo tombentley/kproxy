@@ -14,7 +14,7 @@ import io.kroxylicious.kafka.common.header.Header;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
- * The shared field-edit core of {@link ProducerRecordEdit} and {@link ConsumerRecordEdit}: the per-field
+ * The per-field
  * (key / value / headers) description of what changes, with each field defaulting to "keep the original".
  *
  * <p>This is deliberately package-private: the two public edit types present it as their own symmetric

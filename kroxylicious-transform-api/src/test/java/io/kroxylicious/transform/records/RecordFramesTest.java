@@ -53,7 +53,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input)
-                .applyProduce((batch, record) -> ProducerRecordEdit.keep(), newBuffer());
+                .applyProduce((batch, record) -> RecordEdit.keep(), newBuffer());
 
         // Then
         assertThat(bytes(output)).isEqualTo(bytes(input));
@@ -69,7 +69,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input)
-                .applyProduce((batch, record) -> ProducerRecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
+                .applyProduce((batch, record) -> RecordEdit.value(bb("V:" + str(record.value()))), newBuffer());
 
         // Then
         List<Record> out = records(output);
@@ -100,7 +100,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> ProducerRecordEdit.builder()
+                (batch, record) -> RecordEdit.builder()
                         .headers(h -> h.removeAll("a")
                                 .addLast("c", "9".getBytes(UTF_8))
                                 .replaceFirst("b", "B".getBytes(UTF_8), WhenAbsent.NOOP))
@@ -124,7 +124,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
-                (batch, record) -> ProducerRecordEdit.builder()
+                (batch, record) -> RecordEdit.builder()
                         .headers(h -> h.replaceFirst("missing", "N".getBytes(UTF_8), WhenAbsent.ADD_LAST))
                         .build(),
                 newBuffer());
@@ -146,7 +146,7 @@ class RecordFramesTest {
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().compression(CompressionType.ZSTD).build(),
-                (batch, record) -> ProducerRecordEdit.keep(),
+                (batch, record) -> RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -169,7 +169,7 @@ class RecordFramesTest {
         // When
         MemoryRecords output = ProducerRecords.of(input).applyProduce(
                 batch -> BatchEdit.builder().shiftTimestamps(1000L).build(),
-                (batch, record) -> ProducerRecordEdit.keep(),
+                (batch, record) -> RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -190,7 +190,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ConsumerRecords.of(input).applyFetch(
-                (batch, record) -> record.offset() == 11L ? ConsumerRecordEdit.drop() : ConsumerRecordEdit.keep(),
+                (batch, record) -> record.offset() == 11L ? RecordEdit.drop() : RecordEdit.keep(),
                 newBuffer());
 
         // Then
@@ -211,7 +211,7 @@ class RecordFramesTest {
 
         // When
         MemoryRecords output = ConsumerRecords.of(input).applyFetch(
-                (batch, record) -> ConsumerRecordEdit.value(bb("should-not-be-applied")), newBuffer());
+                (batch, record) -> RecordEdit.value(bb("should-not-be-applied")), newBuffer());
 
         // Then
         assertThat(bytes(output)).isEqualTo(bytes(input));

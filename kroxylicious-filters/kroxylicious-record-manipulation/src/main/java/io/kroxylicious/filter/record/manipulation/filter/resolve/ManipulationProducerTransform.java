@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.transform.records.AsyncProducerRecordTransform;
+import io.kroxylicious.transform.records.AsyncRecordTransform;
 import io.kroxylicious.transform.records.BatchView;
-import io.kroxylicious.transform.records.ProducerRecordEdit;
+import io.kroxylicious.transform.records.RecordEdit;
 import io.kroxylicious.transform.records.RecordView;
 
 /**
@@ -24,19 +24,19 @@ import io.kroxylicious.transform.records.RecordView;
  * <p>The edits are computed synchronously, so an already-completed stage is always returned; the signature is
  * asynchronous to leave room for per-record dependency resolution (schemas, DEKs) in a later iteration.</p>
  */
-public final class ManipulationProducerTransform extends AbstractManipulationTransform implements AsyncProducerRecordTransform {
+public final class ManipulationProducerTransform extends AbstractManipulationTransform implements AsyncRecordTransform {
 
     public ManipulationProducerTransform(List<CompiledManipulation<?, ?, ?>> manipulations) {
         super(manipulations);
     }
 
     @Override
-    public CompletionStage<ProducerRecordEdit> transform(BatchView batch, RecordView record) {
+    public CompletionStage<RecordEdit> transform(BatchView batch, RecordView record) {
         CompiledManipulation<?, ?, ?> manipulation = firstMatch(record.headers());
         if (manipulation == null) {
-            return CompletableFuture.completedFuture(ProducerRecordEdit.keep());
+            return CompletableFuture.completedFuture(RecordEdit.keep());
         }
-        ProducerRecordEdit.Builder builder = ProducerRecordEdit.builder();
+        RecordEdit.Builder builder = RecordEdit.builder();
         if (manipulation.newKey() != null) {
             ByteBuffer newKey = manipulation.newKey().apply(record);
             if (newKey == null) {

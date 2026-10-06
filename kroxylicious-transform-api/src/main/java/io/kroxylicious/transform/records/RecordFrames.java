@@ -76,7 +76,7 @@ public sealed class RecordFrames permits ProducerRecords, ConsumerRecords {
 
             // Single pass: evaluate every record's edit (iterator() fully materialises, so holding views is safe).
             List<RecordView> views = new ArrayList<>();
-            List<InternalEdit> edits = new ArrayList<>();
+            List<RecordEdit> edits = new ArrayList<>();
             for (RecordView view : batchView.records()) {
                 views.add(view);
                 edits.add(transform.transform(batchView, view));
@@ -113,10 +113,10 @@ public sealed class RecordFrames permits ProducerRecords, ConsumerRecords {
                             MutableRecordBatch batch,
                             BatchEdit batchEdit,
                             List<RecordView> views,
-                            List<InternalEdit> edits) {
+                            List<RecordEdit> edits) {
         boolean modified = !batchEdit.isKeep();
-        for (InternalEdit edit : edits) {
-            modified |= !edit.keep();
+        for (RecordEdit edit : edits) {
+            modified |= !edit.isKeep();
         }
         if (!modified) {
             // Pristine copy: nothing changed, so copy the batch through byte-for-byte.
@@ -127,13 +127,11 @@ public sealed class RecordFrames permits ProducerRecords, ConsumerRecords {
         }
     }
 
-    record InternalEdit(boolean keep, boolean drop, FieldEdits fields) {}
-
     interface InternalRecordTransform {
-        InternalEdit transform(BatchView batch, RecordView record);
+        RecordEdit transform(BatchView batch, RecordView record);
     }
 
     interface AsyncInternalRecordTransform {
-        CompletionStage<InternalEdit> transform(BatchView batch, RecordView record);
+        CompletionStage<RecordEdit> transform(BatchView batch, RecordView record);
     }
 }

@@ -23,7 +23,6 @@ import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.transform.records.RecordFrames.AsyncInternalRecordTransform;
-import io.kroxylicious.transform.records.RecordFrames.InternalEdit;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -184,7 +183,7 @@ final class AsyncTransformDriver {
 
     private void issueRecord(Slot slot, int index) {
         BatchView batchView = Objects.requireNonNull(slot.batchView);
-        CompletionStage<InternalEdit> stage = transform.transform(batchView, slot.views.get(index));
+        CompletionStage<RecordEdit> stage = transform.transform(batchView, slot.views.get(index));
         issued++;
         marshal(stage).whenComplete((edit, error) -> onRecordDone(slot, index, edit, error));
     }
@@ -193,8 +192,8 @@ final class AsyncTransformDriver {
      * Marshals a transform's completion onto the assembly thread, unless it has already completed — in which
      * case it is left on the current (assembly) thread so the warm path pays no thread hop.
      */
-    private CompletionStage<InternalEdit> marshal(CompletionStage<InternalEdit> stage) {
-        CompletableFuture<InternalEdit> future = stage.toCompletableFuture();
+    private CompletionStage<RecordEdit> marshal(CompletionStage<RecordEdit> stage) {
+        CompletableFuture<RecordEdit> future = stage.toCompletableFuture();
         if (future.isDone()) {
             return stage;
         }
@@ -202,7 +201,7 @@ final class AsyncTransformDriver {
         }, executor);
     }
 
-    private void onRecordDone(Slot slot, int index, @Nullable InternalEdit edit, @Nullable Throwable error) {
+    private void onRecordDone(Slot slot, int index, @Nullable RecordEdit edit, @Nullable Throwable error) {
         if (result.isDone()) {
             return;
         }
@@ -252,7 +251,7 @@ final class AsyncTransformDriver {
         private final @Nullable BatchView batchView;
         private final @Nullable BatchEdit batchEdit;
         private final List<RecordView> views;
-        private final InternalEdit[] edits;
+        private final RecordEdit[] edits;
         private int nextIndex;
         private int resolved;
 
@@ -263,7 +262,7 @@ final class AsyncTransformDriver {
             this.batchView = batchView;
             this.batchEdit = batchEdit;
             this.views = views;
-            this.edits = new InternalEdit[views.size()];
+            this.edits = new RecordEdit[views.size()];
         }
 
         static Slot control(MutableRecordBatch batch) {

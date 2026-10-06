@@ -7,16 +7,16 @@
 package io.kroxylicious.transform.records;
 
 /**
- * Computes a {@link ProducerRecordEdit} for each record on the produce path.
+ * Computes a {@link RecordEdit} for each record on the produce path.
  */
 @FunctionalInterface
-public interface ProducerRecordTransform {
+public interface RecordTransform {
 
     /**
      * Computes the edit to apply to the given record.
      * @param batch the batch the record belongs to
      * @param record the record to transform
-     * @return the edit to apply (use {@link ProducerRecordEdit#keep()} for no change)
+     * @return the edit to apply (use {@link RecordEdit#keep()} for no change)
      */
-    ProducerRecordEdit transform(BatchView batch, RecordView record);
+    RecordEdit transform(BatchView batch, RecordView record);
 }

@@ -24,11 +24,10 @@ import io.kroxylicious.kafka.common.record.internal.RecordBatch;
 import io.kroxylicious.kafka.common.utils.BufferSupplier;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.transform.records.BatchEdit.TimestampMode;
-import io.kroxylicious.transform.records.RecordFrames.InternalEdit;
 
 /**
  * <p>The bespoke, byte-splicing encoder for a single (data) record batch. Given the records' immutable
- * {@link RecordView}s and the per-record {@link InternalEdit}s already evaluated in a single pass, it writes the
+ * {@link RecordView}s and the per-record {@link RecordEdit}s already evaluated in a single pass, it writes the
  * batch into {@code out} using the cheapest correct strategy:</p>
  *
  * <ul>
@@ -65,7 +64,7 @@ final class BatchEncoder {
                        MutableRecordBatch batch,
                        BatchEdit batchEdit,
                        List<RecordView> views,
-                       List<InternalEdit> edits) {
+                       List<RecordEdit> edits) {
         byte magic = batch.magic();
         if (magic < RecordBatch.MAGIC_VALUE_V2) {
             // The bespoke encoder only understands v2; copy legacy batches through verbatim.
@@ -83,8 +82,8 @@ final class BatchEncoder {
 
         boolean anyFieldEdited = false;
         int survivors = 0;
-        for (InternalEdit edit : edits) {
-            if (edit.drop()) {
+        for (RecordEdit edit : edits) {
+            if (edit.isDrop()) {
                 continue;
             }
             survivors++;
@@ -151,11 +150,11 @@ final class BatchEncoder {
             int cursor = 0;
             for (int i = 0; i < views.size(); i++) {
                 RecordView view = views.get(i);
-                InternalEdit edit = edits.get(i);
+                RecordEdit edit = edits.get(i);
                 int len = view.sizeInBytes();
                 int recStart = cursor;
                 cursor += len;
-                if (edit.drop()) {
+                if (edit.isDrop()) {
                     continue;
                 }
                 if (edit.fields().isKeep() && tsMode != TimestampMode.SET) {
