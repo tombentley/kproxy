@@ -97,6 +97,7 @@ class RecordManipulationFilterAvroTest {
         var config = new RecordManipulationConfig(null,
                 List.of(new Manipulation(new When(direction,
                         TopicName.is(TOPIC_NAME),
+                        null,
                         null, null, null
                         ),
                 new Then(
@@ -240,7 +241,9 @@ class RecordManipulationFilterAvroTest {
         var config = new RecordManipulationConfig(null, List.of(
                 new Manipulation(
                         new When(Direction.INTO_CLUSTER,
-                                TopicName.is(TOPIC_NAME), null, null, null),
+                                TopicName.is(TOPIC_NAME),
+                                null,
+                                null, null, null),
                         new Then(
                 null, null,
                 null, null,

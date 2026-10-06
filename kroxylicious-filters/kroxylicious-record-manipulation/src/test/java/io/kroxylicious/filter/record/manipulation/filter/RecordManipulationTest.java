@@ -18,17 +18,21 @@ import org.junit.jupiter.api.Test;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRegistry;
+import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.filter.record.manipulation.filter.config.When;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.EmptyBuffer;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.NullBuffer;
+import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.header.internals.RecordHeader;
+import io.kroxylicious.proxy.authentication.User;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
@@ -157,6 +161,65 @@ class RecordManipulationTest {
 
         // Then
         assertThat(matcher.test("anything")).isTrue();
+    }
+
+
+    @Test
+    void compilesExactPrincipalMatcher() {
+        // Given
+        var subjectMatch = new SubjectMatch(PrincipalMatch.is(User.class.getName(), "alice"));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+
+        // When
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+
+        // Then
+        assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("eve"))))).isFalse();
+    }
+
+    @Test
+    void compilesPrincipalSetMatcher() {
+        // Given
+        var subjectMatch = new SubjectMatch(PrincipalMatch.isIn(User.class.getName(), Set.of("alice", "bob")));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+
+        // When
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+
+        // Then
+        assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("bob"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("eve"))))).isFalse();
+    }
+
+    @Test
+    void compilesPrincipalRegexMatcher() {
+        // Given
+        var subjectMatch = new SubjectMatch(PrincipalMatch.matches(User.class.getName(), "(alice|bob)"));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+
+        // When
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+
+        // Then
+        assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("bob"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("eve"))))).isFalse();
+    }
+
+    @Test
+    void matchesAllSubjectsWhenInTopicOmitted() {
+        // Given
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, null, null, null, null), DEFAULT_THEN));
+
+        // When
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+
+        // Then
+        assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("bob"))))).isTrue();
+        assertThat(matcher.test(new Subject(Set.of(new User("eve"))))).isTrue();
     }
 
     @Test
@@ -349,8 +412,21 @@ class RecordManipulationTest {
         return new Manipulation(when, then);
     }
 
-    private static When when(Direction direction, TopicName inTopic, SchemaRef keySchema, SchemaRef valueSchema, HeaderPredicate hasAnyHeader) {
-        return new When(direction, inTopic, keySchema, valueSchema, hasAnyHeader);
+    private static When when(Direction direction,
+                             @Nullable TopicName inTopic,
+                             @Nullable SchemaRef keySchema,
+                             @Nullable SchemaRef valueSchema,
+                             @Nullable HeaderPredicate hasAnyHeader) {
+        return when(direction, inTopic, null, keySchema, valueSchema, hasAnyHeader);
+    }
+
+    private static When when(Direction direction,
+                             @Nullable TopicName inTopic,
+                             @Nullable SubjectMatch subjectMatch,
+                             @Nullable SchemaRef keySchema,
+                             @Nullable SchemaRef valueSchema,
+                             @Nullable HeaderPredicate hasAnyHeader) {
+        return new When(direction, inTopic, subjectMatch, keySchema, valueSchema, hasAnyHeader);
     }
 
     private static Header[] headers(String... keys) {

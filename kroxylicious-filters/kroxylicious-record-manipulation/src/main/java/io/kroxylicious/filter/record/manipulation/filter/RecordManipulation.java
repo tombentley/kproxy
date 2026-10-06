@@ -17,10 +17,16 @@ import java.util.regex.Pattern;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.ApicurioSchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
+import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
+import io.kroxylicious.identity.Identity;
+import io.kroxylicious.identity.Principal;
+import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.proxy.filter.Filter;
 import io.kroxylicious.proxy.filter.FilterFactory;
@@ -31,6 +37,7 @@ import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.DependencyKey;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
@@ -47,7 +54,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 @Plugin(configType = RecordManipulationConfig.class)
 public class RecordManipulation implements FilterFactory<RecordManipulationConfig, Init> {
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "unchecked", "rawtypes", "removal" })
     @Override
     public Init initialize(FilterFactoryContext context,
                            RecordManipulationConfig config)
@@ -57,7 +64,8 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
         for (var m : config.manipulations()) {
             rejectUnsupported(m);
 
-            Predicate<String> topicMatcher = compileTopicMatcher(m);
+            Predicate<String> topicMatcher = topicPredicate(m.when().inTopic());
+            Predicate<Identity> subjectMatcher = subjectPredicate(m.when().clientSubject());
             Predicate<Header[]> headerPredicate = compileHeaderPredicate(m);
 
             BufferTransformService keyService = null;
@@ -83,6 +91,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             compiledManipulations.add(new CompiledManipulation<>(
                     m.when().direction(),
                     topicMatcher,
+                    subjectMatcher,
                     headerPredicate,
                     null, // keySchema - schema selection rejected above
                     null, // valueSchema - schema selection rejected above
@@ -160,28 +169,67 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
         return headerPredicate;
     }
 
-    private static Predicate<String> compileTopicMatcher(Manipulation m) {
+    private static Predicate<String> topicPredicate(@Nullable TopicName inTopic) {
         Predicate<String> topicMatcher;
-        if (m.when().inTopic() != null) {
-            if (m.when().inTopic().is() != null) {
-                topicMatcher = topicName -> m.when().inTopic().is().equals(topicName);
+        if (inTopic != null) {
+            if (inTopic.withName() != null) {
+                topicMatcher = topicName -> inTopic.withName().equals(topicName);
             }
-            else if (m.when().inTopic().isIn() != null) {
-                topicMatcher = topicName -> m.when().inTopic().isIn().contains(topicName);
+            else if (inTopic.withNameIn() != null) {
+                topicMatcher = topicName -> inTopic.withNameIn().contains(topicName);
             }
-            else if (m.when().inTopic().matches() != null) {
-                Pattern pattern = Pattern.compile(m.when().inTopic().matches());
+            else if (inTopic.withNameMatching() != null) {
+                Pattern pattern = Pattern.compile(inTopic.withNameMatching());
                 topicMatcher = topicName -> pattern.matcher(topicName).matches();
             }
             else {
                 // TopicName constructor should make this branch impossible
-                throw new IllegalStateException("Invalid when.inTopic " + m.when().inTopic());
+                throw new IllegalStateException("Invalid when.inTopic " + inTopic);
             }
         }
         else {
             topicMatcher = topicName -> true;
         }
         return topicMatcher;
+    }
+
+    @SuppressWarnings("removal")
+    private static Predicate<Identity> subjectPredicate(@Nullable SubjectMatch subjectMatch) {
+        Predicate<Identity> subjectPredicate;
+        if (subjectMatch != null) {
+            PrincipalMatch principalMatch = subjectMatch.containsPrincipal();
+            if (principalMatch != null) {
+                subjectPredicate = subject -> subject.principals().stream().anyMatch(principalPredicate(principalMatch));
+            }
+            else {
+                throw new IllegalStateException("Invalid subject match " + subjectMatch);
+            }
+        }
+        else {
+            subjectPredicate = subject -> true;
+        }
+        return subjectPredicate;
+    }
+
+    @NonNull
+    private static Predicate<Principal> principalPredicate(PrincipalMatch principalMatch) {
+        Predicate<Subject> subjectPredicate;
+        Predicate<Principal> principalPredicate;
+        if (principalMatch.withName() != null) {
+            principalPredicate = principal -> principalMatch.withName().equals(principal.name());
+        }
+        else if (principalMatch.withNameIn() != null) {
+            principalPredicate = principal -> principalMatch.withNameIn().contains(principal.name());
+        }
+        else if (principalMatch.withNameMatching() != null) {
+            Pattern pattern = Pattern.compile(principalMatch.withNameMatching());
+            principalPredicate = principal -> pattern.matcher(principal.name()).matches();
+        }
+        else {
+            throw new IllegalStateException("Invalid containsPrincipal " + principalMatch);
+        }
+        return principal -> principal.getClass().getName().equals(principalMatch.withType())
+                && principalPredicate.test(principal);
     }
 
     @Override

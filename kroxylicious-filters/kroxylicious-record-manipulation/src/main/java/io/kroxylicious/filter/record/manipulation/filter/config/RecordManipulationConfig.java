@@ -35,6 +35,10 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *           ...
  *         hasAnyHeader:
  *           withKey: my-key
+ *         clientSubject:
+ *           containsPrincipal:
+ *             withType: User
+ *             withName: or withNameIn or withNameMatching
  *       then:
  *         newKey:
  *           transforms:

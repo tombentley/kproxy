@@ -103,7 +103,7 @@ class ManipulationTransformTest {
     private static CompiledManipulation<?, ?, ?> manipulation(Direction direction,
                                                               @Nullable Predicate<Header[]> headerPredicate,
                                                               BufferTransform newValue) {
-        return new CompiledManipulation(direction, (Predicate<String>) name -> true, headerPredicate,
+        return new CompiledManipulation(direction, (Predicate<String>) name -> true, subject -> true, headerPredicate,
                 null, null, null, null, null, null, null, null, null, null, newValue);
     }
 

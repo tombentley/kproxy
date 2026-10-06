@@ -10,22 +10,25 @@ import java.util.Set;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public record TopicName(@Nullable String is,
-                        @Nullable Set<String> isIn,
-                        @Nullable String matches) {
+public record TopicName(@Nullable String withName,
+                        @Nullable Set<String> withNameIn,
+                        @Nullable String withNameMatching) {
+
+    public static final String MSG = "Exactly one of `withName`, `withNameIn` and `withNameMatching` is required";
+
     public TopicName {
-        if (is != null) {
-            if (isIn != null || matches != null) {
-                throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+        if (withName != null) {
+            if (withNameIn != null || withNameMatching != null) {
+                throw new IllegalArgumentException(MSG);
             }
         }
-        else if (isIn != null) {
-            if (matches != null) {
-                throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+        else if (withNameIn != null) {
+            if (withNameMatching != null) {
+                throw new IllegalArgumentException(MSG);
             }
         }
-        else if (matches == null) {
-            throw new IllegalArgumentException("Exactly one of `is`, `isIn` and `matches` is required");
+        else if (withNameMatching == null) {
+            throw new IllegalArgumentException(MSG);
         }
     }
 

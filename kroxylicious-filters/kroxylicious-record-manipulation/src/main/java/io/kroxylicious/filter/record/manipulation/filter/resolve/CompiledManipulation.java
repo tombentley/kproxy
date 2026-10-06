@@ -13,6 +13,8 @@ import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
+import io.kroxylicious.identity.Identity;
+import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
@@ -39,9 +41,11 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param newKey optional replacement key transform ({@code null} = keep original).
  * @param newValue optional replacement value transform ({@code null} = keep original).
  */
+@SuppressWarnings("removal")
 public record CompiledManipulation<I1, I2, I3>(
                                                Direction direction,
                                                Predicate<String> topicMatcher,
+                                               Predicate<Identity> subjectGuard,
                                                @Nullable Predicate<Header[]> headerPredicate,
                                                @Nullable SchemaRef keySchema,
                                                @Nullable SchemaRef valueSchema,
@@ -107,9 +111,9 @@ public record CompiledManipulation<I1, I2, I3>(
         if (topicName == null) {
             return name -> true;
         }
-        return name -> (topicName.is() != null && topicName.is().equals(name))
-                || (topicName.isIn() != null && topicName.isIn().contains(name))
-                || (topicName.matches() != null && name.matches(topicName.matches()));
+        return name -> (topicName.withName() != null && topicName.withName().equals(name))
+                || (topicName.withNameIn() != null && topicName.withNameIn().contains(name))
+                || (topicName.withNameMatching() != null && name.matches(topicName.withNameMatching()));
     }
 
     public void close() {

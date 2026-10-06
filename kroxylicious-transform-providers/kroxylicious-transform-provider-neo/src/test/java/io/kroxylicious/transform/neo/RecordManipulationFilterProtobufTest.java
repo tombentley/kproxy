@@ -102,6 +102,7 @@ class RecordManipulationFilterProtobufTest {
                 List.of(new Manipulation(
                         new When(direction,
                             TopicName.is(TOPIC_NAME),
+                                null,
                                 null, null, null),
                 new Then(
                 null, null,

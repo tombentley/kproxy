@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 public record When(
                    @JsonProperty(required = true) Direction direction,
                    @Nullable TopicName inTopic,
+                   @Nullable SubjectMatch clientSubject,
                    @Nullable SchemaRef withKeySchema,
                    @Nullable SchemaRef withValueSchema,
                    @Nullable HeaderPredicate hasAnyHeader) {}

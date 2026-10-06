@@ -208,7 +208,7 @@ class RecordManipulationFilterTest {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static CompiledManipulation<?, ?, ?> topicManipulation(Direction direction, Predicate<String> topicMatcher, BufferTransform newValue) {
-        return new CompiledManipulation(direction, topicMatcher, null, null, null, null, null, null, null, null, null, null, null, newValue);
+        return new CompiledManipulation(direction, topicMatcher, subject -> true, null, null, null, null, null, null, null, null, null, null, null, newValue);
     }
 
     private static BufferTransform rewriteValueTo(String replacement) {
