@@ -6,7 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
-import io.kroxylicious.transform.service.KafkaRecord;
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.TimestampTransform;
 
 public class ConstantTimestampTransform implements TimestampTransform {
@@ -18,7 +18,7 @@ public class ConstantTimestampTransform implements TimestampTransform {
     }
 
     @Override
-    public long apply(KafkaRecord record) {
+    public long apply(RecordView record) {
         return timestamp;
     }
 }

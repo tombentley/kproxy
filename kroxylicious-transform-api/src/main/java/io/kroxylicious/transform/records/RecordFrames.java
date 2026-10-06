@@ -23,7 +23,7 @@ import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
  * It supports reading the batches/records as immutable {@link BatchView}s and
  * {@link RecordView}s, and applying directional transforms to produce a new {@link MemoryRecords}.
  * There are specific subclasses for the cases of records in a
- * produce request ({@link {@link ProducerRecords}) and a fetch response or a share fetch response
+ * produce request ({@link ProducerRecords}) and a fetch response or a share fetch response
  * ({@link ConsumerRecords}).</p>
  *
  * <p>This is a thin layer over the inherited {@code MemoryRecords} reader and uses

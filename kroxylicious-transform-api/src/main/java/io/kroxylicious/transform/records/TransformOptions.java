@@ -10,8 +10,8 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 
 /**
- * <p>Options for the asynchronous terminals ({@link RecordFrames#applyProduceAsync} /
- * {@link RecordFrames#applyFetchAsync}).</p>
+ * <p>Options for the asynchronous terminals ({@link ProducerRecords#applyProduceAsync} /
+ * {@link ConsumerRecords#applyFetchAsync}).</p>
  *
  * <p>The window size {@code W} bounds the number of records that have been admitted (had their transform
  * started) but not yet emitted. Because output is emitted in strict batch/offset order, this simultaneously

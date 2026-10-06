@@ -9,10 +9,11 @@ package io.kroxylicious.filter.record.manipulation.filter.config;
 import io.kroxylicious.proxy.plugin.PluginImplConfig;
 import io.kroxylicious.proxy.plugin.PluginImplName;
 import io.kroxylicious.transform.service.BufferTransformService;
+import io.kroxylicious.transform.service.TimestampTransformService;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public record Then(@Nullable @PluginImplName(BufferTransformService.class) String newTimestamp,
+public record Then(@Nullable @PluginImplName(TimestampTransformService.class) String newTimestamp,
                    @Nullable @PluginImplConfig(implNameProperty = "timestampTransform") Object newTimestampConfig,
                    @Nullable @PluginImplName(BufferTransformService.class) String newKey,
                    @Nullable @PluginImplConfig(implNameProperty = "keyTransform") Object newKeyConfig,

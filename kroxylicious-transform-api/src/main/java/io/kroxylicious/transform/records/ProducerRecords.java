@@ -33,7 +33,6 @@ public final class ProducerRecords extends RecordFrames {
         return new ProducerRecords((MemoryRecords) records);
     }
 
-
     /**
      * Apply a produce-path record transform, writing the result into {@code out}.
      * @param transform the record transform

@@ -17,9 +17,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * The related entities resolved for a single request/response, keyed by facet
  * {@link Facet#discriminator() discriminator} and then by id.
  *
- * <p>This is the context handed to a {@link ContextualBufferTransform} so that a transform can look
- * up the resolved content it needs (e.g. the schema version metadata for a record's {@code globalId},
- * or the schema bytes for a {@code contentId}).</p>
+ * <p>This is the context from which a transform can look up the resolved content it needs (e.g. the schema
+ * version metadata for a record's {@code globalId}, or the schema bytes for a {@code contentId}).</p>
  */
 public final class ResolvedEntities {
 

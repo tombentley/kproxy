@@ -8,12 +8,12 @@ package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
 import java.nio.ByteBuffer;
 
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
-import io.kroxylicious.transform.service.KafkaRecord;
 
 public class EmptyBufferTransform implements BufferTransform {
     @Override
-    public ByteBuffer apply(KafkaRecord record) {
+    public ByteBuffer apply(RecordView record) {
         // TODO is an empty buffer threadsafe? I'd _think_ so.
         ByteBuffer allocate = ByteBuffer.allocate(0);
         return allocate;

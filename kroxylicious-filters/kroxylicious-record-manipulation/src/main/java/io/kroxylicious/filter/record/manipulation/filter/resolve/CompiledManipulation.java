@@ -14,6 +14,7 @@ import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.kafka.common.header.Header;
+import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
@@ -49,10 +50,10 @@ public record CompiledManipulation<I1, I2, I3>(
                                                @Nullable TimestampTransform newTimestamp,
                                                @Nullable BufferTransformService<?, I2> newKeyService,
                                                @Nullable I2 newKeyInitData,
-                                               @Nullable ContextualBufferTransform newKey,
+                                               @Nullable BufferTransform newKey,
                                                @Nullable BufferTransformService<?, I3> newValueService,
                                                @Nullable I3 newValueInitData,
-                                               @Nullable ContextualBufferTransform newValue) {
+                                               @Nullable BufferTransform newValue) {
 
     /**
      * Reports whether selection depends on the key schema.

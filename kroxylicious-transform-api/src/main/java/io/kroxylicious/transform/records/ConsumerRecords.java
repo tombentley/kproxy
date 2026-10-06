@@ -61,7 +61,6 @@ public final class ConsumerRecords extends RecordFrames {
         }, out);
     }
 
-
     /**
      * Apply a consume-path (fetch / share-fetch) record transform asynchronously, writing the result into {@code out}.
      * @param transform the async record transform

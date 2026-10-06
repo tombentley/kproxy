@@ -6,7 +6,9 @@
 
 package io.kroxylicious.transform.service;
 
+import io.kroxylicious.transform.records.RecordView;
+
 public interface TimestampTransform {
 
-    long apply(KafkaRecord record);
+    long apply(RecordView record);
 }

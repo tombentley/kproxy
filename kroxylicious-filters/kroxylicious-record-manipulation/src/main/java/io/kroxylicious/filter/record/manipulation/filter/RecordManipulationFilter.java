@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationOrchestrator;
+import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationApplier;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
 import io.kroxylicious.kafka.common.Uuid;
 import io.kroxylicious.kafka.common.message.FetchResponseData;
@@ -42,10 +42,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * A filter that selects records ({@code when}) and rewrites them ({@code then}). Selection and
- * rewriting may depend on "related things" (e.g. schema-registry content) that must be fetched from an
- * external system; the {@link ManipulationOrchestrator} pools those lookups across all partitions in a
- * request/response, resolves them (deduplicated and cached), and applies the matched transforms.
+ * A filter that selects records ({@code when}) and rewrites them ({@code then}). Matching partitions are
+ * gathered into work items and transformed by the {@link ManipulationApplier}, which drives the
+ * {@code records} transform engine per partition and copies unmatched records verbatim.
  */
 public class RecordManipulationFilter implements
         ProduceRequestFilter,
@@ -56,11 +55,11 @@ public class RecordManipulationFilter implements
 
     private final Init init;
 
-    private final ManipulationOrchestrator orchestrator;
+    private final ManipulationApplier applier;
 
     public RecordManipulationFilter(Init init, Executor filterExecutor) {
         this.init = init;
-        this.orchestrator = new ManipulationOrchestrator(init.schemaFacets(), filterExecutor);
+        this.applier = new ManipulationApplier(filterExecutor);
     }
 
     @Override
@@ -96,7 +95,7 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topic", () -> topicNames(request, topicNameMapping))
                     .addKeyValue("workItems", workItems)
                     .log("ProduceRequest may require manipulation");
-            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+            return applier.applyProduce(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardRequest(header, request));
         });
     }
@@ -140,7 +139,7 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topics", () -> topicNames(response, topicNameMapping))
                     .addKeyValue("workItems", workItems)
                     .log("FetchResponse may require manipulation");
-            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+            return applier.applyFetch(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
     }
@@ -191,7 +190,7 @@ public class RecordManipulationFilter implements
                     .addKeyValue("topics", () -> topicNames(response, topicMapping))
                     .addKeyValue("workItems", workItems)
                     .log("ShareFetchResponse may require manipulation");
-            return orchestrator.process(workItems, context::createByteBufferOutputStream)
+            return applier.applyFetch(workItems, context::createByteBufferOutputStream)
                     .thenCompose(ignored -> context.forwardResponse(header, response));
         });
     }

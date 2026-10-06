@@ -7,6 +7,7 @@
 package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,20 +27,17 @@ import io.kroxylicious.filter.record.manipulation.filter.config.When;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.EmptyBuffer;
 import io.kroxylicious.filter.record.manipulation.filter.transforms.NullBuffer;
-import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordKey;
-import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordTimestamp;
-import io.kroxylicious.filter.record.manipulation.filter.transforms.RecordValue;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.header.internals.RecordHeader;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
+import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.KafkaRecord;
+import io.kroxylicious.transform.service.DependencyKey;
 import io.kroxylicious.transform.service.PluginLookup;
-import io.kroxylicious.transform.service.TimestampTransform;
-import io.kroxylicious.transform.service.TimestampTransformService;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -50,7 +48,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests the compilation performed by {@link RecordManipulation#initialize}: turning each configured
  * {@link Manipulation} into a {@link CompiledManipulation} by compiling its {@code when} selectors (topic
  * matchers - including regexes - and header predicates) and wiring its {@code then} transforms through
- * their {@link BufferTransformService}/{@link TimestampTransformService} factories.
+ * their {@link BufferTransformService} factories, leaving an unconfigured transform {@code null} so the
+ * engine keeps that field verbatim. Also covers the fail-fast rejection of configuration whose
+ * records-engine support is not yet implemented.
  */
 class RecordManipulationTest {
 
@@ -72,7 +72,7 @@ class RecordManipulationTest {
     }
 
     @Test
-    void defaultsTimestampKeyAndValueTransformsWhenThenClauseIsEmpty() {
+    void emptyThenCompilesToKeepTransforms() {
         // Given
         var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
@@ -81,12 +81,11 @@ class RecordManipulationTest {
 
         // Then
         var compiled = init.compiledManipulations().get(0);
-        assertThat(compiled.newTimestampService()).isInstanceOf(RecordTimestamp.class);
-        assertThat(compiled.newKeyService()).isInstanceOf(RecordKey.class);
-        assertThat(compiled.newValueService()).isInstanceOf(RecordValue.class);
-        assertThat(compiled.newTimestamp()).isNotNull();
-        assertThat(compiled.newKey()).isNotNull();
-        assertThat(compiled.newValue()).isNotNull();
+        assertThat(compiled.newTimestamp()).isNull();
+        assertThat(compiled.newKey()).isNull();
+        assertThat(compiled.newValue()).isNull();
+        assertThat(compiled.newKeyService()).isNull();
+        assertThat(compiled.newValueService()).isNull();
     }
 
     @Test
@@ -102,6 +101,8 @@ class RecordManipulationTest {
         var compiled = init.compiledManipulations().get(0);
         assertThat(compiled.newKeyService()).isInstanceOf(EmptyBuffer.class);
         assertThat(compiled.newValueService()).isInstanceOf(NullBuffer.class);
+        assertThat(compiled.newKey()).isNotNull();
+        assertThat(compiled.newValue()).isNotNull();
     }
 
     @Test
@@ -216,32 +217,63 @@ class RecordManipulationTest {
     }
 
     @Test
-    void preservesDirectionAndSchemaRefs() {
+    void preservesDirection() {
         // Given
-        var keySchema = new SchemaRef("com.myco", "orders-key", "1");
-        var valueSchema = new SchemaRef("com.myco", "orders-value", "*");
-        var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null),
-                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), keySchema, valueSchema, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
 
         // When
         var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
 
         // Then
         assertThat(compiled.direction()).isEqualTo(Direction.OUT_OF_CLUSTER);
-        assertThat(compiled.keySchema()).isEqualTo(keySchema);
-        assertThat(compiled.valueSchema()).isEqualTo(valueSchema);
     }
 
     @Test
-    void closeClosesEachManipulationsTransformServicesWithTheirInitData() {
+    void rejectsSchemaSelection() {
         // Given
-        var timestampService = new RecordingTimestampTransformService();
+        var keySchema = new SchemaRef("com.myco", "orders-key", "1");
+        var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null),
+                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), keySchema, null, null), DEFAULT_THEN));
+
+        // When / Then
+        assertThatThrownBy(() -> new RecordManipulation().initialize(new FakeFactoryContext(), config))
+                .isInstanceOf(PluginConfigurationException.class)
+                .hasMessageContaining("withKeySchema");
+    }
+
+    @Test
+    void rejectsTimestampSelection() {
+        // Given
+        var then = new Then("ts", null, null, null, null, null);
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
+
+        // When / Then
+        assertThatThrownBy(() -> new RecordManipulation().initialize(new FakeFactoryContext(), config))
+                .isInstanceOf(PluginConfigurationException.class)
+                .hasMessageContaining("newTimestamp");
+    }
+
+    @Test
+    void rejectsDependencyDeclaringTransform() {
+        // Given
+        var then = new Then(null, null, "dep", null, null, null);
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
+        var context = new FakeFactoryContext().with("dep", new DependencyDeclaringBufferTransformService());
+
+        // When / Then
+        assertThatThrownBy(() -> new RecordManipulation().initialize(context, config))
+                .isInstanceOf(PluginConfigurationException.class)
+                .hasMessageContaining("declares dependencies");
+    }
+
+    @Test
+    void closeClosesConfiguredKeyAndValueServicesWithTheirInitData() {
+        // Given
         var keyService = new RecordingBufferTransformService();
         var valueService = new RecordingBufferTransformService();
-        var then = new Then("ts", null, "key", null, "value", null);
+        var then = new Then(null, null, "key", null, "value", null);
         var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
         var context = new FakeFactoryContext()
-                .with("ts", timestampService)
                 .with("key", keyService)
                 .with("value", valueService);
         var factory = new RecordManipulation();
@@ -251,7 +283,6 @@ class RecordManipulationTest {
         factory.close(init);
 
         // Then
-        assertThat(timestampService.closedWith).containsExactly(timestampService.initData);
         assertThat(keyService.closedWith).containsExactly(keyService.initData);
         assertThat(valueService.closedWith).containsExactly(valueService.initData);
     }
@@ -378,7 +409,7 @@ class RecordManipulationTest {
 
         @Override
         public BufferTransform create(Object initializationData) {
-            return KafkaRecord::value;
+            return RecordView::value;
         }
 
         @Override
@@ -387,23 +418,20 @@ class RecordManipulationTest {
         }
     }
 
-    private static final class RecordingTimestampTransformService implements TimestampTransformService<Object, Object> {
-        private final Object initData = new Object();
-        private final List<Object> closedWith = new ArrayList<>();
-
+    private static final class DependencyDeclaringBufferTransformService implements BufferTransformService<Object, Object> {
         @Override
         public Object configure(PluginLookup pluginLookup, Object config) {
-            return initData;
+            return new Object();
         }
 
         @Override
-        public TimestampTransform create(Object initializationData) {
-            return KafkaRecord::timestamp;
+        public Set<DependencyKey<?, ?>> dependencies(Object initializationData) {
+            return Set.of(new DependencyKey<>(String.class, ByteBuffer.class));
         }
 
         @Override
-        public void close(Object initializationData) {
-            closedWith.add(initializationData);
+        public BufferTransform create(Object initializationData) {
+            return RecordView::value;
         }
     }
 }
