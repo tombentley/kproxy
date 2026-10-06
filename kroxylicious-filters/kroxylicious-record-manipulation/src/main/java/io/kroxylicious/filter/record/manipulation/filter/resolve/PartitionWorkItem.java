@@ -9,6 +9,7 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.kroxylicious.kafka.common.record.internal.BaseRecords;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 
 /**
@@ -20,6 +21,6 @@ import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
  * @param writeBack invoked with the transformed records.
  */
 public record PartitionWorkItem(String topicName,
-                                MemoryRecords records,
+                                BaseRecords records,
                                 List<CompiledManipulation<?, ?, ?>> manipulations,
                                 Consumer<MemoryRecords> writeBack) {}

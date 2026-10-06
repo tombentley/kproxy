@@ -11,14 +11,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.ManipulationTransform;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.PartitionWorkItem;
 import io.kroxylicious.kafka.common.Uuid;
@@ -29,7 +27,6 @@ import io.kroxylicious.kafka.common.message.ResponseHeaderData;
 import io.kroxylicious.kafka.common.message.ShareFetchResponseData;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.BaseRecords;
-import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
@@ -87,7 +84,8 @@ public class RecordManipulationFilter implements
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
                     for (var partitionData : topicData.partitionData()) {
-                        addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
+                        BaseRecords records = partitionData.records();
+                        workItems.add(new PartitionWorkItem(topicName, records, matchingManipulations, partitionData::setRecords));
                     }
                 }
             }
@@ -131,7 +129,8 @@ public class RecordManipulationFilter implements
                         .toList();
                 if (!matchingManipulations.isEmpty()) {
                     for (var partitionData : topicData.partitions()) {
-                        addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
+                        BaseRecords records = partitionData.records();
+                        workItems.add(new PartitionWorkItem(topicName, records, matchingManipulations, partitionData::setRecords));
                     }
                 }
             }
@@ -206,7 +205,8 @@ public class RecordManipulationFilter implements
                             .toList();
                     if (!matchingManipulations.isEmpty()) {
                         for (var partitionData : topicData.partitions()) {
-                            addWorkItem(matchingManipulations, workItems, topicName, partitionData.records(), partitionData::setRecords);
+                            BaseRecords records = partitionData.records();
+                            workItems.add(new PartitionWorkItem(topicName, records, matchingManipulations, partitionData::setRecords));
                         }
                     }
                 }
@@ -229,16 +229,6 @@ public class RecordManipulationFilter implements
     @NonNull
     private static String topicNames(ShareFetchResponseData response, TopicNameMapping topicNameMapping) {
         return response.responses().stream().map(td -> topicNameMapping.topicNames().get(td.topicId())).collect(Collectors.joining(","));
-    }
-
-    private void addWorkItem(List<CompiledManipulation<?, ?, ?>> manipulations,
-                             List<PartitionWorkItem> workItems,
-                             String topicName,
-                             @Nullable BaseRecords records,
-                             Consumer<MemoryRecords> writeBack) {
-        if (records instanceof MemoryRecords memoryRecords) {
-            workItems.add(new PartitionWorkItem(topicName, memoryRecords, manipulations, writeBack));
-        }
     }
 
     /**
