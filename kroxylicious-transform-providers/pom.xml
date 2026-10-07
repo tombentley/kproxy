@@ -23,7 +23,6 @@
 
     <modules>
         <module>kroxylicious-transform-provider-neo</module>
-        <module>kroxylicious-transform-provider-camel</module>
     </modules>
 
 </project>
