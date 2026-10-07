@@ -202,13 +202,13 @@ class RecordManipulationFilterTest {
 
     // --- helpers ------------------------------------------------------------------------------
 
-    private static RecordManipulationFilter filter(CompiledManipulation<?, ?, ?>... manipulations) {
+    private static RecordManipulationFilter filter(CompiledManipulation<?, ?>... manipulations) {
         return new RecordManipulationFilter(new Init(List.of(manipulations), null), INLINE);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static CompiledManipulation<?, ?, ?> topicManipulation(Direction direction, Predicate<String> topicMatcher, BufferTransform newValue) {
-        return new CompiledManipulation(direction, topicMatcher, subject -> true, null, null, null, null, null, null, null, null, null, null, null, newValue);
+    private static CompiledManipulation<?, ?> topicManipulation(Direction direction, Predicate<String> topicMatcher, BufferTransform newValue) {
+        return new CompiledManipulation(direction, subject -> true, topicMatcher, null, null, null, null, null, null, null, null, null, newValue);
     }
 
     private static BufferTransform rewriteValueTo(String replacement) {

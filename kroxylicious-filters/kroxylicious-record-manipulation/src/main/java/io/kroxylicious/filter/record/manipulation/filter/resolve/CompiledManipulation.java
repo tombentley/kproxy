@@ -6,20 +6,20 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
+import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
-import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.identity.Identity;
-import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
+import io.kroxylicious.transform.records.BatchEdit;
+import io.kroxylicious.transform.records.RecordEdit;
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.TimestampTransform;
-import io.kroxylicious.transform.service.TimestampTransformService;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -37,27 +37,25 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * @param headerPredicate an optional synchronous predicate on record headers.
  * @param keySchema optional criteria on the record key's schema.
  * @param valueSchema optional criteria on the record value's schema.
- * @param newTimestamp optional replacement timestamp transform ({@code null} = keep original).
+ * @param batchEdit optional edits to the batch
  * @param newKey optional replacement key transform ({@code null} = keep original).
  * @param newValue optional replacement value transform ({@code null} = keep original).
  */
 @SuppressWarnings("removal")
-public record CompiledManipulation<I1, I2, I3>(
-                                               Direction direction,
-                                               Predicate<String> topicMatcher,
-                                               Predicate<Identity> subjectGuard,
-                                               @Nullable Predicate<Header[]> headerPredicate,
-                                               @Nullable SchemaRef keySchema,
-                                               @Nullable SchemaRef valueSchema,
-                                               @Nullable TimestampTransformService<?, I1> newTimestampService,
-                                               @Nullable I1 newTimestampInitData,
-                                               @Nullable TimestampTransform newTimestamp,
-                                               @Nullable BufferTransformService<?, I2> newKeyService,
-                                               @Nullable I2 newKeyInitData,
-                                               @Nullable BufferTransform newKey,
-                                               @Nullable BufferTransformService<?, I3> newValueService,
-                                               @Nullable I3 newValueInitData,
-                                               @Nullable BufferTransform newValue) {
+public record CompiledManipulation<I2, I3>(
+                                           Direction direction,
+                                           Predicate<Identity> subjectGuard,
+                                           Predicate<String> topicMatcher,
+                                           @Nullable Predicate<Header[]> headerPredicate,
+                                           @Nullable SchemaRef keySchema,
+                                           @Nullable SchemaRef valueSchema,
+                                           BatchEdit batchEdit,
+                                           @Nullable BufferTransformService<?, I2> newKeyService,
+                                           @Nullable I2 newKeyInitData,
+                                           @Nullable BufferTransform newKey,
+                                           @Nullable BufferTransformService<?, I3> newValueService,
+                                           @Nullable I3 newValueInitData,
+                                           @Nullable BufferTransform newValue) {
 
     /**
      * Reports whether selection depends on the key schema.
@@ -101,38 +99,39 @@ public record CompiledManipulation<I1, I2, I3>(
                 && (ref.version() == null || "*".equals(ref.version()) || ref.version().equals(versions.version()));
     }
 
-    /**
-     * Builds a topic-name predicate from a {@link TopicName} selector. A {@code null} selector matches
-     * every topic.
-     * @param topicName the selector, or {@code null} to match all topics.
-     * @return the predicate.
-     */
-    public static Predicate<String> topicPredicate(@Nullable TopicName topicName) {
-        if (topicName == null) {
-            return name -> true;
-        }
-        return name -> (topicName.withName() != null && topicName.withName().equals(name))
-                || (topicName.withNameIn() != null && topicName.withNameIn().contains(name))
-                || (topicName.withNameMatching() != null && name.matches(topicName.withNameMatching()));
-    }
-
     public void close() {
         try {
-            if (newTimestampService != null) {
-                newTimestampService.close(newTimestampInitData);
+            if (newKeyService != null) {
+                newKeyService.close(newKeyInitData);
             }
         }
         finally {
-            try {
-                if (newKeyService != null) {
-                    newKeyService.close(newKeyInitData);
-                }
-            }
-            finally {
-                if (newValueService != null) {
-                    newValueService.close(newValueInitData);
-                }
+            if (newValueService != null) {
+                newValueService.close(newValueInitData);
             }
         }
+    }
+
+    public RecordEdit asEdit(RecordView record) {
+        RecordEdit.Builder recordEditsBuilder = RecordEdit.builder();
+        if (newKey() != null) {
+            ByteBuffer newKey = newKey().apply(record);
+            if (newKey == null) {
+                recordEditsBuilder.clearKey();
+            }
+            else {
+                recordEditsBuilder.key(newKey);
+            }
+        }
+        if (newValue() != null) {
+            ByteBuffer newValue = newValue().apply(record);
+            if (newValue == null) {
+                recordEditsBuilder.clearValue();
+            }
+            else {
+                recordEditsBuilder.value(newValue);
+            }
+        }
+        return recordEditsBuilder.build();
     }
 }

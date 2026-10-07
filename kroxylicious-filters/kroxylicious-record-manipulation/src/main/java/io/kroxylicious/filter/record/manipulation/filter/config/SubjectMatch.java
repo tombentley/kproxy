@@ -6,5 +6,4 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
-public record SubjectMatch(PrincipalMatch containsPrincipal) {
-}
+public record SubjectMatch(PrincipalMatch containsPrincipal) {}

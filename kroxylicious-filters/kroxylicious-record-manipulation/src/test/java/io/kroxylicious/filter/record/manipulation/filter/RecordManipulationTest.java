@@ -20,6 +20,8 @@ import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
+import io.kroxylicious.filter.record.manipulation.filter.config.RecordWhen;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRegistry;
 import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
@@ -37,6 +39,7 @@ import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
+import io.kroxylicious.transform.records.BatchEdit;
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
@@ -59,14 +62,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RecordManipulationTest {
 
     private static final Header[] NO_HEADERS = new Header[0];
-    private static final Then DEFAULT_THEN = new Then(null, null, null, null, null, null);
+    private static final Then DEFAULT_THEN = new Then(null, null, null, null,
+            new RecordThen(null, null, null, null));
 
     @Test
     void compilesOneManipulationPerConfigEntry() {
         // Given
         var config = config(
-                manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN),
-                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("payments"), null, null, null), DEFAULT_THEN));
+                manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN),
+                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("payments"), null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -78,14 +82,14 @@ class RecordManipulationTest {
     @Test
     void emptyThenCompilesToKeepTransforms() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
 
         // Then
-        var compiled = init.compiledManipulations().get(0);
-        assertThat(compiled.newTimestamp()).isNull();
+        var compiled = init.compiledManipulations().getFirst();
+        assertThat(compiled.batchEdit()).isEqualTo(BatchEdit.keep());
         assertThat(compiled.newKey()).isNull();
         assertThat(compiled.newValue()).isNull();
         assertThat(compiled.newKeyService()).isNull();
@@ -95,14 +99,14 @@ class RecordManipulationTest {
     @Test
     void wiresConfiguredKeyAndValueTransformsThroughTheirFactories() {
         // Given
-        var then = new Then(null, null, EmptyBuffer.class.getName(), null, NullBuffer.class.getName(), null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
+        var then = new Then(null, null, null, null, new RecordThen(EmptyBuffer.class.getName(), null, NullBuffer.class.getName(), null));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), then));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
 
         // Then
-        var compiled = init.compiledManipulations().get(0);
+        var compiled = init.compiledManipulations().getFirst();
         assertThat(compiled.newKeyService()).isInstanceOf(EmptyBuffer.class);
         assertThat(compiled.newValueService()).isInstanceOf(NullBuffer.class);
         assertThat(compiled.newKey()).isNotNull();
@@ -112,10 +116,10 @@ class RecordManipulationTest {
     @Test
     void compilesExactTopicMatcher() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).topicMatcher();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().topicMatcher();
 
         // Then
         assertThat(matcher.test("orders")).isTrue();
@@ -126,10 +130,10 @@ class RecordManipulationTest {
     void compilesTopicSetMatcher() {
         // Given
         var inTopic = TopicName.isIn(Set.of("orders", "payments"));
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, inTopic, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, inTopic, null), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).topicMatcher();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().topicMatcher();
 
         // Then
         assertThat(matcher.test("orders")).isTrue();
@@ -141,10 +145,10 @@ class RecordManipulationTest {
     void compilesTopicRegexMatcher() {
         // Given
         var inTopic = TopicName.matches("orders-.*");
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, inTopic, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, inTopic, null), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).topicMatcher();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().topicMatcher();
 
         // Then
         assertThat(matcher.test("orders-eu")).isTrue();
@@ -154,24 +158,23 @@ class RecordManipulationTest {
     @Test
     void matchesAllTopicsWhenInTopicOmitted() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, null), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).topicMatcher();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().topicMatcher();
 
         // Then
         assertThat(matcher.test("anything")).isTrue();
     }
 
-
     @Test
     void compilesExactPrincipalMatcher() {
         // Given
         var subjectMatch = new SubjectMatch(PrincipalMatch.is(User.class.getName(), "alice"));
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().subjectGuard();
 
         // Then
         assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
@@ -182,10 +185,10 @@ class RecordManipulationTest {
     void compilesPrincipalSetMatcher() {
         // Given
         var subjectMatch = new SubjectMatch(PrincipalMatch.isIn(User.class.getName(), Set.of("alice", "bob")));
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().subjectGuard();
 
         // Then
         assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
@@ -197,10 +200,10 @@ class RecordManipulationTest {
     void compilesPrincipalRegexMatcher() {
         // Given
         var subjectMatch = new SubjectMatch(PrincipalMatch.matches(User.class.getName(), "(alice|bob)"));
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, subjectMatch), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().subjectGuard();
 
         // Then
         assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
@@ -211,10 +214,10 @@ class RecordManipulationTest {
     @Test
     void matchesAllSubjectsWhenInTopicOmitted() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, null, null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, null, null), DEFAULT_THEN));
 
         // When
-        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).subjectGuard();
+        var matcher = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().subjectGuard();
 
         // Then
         assertThat(matcher.test(new Subject(Set.of(new User("alice"))))).isTrue();
@@ -226,10 +229,11 @@ class RecordManipulationTest {
     void compilesExactHeaderKeyPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate("trace-id", null, null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null),
+                new Then(null, null, null, new RecordWhen(null, null, hasAnyHeader), DEFAULT_THEN.thenNewRecord())));
 
         // When
-        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
+        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().headerPredicate();
 
         // Then
         assertThat(predicate).isNotNull();
@@ -241,10 +245,11 @@ class RecordManipulationTest {
     void compilesHeaderKeySetPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate(null, null, Set.of("trace-id", "span-id"));
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null),
+                new Then(null, null, null, new RecordWhen(null, null, hasAnyHeader), DEFAULT_THEN.thenNewRecord())));
 
         // When
-        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
+        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().headerPredicate();
 
         // Then
         assertThat(predicate).isNotNull();
@@ -256,10 +261,11 @@ class RecordManipulationTest {
     void compilesHeaderKeyRegexPredicate() {
         // Given
         var hasAnyHeader = new HeaderPredicate(null, "trace-.*", null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, hasAnyHeader), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null),
+                new Then(null, null, null, new RecordWhen(null, null, hasAnyHeader), DEFAULT_THEN.thenNewRecord())));
 
         // When
-        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0).headerPredicate();
+        var predicate = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst().headerPredicate();
 
         // Then
         assertThat(predicate).isNotNull();
@@ -270,10 +276,10 @@ class RecordManipulationTest {
     @Test
     void headerPredicateIsNullWhenNoHasAnyHeaderConfigured() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
 
         // When
-        var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
+        var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst();
 
         // Then
         assertThat(compiled.headerPredicate()).isNull();
@@ -282,10 +288,10 @@ class RecordManipulationTest {
     @Test
     void preservesDirection() {
         // Given
-        var config = config(manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
 
         // When
-        var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().get(0);
+        var compiled = new RecordManipulation().initialize(new FakeFactoryContext(), config).compiledManipulations().getFirst();
 
         // Then
         assertThat(compiled.direction()).isEqualTo(Direction.OUT_OF_CLUSTER);
@@ -296,7 +302,9 @@ class RecordManipulationTest {
         // Given
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
         var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null),
-                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders"), keySchema, null, null), DEFAULT_THEN));
+                manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders")),
+                        new Then(null, null, null,
+                                new RecordWhen(keySchema, null, null), DEFAULT_THEN.thenNewRecord())));
 
         // When / Then
         assertThatThrownBy(() -> new RecordManipulation().initialize(new FakeFactoryContext(), config))
@@ -305,22 +313,13 @@ class RecordManipulationTest {
     }
 
     @Test
-    void rejectsTimestampSelection() {
-        // Given
-        var then = new Then("ts", null, null, null, null, null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
-
-        // When / Then
-        assertThatThrownBy(() -> new RecordManipulation().initialize(new FakeFactoryContext(), config))
-                .isInstanceOf(PluginConfigurationException.class)
-                .hasMessageContaining("newTimestamp");
-    }
-
-    @Test
     void rejectsDependencyDeclaringTransform() {
         // Given
-        var then = new Then(null, null, "dep", null, null, null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
+        var then = new Then(null,
+                null, null,
+                new RecordWhen(new SchemaRef("dep", null, null), null, null),
+                null);
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), then));
         var context = new FakeFactoryContext().with("dep", new DependencyDeclaringBufferTransformService());
 
         // When / Then
@@ -334,8 +333,8 @@ class RecordManipulationTest {
         // Given
         var keyService = new RecordingBufferTransformService();
         var valueService = new RecordingBufferTransformService();
-        var then = new Then(null, null, "key", null, "value", null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), then));
+        var then = new Then(null, null, null, null, new RecordThen("key", null, "value", null));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), then));
         var context = new FakeFactoryContext()
                 .with("key", keyService)
                 .with("value", valueService);
@@ -355,7 +354,7 @@ class RecordManipulationTest {
         // Given
         var schemaRegistry = new SchemaRegistry(URI.create("http://registry.local:8080"), null);
         var config = new RecordManipulationConfig(schemaRegistry,
-                List.of(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN)));
+                List.of(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN)));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -367,7 +366,7 @@ class RecordManipulationTest {
     @Test
     void schemaFacetsIsNullWhenSchemaRegistryAbsentAndNoManipulationNeedsSchema() {
         // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, null, null), DEFAULT_THEN));
+        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
 
         // When
         var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
@@ -382,9 +381,10 @@ class RecordManipulationTest {
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
 
         // When / Then
-        assertThatThrownBy(() -> config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), keySchema, null, null), DEFAULT_THEN)))
+        assertThatThrownBy(() -> config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null),
+                new Then(null, null, null, new RecordWhen(keySchema, null, null), DEFAULT_THEN.thenNewRecord()))))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
+                .hasMessageContaining("schemaRegistry is required when a manipulation has a then.ifRecord.withValueSchema or when.ifRecord.withKeySchema");
     }
 
     @Test
@@ -393,9 +393,10 @@ class RecordManipulationTest {
         var valueSchema = new SchemaRef("com.myco", "orders-value", "1");
 
         // When / Then
-        assertThatThrownBy(() -> config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null, valueSchema, null), DEFAULT_THEN)))
+        assertThatThrownBy(() -> config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null),
+                new Then(null, null, null, new RecordWhen(null, valueSchema, null), DEFAULT_THEN.thenNewRecord()))))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("schemaRegistry is required when a manipulation has a when.withValueSchema or when.withKeySchema");
+                .hasMessageContaining("schemaRegistry is required when a manipulation has a then.ifRecord.withValueSchema or when.ifRecord.withKeySchema");
     }
 
     // --- helpers ------------------------------------------------------------------------------
@@ -413,20 +414,14 @@ class RecordManipulationTest {
     }
 
     private static When when(Direction direction,
-                             @Nullable TopicName inTopic,
-                             @Nullable SchemaRef keySchema,
-                             @Nullable SchemaRef valueSchema,
-                             @Nullable HeaderPredicate hasAnyHeader) {
-        return when(direction, inTopic, null, keySchema, valueSchema, hasAnyHeader);
+                             @Nullable TopicName inTopic) {
+        return when(direction, inTopic, null);
     }
 
     private static When when(Direction direction,
                              @Nullable TopicName inTopic,
-                             @Nullable SubjectMatch subjectMatch,
-                             @Nullable SchemaRef keySchema,
-                             @Nullable SchemaRef valueSchema,
-                             @Nullable HeaderPredicate hasAnyHeader) {
-        return new When(direction, inTopic, subjectMatch, keySchema, valueSchema, hasAnyHeader);
+                             @Nullable SubjectMatch subjectMatch) {
+        return new When(direction, inTopic, subjectMatch);
     }
 
     private static Header[] headers(String... keys) {

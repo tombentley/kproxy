@@ -140,7 +140,6 @@ public class RecordFrames {
         CompletionStage<RecordEdit> transform(BatchView batch, RecordView record);
     }
 
-
     /**
      * Apply a produce-path record transform, writing the result into {@code out}.
      * @param transform the record transform

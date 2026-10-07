@@ -85,14 +85,14 @@ class ManipulationTransformTest {
 
     // --- helpers ------------------------------------------------------------------------------
 
-    private static MemoryRecords applyProduce(MemoryRecords input, CompiledManipulation<?, ?, ?> manipulation) {
+    private static MemoryRecords applyProduce(MemoryRecords input, CompiledManipulation<?, ?> manipulation) {
         var out = new ByteBufferOutputStream(Math.max(input.sizeInBytes(), 1));
         return RecordFrames.of(input)
                 .applyAsync(new ManipulationTransform(List.of(manipulation)), out, OPTIONS)
                 .toCompletableFuture().join();
     }
 
-    private static MemoryRecords applyFetch(MemoryRecords input, CompiledManipulation<?, ?, ?> manipulation) {
+    private static MemoryRecords applyFetch(MemoryRecords input, CompiledManipulation<?, ?> manipulation) {
         var out = new ByteBufferOutputStream(Math.max(input.sizeInBytes(), 1));
         return RecordFrames.of(input)
                 .applyAsync(new ManipulationTransform(List.of(manipulation)), out, OPTIONS)
@@ -100,11 +100,11 @@ class ManipulationTransformTest {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static CompiledManipulation<?, ?, ?> manipulation(Direction direction,
-                                                              @Nullable Predicate<Header[]> headerPredicate,
-                                                              BufferTransform newValue) {
-        return new CompiledManipulation(direction, (Predicate<String>) name -> true, subject -> true, headerPredicate,
-                null, null, null, null, null, null, null, null, null, null, newValue);
+    private static CompiledManipulation<?, ?> manipulation(Direction direction,
+                                                           @Nullable Predicate<Header[]> headerPredicate,
+                                                           BufferTransform newValue) {
+        return new CompiledManipulation(direction, subject -> true, (Predicate<String>) name -> true, headerPredicate,
+                null, null, null, null, null, null, null, null, newValue);
     }
 
     private static Predicate<Header[]> hasHeader(String key) {

@@ -6,16 +6,21 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
-import io.kroxylicious.proxy.plugin.PluginImplConfig;
-import io.kroxylicious.proxy.plugin.PluginImplName;
-import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.TimestampTransformService;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+
+import io.kroxylicious.kafka.common.record.internal.CompressionType;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public record Then(@Nullable @PluginImplName(TimestampTransformService.class) String newTimestamp,
-                   @Nullable @PluginImplConfig(implNameProperty = "timestampTransform") Object newTimestampConfig,
-                   @Nullable @PluginImplName(BufferTransformService.class) String newKey,
-                   @Nullable @PluginImplConfig(implNameProperty = "keyTransform") Object newKeyConfig,
-                   @Nullable @PluginImplName(BufferTransformService.class) String newValue,
-                   @Nullable @PluginImplConfig(implNameProperty = "valueTransform") Object newValueConfig) {}
+public record Then(@Nullable CompressionType compressionType,
+                   @Nullable ZonedDateTime newTimestamp,
+                   @Nullable Duration shiftTimestampBy,
+                   @Nullable RecordWhen ifRecord,
+                   RecordThen thenNewRecord) {
+    public Then {
+        if (newTimestamp != null && shiftTimestampBy != null) {
+            throw new IllegalArgumentException("At most one of `newTimestamp` and `shiftTimestampBy` can be specified");
+        }
+    }
+}

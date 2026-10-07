@@ -6,7 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -29,9 +28,9 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public class ManipulationTransform implements AsyncRecordTransform {
 
-    private final List<CompiledManipulation<?, ?, ?>> manipulations;
+    private final List<CompiledManipulation<?, ?>> manipulations;
 
-    public ManipulationTransform(List<CompiledManipulation<?, ?, ?>> manipulations) {
+    public ManipulationTransform(List<CompiledManipulation<?, ?>> manipulations) {
         this.manipulations = manipulations;
     }
 
@@ -39,8 +38,8 @@ public class ManipulationTransform implements AsyncRecordTransform {
      * {@return the first manipulation whose header predicate accepts {@code headers}, or {@code null} if none}
      */
     @Nullable
-    CompiledManipulation<?, ?, ?> firstMatch(Header[] headers) {
-        for (CompiledManipulation<?, ?, ?> manipulation : manipulations) {
+    CompiledManipulation<?, ?> firstMatch(Header[] headers) {
+        for (CompiledManipulation<?, ?> manipulation : manipulations) {
             var predicate = manipulation.headerPredicate();
             if (predicate == null || predicate.test(headers)) {
                 return manipulation;
@@ -49,34 +48,13 @@ public class ManipulationTransform implements AsyncRecordTransform {
         return null;
     }
 
-
     @Override
     public CompletionStage<RecordEdit> transform(BatchView batch, RecordView record) {
-        CompiledManipulation<?, ?, ?> manipulation = firstMatch(record.headers());
+        CompiledManipulation<?, ?> manipulation = firstMatch(record.headers());
         if (manipulation == null) {
             return CompletableFuture.completedFuture(RecordEdit.keep());
         }
-        RecordEdit.Builder builder = RecordEdit.builder();
-        if (manipulation.newKey() != null) {
-            ByteBuffer newKey = manipulation.newKey().apply(record);
-            if (newKey == null) {
-                builder.clearKey();
-            }
-            else {
-                builder.key(newKey);
-            }
-        }
-        if (manipulation.newValue() != null) {
-            ByteBuffer newValue = manipulation.newValue().apply(record);
-            if (newValue == null) {
-                builder.clearValue();
-            }
-            else {
-                builder.value(newValue);
-            }
-        }
-        return CompletableFuture.completedFuture(builder.build());
+        return CompletableFuture.completedFuture(manipulation.asEdit(record));
     }
-
 
 }

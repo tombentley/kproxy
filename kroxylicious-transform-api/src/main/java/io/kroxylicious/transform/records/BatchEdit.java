@@ -97,6 +97,31 @@ public final class BatchEdit {
         return timestampMode;
     }
 
+    @Override
+    public String toString() {
+        return "BatchEdit{" +
+                "compression=" + compression +
+                ", timestampMode=" + timestampMode +
+                ", timestampOperand=" + timestampOperand +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BatchEdit batchEdit = (BatchEdit) o;
+        return timestampOperand == batchEdit.timestampOperand
+                && compression == batchEdit.compression
+                && timestampMode == batchEdit.timestampMode;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(compression, timestampMode, timestampOperand);
+    }
+
     /**
      * Apply the timestamp transform of this edit to a record's original timestamp.
      * @param originalTimestamp the record's original timestamp

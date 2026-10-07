@@ -33,6 +33,7 @@ import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.proxy.plugin.PluginConfigurationException;
+import io.kroxylicious.transform.records.BatchEdit;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.DependencyKey;
@@ -60,7 +61,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                            RecordManipulationConfig config)
             throws PluginConfigurationException {
 
-        List<CompiledManipulation<?, ?, ?>> compiledManipulations = new ArrayList<>(config.manipulations().size());
+        List<CompiledManipulation<?, ?>> compiledManipulations = new ArrayList<>(config.manipulations().size());
         for (var m : config.manipulations()) {
             rejectUnsupported(m);
 
@@ -68,36 +69,44 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             Predicate<Identity> subjectMatcher = subjectPredicate(m.when().clientSubject());
             Predicate<Header[]> headerPredicate = compileHeaderPredicate(m);
 
+            var batchEditBuilder = BatchEdit.builder();
+            if (m.then().newTimestamp() != null) {
+                batchEditBuilder.setTimestamps(m.then().newTimestamp().toInstant().toEpochMilli());
+            }
+            if (m.then().shiftTimestampBy() != null) {
+                batchEditBuilder.shiftTimestamps(m.then().shiftTimestampBy().toMillis());
+            }
+            if (m.then().compressionType() != null) {
+                batchEditBuilder.compression(m.then().compressionType());
+            }
+
             BufferTransformService keyService = null;
             Object keyInitData = null;
             BufferTransform keyTransform = null;
-            if (m.then().newKey() != null) {
-                keyService = context.pluginInstance(BufferTransformService.class, m.then().newKey());
-                keyInitData = keyService.configure(context::pluginInstance, m.then().newKeyConfig());
-                requireNoDependencies(keyService.dependencies(keyInitData), "newKey", m.then().newKey());
+            if (m.then().thenNewRecord().newKey() != null) {
+                keyService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newKey());
+                keyInitData = keyService.configure(context::pluginInstance, m.then().thenNewRecord().newKeyConfig());
+                requireNoDependencies(keyService.dependencies(keyInitData), "newKey", m.then().thenNewRecord().newKey());
                 keyTransform = keyService.create(keyInitData);
             }
 
             BufferTransformService valueService = null;
             Object valueInitData = null;
             BufferTransform valueTransform = null;
-            if (m.then().newValue() != null) {
-                valueService = context.pluginInstance(BufferTransformService.class, m.then().newValue());
-                valueInitData = valueService.configure(context::pluginInstance, m.then().newValueConfig());
-                requireNoDependencies(valueService.dependencies(valueInitData), "newValue", m.then().newValue());
+            if (m.then().thenNewRecord().newValue() != null) {
+                valueService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newValue());
+                valueInitData = valueService.configure(context::pluginInstance, m.then().thenNewRecord().newValueConfig());
+                requireNoDependencies(valueService.dependencies(valueInitData), "newValue", m.then().thenNewRecord().newValue());
                 valueTransform = valueService.create(valueInitData);
             }
 
             compiledManipulations.add(new CompiledManipulation<>(
                     m.when().direction(),
-                    topicMatcher,
-                    subjectMatcher,
+                    subjectMatcher, topicMatcher,
                     headerPredicate,
                     null, // keySchema - schema selection rejected above
                     null, // valueSchema - schema selection rejected above
-                    null, // newTimestampService - timestamp transforms rejected above
-                    null, // newTimestampInitData
-                    null, // newTimestamp
+                    batchEditBuilder.build(),
                     keyService,
                     keyInitData,
                     keyTransform,
@@ -120,7 +129,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
      * than being silently ignored at runtime.
      */
     private static void rejectUnsupported(Manipulation m) throws PluginConfigurationException {
-        if (m.when().withKeySchema() != null || m.when().withValueSchema() != null) {
+        if (m.then().ifRecord() != null && (m.then().ifRecord().withKeySchema() != null || m.then().ifRecord().withValueSchema() != null)) {
             throw new PluginConfigurationException(
                     "when.withKeySchema/withValueSchema (schema-based selection) is not yet supported by the records transform engine");
         }
@@ -144,8 +153,8 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     @Nullable
     private static Predicate<Header[]> compileHeaderPredicate(Manipulation m) {
         Predicate<Header[]> headerPredicate;
-        if (m.when().hasAnyHeader() != null) {
-            var predicate = m.when().hasAnyHeader();
+        if (m.then().ifRecord() != null && m.then().ifRecord().hasAnyHeader() != null) {
+            var predicate = m.then().ifRecord().hasAnyHeader();
             if (predicate.withKey() != null) {
                 String keyToMatch = predicate.withKey();
                 headerPredicate = headers -> Arrays.stream(headers).anyMatch(header -> keyToMatch.equals(header.key()));
