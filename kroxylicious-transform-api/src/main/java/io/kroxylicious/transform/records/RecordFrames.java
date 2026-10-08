@@ -19,20 +19,17 @@ import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
 import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 
 /**
- * <p>An abstract handle over a sequence of record batches (a proxy-friendly replacement for working with
+ * <p>A handle over a sequence of record batches (a proxy-friendly replacement for working with
  * {@code MemoryRecords} directly).
  * It supports reading the batches/records as immutable {@link BatchView}s and
- * {@link RecordView}s, and applying directional transforms to produce a new {@link MemoryRecords}.
- * There are specific subclasses for the cases of records in a
- * produce request ({@link ProducerRecords}) and a fetch response or a share fetch response
- * ({@link ConsumerRecords}).</p>
+ * {@link RecordView}s, and applying directional transforms to produce a new {@link MemoryRecords}.</p>
  *
- * <p>This is a thin layer over the inherited {@code MemoryRecords} reader and uses
- * {@link BatchEncoder} as the batch encoder. A batch with no record edits and no batch edit is copied through
+ * <p>
+ * A batch with no record edits and no batch edit is copied through
  * verbatim (header, CRC and all); an edited batch is handed to {@link BatchEncoder}, which splices unedited
  * records byte-for-byte, re-encoding only the edited ones, collapsing a uniform timestamp shift to a header-only
  * rewrite, and retaining an empty batch header when every record is dropped. Transforms may be synchronous
- * or asynchronous; the async terminals drive a bounded window of
+ * or asynchronous; the async variants drive a bounded window of
  * concurrent per-record transforms via {@link AsyncTransformDriver} while emitting batches in order.</p>
  */
 public class RecordFrames {

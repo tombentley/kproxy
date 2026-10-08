@@ -7,7 +7,6 @@
 package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +42,7 @@ import io.kroxylicious.transform.records.BatchEdit;
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.DependencyKey;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -313,22 +311,6 @@ class RecordManipulationTest {
     }
 
     @Test
-    void rejectsDependencyDeclaringTransform() {
-        // Given
-        var then = new Then(null,
-                null, null,
-                new RecordWhen(new SchemaRef("dep", null, null), null, null),
-                null);
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), then));
-        var context = new FakeFactoryContext().with("dep", new DependencyDeclaringBufferTransformService());
-
-        // When / Then
-        assertThatThrownBy(() -> new RecordManipulation().initialize(context, config))
-                .isInstanceOf(PluginConfigurationException.class)
-                .hasMessageContaining("declares dependencies");
-    }
-
-    @Test
     void closeClosesConfiguredKeyAndValueServicesWithTheirInitData() {
         // Given
         var keyService = new RecordingBufferTransformService();
@@ -474,7 +456,7 @@ class RecordManipulationTest {
         private final List<Object> closedWith = new ArrayList<>();
 
         @Override
-        public Object configure(PluginLookup pluginLookup, Object config) {
+        public Object configure(Object config, TransformInitializationContext context) {
             return initData;
         }
 
@@ -486,23 +468,6 @@ class RecordManipulationTest {
         @Override
         public void close(Object initializationData) {
             closedWith.add(initializationData);
-        }
-    }
-
-    private static final class DependencyDeclaringBufferTransformService implements BufferTransformService<Object, Object> {
-        @Override
-        public Object configure(PluginLookup pluginLookup, Object config) {
-            return new Object();
-        }
-
-        @Override
-        public Set<DependencyKey<?, ?>> dependencies(Object initializationData) {
-            return Set.of(new DependencyKey<>(String.class, ByteBuffer.class));
-        }
-
-        @Override
-        public BufferTransform create(Object initializationData) {
-            return RecordView::value;
         }
     }
 }

@@ -6,15 +6,9 @@
 
 package io.kroxylicious.transform.service;
 
-import java.util.Set;
-
 public interface BufferTransformService<C, I> {
 
-    I configure(PluginLookup pluginLookup, C config);
-
-    default Set<DependencyKey<?, ?>> dependencies(I initializationData) {
-        return Set.of();
-    }
+    I configure(C config, TransformInitializationContext context);
 
     BufferTransform create(I initializationData);
 

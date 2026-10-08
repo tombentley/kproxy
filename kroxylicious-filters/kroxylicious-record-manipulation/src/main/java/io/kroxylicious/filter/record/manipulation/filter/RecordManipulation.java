@@ -85,8 +85,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             BufferTransform keyTransform = null;
             if (m.then().thenNewRecord().newKey() != null) {
                 keyService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newKey());
-                keyInitData = keyService.configure(context::pluginInstance, m.then().thenNewRecord().newKeyConfig());
-                requireNoDependencies(keyService.dependencies(keyInitData), "newKey", m.then().thenNewRecord().newKey());
+                keyInitData = keyService.configure(m.then().thenNewRecord().newKeyConfig(), context::pluginInstance);
                 keyTransform = keyService.create(keyInitData);
             }
 
@@ -95,8 +94,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             BufferTransform valueTransform = null;
             if (m.then().thenNewRecord().newValue() != null) {
                 valueService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newValue());
-                valueInitData = valueService.configure(context::pluginInstance, m.then().thenNewRecord().newValueConfig());
-                requireNoDependencies(valueService.dependencies(valueInitData), "newValue", m.then().thenNewRecord().newValue());
+                valueInitData = valueService.configure(m.then().thenNewRecord().newValueConfig(), context::pluginInstance);
                 valueTransform = valueService.create(valueInitData);
             }
 

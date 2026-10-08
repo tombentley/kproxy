@@ -9,12 +9,12 @@ package io.kroxylicious.filter.record.manipulation.filter.transforms;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = Void.class)
 public class RecordValue implements BufferTransformService<Void, Void> {
     @Override
-    public Void configure(PluginLookup pluginLookup, Void config) {
+    public Void configure(Void config, TransformInitializationContext context) {
         return null;
     }
 

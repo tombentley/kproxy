@@ -7,7 +7,6 @@
 package io.kroxylicious.transform.service;
 
 import java.nio.ByteBuffer;
-import java.util.Set;
 
 import io.kroxylicious.transform.records.RecordView;
 
@@ -20,27 +19,6 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  * shared by the whole transform API; there is no separate "service" record type.</p>
  */
 public interface BufferTransform {
-
-    /**
-     * {@return the per-record dependencies this transform needs resolved before {@link #apply} is called}
-     * The environment resolves these and supplies them via the {@link Dependencies} passed to
-     * {@link #apply(RecordView, Dependencies)}.
-     */
-    default Set<DependencyKey<?, ?>> dependencies() {
-        return Set.of();
-    }
-
-    /**
-     * Applies the transform with resolved per-record dependencies available. The default ignores the
-     * dependencies and delegates to {@link #apply(RecordView)}; dependency-consuming transforms override this.
-     * @param record the record to read from.
-     * @param dependencies the resolved per-record dependencies.
-     * @return the new buffer, or {@code null}.
-     */
-    @Nullable
-    default ByteBuffer apply(RecordView record, Dependencies dependencies) {
-        return apply(record);
-    }
 
     /**
      * Applies the transform.

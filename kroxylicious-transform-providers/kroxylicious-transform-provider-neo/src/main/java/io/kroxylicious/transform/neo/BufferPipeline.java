@@ -22,6 +22,7 @@ import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -29,8 +30,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 public class BufferPipeline implements BufferTransformService<PipelineConfig, BaseTypedOp<Record, ?>> {
 
     @Override
-    public BaseTypedOp<Record, ?> configure(PluginLookup pluginLookup, PipelineConfig config) {
-        return keyOrValuePipeline(pluginLookup, config);
+    public BaseTypedOp<Record, ?> configure(PipelineConfig config, TransformInitializationContext context) {
+        return keyOrValuePipeline(context, config);
     }
 
     @Override
