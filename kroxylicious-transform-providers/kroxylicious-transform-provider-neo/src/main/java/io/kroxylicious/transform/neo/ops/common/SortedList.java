@@ -15,7 +15,7 @@ import io.leangen.geantyref.TypeFactory;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Factory for the {@code SortedList} operation, which returns a sorted copy of the given list.
@@ -30,7 +30,7 @@ public class SortedList<T> implements OpFactory<List<T>, List<T>> {
     }
 
     @Override
-    public BaseTypedOp<List<T>, List<T>> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<List<T>, List<T>> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         var config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
 
         Type listTypeArgument = OpTypeChecker.singleTypeArgumentOf(argumentType, List.class);

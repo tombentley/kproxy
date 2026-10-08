@@ -17,7 +17,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.transform.neo.op.OpContext;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JsonSchemaValidateTest {
 
     @Mock
-    PluginLookup pluginLookup;
+    TransformInitializationContext pluginLookup;
 
     @Mock
     Type argumentType;
@@ -119,7 +119,7 @@ class JsonSchemaValidateTest {
                 """);
         assertThatThrownBy(() -> op.apply(value, opContext))
                 .isExactlyInstanceOf(DataNotSchemaValidException.class)
-                .hasMessageContaining("property 'oops' is not defined in the withKeySchema and the withKeySchema does not allow additional properties");
+                .hasMessageContaining("property 'oops' is not defined in the schema and the schema does not allow additional properties");
     }
 
     @Test

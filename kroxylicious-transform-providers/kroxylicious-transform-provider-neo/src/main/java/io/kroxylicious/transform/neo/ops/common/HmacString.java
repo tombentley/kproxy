@@ -13,7 +13,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Replaces a {@link String} value with its HMAC. String-only: there is no numeric equivalent.
@@ -30,7 +30,9 @@ public class HmacString implements OpFactory<String, String> {
     public record Config(String keyId) {}
 
     @Override
-    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap,
+                                              TransformInitializationContext lookup,
+                                              Type argumentType) {
         Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var fn = new HmacStringFunction();
         return BaseTypedOp.of(String.class, String.class, (String value, OpContext opContext) -> value == null ? null : fn.apply(value, opContext));

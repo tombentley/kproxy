@@ -12,7 +12,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Replaces a value with a fixed {@link Long}.
@@ -27,7 +27,7 @@ public class ValueLong implements OpFactory<Long, Long> {
     public record Config(long value) {}
 
     @Override
-    public BaseTypedOp<Long, Long> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Long, Long> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         return BaseTypedOp.of(Long.class, Long.class, (value, opContext) -> config.value());
     }

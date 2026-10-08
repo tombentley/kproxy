@@ -11,9 +11,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import io.kroxylicious.kafka.common.header.Header;
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.transform.neo.type.Bottom;
 import io.kroxylicious.transform.neo.type.TypeSystem;
+import io.kroxylicious.transform.records.RecordView;
 
 public class KafkaRecordTypeSystem implements TypeSystem<Type> {
     @Override
@@ -29,7 +29,7 @@ public class KafkaRecordTypeSystem implements TypeSystem<Type> {
 
     @Override
     public boolean isObjectType(Type schema) {
-        return schema == Record.class || schema == Header.class;
+        return schema == RecordView.class || schema == Header.class;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class KafkaRecordTypeSystem implements TypeSystem<Type> {
 
     @Override
     public List<String> objectProperties(Type objectSchema) {
-        if (objectSchema == Record.class) {
+        if (objectSchema == RecordView.class) {
             return List.of("timestamp", "sequence", "headers", "offset", "key", "value");
         }
         else if (objectSchema == Header.class) {
@@ -50,7 +50,7 @@ public class KafkaRecordTypeSystem implements TypeSystem<Type> {
 
     @Override
     public Type objectPropertySchema(Type objectSchema, String propertyName) {
-        if (objectSchema == Record.class) {
+        if (objectSchema == RecordView.class) {
             return switch (propertyName) {
                 case "offset", "timestamp" -> Long.TYPE;
                 case "sequence" -> Integer.TYPE;

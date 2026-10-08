@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = WriteJson.Config.class)
 public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
@@ -26,7 +26,7 @@ public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
                          boolean orderMapEntriesByKeys) {}
 
     @Override
-    public BaseTypedOp<JsonNode, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<JsonNode, ByteBuffer> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         Config config1 = JsonTransform.MAPPER.convertValue(config, Config.class);
 
         ObjectMapper mapper = new ObjectMapper()

@@ -14,15 +14,17 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.ApicurioRegistryClientConfig;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaRegistryFactory;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.HeaderPredicate;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.NamedService;
 import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordWhen;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
-import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRegistry;
 import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
@@ -299,7 +301,7 @@ class RecordManipulationTest {
     void rejectsSchemaSelection() {
         // Given
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
-        var config = config(new SchemaRegistry(URI.create("http://localhost:8888"), null),
+        var config = config(new ApicurioRegistryClientConfig(URI.create("http://localhost:8888"), null, null),
                 manipulation(when(Direction.OUT_OF_CLUSTER, TopicName.is("orders")),
                         new Then(null, null, null,
                                 new RecordWhen(keySchema, null, null), DEFAULT_THEN.thenNewRecord())));
@@ -332,32 +334,6 @@ class RecordManipulationTest {
     }
 
     @Test
-    void buildsNonNullSchemaFacetsWhenSchemaRegistryConfigured() {
-        // Given
-        var schemaRegistry = new SchemaRegistry(URI.create("http://registry.local:8080"), null);
-        var config = new RecordManipulationConfig(schemaRegistry,
-                List.of(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN)));
-
-        // When
-        var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
-
-        // Then
-        assertThat(init.schemaFacets()).isNotNull();
-    }
-
-    @Test
-    void schemaFacetsIsNullWhenSchemaRegistryAbsentAndNoManipulationNeedsSchema() {
-        // Given
-        var config = config(manipulation(when(Direction.INTO_CLUSTER, TopicName.is("orders"), null), DEFAULT_THEN));
-
-        // When
-        var init = new RecordManipulation().initialize(new FakeFactoryContext(), config);
-
-        // Then
-        assertThat(init.schemaFacets()).isNull();
-    }
-
-    @Test
     void throwsIllegalArgumentExceptionWhenKeySchemaSelectionConfiguredWithoutSchemaRegistry() {
         // Given
         var keySchema = new SchemaRef("com.myco", "orders-key", "1");
@@ -387,8 +363,16 @@ class RecordManipulationTest {
         return config(null, manipulations);
     }
 
-    private static RecordManipulationConfig config(@Nullable SchemaRegistry registry, Manipulation... manipulations) {
-        return new RecordManipulationConfig(registry, List.of(manipulations));
+    private static RecordManipulationConfig config(@Nullable ApicurioRegistryClientConfig registry, Manipulation... manipulations) {
+        List<NamedService> namedServices;
+        if (registry == null) {
+            namedServices = List.of();
+        }
+        else {
+            namedServices = List.of(
+                    new NamedService("registry", SchemaRegistryFactory.class.getName(), registry));
+        }
+        return new RecordManipulationConfig(namedServices, List.of(manipulations));
     }
 
     private static Manipulation manipulation(When when, Then then) {

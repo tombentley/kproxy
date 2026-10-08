@@ -8,7 +8,7 @@ package io.kroxylicious.transform.service;
 
 public interface TimestampTransformService<C, I> {
 
-    I configure(PluginLookup pluginLookup, C config);
+    I configure(TransformInitializationContext pluginLookup, C config);
 
     TimestampTransform create(I initializationData);
 

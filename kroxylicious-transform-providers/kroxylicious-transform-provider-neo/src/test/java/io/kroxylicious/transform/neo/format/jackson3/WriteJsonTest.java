@@ -23,7 +23,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.transform.neo.op.OpContext;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WriteJsonTest {
 
     @Mock
-    PluginLookup lookup;
+    TransformInitializationContext lookup;
     @Mock
     Type argumentType;
     @Mock

@@ -26,7 +26,7 @@ import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.ListElements;
 import io.kroxylicious.transform.neo.ops.common.Requirement;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * A mask/transform over a Protobuf generic value (a {@link DynamicMessage}, a {@link java.util.List} for a
@@ -50,7 +50,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
-    static ProtobufFunction buildMask(ParsedProtoSchema schema, PluginLookup lookup) {
+    static ProtobufFunction buildMask(ParsedProtoSchema schema, TransformInitializationContext lookup) {
         return buildMask(schema, Set.of(), lookup);
     }
 
@@ -61,12 +61,12 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
-    static ProtobufFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements, PluginLookup lookup) {
+    static ProtobufFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
         return buildMask(schema.descriptor(), schema.apply(), requirements, lookup);
     }
 
     private static ProtobufFunction buildMask(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                              Set<Requirement> requirements, PluginLookup lookup) {
+                                              Set<Requirement> requirements, TransformInitializationContext lookup) {
         ProtobufFunction structural = buildStructural(descriptor, applyByNode, requirements, lookup);
         if (applyByNode.get(descriptor) != null) {
             throw new IllegalArgumentException("apply is not yet supported for message-level nodes: " + descriptor.getFullName());
@@ -138,7 +138,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
     private static ProtobufFunction buildStructural(Descriptors.Descriptor descriptor,
                                                     Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
                                                     Set<Requirement> requirements,
-                                                    PluginLookup lookup) {
+                                                    TransformInitializationContext lookup) {
         Map<String, BaseTypedOp<Object, Object>> mapping = descriptor.getFields().stream()
                 .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, requirements, lookup), (a, b) -> a,
                         LinkedHashMap::new));
@@ -154,7 +154,8 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
      */
     private static ProtobufFunction fieldFunction(Descriptors.FieldDescriptor field,
                                                   Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                  Set<Requirement> requirements, PluginLookup lookup) {
+                                                  Set<Requirement> requirements,
+                                                  TransformInitializationContext lookup) {
         if (field.isMapField()) {
             throw new IllegalArgumentException("Proto mask not yet supported for map fields: " + field.getFullName());
         }
@@ -174,14 +175,14 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds the mask for one element of {@code field} (its message type, if any - recursing via
-     * {@link #buildMask(Descriptors.Descriptor, Map, Set, PluginLookup)} - or a passthrough for a supported
+     * {@link #buildMask(Descriptors.Descriptor, Map, Set, TransformInitializationContext)} - or a passthrough for a supported
      * scalar leaf type), ignoring {@code field}'s repeated-ness, which {@link #fieldFunction} applies
      * separately.
      */
     private static ProtobufFunction buildElementTypeMask(Descriptors.FieldDescriptor field,
                                                          Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
                                                          Set<Requirement> requirements,
-                                                         PluginLookup lookup) {
+                                                         TransformInitializationContext lookup) {
         return switch (field.getType()) {
             case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
             case STRING, INT32, FIXED32, SINT32, SFIXED32, UINT32, INT64, FIXED64, SINT64, SFIXED64, UINT64, FLOAT, DOUBLE, BOOL, BYTES, ENUM -> new ProtobufFunction(
@@ -195,7 +196,10 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
         return (List<Object>) value;
     }
 
-    private static ProtobufFunction buildApplyChain(Descriptors.FieldDescriptor field, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
+    private static ProtobufFunction buildApplyChain(Descriptors.FieldDescriptor field,
+                                                    List<OpConfig> ops,
+                                                    Set<Requirement> requirements,
+                                                    TransformInitializationContext lookup) {
         return switch (field.getType()) {
             case BOOL -> {
                 var pipeline = OpConfigs.compose(Boolean.class, ops, requirements, lookup);

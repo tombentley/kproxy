@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.ServiceLoaderPluginLookup;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AvroFunctionTest {
 
     private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
-    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
+    private static final TransformInitializationContext LOOKUP = new ServiceLoaderPluginLookup();
 
     private static Schema parse(String schemaJson) {
         return new Schema.Parser().parse(schemaJson);

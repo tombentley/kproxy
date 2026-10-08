@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = ReadJson.Config.class)
 public class ReadJson implements OpFactory<ByteBuffer, JsonNode> {
@@ -33,7 +33,7 @@ public class ReadJson implements OpFactory<ByteBuffer, JsonNode> {
     }
 
     @Override
-    public BaseTypedOp<ByteBuffer, JsonNode> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, JsonNode> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config deserializationConfig = JsonTransform.MAPPER.convertValue(configMap, Config.class);
         ObjectMapper deserializationMapper = new ObjectMapper()
                 .configure(JsonParser.Feature.ALLOW_COMMENTS, deserializationConfig.allowComments())

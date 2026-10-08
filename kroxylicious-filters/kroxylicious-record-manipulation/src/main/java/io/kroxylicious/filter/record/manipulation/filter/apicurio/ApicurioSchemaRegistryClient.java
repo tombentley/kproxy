@@ -28,7 +28,7 @@ import io.kroxylicious.proxy.tag.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
+public class ApicurioSchemaRegistryClient implements SchemaRegistryClient, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ApicurioSchemaRegistryClient.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -165,5 +165,10 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     @VisibleForTesting
     HttpClient getHttpClient() {
         return httpClient;
+    }
+
+    @Override
+    public void close() {
+        httpClient.close();
     }
 }

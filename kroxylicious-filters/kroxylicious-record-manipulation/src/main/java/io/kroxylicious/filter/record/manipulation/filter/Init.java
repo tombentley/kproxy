@@ -7,10 +7,10 @@
 package io.kroxylicious.filter.record.manipulation.filter;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
 
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-
-public record Init(List<CompiledManipulation<?, ?>> compiledManipulations, @Nullable SchemaFacets schemaFacets) {}
+public record Init(List<CompiledManipulation<?, ?>> compiledManipulations,
+                   Map<String, AutoCloseable> services, Executor executor) {}

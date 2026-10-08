@@ -12,7 +12,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Generates a random {@link String} of a random length composed of codepoints taken from an alphabet.
@@ -29,7 +29,7 @@ public class RandomString implements OpFactory<String, String> {
     public record Config(String alphabet, int minLengthInclusive, int maxLengthExclusive) {}
 
     @Override
-    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomStringSupplier(config.alphabet(), config.minLengthInclusive(), config.maxLengthExclusive());
         return BaseTypedOp.of(String.class, String.class, (value, opContext) -> generator.apply(opContext));

@@ -23,7 +23,7 @@ import io.kroxylicious.transform.neo.format.jackson2.WriteJson;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.databind.DeserializationFeature;
@@ -83,7 +83,7 @@ public class WriteAvro implements OpFactory<AvroValue, ByteBuffer> {
     }
 
     @Override
-    public BaseTypedOp<AvroValue, ByteBuffer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<AvroValue, ByteBuffer> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         WriterConfig readerConfig;
 
         tools.jackson.databind.ObjectMapper objectMapper = YAMLMapper.builder()

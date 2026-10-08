@@ -22,7 +22,7 @@ import io.kroxylicious.transform.neo.format.jackson3.ReadJson;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.neo.type.SchemaType;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.databind.DeserializationFeature;
@@ -81,7 +81,7 @@ public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
     }
 
     @Override
-    public BaseTypedOp<ByteBuffer, AvroValue> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, AvroValue> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         ReaderConfig readerConfig;
 
         tools.jackson.databind.ObjectMapper objectMapper = YAMLMapper.builder()

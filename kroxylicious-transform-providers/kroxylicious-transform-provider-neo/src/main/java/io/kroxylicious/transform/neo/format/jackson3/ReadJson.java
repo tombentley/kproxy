@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.json.JsonReadFeature;
@@ -140,7 +140,7 @@ public class ReadJson implements OpFactory<ByteBuffer, Object> {
     }
 
     @Override
-    public BaseTypedOp<ByteBuffer, Object> create(@Nullable Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, Object> create(@Nullable Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         ReaderConfig readerConfig;
         if (configMap == null) {
             readerConfig = new JsonReaderConfig(null, null, null);

@@ -26,7 +26,7 @@ import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.Requirement;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * A mask/transform over an Avro generic value (a {@link GenericRecord}, a {@link java.util.List} for an
@@ -69,7 +69,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
-    static AvroFunction buildMask(Schema schema, PluginLookup lookup) {
+    static AvroFunction buildMask(Schema schema, TransformInitializationContext lookup) {
         return buildMask(schema, Set.of(), lookup);
     }
 
@@ -80,7 +80,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
-    static AvroFunction buildMask(Schema schema, Set<Requirement> requirements, PluginLookup lookup) {
+    static AvroFunction buildMask(Schema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
         AvroFunction structural = buildStructural(schema, requirements, lookup);
         List<OpConfig> apply = AvroSchemas.applyConfig(schema);
         AvroFunction foo;
@@ -155,7 +155,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * any), so {@code apply} always sees the already-masked children - mirrors
      * {@code JacksonFunction.buildStructural}.
      */
-    private static AvroFunction buildStructural(Schema schema, Set<Requirement> requirements, PluginLookup lookup) {
+    private static AvroFunction buildStructural(Schema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
         return switch (schema.getType()) {
             case RECORD -> {
                 Map<String, BaseTypedOp<Object, Object>> mapping = schema.getFields().stream()
@@ -193,7 +193,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * a withKeySchema-level {@code apply}, e.g. on an array's {@code items}), composed with any {@code apply}
      * declared directly on the field (a sibling of the field's {@code type}, per {@link AvroSchemas}).
      */
-    private static AvroFunction fieldFunction(Schema.Field field, Set<Requirement> requirements, PluginLookup lookup) {
+    private static AvroFunction fieldFunction(Schema.Field field, Set<Requirement> requirements, TransformInitializationContext lookup) {
         AvroFunction base = buildMask(field.schema(), requirements, lookup);
         List<OpConfig> apply = AvroSchemas.applyConfig(field);
         if (apply == null) {
@@ -203,7 +203,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
         return new AvroFunction((value, context) -> ownApply.apply(base.apply(value, context), context));
     }
 
-    private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, PluginLookup lookup) {
+    private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, TransformInitializationContext lookup) {
         return switch (type) {
             case BOOLEAN -> {
                 var pipeline = OpConfigs.compose(Boolean.class, ops, requirements, lookup);

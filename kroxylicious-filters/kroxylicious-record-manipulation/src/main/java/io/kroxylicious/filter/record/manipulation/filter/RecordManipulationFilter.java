@@ -59,9 +59,9 @@ public class RecordManipulationFilter implements
 
     private final TransformOptions options;
 
-    public RecordManipulationFilter(Init init, Executor filterExecutor) {
+    public RecordManipulationFilter(Init init) {
         this.init = init;
-        this.options = TransformOptions.builder().executor(filterExecutor).windowSize(50).build();
+        this.options = TransformOptions.builder().executor(init.executor()).windowSize(50).build();
     }
 
     @Override

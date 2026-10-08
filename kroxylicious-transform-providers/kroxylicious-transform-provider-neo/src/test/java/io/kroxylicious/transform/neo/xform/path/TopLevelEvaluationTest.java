@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.header.internals.RecordHeader;
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.transform.neo.ExprLexer;
 import io.kroxylicious.transform.neo.ExprParser;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.type.Nothing;
+import io.kroxylicious.transform.records.RecordView;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -44,7 +44,7 @@ class TopLevelEvaluationTest {
     @Test
     void evaluatesScalarField() {
         // Given
-        var record = mock(Record.class);
+        var record = mock(RecordView.class);
         when(record.timestamp()).thenReturn(42L);
 
         // When / Then
@@ -54,7 +54,7 @@ class TopLevelEvaluationTest {
     @Test
     void evaluatesByteBufferField() {
         // Given
-        var record = mock(Record.class);
+        var record = mock(RecordView.class);
         var value = ByteBuffer.allocate(8);
         when(record.value()).thenReturn(value);
 
@@ -65,7 +65,7 @@ class TopLevelEvaluationTest {
     @Test
     void evaluatesNestedPathIntoHeaders() {
         // Given
-        var record = mock(Record.class);
+        var record = mock(RecordView.class);
         Header[] headers = { new RecordHeader("trace-id", "abc".getBytes(StandardCharsets.UTF_8)) };
         when(record.headers()).thenReturn(headers);
 

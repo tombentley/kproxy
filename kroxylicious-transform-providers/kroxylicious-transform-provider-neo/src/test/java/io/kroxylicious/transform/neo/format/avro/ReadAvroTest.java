@@ -18,7 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.transform.neo.op.OpContext;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ReadAvroTest {
 
     @Mock
-    PluginLookup pluginLookup;
+    TransformInitializationContext transformInitializationContext;
 
     @Mock
     Type argumentType;
@@ -36,7 +36,7 @@ class ReadAvroTest {
 
     @AfterEach
     void afterEach() {
-        Mockito.verifyNoInteractions(pluginLookup, argumentType, opContext);
+        Mockito.verifyNoInteractions(transformInitializationContext, argumentType, opContext);
     }
 
     @Test
@@ -44,7 +44,7 @@ class ReadAvroTest {
         // Given
         var factory = new ReadAvro();
         var config = Map.<String, Object> of(
-                "withKeySchema", """
+                "schema", """
                         {
                           "type": "record",
                           "name": "FooBar",
@@ -55,7 +55,7 @@ class ReadAvroTest {
                         """);
 
         // When
-        var op = factory.create(config, pluginLookup, argumentType);
+        var op = factory.create(config, transformInitializationContext, argumentType);
 
         // Then
         assertThat(op.introducedSchema()).hasValueSatisfying(schemaType -> {

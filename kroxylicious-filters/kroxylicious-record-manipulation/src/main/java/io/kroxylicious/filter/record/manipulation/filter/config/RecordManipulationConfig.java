@@ -6,6 +6,7 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,9 +16,29 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 /**
  * <pre>{@code
  * config:
- *   schemaRegistry:
- *     url:
- *     tls:
+ *   services:
+ *     - name: registry
+ *       type: ApicurioRegistryClient
+ *       config:
+ *         url: ...
+ *         tls: ...
+ *         cacheSize: 100
+ *     - name: kms
+ *       type: VaultKmsService
+ *       config: ...
+ *         cacheSize: 100
+ *   transforms:
+ *     - name: validateAndMaskUser
+ *       transforms:
+ *         - transform: ReadJson
+ *           config:
+ *         - transform: JsonSchemaValidation
+ *           config:
+ *             registryServiceRef: registry
+ *         - transform: Jsonata
+ *           jsonata: |
+ *         - transform: WriteJson
+ *           config:
  *   manipulations:
  *     - when:
  *         direction: INTO_CLUSTER
@@ -55,36 +76,17 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *           withKey:
  *             value:
  *               base64: e45iugh5e9468g8653
- *           withKey:
- *             transformedBy:
- *               type: NeoPipe
- *               transforms:
- *                 - transform: ReadJson
- *                   config:
- *                 - transform: JsonSchemaValidation
- *                   config:
- *                 - transform: Jsonata
- *                   jsonata: |
- *                 - transform: WriteJson
- *                   config:
- *           withTransformedValue:
- *             reader: JsonRead # only needed
- *             readerConfig:
- *             transforms:
- *               - transform: Jsonata
- *                 jsonata: |
- *             writer: WriteJson
- *             writerConfig:
+ *           # OR
+ *           withKeyTransformedBy: validateAndMaskUser # reference to a transform
+ *           # AND SAME FOR Value
  * }</pre>
  */
 public record RecordManipulationConfig(
-                                       @Nullable SchemaRegistry schemaRegistry,
+                                       @Nullable List<NamedService> services,
                                        @JsonProperty(required = true) List<Manipulation> manipulations) {
-    public RecordManipulationConfig {
-        if (schemaRegistry == null &&
-                manipulations.stream().anyMatch(manipulation -> manipulation.then().ifRecord() != null && (manipulation.then().ifRecord().withValueSchema() != null
-                        || manipulation.then().ifRecord().withKeySchema() != null))) {
-            throw new IllegalArgumentException("schemaRegistry is required when a manipulation has a then.ifRecord.withValueSchema or when.ifRecord.withKeySchema");
-        }
+    public RecordManipulationConfig(@Nullable List<NamedService> services,
+                                    @JsonProperty(required = true) List<Manipulation> manipulations) {
+        this.services = services != null ? services : List.of();
+        this.manipulations = manipulations;
     }
 }

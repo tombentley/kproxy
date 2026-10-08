@@ -31,7 +31,7 @@ import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.Maybe;
 import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.neo.ops.common.StaticTypedOp;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * A mask/transform over a {@link JsonNode}, built from a {@link SchemaConfig} tree - or, invoked with
@@ -71,7 +71,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,
-                                     PluginLookup lookup) {
+                                     TransformInitializationContext lookup) {
         return buildMask(schema, Set.of(), lookup);
     }
 
@@ -85,7 +85,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
      */
     static JacksonFunction buildMask(SchemaConfig schema,
                                      Set<Requirement> requirements,
-                                     PluginLookup lookup) {
+                                     TransformInitializationContext lookup) {
         JacksonFunction structural = buildStructural(schema, requirements, lookup);
         JacksonFunction foo;
         if (schema.apply() != null) {
@@ -149,7 +149,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
      */
     private static JacksonFunction buildStructural(SchemaConfig schema,
                                                    Set<Requirement> requirements,
-                                                   PluginLookup lookup) {
+                                                   TransformInitializationContext lookup) {
         return switch (schema.type()) {
             case "array" -> {
                 if (schema.items() != null) {
@@ -192,7 +192,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
     private static JacksonFunction buildApplyChain(String type,
                                                    List<OpConfig> opConfigs,
                                                    Set<Requirement> requirements,
-                                                   PluginLookup lookup) {
+                                                   TransformInitializationContext lookup) {
         return switch (type) {
             case "boolean" -> {
                 var pipeline = OpConfigs.compose(Boolean.class, opConfigs, requirements, lookup);

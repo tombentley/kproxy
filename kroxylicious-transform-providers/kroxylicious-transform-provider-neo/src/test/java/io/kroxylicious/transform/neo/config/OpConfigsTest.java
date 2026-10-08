@@ -17,7 +17,6 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.proxy.plugin.UnknownPluginInstanceException;
 import io.kroxylicious.transform.neo.RecordTimestamp;
@@ -31,7 +30,8 @@ import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.TypeException;
 import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.neo.ops.constant.ValueInt;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.records.RecordView;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,7 +43,12 @@ class OpConfigsTest {
     OpContext opContext = new OpContext(new Random(), new byte[0]);
     ServiceBasedPluginFactoryRegistry registry = new ServiceBasedPluginFactoryRegistry();
 
-    PluginLookup lookup = new PluginLookup() {
+    TransformInitializationContext lookup = new TransformInitializationContext() {
+        @Override
+        public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
+            return null;
+        }
+
         @Override
         public <P> P pluginInstance(Class<P> pluginClass, String implementationName) {
             return registry.pluginFactory(pluginClass).pluginInstance(implementationName);
@@ -52,11 +57,11 @@ class OpConfigsTest {
 
     @Test
     void simplePipeline() {
-        var pipe = OpConfigs.compose(Record.class, List.of(
+        var pipe = OpConfigs.compose(RecordView.class, List.of(
                 new OpConfig(RecordValue.class),
                 new OpConfig(ReadJson.class),
                 new OpConfig(JsonTransform.class,
-                        Map.of("withKeySchema",
+                        Map.of("schema",
                                 Map.of("type", "integer",
                                         "apply", List.of(
                                                 Map.of(
@@ -64,9 +69,9 @@ class OpConfigsTest {
                                                         "value", 999))))),
                 new OpConfig(WriteJson.class)), Set.of(), lookup);
 
-        assertThat(pipe.inputType()).isEqualTo(Record.class);
+        assertThat(pipe.inputType()).isEqualTo(RecordView.class);
         assertThat(pipe.outputType()).isEqualTo(ByteBuffer.class);
-        var record = mock(Record.class);
+        var record = mock(RecordView.class);
         when(record.value()).thenReturn(ByteBuffer.wrap("12".getBytes(StandardCharsets.UTF_8)));
         assertThat(pipe.apply(record, opContext)).isEqualTo(ByteBuffer.wrap("999".getBytes(StandardCharsets.UTF_8)));
     }
@@ -92,7 +97,7 @@ class OpConfigsTest {
         assertThatThrownBy(() -> OpConfigs.compose(expectedType, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
                 .hasMessage("Op io.kroxylicious.transform.neo.RecordValue has input type "
-                        + "io.kroxylicious.kafka.common.record.internal.Record which is not a subtype of "
+                        + "io.kroxylicious.transform.records.RecordView which is not a subtype of "
                         + "the expected type java.lang.Integer");
     }
 
@@ -103,7 +108,7 @@ class OpConfigsTest {
                 new OpConfig(ReadJson.class) // expects ByteBuffer
         );
         Set<Requirement> requirements = Set.of();
-        assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
+        assertThatThrownBy(() -> OpConfigs.compose(RecordView.class, opConfigs, requirements, lookup))
                 .isInstanceOf(TypeException.class)
                 .hasMessage("Op " + ReadJson.class.getName() + " has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "

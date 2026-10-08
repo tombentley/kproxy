@@ -8,17 +8,17 @@ package io.kroxylicious.transform.neo.ops.common;
 
 import java.util.ServiceLoader;
 
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
- * A {@link PluginLookup} backed directly by the JDK's {@link ServiceLoader}, matching a plugin
+ * A {@link TransformInitializationContext} backed directly by the JDK's {@link ServiceLoader}, matching a plugin
  * implementation by its simple class name. Deliberately independent of Kroxylicious's own
  * {@code ServiceBasedPluginFactoryRegistry} (which lives in {@code kroxylicious-runtime}) so that
  * {@code main()}-based demos in this module - which aren't wired into a real {@code Filter} yet, and so
- * have nowhere else to source a {@link PluginLookup} from - don't need this module to take on a
+ * have nowhere else to source a {@link TransformInitializationContext} from - don't need this module to take on a
  * {@code kroxylicious-runtime} dependency just to run.
  */
-public class ServiceLoaderPluginLookup implements PluginLookup {
+public class ServiceLoaderPluginLookup implements TransformInitializationContext {
 
     @Override
     public <P> P pluginInstance(Class<P> pluginClass, String implementationName) {
@@ -27,5 +27,10 @@ public class ServiceLoaderPluginLookup implements PluginLookup {
                 .findFirst()
                 .map(ServiceLoader.Provider::get)
                 .orElseThrow(() -> new IllegalArgumentException("No " + pluginClass.getSimpleName() + " implementation named '" + implementationName + "'"));
+    }
+
+    @Override
+    public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

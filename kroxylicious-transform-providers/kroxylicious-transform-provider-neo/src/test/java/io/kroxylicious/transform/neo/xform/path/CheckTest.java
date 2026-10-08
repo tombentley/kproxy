@@ -18,7 +18,7 @@ import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
 import io.kroxylicious.transform.neo.Expr;
 import io.kroxylicious.transform.neo.ExprParser;
 import io.kroxylicious.transform.neo.RecordTransformConfig2;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
@@ -28,10 +28,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CheckTest {
 
-    private Check check = new Check(new PluginLookup() {
+    private Check check = new Check(new TransformInitializationContext() {
         @Override
         public <P> P pluginInstance(Class<P> c, String n) {
             return new ServiceBasedPluginFactoryRegistry().pluginFactory(c).pluginInstance(n);
+        }
+
+        @Override
+        public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     });
 

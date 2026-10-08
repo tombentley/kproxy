@@ -9,18 +9,18 @@ package io.kroxylicious.transform.neo;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.records.RecordView;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = Void.class)
-public class RecordTimestamp implements OpFactory<Record, Long> {
+public class RecordTimestamp implements OpFactory<RecordView, Long> {
 
     @Override
-    public BaseTypedOp<Record, Long> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        return BaseTypedOp.of(Record.class, Long.class,
+    public BaseTypedOp<RecordView, Long> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
+        return BaseTypedOp.of(RecordView.class, Long.class,
                 (record, opContext) -> record.timestamp());
     }
 }

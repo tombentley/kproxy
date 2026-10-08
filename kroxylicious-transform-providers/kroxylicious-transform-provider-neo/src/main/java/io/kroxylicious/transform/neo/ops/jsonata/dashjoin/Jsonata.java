@@ -14,7 +14,7 @@ import com.dashjoin.jsonata.JException;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = Object.class)
 public class Jsonata implements OpFactory<Object, Object> {
@@ -22,7 +22,7 @@ public class Jsonata implements OpFactory<Object, Object> {
     public static final String CONF_PARAM_EXPRESSION = "expression";
 
     @Override
-    public BaseTypedOp<Object, Object> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Object, Object> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         var expressions = createExpressions(config);
 
         return BaseTypedOp.of(Object.class, Object.class, (value, context) -> {

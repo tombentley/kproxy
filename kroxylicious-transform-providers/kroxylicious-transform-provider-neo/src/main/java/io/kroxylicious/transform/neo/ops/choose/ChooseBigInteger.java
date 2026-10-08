@@ -15,7 +15,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Generates a random {@link BigInteger} drawn from a fixed set.
@@ -30,7 +30,7 @@ public class ChooseBigInteger implements OpFactory<BigInteger, BigInteger> {
     public record Config(List<BigInteger> from) {}
 
     @Override
-    public BaseTypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<BigInteger, BigInteger> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseBigIntegerSupplier(new HashSet<>(config.from()));
         return BaseTypedOp.of(BigInteger.class, BigInteger.class, generator);

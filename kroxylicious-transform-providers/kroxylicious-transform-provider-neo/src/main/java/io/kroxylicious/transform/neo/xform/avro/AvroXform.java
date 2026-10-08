@@ -14,7 +14,7 @@ import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.neo.ops.common.StaticTypedOp;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Example:
@@ -47,7 +47,7 @@ import io.kroxylicious.transform.service.PluginLookup;
  */
 public class AvroXform implements OpFactory<AvroValue, AvroValue> {
     @Override
-    public BaseTypedOp<AvroValue, AvroValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<AvroValue, AvroValue> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         Object xform = config.get("xform"); // xform is the JSON encoding of a default value
         // https://avro.apache.org/docs/1.12.0/specification/#schema-record
 

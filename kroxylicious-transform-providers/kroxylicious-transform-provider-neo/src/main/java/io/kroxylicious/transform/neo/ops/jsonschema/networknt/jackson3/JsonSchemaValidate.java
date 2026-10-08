@@ -26,7 +26,7 @@ import io.kroxylicious.transform.neo.format.jackson3.JsonSchemaTypeSystem;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.neo.type.SchemaType;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.JacksonException;
@@ -53,7 +53,7 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
     }
 
     @Override
-    public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         ObjectMapper objectMapper = new ObjectMapper();
         Config config = objectMapper.convertValue(configMap, Config.class);
         /*

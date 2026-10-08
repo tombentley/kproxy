@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.kafka.common.header.internals.RecordHeader;
 import io.kroxylicious.transform.neo.op.OpContext;
+import io.kroxylicious.transform.records.RecordView;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -32,7 +33,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessRecordTimestamp() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         when(mockRecord.timestamp()).thenReturn(42L);
 
         // When
@@ -45,7 +46,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessRecordKey() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         var valueBuffer = ByteBuffer.allocate(100);
         when(mockRecord.key()).thenReturn(valueBuffer);
 
@@ -59,7 +60,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessRecordValue() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         var valueBuffer = ByteBuffer.allocate(100);
         when(mockRecord.value()).thenReturn(valueBuffer);
 
@@ -73,7 +74,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessHeader() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         Header[] headers = { new RecordHeader("my-key", "my-value".getBytes(StandardCharsets.UTF_8)) };
         when(mockRecord.headers()).thenReturn(headers);
 
@@ -87,7 +88,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessHeaderKey() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         Header[] headers = { new RecordHeader("my-key", "my-value".getBytes(StandardCharsets.UTF_8)) };
         when(mockRecord.headers()).thenReturn(headers);
 
@@ -105,7 +106,7 @@ class KafkaRecordTreeTest {
     @Test
     void canAccessHeaderValue() {
         // Given
-        var mockRecord = mock(io.kroxylicious.kafka.common.record.internal.Record.class);
+        var mockRecord = mock(RecordView.class);
         byte[] bytes = "my-value".getBytes(StandardCharsets.UTF_8);
         Header[] headers = { new RecordHeader("my-key", bytes) };
         when(mockRecord.headers()).thenReturn(headers);

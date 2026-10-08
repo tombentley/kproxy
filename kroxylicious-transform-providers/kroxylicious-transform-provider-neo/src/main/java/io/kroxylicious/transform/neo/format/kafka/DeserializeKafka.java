@@ -16,7 +16,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 public class DeserializeKafka implements OpFactory<ByteBuffer, Object> {
 
@@ -51,7 +51,7 @@ public class DeserializeKafka implements OpFactory<ByteBuffer, Object> {
                   boolean isKey) {}
 
     @Override
-    public BaseTypedOp<ByteBuffer, Object> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, Object> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         Config config1 = null;
         // TODO A Kafka deserialize is Closable, but the OpFactory doesn't allow to honour that contract
         Deserializer<?> deserializer = config1.kafkaType().deserializer();

@@ -11,9 +11,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 import io.kroxylicious.proxy.plugin.Plugin;
-import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = ConstantTimestamp.Config.class)
 public class ConstantTimestamp implements TimestampTransformService<ConstantTimestamp.Config, Long> {
@@ -38,7 +38,7 @@ public class ConstantTimestamp implements TimestampTransformService<ConstantTime
     }
 
     @Override
-    public Long configure(PluginLookup pluginLookup, Config config) {
+    public Long configure(TransformInitializationContext pluginLookup, Config config) {
         if (config.offsetFromEpoch == null) {
             return config.offsetFromEpoch;
         }

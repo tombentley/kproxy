@@ -9,13 +9,13 @@ package io.kroxylicious.transform.neo.xform.path;
 import java.util.List;
 
 import io.kroxylicious.kafka.common.header.Header;
-import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.transform.records.RecordView;
 
 public class KafkaRecordTree implements TreeAdapter<Object> {
 
     @Override
     public boolean isObject(Object node) {
-        return node instanceof Record || node instanceof Header;
+        return node instanceof RecordView || node instanceof Header;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class KafkaRecordTree implements TreeAdapter<Object> {
 
     @Override
     public Iterable<? extends Prop<Object>> objectProperties(Object node) {
-        if (node instanceof Record record) {
+        if (node instanceof RecordView record) {
             return List.of(
                     new Prop<>("timestamp", record.timestamp()),
                     new Prop<>("sequence", record.sequence()),

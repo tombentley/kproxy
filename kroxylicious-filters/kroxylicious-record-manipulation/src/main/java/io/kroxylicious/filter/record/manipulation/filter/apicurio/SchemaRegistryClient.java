@@ -8,9 +8,12 @@ package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
 import java.util.concurrent.CompletionStage;
 
-public interface SchemaRegistryClient {
+public interface SchemaRegistryClient extends AutoCloseable {
 
     CompletionStage<ContentResult> contentById(ContentId contentId);
 
     CompletionStage<VersionsResult> versionsForGlobalId(GlobalId globalId);
+
+    @Override
+    void close();
 }

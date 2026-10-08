@@ -16,10 +16,10 @@ import io.kroxylicious.transform.neo.ops.common.ComposedOp;
 import io.kroxylicious.transform.neo.ops.common.IdentityOp;
 import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
 import io.kroxylicious.transform.neo.ops.common.Requirement;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
- * Resolves an {@link OpConfig} to a built operation via {@link PluginLookup} - the part of building an
+ * Resolves an {@link OpConfig} to a built operation via {@link TransformInitializationContext} - the part of building an
  * {@code apply} chain that's identical across every format engine (Jackson/Avro/Protobuf), so it lives
  * here once rather than being duplicated in each engine's own {@code buildOp}.
  */
@@ -33,7 +33,7 @@ public final class OpConfigs {
                                                 Class<T> inputType,
                                                 List<OpConfig> opConfigs,
                                                 Set<Requirement> requirements,
-                                                PluginLookup lookup) {
+                                                TransformInitializationContext context) {
 
         if (opConfigs.isEmpty()) {
             return IdentityOp.identity();
@@ -42,8 +42,8 @@ public final class OpConfigs {
             Type currentType = inputType;
             BaseTypedOp last = null;
             for (var opConfig : opConfigs) {
-                OpFactory<?, ?> factory = lookup.pluginInstance(OpFactory.class, opConfig.op());
-                BaseTypedOp<?, ?> op = factory.create(opConfig.config(), lookup, currentType);
+                OpFactory<?, ?> factory = context.pluginInstance(OpFactory.class, opConfig.op());
+                BaseTypedOp<?, ?> op = factory.create(opConfig.config(), context, currentType);
                 OpTypeChecker.requireAssignable(op.inputType(), currentType, "Op " + opConfig.op() + " has input type " + GenericTypeReflector.getTypeName(op.inputType())
                         + " which is not a subtype of the expected type " + GenericTypeReflector.getTypeName(currentType));
                 currentType = op.outputType();

@@ -26,7 +26,7 @@ import io.leangen.geantyref.TypeFactory;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.TypeException;
 import io.kroxylicious.transform.neo.ops.common.ListFirst;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ListFirstTest {
 
     @Mock
-    PluginLookup lookup;
+    TransformInitializationContext lookup;
 
     OpContext opContext = new OpContext(new Random(), new byte[0]);
 

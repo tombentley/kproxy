@@ -203,7 +203,7 @@ class RecordManipulationFilterTest {
     // --- helpers ------------------------------------------------------------------------------
 
     private static RecordManipulationFilter filter(CompiledManipulation<?, ?>... manipulations) {
-        return new RecordManipulationFilter(new Init(List.of(manipulations), null), INLINE);
+        return new RecordManipulationFilter(new Init(List.of(manipulations), null, INLINE));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

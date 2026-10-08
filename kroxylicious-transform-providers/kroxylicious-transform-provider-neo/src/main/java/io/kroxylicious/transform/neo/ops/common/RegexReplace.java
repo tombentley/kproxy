@@ -12,7 +12,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = RegexReplace.Config.class)
 public class RegexReplace implements OpFactory<String, String> {
@@ -24,7 +24,7 @@ public class RegexReplace implements OpFactory<String, String> {
                          RegexReplaceStringFunction.Replacement replacement) {}
 
     @Override
-    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         RegexReplaceStringFunction regexReplaceStringFunction = new RegexReplaceStringFunction(config.pattern(), config.replacement());
         return BaseTypedOp.of(String.class, String.class, regexReplaceStringFunction);

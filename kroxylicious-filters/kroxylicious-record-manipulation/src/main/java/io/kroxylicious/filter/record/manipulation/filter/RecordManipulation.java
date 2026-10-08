@@ -6,29 +6,34 @@
 
 package io.kroxylicious.filter.record.manipulation.filter;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.ApicurioSchemaRegistryClient;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
+import org.slf4j.Logger;
+
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
+import io.kroxylicious.filter.record.manipulation.filter.config.NamedService;
 import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
-import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CompiledManipulation;
+import io.kroxylicious.filter.record.manipulation.filter.service.ServiceFactory;
 import io.kroxylicious.identity.Identity;
 import io.kroxylicious.identity.Principal;
 import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.proxy.filter.Filter;
+import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
@@ -37,9 +42,12 @@ import io.kroxylicious.transform.records.BatchEdit;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
 import io.kroxylicious.transform.service.DependencyKey;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * The FilterFactory (service) for the {@link RecordManipulationFilter}.
@@ -55,11 +63,18 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 @Plugin(configType = RecordManipulationConfig.class)
 public class RecordManipulation implements FilterFactory<RecordManipulationConfig, Init> {
 
+    private static final Logger LOGGER = getLogger(RecordManipulation.class);
+
     @SuppressWarnings({ "unchecked", "rawtypes", "removal" })
     @Override
     public Init initialize(FilterFactoryContext context,
                            RecordManipulationConfig config)
             throws PluginConfigurationException {
+
+        // create the services
+        Map<String, AutoCloseable> services = createServices(context, config);
+
+        MyTransformInitializationContext context1 = new MyTransformInitializationContext(services, context);
 
         List<CompiledManipulation<?, ?>> compiledManipulations = new ArrayList<>(config.manipulations().size());
         for (var m : config.manipulations()) {
@@ -85,7 +100,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             BufferTransform keyTransform = null;
             if (m.then().thenNewRecord().newKey() != null) {
                 keyService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newKey());
-                keyInitData = keyService.configure(m.then().thenNewRecord().newKeyConfig(), context::pluginInstance);
+                keyInitData = keyService.configure(m.then().thenNewRecord().newKeyConfig(), context1);
                 keyTransform = keyService.create(keyInitData);
             }
 
@@ -94,7 +109,7 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             BufferTransform valueTransform = null;
             if (m.then().thenNewRecord().newValue() != null) {
                 valueService = context.pluginInstance(BufferTransformService.class, m.then().thenNewRecord().newValue());
-                valueInitData = valueService.configure(m.then().thenNewRecord().newValueConfig(), context::pluginInstance);
+                valueInitData = valueService.configure(m.then().thenNewRecord().newValueConfig(), context1);
                 valueTransform = valueService.create(valueInitData);
             }
 
@@ -113,13 +128,45 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
                     valueTransform));
         }
 
-        SchemaFacets schemaFacets = null;
-        if (config.schemaRegistry() != null) {
-            var client = new ApicurioSchemaRegistryClient(config.schemaRegistry().url(), Duration.ofSeconds(20), config.schemaRegistry().tls());
-            schemaFacets = new SchemaFacets(client, CachingEntityResolver.UNBOUNDED, CachingEntityResolver.UNBOUNDED);
-        }
+        Executor filterDispatchExecutor = context.filterDispatchExecutor();
+        return new Init(compiledManipulations, services, filterDispatchExecutor != null ? filterDispatchExecutor : Runnable::run);
+    }
 
-        return new Init(compiledManipulations, schemaFacets);
+    @NonNull
+    private Map<String, AutoCloseable> createServices(FilterFactoryContext context, RecordManipulationConfig config) {
+        List<Map.Entry<String, List<NamedService>>> dupes = config.services().stream().collect(Collectors.groupingBy(NamedService::name))
+                .entrySet().stream().collect(Collectors.partitioningBy(e -> e.getValue().size() >= 2))
+                .get(true);
+        if (!dupes.isEmpty()) {
+            throw new PluginConfigurationException("Duplicate service names: " + dupes.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ")));
+        }
+        Map<String, AutoCloseable> services = HashMap.newHashMap(config.services().size());
+        try {
+            for (var service : config.services()) {
+                ServiceFactory serviceFactory = context.pluginInstance(ServiceFactory.class, service.type());
+                AutoCloseable autoCloseable = serviceFactory.create(service.config());
+                services.put(service.name(), autoCloseable);
+            }
+        }
+        catch (RuntimeException e) {
+            closeServices(services);
+            throw e;
+        }
+        return services;
+    }
+
+    private void closeServices(Map<String, AutoCloseable> services) {
+        for (var entry : services.entrySet()) {
+            try {
+                entry.getValue().close();
+            }
+            catch (Exception exception) {
+                LOGGER.atError()
+                        .addKeyValue("service", entry.getKey())
+                        .setCause(exception)
+                        .log("Error closing service " + entry.getKey());
+            }
+        }
     }
 
     /**
@@ -260,6 +307,46 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     @Override
     public Filter createFilter(FilterFactoryContext context,
                                Init initializationData) {
-        return new RecordManipulationFilter(initializationData, context.filterDispatchExecutor());
+        return new RecordManipulationFilter(initializationData);
+    }
+
+    private static class MyTransformInitializationContext implements TransformInitializationContext {
+        private final Map<String, AutoCloseable> services;
+        private final FilterFactoryContext context;
+
+        MyTransformInitializationContext(Map<String, AutoCloseable> services, FilterFactoryContext context) {
+            this.services = services;
+            this.context = context;
+        }
+
+        @Override
+        public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
+            AutoCloseable service = services.get(instanceName);
+            if (service == null) {
+                var typeCompatibleServices = services.entrySet().stream()
+                        .filter(entry -> serviceClass.isInstance(entry.getValue()))
+                        .map(Map.Entry::getKey)
+                        .sorted()
+                        .collect(Collectors.joining(", "));
+                String message = "No service with name " + instanceName + " has been defined";
+                if (typeCompatibleServices.isEmpty()) {
+                    message += ", and there are no services compatible with " + serviceClass;
+                }
+                else {
+                    message += ". The follow services are compatible with " + serviceClass + ": " + typeCompatibleServices;
+                }
+                throw new IllegalStateException(message);
+            }
+            else if (!serviceClass.isInstance(service)) {
+                throw new IllegalStateException("Service with name " + instanceName + " is not an instance of " + serviceClass.getName()
+                        + " (is an instance of " + service.getClass().getName() + ")");
+            }
+            return serviceClass.cast(service);
+        }
+
+        @Override
+        public <P> P pluginInstance(Class<P> pluginClass, String implementationName) {
+            return context.pluginInstance(pluginClass, implementationName);
+        }
     }
 }

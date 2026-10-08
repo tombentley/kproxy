@@ -16,7 +16,7 @@ import io.kroxylicious.transform.neo.format.avro.AvroTransform;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Masks/transforms a {@link ProtoValue} per its bundled withKeySchema's {@code apply} annotations (see
@@ -34,16 +34,16 @@ import io.kroxylicious.transform.service.PluginLookup;
 public class ProtobufTransform implements OpFactory<ProtoValue, ProtoValue> {
 
     @Override
-    public BaseTypedOp<ProtoValue, ProtoValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ProtoValue, ProtoValue> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         return BaseTypedOp.of(ProtoValue.class, ProtoValue.class, new CachingMask(lookup));
     }
 
     private static final class CachingMask implements java.util.function.BiFunction<ProtoValue, OpContext, ProtoValue> {
-        private final PluginLookup lookup;
+        private final TransformInitializationContext lookup;
         private volatile ParsedProtoSchema cachedSchema;
         private volatile ProtobufFunction cachedMask;
 
-        private CachingMask(PluginLookup lookup) {
+        private CachingMask(TransformInitializationContext lookup) {
             this.lookup = lookup;
         }
 

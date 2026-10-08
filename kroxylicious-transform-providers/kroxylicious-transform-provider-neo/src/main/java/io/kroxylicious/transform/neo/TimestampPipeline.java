@@ -12,23 +12,22 @@ import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
-import io.kroxylicious.transform.service.KafkaRecord;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class TimestampPipeline implements TimestampTransformService<PipelineConfig, PipelineConfig> {
 
     @Override
-    public PipelineConfig configure(PluginLookup pluginLookup, PipelineConfig config) {
+    public PipelineConfig configure(TransformInitializationContext pluginLookup, PipelineConfig config) {
         return config;
     }
 
@@ -54,7 +53,17 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
         }
 
         var expectedType = Long.class;
-        BaseTypedOp<KafkaRecord, ?> compose = OpConfigs.compose(KafkaRecord.class, configs, Set.of(), filterFactoryContext::pluginInstance);
+        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, Set.of(), new TransformInitializationContext() {
+            @Override
+            public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+
+            @Override
+            public <P> P pluginInstance(Class<P> pluginClass, String implementationName) {
+                return filterFactoryContext.pluginInstance(pluginClass, implementationName);
+            }
+        });
         OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
                 "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
                         + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");
@@ -62,7 +71,7 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
 
             @Nullable
             @Override
-            public long apply(KafkaRecord record) {
+            public long apply(RecordView record) {
                 return (Long) compose.apply(record, null);
             }
         };

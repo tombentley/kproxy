@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Factory for the {@code ListFirst} operation, which returns the first item from a list.
@@ -35,7 +35,7 @@ public class ListFirst<T> implements OpFactory<List<T>, T> {
     }
 
     @Override
-    public BaseTypedOp<List<T>, T> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<List<T>, T> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         var config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         // TODO we would be nice if we knew the TypeReference at this point
         // That would mean we'd need to type check the factories, so that I know what ListFirst is going to be called on

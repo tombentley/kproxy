@@ -7,14 +7,14 @@
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
 import io.kroxylicious.proxy.plugin.Plugin;
-import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TimestampTransform;
 import io.kroxylicious.transform.service.TimestampTransformService;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = Void.class)
 public class RecordTimestamp implements TimestampTransformService<Void, Void> {
     @Override
-    public Void configure(PluginLookup pluginLookup, Void config) {
+    public Void configure(TransformInitializationContext pluginLookup, Void config) {
         return null;
     }
 

@@ -17,7 +17,7 @@ import io.kroxylicious.transform.neo.format.jackson2.JsonTransform;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Masks/transforms an {@link AvroValue} per its bundled withKeySchema's {@code apply} annotations (see
@@ -40,16 +40,16 @@ import io.kroxylicious.transform.service.PluginLookup;
 public class AvroTransform implements OpFactory<AvroValue, AvroValue> {
 
     @Override
-    public BaseTypedOp<AvroValue, AvroValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<AvroValue, AvroValue> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         return BaseTypedOp.of(AvroValue.class, AvroValue.class, new CachingMask(lookup));
     }
 
     private static final class CachingMask implements BiFunction<AvroValue, OpContext, AvroValue> {
-        private final PluginLookup lookup;
+        private final TransformInitializationContext lookup;
         private volatile Schema cachedSchema;
         private volatile AvroFunction cachedMask;
 
-        private CachingMask(PluginLookup lookup) {
+        private CachingMask(TransformInitializationContext lookup) {
             this.lookup = lookup;
         }
 

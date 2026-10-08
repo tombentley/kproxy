@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import tools.jackson.core.json.JsonWriteFeature;
@@ -102,7 +102,7 @@ public class WriteJson implements OpFactory<JsonNode, ByteBuffer> {
     }
 
     @Override
-    public BaseTypedOp<JsonNode, ByteBuffer> create(@Nullable Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<JsonNode, ByteBuffer> create(@Nullable Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         WriterConfig writerConfig;
         if (config == null) {
             writerConfig = new JsonWriterConfig(null, null, null);

@@ -30,6 +30,7 @@ import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
+import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
 import io.kroxylicious.filter.record.manipulation.filter.config.Then;
 import io.kroxylicious.filter.record.manipulation.filter.config.TopicName;
 import io.kroxylicious.filter.record.manipulation.filter.config.When;
@@ -90,7 +91,7 @@ class RecordManipulationFilterTest {
                         "ageYears", Map.of("type", "integer")));
         return new PipelineConfig(Origin.RecordValue, List.of(
                 new OpConfig(ReadJson.class),
-                new OpConfig(JsonTransform.class, Map.of("withKeySchema", schema)),
+                new OpConfig(JsonTransform.class, Map.of("schema", schema)),
                 new OpConfig(WriteJson.class)));
     }
 
@@ -99,11 +100,12 @@ class RecordManipulationFilterTest {
                 List.of(new Manipulation(
                             new When(direction,
                                 TopicName.is(TOPIC_NAME),
-                                    null,
-                    null, null, null),
+                                    null),
+
                             new Then(null, null,
                                 null, null,
-                                BufferPipeline.class.getName(), jsonMaskingValuePipeline()))));
+                                new RecordThen(null, null,
+                                BufferPipeline.class.getName(), jsonMaskingValuePipeline())))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);

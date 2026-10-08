@@ -17,7 +17,7 @@ import com.api.jsonata4java.expressions.ParseException;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import tools.jackson.databind.JsonNode;
 
@@ -27,7 +27,7 @@ public class Jsonata implements OpFactory<JsonNode, JsonNode> {
     public static final String CONF_PARAM_EXPRESSION = "expression";
 
     @Override
-    public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<JsonNode, JsonNode> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         var expressions = createExpressions(config);
 
         return BaseTypedOp.of(JsonNode.class, JsonNode.class, (value, context) -> {

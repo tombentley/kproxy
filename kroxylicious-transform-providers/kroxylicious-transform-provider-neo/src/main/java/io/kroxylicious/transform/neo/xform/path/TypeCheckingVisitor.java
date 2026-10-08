@@ -18,6 +18,7 @@ import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.type.Null;
 import io.kroxylicious.transform.neo.type.SchemaType;
 import io.kroxylicious.transform.neo.type.Union;
+import io.kroxylicious.transform.records.RecordView;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
@@ -42,7 +43,7 @@ class TypeCheckingVisitor implements Ast.AstVisitor {
     TypeCheckingVisitor(String propertyName,
                         Type requiredType,
                         List<String> errors) {
-        this(propertyName, requiredType, errors, SchemaType.of(new KafkaRecordTypeSystem(), Record.class));
+        this(propertyName, requiredType, errors, SchemaType.of(new KafkaRecordTypeSystem(), RecordView.class));
     }
 
     TypeCheckingVisitor(String propertyName,

@@ -14,7 +14,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.format.avro.WriteAvro;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Serializes a {@link ProtoValue} to Protobuf's binary encoding - the Protobuf equivalent of
@@ -28,7 +28,9 @@ import io.kroxylicious.transform.service.PluginLookup;
 public class SerializeProtobuf implements OpFactory<ProtoValue, ByteBuffer> {
 
     @Override
-    public BaseTypedOp<ProtoValue, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ProtoValue, ByteBuffer> create(Map<String, Object> config,
+                                                      TransformInitializationContext lookup,
+                                                      Type argumentType) {
         var serializer = new ProtobufBinarySerializer();
         return BaseTypedOp.of(ProtoValue.class, ByteBuffer.class, (value, opContext) -> serializer.serialize(value.message()));
     }

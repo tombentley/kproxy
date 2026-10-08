@@ -16,7 +16,7 @@ import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.format.avro.ReadAvro;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Deserializes a record value/key from Protobuf's binary encoding to a {@link ProtoValue} - the Protobuf
@@ -32,7 +32,7 @@ public class DeserializeProtobuf implements OpFactory<ByteBuffer, ProtoValue> {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
-    public BaseTypedOp<ByteBuffer, ProtoValue> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<ByteBuffer, ProtoValue> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
         ProtoSchema c = MAPPER.convertValue(config, ProtoSchema.class);
         ParsedProtoSchema schema = ProtobufSchemaParser.parse(c.protoText(), c.rootMessageName());
         var deserializer = new ProtobufBinaryDeserializer(schema.descriptor());

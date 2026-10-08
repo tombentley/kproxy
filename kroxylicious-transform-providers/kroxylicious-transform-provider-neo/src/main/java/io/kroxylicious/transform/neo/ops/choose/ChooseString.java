@@ -14,7 +14,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Generates a random {@link String} drawn from a fixed set.
@@ -29,7 +29,7 @@ public class ChooseString implements OpFactory<String, String> {
     public record Config(List<String> from) {}
 
     @Override
-    public BaseTypedOp<String, String> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<String, String> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseStringSupplier(new HashSet<>(config.from()));
         return BaseTypedOp.of(String.class, String.class, (value, opContext) -> generator.apply(opContext));

@@ -11,19 +11,19 @@ import java.util.Map;
 
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 class ResolverVisitor implements Ast.AstVisitor {
     private final List<String> errors;
     private final @Nullable Map<String, OpConfig> decls;
-    private final PluginLookup pluginLookup;
+    private final TransformInitializationContext pluginLookup;
     String propertyName;
     private String expressionText;
 
     ResolverVisitor(
-                    PluginLookup pluginLookup,
+            TransformInitializationContext pluginLookup,
                     @Nullable Map<String, OpConfig> decls,
                     List<String> errors) {
         this.pluginLookup = pluginLookup;

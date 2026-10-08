@@ -22,6 +22,9 @@ public class Union implements Type {
     private final Set<Type> members;
 
     private Union(Set<Type> members) {
+        if (members.isEmpty()) {
+            throw new IllegalArgumentException("Member types of a Union cannot be empty");
+        }
         this.members = members;
     }
 

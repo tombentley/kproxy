@@ -14,7 +14,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Generates a random {@link Float} drawn from a fixed set.
@@ -29,7 +29,9 @@ public class ChooseFloat implements OpFactory<Float, Float> {
     public record Config(List<Float> from) {}
 
     @Override
-    public BaseTypedOp<Float, Float> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Float, Float> create(Map<String, Object> configMap,
+                                            TransformInitializationContext lookup,
+                                            Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new ChooseFloatSupplier(new HashSet<>(config.from()));
         return BaseTypedOp.of(Float.class, Float.class, (value, opContext) -> generator.apply(opContext));

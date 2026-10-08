@@ -28,7 +28,7 @@ import io.leangen.geantyref.TypeFactory;
 
 import io.kroxylicious.transform.neo.format.DeserializationException;
 import io.kroxylicious.transform.neo.op.OpContext;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class ReadJsonTest {
 
     @Mock
-    PluginLookup pluginLookup;
+    TransformInitializationContext pluginLookup;
 
     @Mock
     Type argumentType;

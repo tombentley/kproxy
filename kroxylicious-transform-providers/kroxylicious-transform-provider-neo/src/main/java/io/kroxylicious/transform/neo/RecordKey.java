@@ -10,18 +10,18 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.records.RecordView;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 @Plugin(configType = Void.class)
-public class RecordKey implements OpFactory<Record, ByteBuffer> {
+public class RecordKey implements OpFactory<RecordView, ByteBuffer> {
 
     @Override
-    public BaseTypedOp<Record, ByteBuffer> create(Map<String, Object> config, PluginLookup lookup, Type argumentType) {
-        return BaseTypedOp.of(Record.class, ByteBuffer.class,
+    public BaseTypedOp<RecordView, ByteBuffer> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType) {
+        return BaseTypedOp.of(RecordView.class, ByteBuffer.class,
                 (record, opContext) -> record.key());
     }
 }

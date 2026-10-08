@@ -13,42 +13,41 @@ import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
+import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 import io.kroxylicious.transform.service.BufferTransformService;
-import io.kroxylicious.transform.service.PluginLookup;
 import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 @Plugin(configType = PipelineConfig.class)
-public class BufferPipeline implements BufferTransformService<PipelineConfig, BaseTypedOp<Record, ?>> {
+public class BufferPipeline implements BufferTransformService<PipelineConfig, BaseTypedOp<RecordView, ?>> {
 
     @Override
-    public BaseTypedOp<Record, ?> configure(PipelineConfig config, TransformInitializationContext context) {
-        return keyOrValuePipeline(context, config);
+    public BaseTypedOp<RecordView, ?> configure(PipelineConfig config, TransformInitializationContext context) {
+        return keyOrValuePipeline(config, context);
     }
 
     @Override
-    public BufferTransform create(BaseTypedOp<Record, ?> compose) {
+    public BufferTransform create(BaseTypedOp<RecordView, ?> compose) {
         return new BufferTransform() {
 
             @Nullable
             @Override
-            public ByteBuffer apply(Record record) {
+            public ByteBuffer apply(RecordView record) {
                 return (ByteBuffer) compose.apply(record, null);
             }
         };
     }
 
-    private static BaseTypedOp<Record, ?> keyOrValuePipeline(
-                                                             PluginLookup pluginLookup,
-                                                             PipelineConfig keyOrValue) {
+    private static BaseTypedOp<RecordView, ?> keyOrValuePipeline(
+            PipelineConfig keyOrValue,
+            TransformInitializationContext context) {
 
         OpConfig first = switch (keyOrValue.from()) {
             case Timestamp -> new OpConfig(RecordTimestamp.class);
@@ -63,7 +62,7 @@ public class BufferPipeline implements BufferTransformService<PipelineConfig, Ba
         }
 
         var expectedType = ByteBuffer.class;
-        BaseTypedOp<Record, ?> compose = OpConfigs.compose(Record.class, configs, Set.of(), pluginLookup);
+        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, Set.of(), context);
         OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
                 "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
                         + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");

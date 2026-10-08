@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.jsonata.jsonata4java.Jsonata;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JsonataTest {
 
     @Mock
-    PluginLookup lookup;
+    TransformInitializationContext lookup;
 
     @Mock
     Type type;

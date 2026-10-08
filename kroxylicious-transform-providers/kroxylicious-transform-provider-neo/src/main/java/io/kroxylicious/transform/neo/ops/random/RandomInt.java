@@ -12,7 +12,7 @@ import java.util.Map;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * Generates a random {@link Integer} drawn from a range.
@@ -28,7 +28,7 @@ public class RandomInt implements OpFactory<Integer, Integer> {
     public record Config(int minInclusive, int maxExclusive) {}
 
     @Override
-    public BaseTypedOp<Integer, Integer> create(Map<String, Object> configMap, PluginLookup lookup, Type argumentType) {
+    public BaseTypedOp<Integer, Integer> create(Map<String, Object> configMap, TransformInitializationContext lookup, Type argumentType) {
         Config config = Mapper.OP_CONFIG_MAPPER.convertValue(configMap, Config.class);
         var generator = new RandomIntSupplier(config.minInclusive(), config.maxExclusive());
         return BaseTypedOp.of(Integer.class, Integer.class, (value, opContext) -> generator.applyAsInt(opContext));

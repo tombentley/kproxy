@@ -17,7 +17,7 @@ import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.ServiceLoaderPluginLookup;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ProtobufFunctionTest {
 
     private static final OpContext OP_CONTEXT = new OpContext(new Random(), new byte[0]);
-    private static final PluginLookup LOOKUP = new ServiceLoaderPluginLookup();
+    private static final TransformInitializationContext LOOKUP = new ServiceLoaderPluginLookup();
 
     private static ParsedProtoSchema parse(String protoText, String rootMessageName) {
         return ProtobufSchemaParser.parse(protoText, rootMessageName);

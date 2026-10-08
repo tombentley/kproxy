@@ -25,13 +25,13 @@ import io.kroxylicious.transform.neo.ExprLexer;
 import io.kroxylicious.transform.neo.ExprParser;
 import io.kroxylicious.transform.neo.RecordTransformConfig2;
 import io.kroxylicious.transform.neo.op.OpConfig;
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 public class Check {
 
-    private final PluginLookup pluginLookup;
+    private final TransformInitializationContext pluginLookup;
 
-    public Check(PluginLookup pluginLookup) {
+    public Check(TransformInitializationContext pluginLookup) {
         this.pluginLookup = Objects.requireNonNull(pluginLookup);
     }
 

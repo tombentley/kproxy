@@ -9,7 +9,7 @@ package io.kroxylicious.transform.neo.op;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import io.kroxylicious.transform.service.PluginLookup;
+import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
  * A plugin that builds a {@link BaseTypedOp} from {@code T} to {@code R} from some configuration.
@@ -47,5 +47,5 @@ public interface OpFactory<T, R> {
      * @param argumentType The argument type
      * @return the built operation
      */
-    BaseTypedOp<T, R> create(Map<String, Object> config, PluginLookup lookup, Type argumentType);
+    BaseTypedOp<T, R> create(Map<String, Object> config, TransformInitializationContext lookup, Type argumentType);
 }
