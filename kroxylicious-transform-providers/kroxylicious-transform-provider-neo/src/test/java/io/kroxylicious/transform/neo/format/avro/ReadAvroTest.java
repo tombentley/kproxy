@@ -44,7 +44,7 @@ class ReadAvroTest {
         // Given
         var factory = new ReadAvro();
         var config = Map.<String, Object> of(
-                "schema", """
+                ReadAvro.SCHEMA_PARAMETRER, """
                         {
                           "type": "record",
                           "name": "FooBar",

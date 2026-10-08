@@ -31,14 +31,12 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *     - name: validateAndMaskUser
  *       transforms:
  *         - transform: ReadJson
- *           config:
  *         - transform: JsonSchemaValidation
  *           config:
  *             registryServiceRef: registry
  *         - transform: Jsonata
  *           jsonata: |
  *         - transform: WriteJson
- *           config:
  *   manipulations:
  *     - when:
  *         direction: INTO_CLUSTER

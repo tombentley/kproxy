@@ -36,6 +36,8 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
 @Plugin(configType = ReadAvro.ReaderConfig.class)
 public class ReadAvro implements OpFactory<ByteBuffer, AvroValue> {
 
+    public static final String SCHEMA_PARAMETRER = "schema";
+    static final String TYPE_PARAMETRER = "type";
     private static final String FORMAT_PARAMETER = "format";
     private static final String FORMAT_VALUE_BINARY = "binary";
     private static final String FORMAT_VALUE_JSON = "json";

@@ -91,7 +91,7 @@ class RecordManipulationFilterTest {
                         "ageYears", Map.of("type", "integer")));
         return new PipelineConfig(Origin.RecordValue, List.of(
                 new OpConfig(ReadJson.class),
-                new OpConfig(JsonTransform.class, Map.of("schema", schema)),
+                new OpConfig(JsonTransform.class, Map.of(JsonTransform.SCHEMA_PARAMETER, schema)),
                 new OpConfig(WriteJson.class)));
     }
 

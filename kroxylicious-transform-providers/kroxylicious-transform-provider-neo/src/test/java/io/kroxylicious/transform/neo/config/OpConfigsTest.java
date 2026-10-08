@@ -61,7 +61,7 @@ class OpConfigsTest {
                 new OpConfig(RecordValue.class),
                 new OpConfig(ReadJson.class),
                 new OpConfig(JsonTransform.class,
-                        Map.of("schema",
+                        Map.of(JsonTransform.SCHEMA_PARAMETER,
                                 Map.of("type", "integer",
                                         "apply", List.of(
                                                 Map.of(

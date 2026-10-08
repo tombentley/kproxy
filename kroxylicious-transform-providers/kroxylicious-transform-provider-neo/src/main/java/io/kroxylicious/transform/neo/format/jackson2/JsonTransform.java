@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.proxy.plugin.Plugin;
+import io.kroxylicious.transform.neo.format.avro.ReadAvro;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.TransformInitializationContext;
@@ -21,6 +22,8 @@ import io.kroxylicious.transform.service.TransformInitializationContext;
 public class JsonTransform implements OpFactory<JsonNode, JsonNode> {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static final String SCHEMA_PARAMETER = "schema";
 
     public record Config(SchemaConfig schema) {}
 
