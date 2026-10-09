@@ -6,7 +6,6 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
-import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -90,13 +89,12 @@ public record RecordManipulationConfig(
     public RecordManipulationConfig(@Nullable List<NamedService> services,
                                     @JsonProperty(required = true) List<NamedTransformation> transformations,
                                     @JsonProperty(required = true) List<Manipulation> manipulations) {
-        if (transformations == null || transformations.isEmpty()) {
-            throw new IllegalArgumentException("transformations must not be null or empty");
-        }
+        // if (transformations == null || transformations.isEmpty()) {
+        // throw new IllegalArgumentException("transformations must not be null or empty");
+        // }
         this.transformations = transformations;
         this.services = services != null ? services : List.of();
         this.manipulations = manipulations;
     }
-
 
 }

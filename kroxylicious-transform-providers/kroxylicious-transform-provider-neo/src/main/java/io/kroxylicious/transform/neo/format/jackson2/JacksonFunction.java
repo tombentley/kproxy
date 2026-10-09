@@ -10,7 +10,6 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -29,7 +28,6 @@ import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.Maybe;
-import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.neo.ops.common.StaticTypedOp;
 import io.kroxylicious.transform.service.TransformInitializationContext;
 
@@ -63,33 +61,18 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
     }
 
     /**
-     * Builds a mask/generator function from a {@link SchemaConfig} tree, with no additional requirement
-     * beyond each field's {@code apply} chain composing.
-     * @param schema the withKeySchema tree, annotated with {@code apply} chains
-     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input {@link JsonNode} according to {@code withKeySchema}, given a
-     *         {@link OpContext}
-     */
-    static JacksonFunction buildMask(SchemaConfig schema,
-                                     TransformInitializationContext lookup) {
-        return buildMask(schema, Set.of(), lookup);
-    }
-
-    /**
      * Builds a mask/generator function from a {@link SchemaConfig} tree.
      * @param schema the withKeySchema tree, annotated with {@code apply} chains
-     * @param requirements properties every field's composed {@code apply} chain must satisfy
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input {@link JsonNode} according to {@code withKeySchema}, given a
      *         {@link OpContext}
      */
     static JacksonFunction buildMask(SchemaConfig schema,
-                                     Set<Requirement> requirements,
                                      TransformInitializationContext lookup) {
-        JacksonFunction structural = buildStructural(schema, requirements, lookup);
+        JacksonFunction structural = buildStructural(schema, lookup);
         JacksonFunction foo;
         if (schema.apply() != null) {
-            JacksonFunction ownApply = buildApplyChain(schema.type(), schema.apply(), requirements, lookup);
+            JacksonFunction ownApply = buildApplyChain(schema.type(), schema.apply(), lookup);
             foo = new JacksonFunction((node, opContext) -> ownApply.apply(structural.apply(node, opContext), opContext));
         }
         else {
@@ -148,12 +131,11 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
      * always sees the already-masked children.
      */
     private static JacksonFunction buildStructural(SchemaConfig schema,
-                                                   Set<Requirement> requirements,
                                                    TransformInitializationContext lookup) {
         return switch (schema.type()) {
             case "array" -> {
                 if (schema.items() != null) {
-                    var fn = ArrayNodes.items(buildMask(schema.items(), requirements, lookup));
+                    var fn = ArrayNodes.items(buildMask(schema.items(), lookup));
                     // No speculative materialization for arrays: items() maps whatever elements already
                     // exist, and there's no concept of synthesizing new elements from nothing yet.
                     yield new JacksonFunction((node, context) -> node.isMissingNode() ? node : fn.apply((ArrayNode) node, context));
@@ -166,7 +148,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
                 if (schema.properties() != null) {
                     Map<String, BaseTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>> mapping = schema.properties().entrySet().stream()
                             .collect(Collectors.toMap(Map.Entry::getKey,
-                                    entry -> buildMask(entry.getValue(), requirements, lookup).asMaybe(),
+                                    entry -> buildMask(entry.getValue(), lookup).asMaybe(),
                                     (a, b) -> a, LinkedHashMap::new));
                     var fn = new ObjectNodes(JsonNodeFactory.instance).mapProperties(mapping);
                     // Speculatively recurse into a fresh empty object even when this node itself is
@@ -191,11 +173,10 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
 
     private static JacksonFunction buildApplyChain(String type,
                                                    List<OpConfig> opConfigs,
-                                                   Set<Requirement> requirements,
                                                    TransformInitializationContext lookup) {
         return switch (type) {
             case "boolean" -> {
-                var pipeline = OpConfigs.compose(Boolean.class, opConfigs, requirements, lookup);
+                var pipeline = OpConfigs.compose(Boolean.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
                     Boolean result = (Boolean) pipeline.apply(node.isMissingNode() ? null : node.asBoolean(), context);
                     return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
@@ -203,7 +184,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
             }
             case "integer" -> {
                 // TODO need to handle short, long and BigInteger
-                var pipeline = OpConfigs.compose(Integer.class, opConfigs, requirements, lookup);
+                var pipeline = OpConfigs.compose(Integer.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
                     Integer result = (Integer) pipeline.apply(node.isMissingNode() ? null : node.asInt(), context);
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
@@ -211,14 +192,14 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
             }
             case "number" -> {
                 // TODO need to handle float and BigDecimal
-                var pipeline = OpConfigs.compose(Double.class, opConfigs, requirements, lookup);
+                var pipeline = OpConfigs.compose(Double.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
                     Double result = (Double) pipeline.apply(node.isMissingNode() ? null : node.asDouble(), context);
                     return result == null ? MissingNode.getInstance() : new DoubleNode(result);
                 });
             }
             case "string" -> {
-                var pipeline = OpConfigs.compose(String.class, opConfigs, requirements, lookup);
+                var pipeline = OpConfigs.compose(String.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
                     String result = (String) pipeline.apply(node.isMissingNode() ? null : node.asText(), context);
                     return result == null ? MissingNode.getInstance() : new TextNode(result);

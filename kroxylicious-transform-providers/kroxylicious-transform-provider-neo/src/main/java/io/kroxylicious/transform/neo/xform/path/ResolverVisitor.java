@@ -23,7 +23,7 @@ class ResolverVisitor implements Ast.AstVisitor {
     private String expressionText;
 
     ResolverVisitor(
-            TransformInitializationContext pluginLookup,
+                    TransformInitializationContext pluginLookup,
                     @Nullable Map<String, OpConfig> decls,
                     List<String> errors) {
         this.pluginLookup = pluginLookup;

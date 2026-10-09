@@ -8,14 +8,12 @@ package io.kroxylicious.transform.neo.op;
 
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
 import io.kroxylicious.transform.neo.ops.common.ComposedOp;
 import io.kroxylicious.transform.neo.ops.common.IdentityOp;
 import io.kroxylicious.transform.neo.ops.common.OpTypeChecker;
-import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
@@ -32,7 +30,6 @@ public final class OpConfigs {
     public static <T> BaseTypedOp<T, ?> compose(
                                                 Class<T> inputType,
                                                 List<OpConfig> opConfigs,
-                                                Set<Requirement> requirements,
                                                 TransformInitializationContext context) {
 
         if (opConfigs.isEmpty()) {

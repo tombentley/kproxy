@@ -372,7 +372,9 @@ class RecordManipulationTest {
             namedServices = List.of(
                     new NamedService("registry", SchemaRegistryFactory.class.getName(), registry));
         }
-        return new RecordManipulationConfig(namedServices, List.of(manipulations));
+        return new RecordManipulationConfig(namedServices,
+                List.of(),
+                List.of(manipulations));
     }
 
     private static Manipulation manipulation(When when, Then then) {

@@ -7,6 +7,4 @@
 package io.kroxylicious.filter.record.manipulation.filter.config;
 
 public record NamedTransformation(
-        String name
-) {
-}
+                                  String name) {}

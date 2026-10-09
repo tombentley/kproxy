@@ -8,7 +8,6 @@ package io.kroxylicious.transform.neo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -53,7 +52,7 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
         }
 
         var expectedType = Long.class;
-        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, Set.of(), new TransformInitializationContext() {
+        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, new TransformInitializationContext() {
             @Override
             public <S> S serviceClient(Class<S> serviceClass, String instanceName) {
                 throw new UnsupportedOperationException("Not supported yet.");

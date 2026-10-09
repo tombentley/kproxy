@@ -11,7 +11,6 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
-import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
@@ -63,32 +61,20 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     }
 
     /**
-     * Builds a mask function from a {@link Schema} tree, with no additional requirement beyond each
-     * field's {@code apply} chain composing.
+     * Builds a mask function from a {@link Schema} tree.
      * @param schema the withKeySchema tree, annotated with {@code apply} chains
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
     static AvroFunction buildMask(Schema schema, TransformInitializationContext lookup) {
-        return buildMask(schema, Set.of(), lookup);
-    }
-
-    /**
-     * Builds a mask function from a {@link Schema} tree.
-     * @param schema the withKeySchema tree, annotated with {@code apply} chains
-     * @param requirements properties every field's composed {@code apply} chain must satisfy
-     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
-     */
-    static AvroFunction buildMask(Schema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
-        AvroFunction structural = buildStructural(schema, requirements, lookup);
+        AvroFunction structural = buildStructural(schema, lookup);
         List<OpConfig> apply = AvroSchemas.applyConfig(schema);
         AvroFunction foo;
         if (apply == null) {
             foo = structural;
         }
         else {
-            AvroFunction ownApply = buildApplyChain(schema.getType(), apply, requirements, lookup);
+            AvroFunction ownApply = buildApplyChain(schema.getType(), apply, lookup);
             foo = new AvroFunction((value, context) -> ownApply.apply(structural.apply(value, context), context));
         }
         return foo;
@@ -155,16 +141,16 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * any), so {@code apply} always sees the already-masked children - mirrors
      * {@code JacksonFunction.buildStructural}.
      */
-    private static AvroFunction buildStructural(Schema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
+    private static AvroFunction buildStructural(Schema schema, TransformInitializationContext lookup) {
         return switch (schema.getType()) {
             case RECORD -> {
                 Map<String, BaseTypedOp<Object, Object>> mapping = schema.getFields().stream()
-                        .collect(Collectors.toMap(Schema.Field::name, field -> fieldFunction(field, requirements, lookup), (a, b) -> a, LinkedHashMap::new));
+                        .collect(Collectors.toMap(Schema.Field::name, field -> fieldFunction(field, lookup), (a, b) -> a, LinkedHashMap::new));
                 var fn = AvroRecords.mapFields(schema, mapping);
                 yield new AvroFunction((value, context) -> fn.apply((GenericRecord) value, context));
             }
             case ARRAY -> {
-                var fn = AvroArrays.items(buildMask(schema.getElementType(), requirements, lookup));
+                var fn = AvroArrays.items(buildMask(schema.getElementType(), lookup));
                 yield new AvroFunction((value, opContext) -> fn.apply(castToList(value), opContext));
             }
             case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES, ENUM, FIXED -> new AvroFunction((value, context) -> value);
@@ -193,40 +179,40 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
      * a withKeySchema-level {@code apply}, e.g. on an array's {@code items}), composed with any {@code apply}
      * declared directly on the field (a sibling of the field's {@code type}, per {@link AvroSchemas}).
      */
-    private static AvroFunction fieldFunction(Schema.Field field, Set<Requirement> requirements, TransformInitializationContext lookup) {
-        AvroFunction base = buildMask(field.schema(), requirements, lookup);
+    private static AvroFunction fieldFunction(Schema.Field field, TransformInitializationContext lookup) {
+        AvroFunction base = buildMask(field.schema(), lookup);
         List<OpConfig> apply = AvroSchemas.applyConfig(field);
         if (apply == null) {
             return base;
         }
-        AvroFunction ownApply = buildApplyChain(field.schema().getType(), apply, requirements, lookup);
+        AvroFunction ownApply = buildApplyChain(field.schema().getType(), apply, lookup);
         return new AvroFunction((value, context) -> ownApply.apply(base.apply(value, context), context));
     }
 
-    private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, Set<Requirement> requirements, TransformInitializationContext lookup) {
+    private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, TransformInitializationContext lookup) {
         return switch (type) {
             case BOOLEAN -> {
-                var pipeline = OpConfigs.compose(Boolean.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Boolean.class, ops, lookup);
                 yield new AvroFunction((value, context) -> pipeline.apply((Boolean) value, context));
             }
             case INT -> {
-                var pipeline = OpConfigs.compose(Integer.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Integer.class, ops, lookup);
                 yield new AvroFunction((value, context) -> pipeline.apply((Integer) value, context));
             }
             case LONG -> {
-                var pipeline = OpConfigs.compose(Long.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Long.class, ops, lookup);
                 yield new AvroFunction((value, context) -> pipeline.apply((Long) value, context));
             }
             case FLOAT -> {
-                var pipeline = OpConfigs.compose(Float.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Float.class, ops, lookup);
                 yield new AvroFunction((value, context) -> pipeline.apply((Float) value, context));
             }
             case DOUBLE -> {
-                var pipeline = OpConfigs.compose(Double.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Double.class, ops, lookup);
                 yield new AvroFunction((value, context) -> pipeline.apply((Double) value, context));
             }
             case STRING -> {
-                var pipeline = OpConfigs.compose(String.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(String.class, ops, lookup);
                 yield new AvroFunction((value, context) -> {
                     // call toString() because value could be a Utf8, not a String
                     String input = value == null ? null : value.toString();
@@ -234,7 +220,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                 });
             }
             case BYTES -> {
-                var pipeline = OpConfigs.compose(byte[].class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(byte[].class, ops, lookup);
                 yield new AvroFunction((value, context) -> {
                     // call toByteArray() because value is a ByteBuffer, not a byte[]
                     byte[] input = value == null ? null : toByteArray((ByteBuffer) value);
@@ -243,7 +229,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                 });
             }
             case FIXED -> {
-                var pipeline = OpConfigs.compose(byte[].class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(byte[].class, ops, lookup);
                 yield new AvroFunction((value, context) -> {
                     GenericData.Fixed fixed = (GenericData.Fixed) value;
                     Schema schema = fixed.getSchema();
@@ -260,7 +246,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                 });
             }
             case ENUM -> {
-                var pipeline = OpConfigs.compose(String.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(String.class, ops, lookup);
                 yield new AvroFunction((value, context) -> {
                     GenericData.EnumSymbol enumSymbol = (GenericData.EnumSymbol) value;
                     Schema schema = enumSymbol.getSchema();

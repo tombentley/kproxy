@@ -9,7 +9,6 @@ package io.kroxylicious.transform.neo;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -46,8 +45,8 @@ public class BufferPipeline implements BufferTransformService<PipelineConfig, Ba
     }
 
     private static BaseTypedOp<RecordView, ?> keyOrValuePipeline(
-            PipelineConfig keyOrValue,
-            TransformInitializationContext context) {
+                                                                 PipelineConfig keyOrValue,
+                                                                 TransformInitializationContext context) {
 
         OpConfig first = switch (keyOrValue.from()) {
             case Timestamp -> new OpConfig(RecordTimestamp.class);
@@ -62,7 +61,7 @@ public class BufferPipeline implements BufferTransformService<PipelineConfig, Ba
         }
 
         var expectedType = ByteBuffer.class;
-        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, Set.of(), context);
+        BaseTypedOp<RecordView, ?> compose = OpConfigs.compose(RecordView.class, configs, context);
         OpTypeChecker.requireAssignable(expectedType, compose.outputType(),
                 "Pipeline configuration has result type " + GenericTypeReflector.getTypeName(compose.outputType())
                         + " and not " + GenericTypeReflector.getTypeName(expectedType) + " as expected");

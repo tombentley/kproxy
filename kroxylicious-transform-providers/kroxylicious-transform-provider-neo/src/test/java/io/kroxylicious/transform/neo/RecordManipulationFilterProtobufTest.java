@@ -23,9 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
-import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
@@ -100,15 +100,16 @@ class RecordManipulationFilterProtobufTest {
 
     private RecordManipulationFilter buildFilter(Direction direction) {
         var config = new RecordManipulationConfig(null,
+                List.of(),
                 List.of(new Manipulation(
                         new When(direction,
-                            TopicName.is(TOPIC_NAME),
+                                TopicName.is(TOPIC_NAME),
                                 null),
-                new Then(
-                null, null,
-                null, null,
-                new RecordThen(null, null,
-                BufferPipeline.class.getName(), protobufMaskingValuePipeline())))));
+                        new Then(
+                                null, null,
+                                null, null,
+                                new RecordThen(null, null,
+                                        BufferPipeline.class.getName(), protobufMaskingValuePipeline())))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);

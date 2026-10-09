@@ -10,7 +10,6 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.ListElements;
-import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.service.TransformInitializationContext;
 
 /**
@@ -44,30 +42,20 @@ import io.kroxylicious.transform.service.TransformInitializationContext;
 public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
-     * Builds a mask function from a {@link ParsedProtoSchema}, with no additional requirement beyond each
-     * field's {@code apply} chain composing.
-     * @param schema the parsed withKeySchema, plus its {@code apply} chains
-     * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
-     * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
-     */
-    static ProtobufFunction buildMask(ParsedProtoSchema schema, TransformInitializationContext lookup) {
-        return buildMask(schema, Set.of(), lookup);
-    }
-
-    /**
      * Builds a mask function from a {@link ParsedProtoSchema}.
      * @param schema the parsed withKeySchema, plus its {@code apply} chains
-     * @param requirements properties every field's composed {@code apply} chain must satisfy
      * @param lookup resolves the plugin implementation named by each {@code apply} entry's {@code op}
      * @return a function transforming an input value according to {@code withKeySchema}, given a {@link OpContext}
      */
-    static ProtobufFunction buildMask(ParsedProtoSchema schema, Set<Requirement> requirements, TransformInitializationContext lookup) {
-        return buildMask(schema.descriptor(), schema.apply(), requirements, lookup);
+    static ProtobufFunction buildMask(ParsedProtoSchema schema,
+                                      TransformInitializationContext lookup) {
+        return buildMask(schema.descriptor(), schema.apply(), lookup);
     }
 
-    private static ProtobufFunction buildMask(Descriptors.Descriptor descriptor, Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                              Set<Requirement> requirements, TransformInitializationContext lookup) {
-        ProtobufFunction structural = buildStructural(descriptor, applyByNode, requirements, lookup);
+    private static ProtobufFunction buildMask(Descriptors.Descriptor descriptor,
+                                              Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
+                                              TransformInitializationContext lookup) {
+        ProtobufFunction structural = buildStructural(descriptor, applyByNode, lookup);
         if (applyByNode.get(descriptor) != null) {
             throw new IllegalArgumentException("apply is not yet supported for message-level nodes: " + descriptor.getFullName());
         }
@@ -137,10 +125,9 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
      */
     private static ProtobufFunction buildStructural(Descriptors.Descriptor descriptor,
                                                     Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                    Set<Requirement> requirements,
                                                     TransformInitializationContext lookup) {
         Map<String, BaseTypedOp<Object, Object>> mapping = descriptor.getFields().stream()
-                .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, requirements, lookup), (a, b) -> a,
+                .collect(Collectors.toMap(Descriptors.FieldDescriptor::getName, field -> fieldFunction(field, applyByNode, lookup), (a, b) -> a,
                         LinkedHashMap::new));
         var fn = ProtobufMessages.mapFields(descriptor, mapping);
         return new ProtobufFunction((value, context) -> fn.apply((DynamicMessage) value, context));
@@ -154,15 +141,14 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
      */
     private static ProtobufFunction fieldFunction(Descriptors.FieldDescriptor field,
                                                   Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                  Set<Requirement> requirements,
                                                   TransformInitializationContext lookup) {
         if (field.isMapField()) {
             throw new IllegalArgumentException("Proto mask not yet supported for map fields: " + field.getFullName());
         }
-        ProtobufFunction elementFn = buildElementTypeMask(field, applyByNode, requirements, lookup);
+        ProtobufFunction elementFn = buildElementTypeMask(field, applyByNode, lookup);
         List<OpConfig> apply = applyByNode.get(field);
         if (apply != null) {
-            ProtobufFunction ownApply = buildApplyChain(field, apply, requirements, lookup);
+            ProtobufFunction ownApply = buildApplyChain(field, apply, lookup);
             ProtobufFunction base = elementFn;
             elementFn = new ProtobufFunction((value, context) -> ownApply.apply(base.apply(value, context), context));
         }
@@ -175,16 +161,15 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     /**
      * Builds the mask for one element of {@code field} (its message type, if any - recursing via
-     * {@link #buildMask(Descriptors.Descriptor, Map, Set, TransformInitializationContext)} - or a passthrough for a supported
+     * {@link #buildMask(Descriptors.Descriptor, Map, TransformInitializationContext)} - or a passthrough for a supported
      * scalar leaf type), ignoring {@code field}'s repeated-ness, which {@link #fieldFunction} applies
      * separately.
      */
     private static ProtobufFunction buildElementTypeMask(Descriptors.FieldDescriptor field,
                                                          Map<Descriptors.GenericDescriptor, List<OpConfig>> applyByNode,
-                                                         Set<Requirement> requirements,
                                                          TransformInitializationContext lookup) {
         return switch (field.getType()) {
-            case MESSAGE -> buildMask(field.getMessageType(), applyByNode, requirements, lookup);
+            case MESSAGE -> buildMask(field.getMessageType(), applyByNode, lookup);
             case STRING, INT32, FIXED32, SINT32, SFIXED32, UINT32, INT64, FIXED64, SINT64, SFIXED64, UINT64, FLOAT, DOUBLE, BOOL, BYTES, ENUM -> new ProtobufFunction(
                     (value, context) -> value);
             default -> throw new IllegalArgumentException("Proto mask not yet supported for field type: " + field.getType());
@@ -198,35 +183,34 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
 
     private static ProtobufFunction buildApplyChain(Descriptors.FieldDescriptor field,
                                                     List<OpConfig> ops,
-                                                    Set<Requirement> requirements,
                                                     TransformInitializationContext lookup) {
         return switch (field.getType()) {
             case BOOL -> {
-                var pipeline = OpConfigs.compose(Boolean.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Boolean.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply((Boolean) value, context));
             }
             case INT32, FIXED32, SINT32, SFIXED32, UINT32 -> {
-                var pipeline = OpConfigs.compose(Integer.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Integer.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply((Integer) value, context));
             }
             case INT64, FIXED64, SINT64, SFIXED64, UINT64 -> {
-                var pipeline = OpConfigs.compose(Long.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Long.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply((Long) value, context));
             }
             case FLOAT -> {
-                var pipeline = OpConfigs.compose(Float.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Float.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply((Float) value, context));
             }
             case DOUBLE -> {
-                var pipeline = OpConfigs.compose(Double.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(Double.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply((Double) value, context));
             }
             case STRING -> {
-                var pipeline = OpConfigs.compose(String.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(String.class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> pipeline.apply(value == null ? null : value.toString(), context));
             }
             case BYTES -> {
-                var pipeline = OpConfigs.compose(byte[].class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(byte[].class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> {
                     // call toByteArray() because value is a ByteString, not a byte[]
                     byte[] input = value == null ? null : ((ByteString) value).toByteArray();
@@ -235,7 +219,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
                 });
             }
             case ENUM -> {
-                var pipeline = OpConfigs.compose(String.class, ops, requirements, lookup);
+                var pipeline = OpConfigs.compose(String.class, ops, lookup);
                 Descriptors.EnumDescriptor enumType = field.getEnumType();
                 yield new ProtobufFunction((value, context) -> {
                     Descriptors.EnumValueDescriptor enumValue = (Descriptors.EnumValueDescriptor) value;

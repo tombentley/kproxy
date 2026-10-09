@@ -25,9 +25,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
@@ -97,15 +97,16 @@ class RecordManipulationFilterTest {
 
     private RecordManipulationFilter buildFilter(Direction direction) {
         var config = new RecordManipulationConfig(null,
+                List.of(),
                 List.of(new Manipulation(
-                            new When(direction,
+                        new When(direction,
                                 TopicName.is(TOPIC_NAME),
-                                    null),
+                                null),
 
-                            new Then(null, null,
+                        new Then(null, null,
                                 null, null,
                                 new RecordThen(null, null,
-                                BufferPipeline.class.getName(), jsonMaskingValuePipeline())))));
+                                        BufferPipeline.class.getName(), jsonMaskingValuePipeline())))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);

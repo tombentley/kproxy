@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -28,7 +27,6 @@ import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.TypeException;
-import io.kroxylicious.transform.neo.ops.common.Requirement;
 import io.kroxylicious.transform.neo.ops.constant.ValueInt;
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.TransformInitializationContext;
@@ -67,7 +65,7 @@ class OpConfigsTest {
                                                 Map.of(
                                                         "op", ValueInt.class.getName(),
                                                         "value", 999))))),
-                new OpConfig(WriteJson.class)), Set.of(), lookup);
+                new OpConfig(WriteJson.class)), lookup);
 
         assertThat(pipe.inputType()).isEqualTo(RecordView.class);
         assertThat(pipe.outputType()).isEqualTo(ByteBuffer.class);
@@ -78,7 +76,7 @@ class OpConfigsTest {
 
     @Test
     void emptyPipeline() {
-        var pipe = OpConfigs.compose(Record.class, List.of(), Set.of(), lookup);
+        var pipe = OpConfigs.compose(Record.class, List.of(), lookup);
 
         assertThat(pipe.inputType()).isInstanceOf(TypeVariable.class).hasToString("T");
         assertThat(pipe.outputType()).isInstanceOf(TypeVariable.class).hasToString("T");
@@ -92,9 +90,8 @@ class OpConfigsTest {
         List<OpConfig> opConfigs = List.of(
                 new OpConfig(RecordValue.class) // expects Record
         );
-        Set<Requirement> requirements = Set.of();
         Class<Integer> expectedType = Integer.class; // caller expects an Op that accepts an Integer
-        assertThatThrownBy(() -> OpConfigs.compose(expectedType, opConfigs, requirements, lookup))
+        assertThatThrownBy(() -> OpConfigs.compose(expectedType, opConfigs, lookup))
                 .isInstanceOf(TypeException.class)
                 .hasMessage("Op io.kroxylicious.transform.neo.RecordValue has input type "
                         + "io.kroxylicious.transform.records.RecordView which is not a subtype of "
@@ -107,8 +104,7 @@ class OpConfigsTest {
                 new OpConfig(RecordTimestamp.class), // returns Long
                 new OpConfig(ReadJson.class) // expects ByteBuffer
         );
-        Set<Requirement> requirements = Set.of();
-        assertThatThrownBy(() -> OpConfigs.compose(RecordView.class, opConfigs, requirements, lookup))
+        assertThatThrownBy(() -> OpConfigs.compose(RecordView.class, opConfigs, lookup))
                 .isInstanceOf(TypeException.class)
                 .hasMessage("Op " + ReadJson.class.getName() + " has input type "
                         + "java.nio.ByteBuffer which is not a subtype of "
@@ -119,8 +115,7 @@ class OpConfigsTest {
     void throwsIfPluginLookupFails() {
         List<OpConfig> opConfigs = List.of(
                 new OpConfig("this.type.does.not.Exist", Map.of()));
-        Set<Requirement> requirements = Set.of();
-        assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, requirements, lookup))
+        assertThatThrownBy(() -> OpConfigs.compose(Record.class, opConfigs, lookup))
                 .isInstanceOf(UnknownPluginInstanceException.class)
                 .hasMessageContaining("this.type.does.not.Exist");
     }
@@ -129,8 +124,7 @@ class OpConfigsTest {
     void throwsIfConcompatibleConfig() {
         List<OpConfig> opConfigs = List.of(
                 new OpConfig(ReadJson.class, Map.of("thisParameterDoesNotExist", 999)));
-        Set<Requirement> requirements = Set.of();
-        assertThatThrownBy(() -> OpConfigs.compose(ByteBuffer.class, opConfigs, requirements, lookup))
+        assertThatThrownBy(() -> OpConfigs.compose(ByteBuffer.class, opConfigs, lookup))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unrecognized field \"thisParameterDoesNotExist\"");
     }

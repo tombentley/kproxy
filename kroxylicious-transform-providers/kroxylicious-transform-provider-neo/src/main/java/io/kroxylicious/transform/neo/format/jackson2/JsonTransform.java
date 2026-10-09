@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kroxylicious.proxy.plugin.Plugin;
-import io.kroxylicious.transform.neo.format.avro.ReadAvro;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.TransformInitializationContext;

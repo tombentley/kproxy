@@ -34,7 +34,6 @@ import io.kroxylicious.identity.Principal;
 import io.kroxylicious.identity.Subject;
 import io.kroxylicious.kafka.common.header.Header;
 import io.kroxylicious.proxy.filter.Filter;
-import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
@@ -165,19 +164,19 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
         if (!dupes.isEmpty()) {
             throw new PluginConfigurationException("Duplicate transformation names: " + dupes.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ")));
         }
-        Map<String, ?> services = HashMap.newHashMap(transformations.size());
-        try {
-            for (var service : transformations) {
-                ServiceFactory serviceFactory = context.pluginInstance(ServiceFactory.class, service.type());
-                AutoCloseable autoCloseable = serviceFactory.create(service.config());
-                services.put(service.name(), autoCloseable);
-            }
-        }
-        catch (RuntimeException e) {
-            closeServices(services);
-            throw e;
-        }
-        return services;
+        Map<String, ?> transformationsMap = HashMap.newHashMap(transformations.size());
+        // try {
+        // for (var service : transformations) {
+        // ServiceFactory serviceFactory = context.pluginInstance(ServiceFactory.class, service.type());
+        // AutoCloseable autoCloseable = serviceFactory.create(service.config());
+        // transformationsMap.put(service.name(), autoCloseable);
+        // }
+        // }
+        // catch (RuntimeException e) {
+        // closeServices(transformationsMap);
+        // throw e;
+        // }
+        return transformationsMap;
     }
 
     private void closeServices(Map<String, AutoCloseable> services) {

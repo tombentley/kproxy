@@ -13,7 +13,6 @@ import java.util.Optional;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
-import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.type.Null;
 import io.kroxylicious.transform.neo.type.SchemaType;

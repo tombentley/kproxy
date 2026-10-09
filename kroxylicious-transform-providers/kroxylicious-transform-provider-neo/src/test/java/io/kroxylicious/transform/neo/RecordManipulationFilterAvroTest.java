@@ -12,8 +12,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -26,9 +24,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulation;
 import io.kroxylicious.filter.record.manipulation.filter.RecordManipulationFilter;
+import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordThen;
@@ -42,7 +40,6 @@ import io.kroxylicious.kafka.common.message.RequestHeaderData;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.kafka.common.record.internal.Records;
 import io.kroxylicious.proxy.config.ServiceBasedPluginFactoryRegistry;
-import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.testing.filter.assertj.MockFilterContextAssert;
 import io.kroxylicious.testing.filter.context.MockFilterContext;
@@ -54,11 +51,8 @@ import io.kroxylicious.transform.neo.format.avro.ReadAvro;
 import io.kroxylicious.transform.neo.format.avro.WriteAvro;
 import io.kroxylicious.transform.neo.op.OpConfig;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -102,14 +96,14 @@ class RecordManipulationFilterAvroTest {
 
     private RecordManipulationFilter buildFilter(Direction direction) {
         var config = new RecordManipulationConfig(List.of(),
+                List.of(),
                 List.of(new Manipulation(new When(direction,
                         TopicName.is(TOPIC_NAME),
-                        null
-                        ),
-                new Then(
-                null, null,
-                null, null,
-                new RecordThen(null, null, BufferPipeline.class.getName(), avroMaskingValuePipeline())))));
+                        null),
+                        new Then(
+                                null, null,
+                                null, null,
+                                new RecordThen(null, null, BufferPipeline.class.getName(), avroMaskingValuePipeline())))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         return (RecordManipulationFilter) factory.createFilter(factoryContext, init);
@@ -244,19 +238,21 @@ class RecordManipulationFilterAvroTest {
                 {"type": "array", "items": {"type": "string", "apply": [{"op": "ValueString", "value": "REDACTED"}]}}
                 """;
         Schema arraySchema = new Schema.Parser().parse(arraySchemaJson);
-        var config = new RecordManipulationConfig(List.of(), List.of(
-                new Manipulation(
-                        new When(Direction.INTO_CLUSTER,
-                                TopicName.is(TOPIC_NAME),
-                                null),
-                        new Then(
-                null, null,
-                null, null,
-                new RecordThen(null, null,
-                BufferPipeline.class.getName(), new PipelineConfig(Origin.RecordValue, List.of(
-                        new OpConfig(ReadAvro.class, Map.of(ReadAvro.SCHEMA_PARAMETRER, arraySchemaJson)),
-                        new OpConfig(AvroTransform.class),
-                        new OpConfig(WriteAvro.class))))))));
+        var config = new RecordManipulationConfig(List.of(),
+                List.of(),
+                List.of(
+                        new Manipulation(
+                                new When(Direction.INTO_CLUSTER,
+                                        TopicName.is(TOPIC_NAME),
+                                        null),
+                                new Then(
+                                        null, null,
+                                        null, null,
+                                        new RecordThen(null, null,
+                                                BufferPipeline.class.getName(), new PipelineConfig(Origin.RecordValue, List.of(
+                                                        new OpConfig(ReadAvro.class, Map.of(ReadAvro.SCHEMA_PARAMETRER, arraySchemaJson)),
+                                                        new OpConfig(AvroTransform.class),
+                                                        new OpConfig(WriteAvro.class))))))));
         var factory = new RecordManipulation();
         var init = factory.initialize(factoryContext, config);
         var filter = (RecordManipulationFilter) factory.createFilter(factoryContext, init);
