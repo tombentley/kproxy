@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 
 import io.kroxylicious.filter.record.manipulation.filter.config.Manipulation;
 import io.kroxylicious.filter.record.manipulation.filter.config.NamedService;
+import io.kroxylicious.filter.record.manipulation.filter.config.NamedTransformation;
 import io.kroxylicious.filter.record.manipulation.filter.config.PrincipalMatch;
 import io.kroxylicious.filter.record.manipulation.filter.config.RecordManipulationConfig;
 import io.kroxylicious.filter.record.manipulation.filter.config.SubjectMatch;
@@ -72,7 +73,8 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
             throws PluginConfigurationException {
 
         // create the services
-        Map<String, AutoCloseable> services = createServices(context, config);
+        Map<String, AutoCloseable> services = createServices(context, config.services());
+        Map<String, ?> transforms = createTransformations(context, config.transformations());
 
         MyTransformInitializationContext context1 = new MyTransformInitializationContext(services, context);
 
@@ -133,16 +135,39 @@ public class RecordManipulation implements FilterFactory<RecordManipulationConfi
     }
 
     @NonNull
-    private Map<String, AutoCloseable> createServices(FilterFactoryContext context, RecordManipulationConfig config) {
-        List<Map.Entry<String, List<NamedService>>> dupes = config.services().stream().collect(Collectors.groupingBy(NamedService::name))
+    private Map<String, AutoCloseable> createServices(FilterFactoryContext context, List<NamedService> services) {
+        List<Map.Entry<String, List<NamedService>>> dupes = services.stream().collect(Collectors.groupingBy(NamedService::name))
                 .entrySet().stream().collect(Collectors.partitioningBy(e -> e.getValue().size() >= 2))
                 .get(true);
         if (!dupes.isEmpty()) {
             throw new PluginConfigurationException("Duplicate service names: " + dupes.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ")));
         }
-        Map<String, AutoCloseable> services = HashMap.newHashMap(config.services().size());
+        Map<String, AutoCloseable> servicesMap = HashMap.newHashMap(services.size());
         try {
-            for (var service : config.services()) {
+            for (var service : services) {
+                ServiceFactory serviceFactory = context.pluginInstance(ServiceFactory.class, service.type());
+                AutoCloseable autoCloseable = serviceFactory.create(service.config());
+                servicesMap.put(service.name(), autoCloseable);
+            }
+        }
+        catch (RuntimeException e) {
+            closeServices(servicesMap);
+            throw e;
+        }
+        return servicesMap;
+    }
+
+    @NonNull
+    private Map<String, ?> createTransformations(FilterFactoryContext context, List<NamedTransformation> transformations) {
+        List<Map.Entry<String, List<NamedTransformation>>> dupes = transformations.stream().collect(Collectors.groupingBy(NamedTransformation::name))
+                .entrySet().stream().collect(Collectors.partitioningBy(e -> e.getValue().size() >= 2))
+                .get(true);
+        if (!dupes.isEmpty()) {
+            throw new PluginConfigurationException("Duplicate transformation names: " + dupes.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ")));
+        }
+        Map<String, ?> services = HashMap.newHashMap(transformations.size());
+        try {
+            for (var service : transformations) {
                 ServiceFactory serviceFactory = context.pluginInstance(ServiceFactory.class, service.type());
                 AutoCloseable autoCloseable = serviceFactory.create(service.config());
                 services.put(service.name(), autoCloseable);

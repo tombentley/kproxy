@@ -76,8 +76,10 @@ public class JsonSchemaValidate implements OpFactory<JsonNode, JsonNode> {
          * ignored.
          */
 
-        SchemaRegistry schemaRegistry = SchemaRegistry.withDefaultDialect(SpecificationVersion.fromDialectId(config.defaultDialectId()).orElse(
-                SpecificationVersion.DRAFT_2020_12));
+        SchemaRegistry schemaRegistry = SchemaRegistry.withDefaultDialect(
+                SpecificationVersion.fromDialectId(config.defaultDialectId())
+                        .orElse(SpecificationVersion.DRAFT_2020_12)
+        );
 
         JsonNode schemaNode = parseSchema(objectMapper, config);
         validateSchema(schemaRegistry, schemaNode);

@@ -22,21 +22,24 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  *       config:
  *         url: ...
  *         tls: ...
- *         cacheSize: 100
+ *         contentCacheSlots: 100
+ *         versionsCacheSlots: 100
  *     - name: kms
  *       type: VaultKmsService
- *       config: ...
+ *       config:
+ *         vaultTransitEngineUrl: ...
+ *         vaultToken: ...
  *         cacheSize: 100
  *   transforms:
  *     - name: validateAndMaskUser
  *       transforms:
- *         - transform: ReadJson
- *         - transform: JsonSchemaValidation
- *           config:
+ *         - ReadJson
+ *         - JsonSchemaValidation:
  *             registryServiceRef: registry
  *         - transform: Jsonata
  *           jsonata: |
- *         - transform: WriteJson
+ *         - WriteJson:
+ *             format: csv
  *   manipulations:
  *     - when:
  *         direction: INTO_CLUSTER
@@ -81,10 +84,19 @@ import edu.umd.cs.findbugs.annotations.Nullable;
  */
 public record RecordManipulationConfig(
                                        @Nullable List<NamedService> services,
+                                       @JsonProperty(required = true) List<NamedTransformation> transformations,
                                        @JsonProperty(required = true) List<Manipulation> manipulations) {
+
     public RecordManipulationConfig(@Nullable List<NamedService> services,
+                                    @JsonProperty(required = true) List<NamedTransformation> transformations,
                                     @JsonProperty(required = true) List<Manipulation> manipulations) {
+        if (transformations == null || transformations.isEmpty()) {
+            throw new IllegalArgumentException("transformations must not be null or empty");
+        }
+        this.transformations = transformations;
         this.services = services != null ? services : List.of();
         this.manipulations = manipulations;
     }
+
+
 }
