@@ -10,6 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -77,7 +78,7 @@ public class Functional {
         return new Function<T, R>() {
             @Override
             public R apply(T t) {
-                return biFunction.apply(t, context);
+                return OpConfigs.applyNow(biFunction, t, context);
             }
         };
     }

@@ -29,6 +29,7 @@ public class AvroArrays {
     public static BaseTypedOp<List<Object>, List<Object>> items(BaseTypedOp<Object, Object> itemsFn) {
         // Raw List.class can't be expressed as Class<List<Object>>, so this must use the Type-based
         // overload rather than the Class-based one.
-        return BaseTypedOp.of((Type) List.class, (Type) List.class, (array, context) -> new ListElements().modifyAll(array, itemsFn, context));
+        return BaseTypedOp.of((Type) List.class, (Type) List.class,
+                (array, context) -> new ListElements().modifyAll(array, itemsFn, context));
     }
 }

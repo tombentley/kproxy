@@ -45,7 +45,7 @@ class AvroFunctionTest {
         input.put("surname", "Potter");
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.get("firstName")).isEqualTo("REDACTED");
@@ -64,7 +64,7 @@ class AvroFunctionTest {
         input.put("ageYears", 17);
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.get("ageYears")).isEqualTo(99);
@@ -86,7 +86,7 @@ class AvroFunctionTest {
         input.put("address", address);
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(((GenericRecord) result.get("address")).get("city")).isEqualTo("REDACTED");
@@ -104,7 +104,7 @@ class AvroFunctionTest {
         input.put("aliases", List.of("Vernon Dudley", "Barny Weasley"));
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat((List<Object>) result.get("aliases")).containsExactly("REDACTED", "REDACTED");
@@ -122,7 +122,7 @@ class AvroFunctionTest {
         input.put("photo", ByteBuffer.wrap(new byte[]{ 1, 2, 3 }));
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat((ByteBuffer) result.get("photo")).isEqualTo(ByteBuffer.wrap(new byte[]{ 9, 9, 9 }));
@@ -142,7 +142,7 @@ class AvroFunctionTest {
         input.put("color", new GenericData.EnumSymbol(colorSchema, "RED"));
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.get("color")).isEqualTo(new GenericData.EnumSymbol(colorSchema, "GREEN"));
@@ -182,7 +182,7 @@ class AvroFunctionTest {
         input.put("fingerprint", new GenericData.Fixed(fixedSchema, new byte[]{ 1, 2, 3, 4 }));
 
         // When
-        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        GenericRecord result = (GenericRecord) AvroFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.get("fingerprint")).isEqualTo(new GenericData.Fixed(fixedSchema, new byte[]{ 9, 9, 9, 9 }));
@@ -216,7 +216,7 @@ class AvroFunctionTest {
                 """);
 
         // When
-        Object result = AvroFunction.buildMask(schema, LOOKUP).apply("Harry", OP_CONTEXT);
+        Object result = AvroFunction.buildMask(schema, LOOKUP).apply("Harry", OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result).isEqualTo("REDACTED");
@@ -230,7 +230,7 @@ class AvroFunctionTest {
                 """);
 
         // When
-        Object result = AvroFunction.buildMask(schema, LOOKUP).apply(List.of("Vernon Dudley", "Barny Weasley"), OP_CONTEXT);
+        Object result = AvroFunction.buildMask(schema, LOOKUP).apply(List.of("Vernon Dudley", "Barny Weasley"), OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat((List<Object>) result).containsExactly("REDACTED", "REDACTED");

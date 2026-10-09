@@ -10,14 +10,14 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 
 import io.kroxylicious.transform.neo.ops.common.ComposedOp;
 import io.kroxylicious.transform.neo.ops.common.IdentityOp;
 import io.kroxylicious.transform.neo.ops.common.StaticTypedOp;
 import io.kroxylicious.transform.neo.type.SchemaType;
-
-import edu.umd.cs.findbugs.annotations.UnknownNullness;
 
 /**
  * Conceptually a {@code BiFunction<T, OpContext, R>} which provides
@@ -117,8 +117,7 @@ public interface BaseTypedOp<T, R> {
         return Optional.empty();
     }
 
-    @UnknownNullness
-    R apply(T value, OpContext opContext);
+    CompletionStage<R> apply(T value, OpContext opContext);
 
     class MyBaseTypedOp<T, R> implements BaseTypedOp<T, R> {
         private final Type inputType;
@@ -153,8 +152,9 @@ public interface BaseTypedOp<T, R> {
         }
 
         @Override
-        public R apply(T value, OpContext opContext) {
-            return fn.apply(value, opContext);
+        public CompletionStage<R> apply(T value, OpContext opContext) {
+            R apply = fn.apply(value, opContext);
+            return CompletableFuture.completedStage(apply);
         }
     }
 }

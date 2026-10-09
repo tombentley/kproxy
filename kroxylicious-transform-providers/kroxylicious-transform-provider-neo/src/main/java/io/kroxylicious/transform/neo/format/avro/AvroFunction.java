@@ -11,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -56,8 +58,8 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
     }
 
     @Override
-    public Object apply(Object value, OpContext opContext) {
-        return fn.apply(value, opContext);
+    public CompletionStage<Object> apply(Object value, OpContext opContext) {
+        return CompletableFuture.completedStage(fn.apply(value, opContext));
     }
 
     /**
@@ -75,7 +77,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
         }
         else {
             AvroFunction ownApply = buildApplyChain(schema.getType(), apply, lookup);
-            foo = new AvroFunction((value, context) -> ownApply.apply(structural.apply(value, context), context));
+            foo = new AvroFunction((value, context) -> OpConfigs.applyNow(ownApply, OpConfigs.applyNow(structural, value, context), context));
         }
         return foo;
     }
@@ -151,7 +153,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
             }
             case ARRAY -> {
                 var fn = AvroArrays.items(buildMask(schema.getElementType(), lookup));
-                yield new AvroFunction((value, opContext) -> fn.apply(castToList(value), opContext));
+                yield new AvroFunction((value, opContext) -> OpConfigs.applyNow(fn, castToList(value), opContext));
             }
             case STRING, INT, LONG, FLOAT, DOUBLE, BOOLEAN, BYTES, ENUM, FIXED -> new AvroFunction((value, context) -> value);
             default -> throw new IllegalArgumentException("Avro mask not yet supported for withKeySchema type: " + schema.getType());
@@ -186,37 +188,37 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
             return base;
         }
         AvroFunction ownApply = buildApplyChain(field.schema().getType(), apply, lookup);
-        return new AvroFunction((value, context) -> ownApply.apply(base.apply(value, context), context));
+        return new AvroFunction((value, context) -> OpConfigs.applyNow(ownApply, OpConfigs.applyNow(base, value, context), context));
     }
 
     private static AvroFunction buildApplyChain(Schema.Type type, List<OpConfig> ops, TransformInitializationContext lookup) {
         return switch (type) {
             case BOOLEAN -> {
                 var pipeline = OpConfigs.compose(Boolean.class, ops, lookup);
-                yield new AvroFunction((value, context) -> pipeline.apply((Boolean) value, context));
+                yield new AvroFunction((value, context) -> OpConfigs.applyNow(pipeline, (Boolean) value, context));
             }
             case INT -> {
                 var pipeline = OpConfigs.compose(Integer.class, ops, lookup);
-                yield new AvroFunction((value, context) -> pipeline.apply((Integer) value, context));
+                yield new AvroFunction((value, context) -> OpConfigs.applyNow(pipeline, (Integer) value, context));
             }
             case LONG -> {
                 var pipeline = OpConfigs.compose(Long.class, ops, lookup);
-                yield new AvroFunction((value, context) -> pipeline.apply((Long) value, context));
+                yield new AvroFunction((value, context) -> OpConfigs.applyNow(pipeline, (Long) value, context));
             }
             case FLOAT -> {
                 var pipeline = OpConfigs.compose(Float.class, ops, lookup);
-                yield new AvroFunction((value, context) -> pipeline.apply((Float) value, context));
+                yield new AvroFunction((value, context) -> OpConfigs.applyNow(pipeline, (Float) value, context));
             }
             case DOUBLE -> {
                 var pipeline = OpConfigs.compose(Double.class, ops, lookup);
-                yield new AvroFunction((value, context) -> pipeline.apply((Double) value, context));
+                yield new AvroFunction((value, context) -> OpConfigs.applyNow(pipeline, (Double) value, context));
             }
             case STRING -> {
                 var pipeline = OpConfigs.compose(String.class, ops, lookup);
                 yield new AvroFunction((value, context) -> {
                     // call toString() because value could be a Utf8, not a String
                     String input = value == null ? null : value.toString();
-                    return pipeline.apply(input, context);
+                    return OpConfigs.applyNow(pipeline, input, context);
                 });
             }
             case BYTES -> {
@@ -224,7 +226,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                 yield new AvroFunction((value, context) -> {
                     // call toByteArray() because value is a ByteBuffer, not a byte[]
                     byte[] input = value == null ? null : toByteArray((ByteBuffer) value);
-                    byte[] result = (byte[]) pipeline.apply(input, context);
+                    byte[] result = (byte[]) OpConfigs.applyNow(pipeline, input, context);
                     return result == null ? null : ByteBuffer.wrap(result);
                 });
             }
@@ -234,7 +236,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                     GenericData.Fixed fixed = (GenericData.Fixed) value;
                     Schema schema = fixed.getSchema();
                     int fixedSize = schema.getFixedSize();
-                    byte[] result = (byte[]) pipeline.apply(fixed.bytes(), context);
+                    byte[] result = (byte[]) OpConfigs.applyNow(pipeline, fixed.bytes(), context);
                     if (result == null) {
                         return null;
                     }
@@ -251,7 +253,7 @@ public class AvroFunction implements BaseTypedOp<Object, Object> {
                     GenericData.EnumSymbol enumSymbol = (GenericData.EnumSymbol) value;
                     Schema schema = enumSymbol.getSchema();
                     var allowedSymbols = schema.getEnumSymbols();
-                    String result = (String) pipeline.apply(enumSymbol.toString(), context);
+                    String result = (String) OpConfigs.applyNow(pipeline, enumSymbol.toString(), context);
                     if (result == null) {
                         return null;
                     }

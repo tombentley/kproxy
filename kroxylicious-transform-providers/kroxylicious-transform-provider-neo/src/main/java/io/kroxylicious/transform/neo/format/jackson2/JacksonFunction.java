@@ -10,6 +10,8 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -56,8 +58,8 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
     }
 
     @Override
-    public JsonNode apply(JsonNode value, OpContext opContext) {
-        return fn.apply(value, opContext);
+    public CompletionStage<JsonNode> apply(JsonNode value, OpContext opContext) {
+        return CompletableFuture.completedStage(fn.apply(value, opContext));
     }
 
     /**
@@ -73,7 +75,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
         JacksonFunction foo;
         if (schema.apply() != null) {
             JacksonFunction ownApply = buildApplyChain(schema.type(), schema.apply(), lookup);
-            foo = new JacksonFunction((node, opContext) -> ownApply.apply(structural.apply(node, opContext), opContext));
+            foo = new JacksonFunction((node, opContext) -> OpConfigs.applyNow(ownApply, OpConfigs.applyNow(structural, node, opContext), opContext));
         }
         else {
             foo = structural;
@@ -102,10 +104,10 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
         return new StaticTypedOp<Maybe<JsonNode>, Maybe<JsonNode>>() {
 
             @Override
-            public Maybe<JsonNode> apply(Maybe<JsonNode> maybe, OpContext opContext) {
+            public CompletionStage<Maybe<JsonNode>> apply(Maybe<JsonNode> maybe, OpContext opContext) {
                 JsonNode input = maybe instanceof Maybe.Some<JsonNode> some ? some.value() : MissingNode.getInstance();
-                JsonNode output = JacksonFunction.this.apply(input, opContext);
-                return output.isMissingNode() ? Maybe.none() : Maybe.some(output);
+                JsonNode output = OpConfigs.applyNow(JacksonFunction.this, input, opContext);
+                return CompletableFuture.completedStage(output.isMissingNode() ? Maybe.none() : Maybe.some(output));
             }
         };
     }
@@ -138,7 +140,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
                     var fn = ArrayNodes.items(buildMask(schema.items(), lookup));
                     // No speculative materialization for arrays: items() maps whatever elements already
                     // exist, and there's no concept of synthesizing new elements from nothing yet.
-                    yield new JacksonFunction((node, context) -> node.isMissingNode() ? node : fn.apply((ArrayNode) node, context));
+                    yield new JacksonFunction((node, context) -> node.isMissingNode() ? node : OpConfigs.applyNow(fn, (ArrayNode) node, context));
                 }
                 else {
                     yield new JacksonFunction((node, context) -> node);
@@ -178,7 +180,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
             case "boolean" -> {
                 var pipeline = OpConfigs.compose(Boolean.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
-                    Boolean result = (Boolean) pipeline.apply(node.isMissingNode() ? null : node.asBoolean(), context);
+                    Boolean result = (Boolean) OpConfigs.applyNow(pipeline, node.isMissingNode() ? null : node.asBoolean(), context);
                     return result == null ? MissingNode.getInstance() : result ? BooleanNode.getTrue() : BooleanNode.getFalse();
                 });
             }
@@ -186,7 +188,7 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
                 // TODO need to handle short, long and BigInteger
                 var pipeline = OpConfigs.compose(Integer.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
-                    Integer result = (Integer) pipeline.apply(node.isMissingNode() ? null : node.asInt(), context);
+                    Integer result = (Integer) OpConfigs.applyNow(pipeline, node.isMissingNode() ? null : node.asInt(), context);
                     return result == null ? MissingNode.getInstance() : new IntNode(result);
                 });
             }
@@ -194,14 +196,14 @@ public class JacksonFunction implements BaseTypedOp<JsonNode, JsonNode> {
                 // TODO need to handle float and BigDecimal
                 var pipeline = OpConfigs.compose(Double.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
-                    Double result = (Double) pipeline.apply(node.isMissingNode() ? null : node.asDouble(), context);
+                    Double result = (Double) OpConfigs.applyNow(pipeline, node.isMissingNode() ? null : node.asDouble(), context);
                     return result == null ? MissingNode.getInstance() : new DoubleNode(result);
                 });
             }
             case "string" -> {
                 var pipeline = OpConfigs.compose(String.class, opConfigs, lookup);
                 yield new JacksonFunction((node, context) -> {
-                    String result = (String) pipeline.apply(node.isMissingNode() ? null : node.asText(), context);
+                    String result = (String) OpConfigs.applyNow(pipeline, node.isMissingNode() ? null : node.asText(), context);
                     return result == null ? MissingNode.getInstance() : new TextNode(result);
                 });
             }

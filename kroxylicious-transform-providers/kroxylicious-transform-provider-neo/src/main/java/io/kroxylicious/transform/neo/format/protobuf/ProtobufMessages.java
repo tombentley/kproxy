@@ -14,6 +14,7 @@ import com.google.protobuf.DynamicMessage;
 
 import io.kroxylicious.transform.neo.format.avro.AvroRecords;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 
 /**
@@ -55,7 +56,7 @@ public class ProtobufMessages {
                 }
                 Object value = message.getField(field);
                 var fieldFn = fieldFns.get(field.getName());
-                result.setField(field, fieldFn != null ? fieldFn.apply(value, opContext) : value);
+                result.setField(field, fieldFn != null ? OpConfigs.applyNow(fieldFn, value, opContext) : value);
             }
             return result.build();
         }

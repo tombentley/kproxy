@@ -7,15 +7,17 @@
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 
 public class EmptyBufferTransform implements BufferTransform {
     @Override
-    public ByteBuffer apply(RecordView record) {
+    public CompletionStage<ByteBuffer> apply(RecordView record) {
         // TODO is an empty buffer threadsafe? I'd _think_ so.
         ByteBuffer allocate = ByteBuffer.allocate(0);
-        return allocate;
+        return CompletableFuture.completedStage(allocate);
     }
 }

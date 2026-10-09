@@ -23,6 +23,7 @@ import io.kroxylicious.transform.neo.RecordValue;
 import io.kroxylicious.transform.neo.format.jackson2.JsonTransform;
 import io.kroxylicious.transform.neo.format.jackson2.ReadJson;
 import io.kroxylicious.transform.neo.format.jackson2.WriteJson;
+import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpConfig;
 import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
@@ -55,7 +56,7 @@ class OpConfigsTest {
 
     @Test
     void simplePipeline() {
-        var pipe = OpConfigs.compose(RecordView.class, List.of(
+        var pipe = (BaseTypedOp) OpConfigs.compose(RecordView.class, List.of(
                 new OpConfig(RecordValue.class),
                 new OpConfig(ReadJson.class),
                 new OpConfig(JsonTransform.class,
@@ -71,17 +72,17 @@ class OpConfigsTest {
         assertThat(pipe.outputType()).isEqualTo(ByteBuffer.class);
         var record = mock(RecordView.class);
         when(record.value()).thenReturn(ByteBuffer.wrap("12".getBytes(StandardCharsets.UTF_8)));
-        assertThat(pipe.apply(record, opContext)).isEqualTo(ByteBuffer.wrap("999".getBytes(StandardCharsets.UTF_8)));
+        assertThat(pipe.apply(record, opContext)).isCompletedWithValue(ByteBuffer.wrap("999".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
     void emptyPipeline() {
-        var pipe = OpConfigs.compose(Record.class, List.of(), lookup);
+        var pipe = (BaseTypedOp) OpConfigs.compose(Record.class, List.of(), lookup);
 
         assertThat(pipe.inputType()).isInstanceOf(TypeVariable.class).hasToString("T");
         assertThat(pipe.outputType()).isInstanceOf(TypeVariable.class).hasToString("T");
         var record = mock(Record.class);
-        assertThat(pipe.apply(record, opContext)).isEqualTo(record);
+        assertThat(pipe.apply(record, opContext)).isCompletedWithValue(record);
         Mockito.verifyNoInteractions(record);
     }
 

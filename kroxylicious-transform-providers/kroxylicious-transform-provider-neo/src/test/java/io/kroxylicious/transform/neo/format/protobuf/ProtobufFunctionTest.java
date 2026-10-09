@@ -48,7 +48,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.getField(descriptor.findFieldByName("first_name"))).isEqualTo("REDACTED");
@@ -70,7 +70,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.getField(descriptor.findFieldByName("age_years"))).isEqualTo(99);
@@ -98,7 +98,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         DynamicMessage resultAddress = (DynamicMessage) result.getField(descriptor.findFieldByName("address"));
@@ -121,7 +121,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         @SuppressWarnings("unchecked")
@@ -144,7 +144,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat((ByteString) result.getField(descriptor.findFieldByName("photo"))).isEqualTo(ByteString.copyFrom(new byte[]{ 9, 9, 9 }));
@@ -167,7 +167,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.getField(color)).isEqualTo(color.getEnumType().findValueByName("GREEN"));
@@ -217,7 +217,7 @@ class ProtobufFunctionTest {
                 .build();
 
         // When
-        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT);
+        DynamicMessage result = (DynamicMessage) ProtobufFunction.buildMask(schema, LOOKUP).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result.getField(descriptor.findFieldByName("a"))).isEqualTo(5);

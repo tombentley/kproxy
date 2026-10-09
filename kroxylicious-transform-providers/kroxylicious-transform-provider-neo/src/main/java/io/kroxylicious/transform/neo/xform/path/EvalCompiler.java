@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.type.Nothing;
 import io.kroxylicious.transform.neo.type.Null;
 
@@ -296,7 +297,7 @@ class EvalCompiler<N> {
         return (ctx, current) -> {
             Object arg = argEval.eval(ctx, current);
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            Object result = ((BaseTypedOp) op).apply(arg, ctx.opContext());
+            Object result = OpConfigs.applyNow((BaseTypedOp) op, arg, ctx.opContext());
             // TODO enforce the op-null contract: a non-optional op must not return null. Until optionality is
             // threaded through the type checker, defensively map a null result to Nothing to keep the algebra
             // Java-null-free.

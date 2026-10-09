@@ -8,6 +8,7 @@ package io.kroxylicious.transform.neo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -70,8 +71,8 @@ public class TimestampPipeline implements TimestampTransformService<PipelineConf
 
             @Nullable
             @Override
-            public long apply(RecordView record) {
-                return (Long) compose.apply(record, null);
+            public CompletionStage<Long> apply(RecordView record) {
+                return (CompletionStage) compose.apply(record, null);
             }
         };
     }

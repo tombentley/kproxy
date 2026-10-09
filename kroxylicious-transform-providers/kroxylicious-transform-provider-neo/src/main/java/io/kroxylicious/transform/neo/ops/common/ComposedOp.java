@@ -7,6 +7,7 @@
 package io.kroxylicious.transform.neo.ops.common;
 
 import java.lang.reflect.Type;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
@@ -34,9 +35,9 @@ public class ComposedOp<T, R, S> implements BaseTypedOp<T, S> {
     }
 
     @Override
-    public S apply(T value, OpContext opContext) {
-        R apply = first.apply(value, opContext);
-        return then.apply(apply, opContext);
+    public CompletionStage<S> apply(T value, OpContext opContext) {
+        return first.apply(value, opContext)
+                .thenCompose(resultOfFirst -> then.apply(resultOfFirst, opContext));
     }
 
 }

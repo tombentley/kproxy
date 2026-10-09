@@ -70,7 +70,7 @@ public class ReadJsonTest {
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
         // And When
-        Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
+        var parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
     }
@@ -87,7 +87,7 @@ public class ReadJsonTest {
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(JsonNode.class);
         // And When
-        Object parsed = op.apply(ByteBuffer.wrap("{hello: \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
+        Object parsed = op.apply(ByteBuffer.wrap("{hello: \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
 
@@ -105,7 +105,7 @@ public class ReadJsonTest {
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Map.class);
         // And When
-        Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
+        Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Map.class)).extracting(Map::keySet).isEqualTo(Set.of("hello"));
     }
@@ -124,7 +124,7 @@ public class ReadJsonTest {
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Greeting.class);
         // And When
-        Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext);
+        Object parsed = op.apply(ByteBuffer.wrap("{\"hello\": \"world\"}".getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).extracting(Greeting::hello).isEqualTo("world");
     }
@@ -157,7 +157,7 @@ public class ReadJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
                 hello: world
-                """.getBytes(StandardCharsets.UTF_8)), opContext);
+                """.getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(ObjectNode.class)).extracting(JsonNode::propertyNames).isEqualTo(Set.of("hello"));
     }
@@ -175,7 +175,7 @@ public class ReadJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
                 hello: world
-                """.getBytes(StandardCharsets.UTF_8)), opContext);
+                """.getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Greeting.class)).extracting(Greeting::hello).isEqualTo("world");
     }
@@ -193,7 +193,7 @@ public class ReadJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
                 - hello: world
-                """.getBytes(StandardCharsets.UTF_8)), opContext);
+                """.getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.list(Greeting.class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
     }
@@ -212,7 +212,7 @@ public class ReadJsonTest {
         // And When
         Object parsed = op.apply(ByteBuffer.wrap("""
                 - hello: world
-                """.getBytes(StandardCharsets.UTF_8)), opContext);
+                """.getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.array(Greeting[].class)).singleElement().extracting(Greeting::hello).isEqualTo("world");
     }
@@ -233,7 +233,7 @@ public class ReadJsonTest {
         assertThat(op.inputType()).isEqualTo(ByteBuffer.class);
         assertThat(op.outputType()).isEqualTo(Row.class);
         // And When
-        Object parsed = op.apply(ByteBuffer.wrap("\"hello\",1".getBytes(StandardCharsets.UTF_8)), opContext);
+        Object parsed = op.apply(ByteBuffer.wrap("\"hello\",1".getBytes(StandardCharsets.UTF_8)), opContext).toCompletableFuture().join();
         // Then
         assertThat(parsed).asInstanceOf(InstanceOfAssertFactories.type(Row.class))
                 .isEqualTo(new Row("hello", 1));

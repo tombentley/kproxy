@@ -8,9 +8,11 @@ package io.kroxylicious.transform.neo.ops.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.neo.format.jackson2.ArrayItems;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 
 /**
@@ -31,7 +33,8 @@ public record ListElements() implements Traversal<List<Object>, Object> {
     public List<Object> modifyAll(List<Object> list, BaseTypedOp<Object, Object> f, OpContext opContext) {
         List<Object> result = new ArrayList<>(list.size());
         for (Object element : list) {
-            result.add(f.apply(element, opContext));
+            Object apply = OpConfigs.applyNow(f, element, opContext);
+            result.add(apply);
         }
         return result;
     }

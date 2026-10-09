@@ -6,6 +6,8 @@
 
 package io.kroxylicious.transform.neo.format.avro;
 
+import java.util.concurrent.CompletionStage;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
@@ -27,4 +29,10 @@ import io.kroxylicious.transform.neo.format.protobuf.ProtoValue;
  *              scalar/enum/fixed leaf value, depending on {@code withKeySchema}'s type
  * @param schema the withKeySchema {@code value} conforms to
  */
-public record AvroValue(Object value, Schema schema) {}
+public record AvroValue(Object value, Schema schema) {
+    public AvroValue {
+        if (value instanceof CompletionStage<?>) {
+            throw new IllegalStateException();
+        }
+    }
+}

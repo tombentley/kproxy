@@ -14,6 +14,7 @@ import com.google.protobuf.DynamicMessage;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.format.avro.AvroTransform;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.TransformInitializationContext;
@@ -57,7 +58,7 @@ public class ProtobufTransform implements OpFactory<ProtoValue, ProtoValue> {
                 cachedSchema = schema;
                 cachedMask = mask;
             }
-            DynamicMessage masked = (DynamicMessage) mask.apply(value.message(), opContext);
+            DynamicMessage masked = (DynamicMessage) OpConfigs.applyNow(mask, value.message(), opContext);
             return new ProtoValue(masked, schema);
         }
     }

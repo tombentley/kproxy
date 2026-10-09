@@ -6,12 +6,15 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.TimestampTransform;
 
 public class RecordTimestampTransform implements TimestampTransform {
     @Override
-    public long apply(RecordView record) {
-        return record.timestamp();
+    public CompletionStage<Long> apply(RecordView record) {
+        return CompletableFuture.completedStage(record.timestamp());
     }
 }

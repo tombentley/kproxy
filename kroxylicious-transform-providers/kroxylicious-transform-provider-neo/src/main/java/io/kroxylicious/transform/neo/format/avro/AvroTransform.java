@@ -15,6 +15,7 @@ import org.apache.avro.Schema;
 import io.kroxylicious.proxy.plugin.Plugin;
 import io.kroxylicious.transform.neo.format.jackson2.JsonTransform;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.op.OpFactory;
 import io.kroxylicious.transform.service.TransformInitializationContext;
@@ -62,7 +63,7 @@ public class AvroTransform implements OpFactory<AvroValue, AvroValue> {
                 cachedSchema = schema;
                 cachedMask = mask;
             }
-            Object masked = mask.apply(value.value(), opContext);
+            Object masked = OpConfigs.applyNow(mask, value.value(), opContext);
             return new AvroValue(masked, schema);
         }
     }

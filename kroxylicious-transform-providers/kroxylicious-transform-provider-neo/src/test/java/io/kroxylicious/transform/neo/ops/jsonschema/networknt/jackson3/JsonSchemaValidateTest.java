@@ -65,7 +65,7 @@ class JsonSchemaValidateTest {
                   "foo": "bar"
                 }
                 """);
-        JsonNode applied = op.apply(value, opContext);
+        JsonNode applied = op.apply(value, opContext).toCompletableFuture().join();
         assertThat(applied).isSameAs(value);
     }
 

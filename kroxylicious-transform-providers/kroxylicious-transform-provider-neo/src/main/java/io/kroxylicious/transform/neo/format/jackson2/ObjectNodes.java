@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.Maybe;
 import io.kroxylicious.transform.neo.ops.common.Property;
@@ -95,7 +96,7 @@ public class ObjectNodes {
             for (var property : object.properties()) {
                 handled.add(property.getKey());
                 var mapFn = propertyFns.get(property.getKey());
-                Maybe<JsonNode> mapped = mapFn != null ? mapFn.apply(Maybe.some(property.getValue()), opContext) : Maybe.some(property.getValue());
+                Maybe<JsonNode> mapped = mapFn != null ? OpConfigs.applyNow(mapFn, Maybe.some(property.getValue()), opContext) : Maybe.some(property.getValue());
                 if (mapped instanceof Maybe.Some<JsonNode> some) {
                     result.set(property.getKey(), some.value());
                 }
@@ -104,7 +105,7 @@ public class ObjectNodes {
                 if (handled.contains(entry.getKey())) {
                     continue;
                 }
-                Maybe<JsonNode> mapped = entry.getValue().apply(Maybe.none(), opContext);
+                Maybe<JsonNode> mapped = OpConfigs.applyNow(entry.getValue(), Maybe.none(), opContext);
                 if (mapped instanceof Maybe.Some<JsonNode> some) {
                     result.set(entry.getKey(), some.value());
                 }

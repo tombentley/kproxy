@@ -8,6 +8,8 @@ package io.kroxylicious.transform.neo.op;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -53,5 +55,17 @@ public final class OpConfigs {
             }
             return last;
         }
+    }
+
+    public static <T, R> R applyNow(BaseTypedOp<T, R> stage, T input, OpContext context) {
+        CompletionStage<R> apply = stage.apply(input, context);
+        CompletableFuture<R> completableFuture = apply.toCompletableFuture();
+        if (completableFuture.isDone()) {
+            return completableFuture.getNow(null);
+        }
+        else {
+            throw new IllegalStateException("stage is not done");
+        }
+
     }
 }

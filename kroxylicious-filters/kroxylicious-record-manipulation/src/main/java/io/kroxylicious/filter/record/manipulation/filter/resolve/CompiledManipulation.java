@@ -8,6 +8,8 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
@@ -112,26 +114,54 @@ public record CompiledManipulation<I2, I3>(
         }
     }
 
-    public RecordEdit asEdit(RecordView record) {
-        RecordEdit.Builder recordEditsBuilder = RecordEdit.builder();
+    public CompletionStage<RecordEdit> asEdit(RecordView record) {
+
+        CompletionStage<ByteBuffer> newKeyStage;
         if (newKey() != null) {
-            ByteBuffer newKey = newKey().apply(record);
-            if (newKey == null) {
-                recordEditsBuilder.clearKey();
-            }
-            else {
-                recordEditsBuilder.key(newKey);
-            }
+            newKeyStage = Objects.requireNonNull(newKey().apply(record));
         }
+        else {
+            newKeyStage = null;
+        }
+        CompletionStage<ByteBuffer> newValueStage;
         if (newValue() != null) {
-            ByteBuffer newValue = newValue().apply(record);
-            if (newValue == null) {
-                recordEditsBuilder.clearValue();
-            }
-            else {
-                recordEditsBuilder.value(newValue);
-            }
+            newValueStage = Objects.requireNonNull(newValue().apply(record));
         }
-        return recordEditsBuilder.build();
+        else {
+            newValueStage = null;
+        }
+
+        if (newKeyStage == null && newValueStage == null) {
+            return CompletableFuture.completedStage(RecordEdit.keep());
+        }
+        else if (newKeyStage == null) {
+            return newValueStage.thenApply(newValue -> buildForValue(RecordEdit.builder(), newValue).build());
+        }
+        else if (newValueStage == null) {
+            return newKeyStage.thenApply(newValue -> buildForKey(RecordEdit.builder(), newValue).build());
+        }
+        else {
+            return newKeyStage.thenCombine(newValueStage, (newKey, newValue) -> buildForValue(buildForKey(RecordEdit.builder(), newKey), newValue).build());
+        }
+    }
+
+    private static RecordEdit.Builder buildForValue(RecordEdit.Builder builder, ByteBuffer newValue) {
+        if (newValue == null) {
+            builder.clearValue();
+        }
+        else {
+            builder.value(newValue);
+        }
+        return builder;
+    }
+
+    private static RecordEdit.Builder buildForKey(RecordEdit.Builder builder, ByteBuffer newKey) {
+        if (newKey == null) {
+            builder.clearKey();
+        }
+        else {
+            builder.key(newKey);
+        }
+        return builder;
     }
 }

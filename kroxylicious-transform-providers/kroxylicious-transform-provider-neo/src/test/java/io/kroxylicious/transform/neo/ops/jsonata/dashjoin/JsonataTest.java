@@ -69,7 +69,7 @@ class JsonataTest {
         var op = jsonata.create(Map.of(io.kroxylicious.transform.neo.ops.jsonata.dashjoin.Jsonata.CONF_PARAM_EXPRESSION, "$sum(c)"), lookup, type);
 
         var input = JsonMapper.builder().build().readValue("{ \"a\":1, \"b\":2, \"c\":[1,2,3,4,5] }", Object.class);
-        Object apply = op.apply(input, opContext);
+        Object apply = op.apply(input, opContext).toCompletableFuture().join();
 
         assertThat(apply)
                 .asInstanceOf(InstanceOfAssertFactories.type(Integer.class))

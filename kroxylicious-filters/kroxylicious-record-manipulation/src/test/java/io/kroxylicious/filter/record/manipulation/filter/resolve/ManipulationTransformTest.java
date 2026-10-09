@@ -9,6 +9,7 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,8 @@ class ManipulationTransformTest {
     void clearsValueToTombstoneWhenValueTransformReturnsNull() {
         // Given
         var input = RecordTestUtils.memoryRecords(List.of(RecordTestUtils.record(0L, 0L, null, "a".getBytes(UTF_8), NO_HEADERS)));
-        var manipulation = manipulation(Direction.INTO_CLUSTER, null, record -> null);
+        var manipulation = manipulation(Direction.INTO_CLUSTER, null,
+                record -> CompletableFuture.completedStage(null));
 
         // When
         var output = applyProduce(input, manipulation);
@@ -120,7 +122,7 @@ class ManipulationTransformTest {
 
     private static BufferTransform rewriteValueTo(String replacement) {
         byte[] bytes = replacement.getBytes(UTF_8);
-        return record -> ByteBuffer.wrap(bytes);
+        return record -> CompletableFuture.completedStage(ByteBuffer.wrap(bytes));
     }
 
     private static List<String> values(MemoryRecords records) {

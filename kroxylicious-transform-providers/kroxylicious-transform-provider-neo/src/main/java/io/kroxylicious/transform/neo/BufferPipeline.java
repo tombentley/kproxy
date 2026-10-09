@@ -9,6 +9,7 @@ package io.kroxylicious.transform.neo;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 import io.leangen.geantyref.GenericTypeReflector;
 
@@ -38,8 +39,8 @@ public class BufferPipeline implements BufferTransformService<PipelineConfig, Ba
 
             @Nullable
             @Override
-            public ByteBuffer apply(RecordView record) {
-                return (ByteBuffer) compose.apply(record, null);
+            public CompletionStage<ByteBuffer> apply(RecordView record) {
+                return (CompletionStage) compose.apply(record, null);
             }
         };
     }

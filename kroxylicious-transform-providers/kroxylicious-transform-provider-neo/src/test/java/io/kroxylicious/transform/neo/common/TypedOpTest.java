@@ -9,6 +9,8 @@ package io.kroxylicious.transform.neo.common;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.junit.jupiter.api.Test;
 
@@ -53,8 +55,8 @@ class TypedOpTest {
         // expressed as a bare Class literal - mirrors JacksonFunction.asMaybe()'s real use of it.
         StaticTypedOp<List<String>, String> op = new StaticTypedOp<List<String>, String>() {
             @Override
-            public String apply(List<String> value, OpContext context) {
-                return String.join(",", value);
+            public CompletionStage<String> apply(List<String> value, OpContext context) {
+                return CompletableFuture.completedStage(String.join(",", value));
             }
         };
         assertThat(op.inputType()).isInstanceOfSatisfying(ParameterizedType.class, pt -> {

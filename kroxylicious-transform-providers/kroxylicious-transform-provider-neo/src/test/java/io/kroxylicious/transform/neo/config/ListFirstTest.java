@@ -61,8 +61,8 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfInteger);
         assertThat(listFirst.outputType()).isEqualTo(Integer.class);
-        assertThat(listFirst.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
-        assertThat(listFirst.apply(List.of(), opContext)).isNull();
+        assertThat(listFirst.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
+        assertThat(listFirst.apply(List.of(), opContext)).isCompletedWithValue(null);
     }
 
     @Test
@@ -72,8 +72,8 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfInteger);
         assertThat(listFirst.outputType()).isEqualTo(Integer.class);
-        assertThat(listFirst.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
-        assertThat(listFirst.apply(List.of(), opContext)).isNull();
+        assertThat(listFirst.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
+        assertThat(listFirst.apply(List.of(), opContext)).isCompletedWithValue(null);
     }
 
     @Test
@@ -83,7 +83,7 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfInteger);
         assertThat(listFirst.outputType()).isEqualTo(Integer.class);
-        assertThat(listFirst.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
+        assertThat(listFirst.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
         List<Integer> empty = List.of();
         assertThatThrownBy(() -> listFirst.apply(empty, opContext))
                 .isInstanceOf(NoSuchElementException.class)
@@ -97,8 +97,8 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfInteger);
         assertThat(listFirst.outputType()).isEqualTo(Integer.class);
-        assertThat(listFirst.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
-        assertThat(listFirst.apply(List.of(), opContext)).isEqualTo(42);
+        assertThat(listFirst.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
+        assertThat(listFirst.apply(List.of(), opContext)).isCompletedWithValue(42);
     }
 
     @Test
@@ -109,8 +109,8 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfOptionalInteger);
         assertThat(listFirst.outputType()).isEqualTo(optionalInteger);
-        assertThat(listFirst.apply(List.of(Optional.of(1)), opContext)).isEqualTo(Optional.of(1));
-        assertThat(listFirst.apply(List.of(), opContext)).isNull();
+        assertThat(listFirst.apply(List.of(Optional.of(1)), opContext)).isCompletedWithValue(Optional.of(1));
+        assertThat(listFirst.apply(List.of(), opContext)).isCompletedWithValue(null);
     }
 
     // <T> T first(List<T> list) {
@@ -126,8 +126,8 @@ class ListFirstTest {
 
         assertThat(listFirst.inputType()).isEqualTo(listOfUnknown);
         assertThat(listFirst.outputType()).isEqualTo(TypeFactory.unboundWildcard());
-        assertThat(listFirst.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
-        assertThat(listFirst.apply(List.of(), opContext)).isNull();
+        assertThat(listFirst.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
+        assertThat(listFirst.apply(List.of(), opContext)).isCompletedWithValue(null);
     }
 
     @Test
@@ -139,10 +139,10 @@ class ListFirstTest {
 
         assertThat(listFirstWithDefault42.inputType()).isEqualTo(listOfUnknown);
         assertThat(listFirstWithDefault42.outputType()).isEqualTo(TypeFactory.unboundWildcard());
-        assertThat(listFirstWithDefault42.apply(List.of(1), opContext)).isEqualTo(Integer.valueOf(1));
-        assertThat(listFirstWithDefault42.apply(List.of(), opContext)).isEqualTo(42);
-        assertThat(listFirstWithDefaultFortyTwo.apply(List.of(1), opContext)).isEqualTo(1);
-        assertThat(listFirstWithDefaultFortyTwo.apply(List.of(), opContext)).isInstanceOf(String.class);
+        assertThat(listFirstWithDefault42.apply(List.of(1), opContext)).isCompletedWithValue(Integer.valueOf(1));
+        assertThat(listFirstWithDefault42.apply(List.of(), opContext)).isCompletedWithValue(42);
+        assertThat(listFirstWithDefaultFortyTwo.apply(List.of(1), opContext)).isCompletedWithValue(1);
+        assertThat(listFirstWithDefaultFortyTwo.apply(List.of(), opContext)).isCompletedWithValueMatching(x -> x instanceof String);
     }
 
 }

@@ -10,6 +10,8 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -150,7 +152,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
         if (apply != null) {
             ProtobufFunction ownApply = buildApplyChain(field, apply, lookup);
             ProtobufFunction base = elementFn;
-            elementFn = new ProtobufFunction((value, context) -> ownApply.apply(base.apply(value, context), context));
+            elementFn = new ProtobufFunction((value, context) -> OpConfigs.applyNow(ownApply, OpConfigs.applyNow(base, value, context), context));
         }
         if (field.isRepeated()) {
             ProtobufFunction perElement = elementFn;
@@ -187,34 +189,34 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
         return switch (field.getType()) {
             case BOOL -> {
                 var pipeline = OpConfigs.compose(Boolean.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply((Boolean) value, context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, (Boolean) value, context));
             }
             case INT32, FIXED32, SINT32, SFIXED32, UINT32 -> {
                 var pipeline = OpConfigs.compose(Integer.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply((Integer) value, context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, (Integer) value, context));
             }
             case INT64, FIXED64, SINT64, SFIXED64, UINT64 -> {
                 var pipeline = OpConfigs.compose(Long.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply((Long) value, context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, (Long) value, context));
             }
             case FLOAT -> {
                 var pipeline = OpConfigs.compose(Float.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply((Float) value, context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, (Float) value, context));
             }
             case DOUBLE -> {
                 var pipeline = OpConfigs.compose(Double.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply((Double) value, context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, (Double) value, context));
             }
             case STRING -> {
                 var pipeline = OpConfigs.compose(String.class, ops, lookup);
-                yield new ProtobufFunction((value, context) -> pipeline.apply(value == null ? null : value.toString(), context));
+                yield new ProtobufFunction((value, context) -> OpConfigs.applyNow(pipeline, value == null ? null : value.toString(), context));
             }
             case BYTES -> {
                 var pipeline = OpConfigs.compose(byte[].class, ops, lookup);
                 yield new ProtobufFunction((value, context) -> {
                     // call toByteArray() because value is a ByteString, not a byte[]
                     byte[] input = value == null ? null : ((ByteString) value).toByteArray();
-                    byte[] result = (byte[]) pipeline.apply(input, context);
+                    byte[] result = (byte[]) OpConfigs.applyNow(pipeline, input, context);
                     return result == null ? null : ByteString.copyFrom(result);
                 });
             }
@@ -223,7 +225,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
                 Descriptors.EnumDescriptor enumType = field.getEnumType();
                 yield new ProtobufFunction((value, context) -> {
                     Descriptors.EnumValueDescriptor enumValue = (Descriptors.EnumValueDescriptor) value;
-                    String result = (String) pipeline.apply(enumValue.getName(), context);
+                    String result = (String) OpConfigs.applyNow(pipeline, enumValue.getName(), context);
                     if (result == null) {
                         return null;
                     }
@@ -279,7 +281,7 @@ public class ProtobufFunction implements BaseTypedOp<Object, Object> {
     }
 
     @Override
-    public Object apply(Object value, OpContext opContext) {
-        return fn.apply(value, opContext);
+    public CompletionStage<Object> apply(Object value, OpContext opContext) {
+        return CompletableFuture.completedStage(fn.apply(value, opContext));
     }
 }

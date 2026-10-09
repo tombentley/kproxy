@@ -32,7 +32,7 @@ class ComposedOpTest {
         var composed = new ComposedOp<>(parseInt, toString);
 
         // When
-        String result = composed.apply("21", opContext);
+        String result = composed.apply("21", opContext).toCompletableFuture().join();
 
         // Then
         assertThat(result).isEqualTo("value=42");

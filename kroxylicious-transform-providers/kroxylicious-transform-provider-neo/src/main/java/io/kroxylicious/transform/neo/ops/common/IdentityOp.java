@@ -9,6 +9,8 @@ package io.kroxylicious.transform.neo.ops.common;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
 import io.kroxylicious.transform.neo.op.OpContext;
@@ -40,7 +42,7 @@ public class IdentityOp<T> implements BaseTypedOp<T, T> {
     }
 
     @Override
-    public T apply(T value, OpContext opContext) {
-        return value;
+    public CompletionStage<T> apply(T value, OpContext opContext) {
+        return CompletableFuture.completedStage(value);
     }
 }

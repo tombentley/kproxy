@@ -54,7 +54,7 @@ public class ManipulationTransform implements AsyncRecordTransform {
         if (manipulation == null) {
             return CompletableFuture.completedFuture(RecordEdit.keep());
         }
-        return CompletableFuture.completedFuture(manipulation.asEdit(record));
+        return manipulation.asEdit(record);
     }
 
 }

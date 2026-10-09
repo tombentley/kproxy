@@ -7,6 +7,7 @@
 package io.kroxylicious.transform.service;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.records.RecordView;
 
@@ -26,5 +27,5 @@ public interface BufferTransform {
      * @return the new buffer, or {@code null}.
      */
     @Nullable
-    ByteBuffer apply(RecordView record);
+    CompletionStage<ByteBuffer> apply(RecordView record);
 }

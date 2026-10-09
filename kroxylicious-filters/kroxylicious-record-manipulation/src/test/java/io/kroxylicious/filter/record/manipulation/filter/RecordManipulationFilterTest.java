@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -213,7 +214,7 @@ class RecordManipulationFilterTest {
 
     private static BufferTransform rewriteValueTo(String replacement) {
         byte[] bytes = replacement.getBytes(UTF_8);
-        return record -> ByteBuffer.wrap(bytes);
+        return record -> CompletableFuture.completedStage(ByteBuffer.wrap(bytes));
     }
 
     private static MemoryRecords records(byte[] key, String... values) {

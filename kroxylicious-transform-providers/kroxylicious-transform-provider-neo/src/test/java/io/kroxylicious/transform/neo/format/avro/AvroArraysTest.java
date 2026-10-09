@@ -27,7 +27,7 @@ class AvroArraysTest {
         List<Object> input = List.of(1, 2, 3);
 
         // When
-        List<Object> result = AvroArrays.items(INCREMENT_FN).apply(input, OP_CONTEXT);
+        List<Object> result = AvroArrays.items(INCREMENT_FN).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result).containsExactly(2, 3, 4);
@@ -51,7 +51,7 @@ class AvroArraysTest {
         List<Object> input = List.of();
 
         // When
-        List<Object> result = AvroArrays.items(INCREMENT_FN).apply(input, OP_CONTEXT);
+        List<Object> result = AvroArrays.items(INCREMENT_FN).apply(input, OP_CONTEXT).toCompletableFuture().join();
 
         // Then
         assertThat(result).isEmpty();

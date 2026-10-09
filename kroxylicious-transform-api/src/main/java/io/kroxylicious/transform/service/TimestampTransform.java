@@ -6,9 +6,11 @@
 
 package io.kroxylicious.transform.service;
 
+import java.util.concurrent.CompletionStage;
+
 import io.kroxylicious.transform.records.RecordView;
 
 public interface TimestampTransform {
 
-    long apply(RecordView record);
+    CompletionStage<Long> apply(RecordView record);
 }

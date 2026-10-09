@@ -15,6 +15,7 @@ import org.apache.avro.generic.GenericRecord;
 
 import io.kroxylicious.transform.neo.format.jackson2.ObjectNodes;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
+import io.kroxylicious.transform.neo.op.OpConfigs;
 import io.kroxylicious.transform.neo.op.OpContext;
 import io.kroxylicious.transform.neo.ops.common.Maybe;
 
@@ -56,7 +57,7 @@ public class AvroRecords {
             for (Schema.Field field : schema.getFields()) {
                 Object value = record.get(field.name());
                 var fieldFn = fieldFns.get(field.name());
-                result.put(field.name(), fieldFn != null ? fieldFn.apply(value, opContext) : value);
+                result.put(field.name(), fieldFn != null ? OpConfigs.applyNow(fieldFn, value, opContext) : value);
             }
             return result;
         }

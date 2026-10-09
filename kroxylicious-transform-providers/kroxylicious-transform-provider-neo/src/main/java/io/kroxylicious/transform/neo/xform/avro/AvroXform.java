@@ -8,6 +8,8 @@ package io.kroxylicious.transform.neo.xform.avro;
 
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.neo.format.avro.AvroValue;
 import io.kroxylicious.transform.neo.op.BaseTypedOp;
@@ -55,14 +57,14 @@ public class AvroXform implements OpFactory<AvroValue, AvroValue> {
 
         return new StaticTypedOp<AvroValue, AvroValue>() {
             @Override
-            public AvroValue apply(AvroValue value, OpContext opContext) {
+            public CompletionStage<AvroValue> apply(AvroValue value, OpContext opContext) {
                 // TODO merge the types from the withKeySchema with the paths from the xform
                 // and check the paths have result types which match any target withKeySchema
                 // var reader = new GenericDatumReader<>(value.withKeySchema());
                 // Decoder decoder = DecoderFactory.get().jsonDecoder(value.withKeySchema(), is);
                 // return reader.read(null, decoder);
 
-                return null;
+                return CompletableFuture.completedStage(null);
             }
         };
     }

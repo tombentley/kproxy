@@ -70,7 +70,7 @@ public class JsonataTest {
         var op = jsonata.create(Map.of(Jsonata.CONF_PARAM_EXPRESSION, "$sum(c)"), lookup, type);
 
         var input = JsonMapper.builder().build().readTree("{ \"a\":1, \"b\":2, \"c\":[1,2,3,4,5] }");
-        JsonNode apply = op.apply(input, opContext);
+        JsonNode apply = op.apply(input, opContext).toCompletableFuture().join();
 
         assertThat(apply)
                 .asInstanceOf(InstanceOfAssertFactories.type(LongNode.class))

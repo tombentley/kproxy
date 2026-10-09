@@ -7,13 +7,15 @@
 package io.kroxylicious.filter.record.manipulation.filter.transforms;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import io.kroxylicious.transform.records.RecordView;
 import io.kroxylicious.transform.service.BufferTransform;
 
 public class RecordKeyTransform implements BufferTransform {
     @Override
-    public ByteBuffer apply(RecordView record) {
-        return record.key();
+    public CompletionStage<ByteBuffer> apply(RecordView record) {
+        return CompletableFuture.completedStage(record.key());
     }
 }

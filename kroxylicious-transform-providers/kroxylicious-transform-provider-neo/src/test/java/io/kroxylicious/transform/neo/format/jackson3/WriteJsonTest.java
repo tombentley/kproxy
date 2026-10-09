@@ -62,7 +62,7 @@ class WriteJsonTest {
         var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
-        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode(), opContext);
+        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode(), opContext).toCompletableFuture().join();
         assertThat(StandardCharsets.UTF_8.decode(apply).toString()).isEqualTo("{ }");
     }
 
@@ -79,7 +79,7 @@ class WriteJsonTest {
         var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
-        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("int", 1), opContext);
+        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("int", 1), opContext).toCompletableFuture().join();
         assertThat(StandardCharsets.UTF_8.decode(apply).toString()).isEqualTo("""
                 ---
                 int: 1
@@ -108,7 +108,7 @@ class WriteJsonTest {
         var op = new WriteJson().create(config, lookup, argumentType);
         assertThat(op.inputType()).isEqualTo(expectedInputType);
         assertThat(op.outputType()).isEqualTo(ByteBuffer.class);
-        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("foo", 1).put("bar", "food"), opContext);
+        ByteBuffer apply = op.apply(jsonNodeFactory.objectNode().put("foo", 1).put("bar", "food"), opContext).toCompletableFuture().join();
         assertThat(StandardCharsets.UTF_8.decode(apply).toString()).isEqualTo("""
                 1,food
                 """);
