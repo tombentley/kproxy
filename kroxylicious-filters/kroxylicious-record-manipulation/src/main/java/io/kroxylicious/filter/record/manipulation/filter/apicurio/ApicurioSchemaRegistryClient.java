@@ -22,6 +22,15 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GavCoordinates;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GlobalId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClientException;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentNotFoundException;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.UnknownGlobalIdException;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.VersionsResult;
 import io.kroxylicious.proxy.config.tls.InsecureTls;
 import io.kroxylicious.proxy.config.tls.Tls;
 import io.kroxylicious.proxy.tag.VisibleForTesting;
@@ -60,6 +69,16 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient, AutoC
         return apiBaseUri.resolve("ids/contentIds/" + contentId.value() + "?returnArtifactType=true");
     }
 
+    private URI contentUri(GavCoordinates coordinates) {
+        // GET /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content
+        // TODO we need to quote the coordinates before we use them to construct a path
+        return apiBaseUri.resolve(
+                "groups/" + coordinates.groupId()
+                + "/artifacts/" + coordinates.artifactId()
+                + "/versions/" + coordinates.version()
+                + "/content?returnArtifactType=true");
+    }
+
     private URI searchVersionsUri(GlobalId globalId) {
         return apiBaseUri.resolve("search/versions?globalId=" + globalId.value() + "&limit=1");
     }
@@ -80,14 +99,31 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient, AutoC
             var request = HttpRequest.newBuilder(contentUri(contentId)).timeout(timeout).GET().build();
             return send(request)
                     .thenApply(response -> checkContentStatus(contentId, response))
-                    .thenApply(response -> new ContentResult(contentId,
+                    .thenApply(response -> new ContentResult(
                             response.headers().firstValue("X-Registry-ArtifactType").orElse(null),
                             response.body()));
         }
         catch (RuntimeException e) {
-            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for contentId " + contentId.value(), e));
+            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for content identified by " + contentId, e));
         }
     }
+
+
+    @Override
+    public CompletionStage<ContentResult> contentByGav(GavCoordinates coordinates) {
+        try {
+            var request = HttpRequest.newBuilder(contentUri(coordinates)).timeout(timeout).GET().build();
+            return send(request)
+                    .thenApply(response -> checkContentStatus(coordinates, response))
+                    .thenApply(response -> new ContentResult(
+                            response.headers().firstValue("X-Registry-ArtifactType").orElse(null),
+                            response.body()));
+        }
+        catch (RuntimeException e) {
+            return CompletableFuture.failedFuture(new SchemaRegistryClientException("Failed to build request for content identified by " + coordinates, e));
+        }
+    }
+
 
     @Override
     public CompletionStage<VersionsResult> versionsForGlobalId(GlobalId globalId) {
@@ -108,22 +144,22 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient, AutoC
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
     }
 
-    private static HttpResponse<byte[]> checkContentStatus(ContentId contentId, HttpResponse<byte[]> response) {
+    private static HttpResponse<byte[]> checkContentStatus(Record identifier, HttpResponse<byte[]> response) {
         if (response.statusCode() == 404) {
             LOGGER.atWarn()
-                    .addKeyValue("contentId", contentId.value())
+                    .addKeyValue("identifiedBy", identifier)
                     .addKeyValue("requestUrl", response.request().uri())
                     .addKeyValue("statusCode", 404)
                     .log("Schema content not found in Apicurio registry");
-            throw new UnknownContentIdException(contentId);
+            throw new ContentNotFoundException(identifier);
         }
         if (response.statusCode() != 200) {
             LOGGER.atWarn()
-                    .addKeyValue("contentId", contentId.value())
+                    .addKeyValue("identifiedBy", identifier)
                     .addKeyValue("requestUrl", response.request().uri())
                     .addKeyValue("statusCode", response.statusCode())
                     .log("Failed to retrieve schema content from Apicurio registry");
-            throw new SchemaRegistryClientException("Failed to retrieve content id %d, HTTP status code %d.".formatted(contentId.value(), response.statusCode()));
+            throw new SchemaRegistryClientException("Failed to retrieve content identified by %s, HTTP status code %d.".formatted(identifier, response.statusCode()));
         }
         return response;
     }

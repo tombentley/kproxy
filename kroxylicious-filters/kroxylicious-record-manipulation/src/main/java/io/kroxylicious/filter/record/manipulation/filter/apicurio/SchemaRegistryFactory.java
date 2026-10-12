@@ -8,6 +8,7 @@ package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
 import java.util.Objects;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClient;
 import io.kroxylicious.filter.record.manipulation.filter.service.ServiceFactory;
 
 public class SchemaRegistryFactory implements ServiceFactory<ApicurioRegistryClientConfig, SchemaRegistryClient> {

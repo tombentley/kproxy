@@ -9,13 +9,13 @@ package io.kroxylicious.filter.record.manipulation.filter.resolve;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentId;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.ContentResult;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.GlobalIdExtractor;
 import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaFacets;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.SchemaRegistryClient;
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.VersionsResult;
 import io.kroxylicious.kafka.common.record.internal.Record;
 import io.kroxylicious.transform.service.DependencyKey;
 

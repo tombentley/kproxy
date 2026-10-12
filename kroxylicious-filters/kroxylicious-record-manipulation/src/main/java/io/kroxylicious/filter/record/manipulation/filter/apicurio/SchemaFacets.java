@@ -6,6 +6,11 @@
 
 package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GlobalId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClient;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.CachingEntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.EntityResolver;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.LookupKeyExtractor;

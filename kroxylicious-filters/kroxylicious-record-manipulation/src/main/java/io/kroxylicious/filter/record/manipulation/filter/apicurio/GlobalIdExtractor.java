@@ -9,6 +9,7 @@ package io.kroxylicious.filter.record.manipulation.filter.apicurio;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GlobalId;
 import io.kroxylicious.filter.record.manipulation.filter.resolve.LookupKeyExtractor;
 import io.kroxylicious.kafka.common.record.internal.Record;
 

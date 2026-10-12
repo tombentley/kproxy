@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
-import io.kroxylicious.filter.record.manipulation.filter.apicurio.VersionsResult;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.VersionsResult;
 import io.kroxylicious.filter.record.manipulation.filter.config.Direction;
 import io.kroxylicious.filter.record.manipulation.filter.config.SchemaRef;
 import io.kroxylicious.identity.Identity;

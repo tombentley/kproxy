@@ -91,6 +91,25 @@ public interface BaseTypedOp<T, R> {
         return new MyBaseTypedOp<>(inputType, outputType, fn, Optional.of(introducedSchema));
     }
 
+    static <T, R> BaseTypedOp<T, R> ofAsync(Type inputType, Type outputType, BiFunction<T, OpContext, CompletionStage<R>> fn, SchemaType<?> introducedSchema) {
+        return new BaseTypedOp<T, R>() {
+            @Override
+            public Type inputType() {
+                return inputType;
+            }
+
+            @Override
+            public Type outputType() {
+                return outputType;
+            }
+
+            @Override
+            public CompletionStage<R> apply(T value, OpContext opContext) {
+                return fn.apply(value, opContext);
+            }
+        };
+    }
+
     /**
      * The {@code Type} reflecting there first parameter, {@code T}.
      * @return The type reflecting {@code T}

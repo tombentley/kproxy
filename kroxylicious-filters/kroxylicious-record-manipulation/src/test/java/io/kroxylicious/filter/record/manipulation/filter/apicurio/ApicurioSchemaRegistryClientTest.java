@@ -18,6 +18,12 @@ import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.GlobalId;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.SchemaRegistryClientException;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.ContentNotFoundException;
+import io.kroxylicious.filter.record.manipulation.filter.apicurio.api.UnknownGlobalIdException;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -121,7 +127,6 @@ class ApicurioSchemaRegistryClientTest {
         assertThat(client.contentById(new ContentId(62L)))
                 .succeedsWithin(Duration.ofSeconds(5))
                 .satisfies(result -> {
-                    assertThat(result.contentId()).isEqualTo(new ContentId(62L));
                     assertThat(result.contentBytes()).isEqualTo(contentBytes);
                 });
     }
@@ -136,7 +141,7 @@ class ApicurioSchemaRegistryClientTest {
         assertThat(client.contentById(new ContentId(404L)))
                 .failsWithin(Duration.ofSeconds(5))
                 .withThrowableThat()
-                .withCauseInstanceOf(UnknownContentIdException.class)
+                .withCauseInstanceOf(ContentNotFoundException.class)
                 .withMessageContaining("contentId '404' is not found");
     }
 
