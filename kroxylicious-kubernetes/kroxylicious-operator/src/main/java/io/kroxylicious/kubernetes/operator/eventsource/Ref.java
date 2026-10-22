@@ -103,10 +103,9 @@ public final class Ref {
      * @return a relationship matching secondaries whose reference names the primary
      */
     public static <P extends HasMetadata, S extends HasMetadata> Relationship<P, S> toPrimary(Function<S, ? extends LocalRef<P>> ref) {
-        ReferencingRelationship<P, S> relationship = (context, primary) -> secondary -> Optional.ofNullable(ref.apply(secondary))
+        return (ReferencingRelationship<P, S>) (context, primary) -> secondary -> Optional.ofNullable(ref.apply(secondary))
                 .map(r -> ResourcesUtil.isReferent(r, primary))
                 .orElse(false);
-        return relationship;
     }
 
     /**
@@ -135,14 +134,13 @@ public final class Ref {
         @SuppressWarnings("unchecked")
         ReferencingRelationship<P, I> referencingIntermediateToPrimary = (ReferencingRelationship<P, I>) intermediateToPrimary;
 
-        ReferencingRelationship<P, S> relationship = (context, primary) -> {
+        return (ReferencingRelationship<P, S>) (context, primary) -> {
             List<I> intermediates = ResourcesUtil.resourcesInSameNamespace(context, primary, intermediateType)
                     .filter(referencingIntermediateToPrimary.referencingSecondaries(context, primary))
                     .toList();
             return secondary -> intermediates.stream()
                     .anyMatch(intermediate -> intermediateRefersToSecondary.test(intermediate, secondary));
         };
-        return relationship;
     }
 
     /**

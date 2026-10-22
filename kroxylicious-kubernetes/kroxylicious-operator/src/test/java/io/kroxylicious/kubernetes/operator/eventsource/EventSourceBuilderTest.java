@@ -82,9 +82,10 @@ class EventSourceBuilderTest {
         var builder = EventSourceBuilder.forSecondary(context, KafkaService.class)
                 .withName("services")
                 .withMappers(NO_SECONDARIES, NO_PRIMARIES);
+        Relationship<VirtualKafkaCluster, KafkaService> secondary = Ref.toSecondary(cluster -> Optional.of(cluster.getSpec().getTargetKafkaServiceRef()));
 
         // When / Then
-        assertThatThrownBy(() -> builder.withRelationship(Ref.toSecondary(cluster -> Optional.of(cluster.getSpec().getTargetKafkaServiceRef()))))
+        assertThatThrownBy(() -> builder.withRelationship(secondary))
                 .isInstanceOf(IllegalStateException.class);
     }
 

@@ -9,10 +9,12 @@ package io.kroxylicious.kubernetes.operator.eventsource;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.EventSourceContext;
@@ -280,9 +282,10 @@ class RefTest {
                     throw new UnsupportedOperationException();
                 }
             };
+            BiPredicate<VirtualKafkaCluster, HasMetadata> intermediateRefersToSecondary = Ref.refersToAny(vkc -> vkc.getSpec().getFilterRefs());
 
             // When / Then
-            assertThatThrownBy(() -> Ref.toPrimaryVia(VirtualKafkaCluster.class, Ref.refersToAny(vkc -> vkc.getSpec().getFilterRefs()), notBuiltViaRef))
+            assertThatThrownBy(() -> Ref.toPrimaryVia(VirtualKafkaCluster.class, intermediateRefersToSecondary, notBuiltViaRef))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
